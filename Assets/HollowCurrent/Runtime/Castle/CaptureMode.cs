@@ -55,8 +55,22 @@ namespace HollowCurrent
             p.View.transform.localRotation=Quaternion.Euler(-Mathf.Atan2(d.y,new Vector2(d.x,d.z).magnitude)*Mathf.Rad2Deg,0,0);
             Physics.SyncTransforms();
         }
+        // Optional subset: -hc-capture-shots S1,S5,H05 (prefix match); other shots are skipped.
+        static string[] filter;
+        static bool Wanted(string id)
+        {
+            if(filter==null)
+            {
+                filter=new string[0];var args=Environment.GetCommandLineArgs();
+                for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-capture-shots")filter=args[i+1].Split(',');
+            }
+            if(filter.Length==0)return true;
+            foreach(var f in filter)if(id.StartsWith(f,StringComparison.Ordinal))return true;
+            return false;
+        }
         IEnumerator Shot(string id,string reference,Vector3 eye,Vector3 target,string note="")
         {
+            if(!Wanted(id)){Log(id+" skipped (shot filter)");yield break;}
             yield return new WaitForEndOfFrame();
             var texture=ScreenCapture.CaptureScreenshotAsTexture();
             string file=Path.Combine(Directory,id+".png");
