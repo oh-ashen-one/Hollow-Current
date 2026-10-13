@@ -1,0 +1,263 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace HollowCurrent
+{
+    public enum FloaterKind { Candelabra, ClosedBook, OpenBook }
+
+    // Code-only factories for the castle's surreal props, so the layout can place
+    // them without prefabs. Meshes, textures and materials are built once and
+    // shared, so every floater (and every rune, knife and bat) reuses the same
+    // assets and batches or instances. No Game/Investigation/Presence references.
+    public static partial class SurrealProps
+    {
+        // ---- viewer (the camera the billboards and light fades follow) ----
+        // Piece 0 may assign the player camera; otherwise Camera.main is used.
+        public static Transform Viewer;
+        // Optional shader for glowing/billboard materials, e.g. an additive one
+        // from Resources. Defaults to Sprites/Default (alpha blended, unlit).
+        public static Shader GlowShader;
+        static int viewerFrame=-1;
+        static Vector3 viewerPosition;
+        static bool viewerFound;
+        public static bool TryGetViewer(out Vector3 position)
+        {
+            if(viewerFrame!=Time.frameCount)
+            {
+                viewerFrame=Time.frameCount;
+                var t=Viewer;
+                if(!t){var cam=Camera.main;t=cam?cam.transform:null;}
+                viewerFound=t;viewerPosition=t?t.position:Vector3.zero;
+            }
+            position=viewerPosition;return viewerFound;
+        }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics()
+        {
+            Viewer=null;GlowShader=null;viewerFrame=-1;viewerFound=false;
+            ResetAssets();
+        }
+        static partial void ResetAssets();
+
+        // ---- materials ----
+        public static Material Unlit(string name,Texture texture,Color tint)
+        {
+            var shader=GlowShader?GlowShader:Shader.Find("Sprites/Default");
+            if(!shader)shader=Shader.Find("Standard");
+            var material=new Material(shader){name=name,mainTexture=texture,color=tint};
+            material.enableInstancing=true;
+            return material;
+        }
+        public static Material Lit(string name,Color color,float metallic,float smoothness)
+        {
+            var material=new Material(Shader.Find("Standard")){name=name,color=color};
+            material.SetFloat("_Metallic",metallic);material.SetFloat("_Glossiness",smoothness);
+            material.enableInstancing=true;
+            return material;
+        }
+
+        // ---- shared quads (pivot at base or at centre; visible side faces -Z like Unity's Quad) ----
+        static Mesh baseQuad,centreQuad;
+        public static Mesh BaseQuad=>baseQuad?baseQuad:baseQuad=Quad("Surreal base quad",0);
+        public static Mesh CentreQuad=>centreQuad?centreQuad:centreQuad=Quad("Surreal centre quad",.5f);
+        static Mesh Quad(string name,float pivotY)
+        {
+            var mesh=new Mesh{name=name};
+            mesh.vertices=new[]{new Vector3(-.5f,-pivotY,0),new Vector3(.5f,-pivotY,0),new Vector3(-.5f,1-pivotY,0),new Vector3(.5f,1-pivotY,0)};
+            mesh.uv=new[]{new Vector2(0,0),new Vector2(1,0),new Vector2(0,1),new Vector2(1,1)};
+            mesh.normals=new[]{Vector3.back,Vector3.back,Vector3.back,Vector3.back};
+            mesh.triangles=new[]{0,2,1,2,3,1};
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        // ---- helpers ----
+        internal static Transform NewChild(string name,Transform parent,Vector3 localPosition,Quaternion localRotation)
+        {
+            var go=new GameObject(name);
+            if(parent)go.transform.SetParent(parent,false);
+            go.transform.localPosition=localPosition;go.transform.localRotation=localRotation;
+            return go.transform;
+        }
+        internal static MeshRenderer NewRenderer(string name,Transform parent,Vector3 localPosition,Quaternion localRotation,Mesh mesh,Material[] materials,bool castShadows)
+        {
+            var t=NewChild(name,parent,localPosition,localRotation);
+            t.gameObject.AddComponent<MeshFilter>().sharedMesh=mesh;
+            var renderer=t.gameObject.AddComponent<MeshRenderer>();
+            renderer.sharedMaterials=materials;
+            renderer.shadowCastingMode=castShadows?UnityEngine.Rendering.ShadowCastingMode.On:UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows=castShadows;
+            return renderer;
+        }
+        internal static Texture2D MakeTexture(string name,int width,int height,Func<float,float,Color32> shade)
+        {
+            var texture=new Texture2D(width,height,TextureFormat.RGBA32,true){name=name,wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Bilinear};
+            var pixels=new Color32[width*height];
+            for(int y=0;y<height;y++)for(int x=0;x<width;x++)pixels[y*width+x]=shade((x+.5f)/width,(y+.5f)/height);
+            texture.SetPixels32(pixels);texture.Apply(true,true);
+            return texture;
+        }
+        static float Smooth(float edge0,float edge1,float x){float k=Mathf.Clamp01((x-edge0)/(edge1-edge0));return k*k*(3-2*k);}
+
+        // ---- candle flame ----
+        static Texture2D flameTexture;
+        static Material flameMaterial;
+        static Texture2D FlameTexture=>flameTexture?flameTexture:flameTexture=MakeTexture("Surreal flame",32,64,(u,v)=>
+        {
+            float width=.5f*Mathf.Pow(Mathf.Sin(Mathf.PI*Mathf.Pow(v,.6f)),.8f)*(1-.25f*v);
+            float d=Mathf.Abs(u-.5f);
+            float edge=width<.002f?0:Mathf.Clamp01((width-d)/.09f);
+            float core=Mathf.Clamp01(1-d/Mathf.Max(width,.001f))*(1-v*.6f);
+            var c=Color.Lerp(new Color(1,.42f,.08f),new Color(1,.95f,.7f),Mathf.Pow(core,1.5f));
+            c.a=edge*(.55f+.45f*core);
+            return c;
+        });
+        static Material FlameMaterial=>flameMaterial?flameMaterial:flameMaterial=Unlit("Surreal flame",FlameTexture,Color.white);
+
+        public static CandleFlame MakeCandleFlame(Transform parent,Vector3 localPosition,float height=.11f,bool withLight=false,string name="Candle flame")
+        {
+            var t=NewChild(name,parent,localPosition,Quaternion.identity);
+            var flame=t.gameObject.AddComponent<CandleFlame>();
+            flame.size=height;
+            var renderer=NewRenderer("Billboard",t,Vector3.zero,Quaternion.identity,BaseQuad,new[]{FlameMaterial},false);
+            renderer.transform.localScale=new Vector3(height*flame.widthRatio,height,1);
+            flame.billboard=renderer.transform;
+            if(withLight)
+            {
+                var lightObject=NewChild("Flame light",t,Vector3.up*height*.7f,Quaternion.identity).gameObject;
+                var light=lightObject.AddComponent<Light>();
+                light.type=LightType.Point;light.color=new Color(1,.62f,.3f);light.range=4.5f;light.intensity=flame.lightIntensity;
+                light.shadows=LightShadows.None;
+                flame.flameLight=light;
+            }
+            return flame;
+        }
+
+        // ---- floaters ----
+        // MakeFloater builds a floating candelabra or book under `parent` at
+        // `localPosition` (world position if parent is null). `seed` varies the
+        // phase and, for books, nothing else, so two calls with different seeds
+        // never bob together. Lit candles: lightedFlames of the five candles get
+        // a real point light (default 1); the rest are billboards only.
+        public static Floater MakeFloater(Transform parent,Vector3 localPosition,FloaterKind kind=FloaterKind.Candelabra,int seed=0,int lightedFlames=1)
+        {
+            var t=NewChild(kind==FloaterKind.Candelabra?"Floating candelabra":"Floating book",parent,localPosition,Quaternion.Euler(0,(seed*57)%360,0));
+            var floater=t.gameObject.AddComponent<Floater>();
+            floater.phase=Mathf.Repeat(seed*.6180339f,1);
+            switch(kind)
+            {
+                case FloaterKind.Candelabra:
+                {
+                    NewRenderer("Candelabra",t,Vector3.zero,Quaternion.identity,CandelabraMesh,CandelabraMaterials,true);
+                    var flames=new Transform[CandlePositions.Length];
+                    for(int i=0;i<flames.Length;i++)
+                    {
+                        var flame=MakeCandleFlame(t,CandlePositions[i],.11f,i<lightedFlames,"Flame "+i);
+                        flames[i]=flame.transform;
+                    }
+                    floater.flames=flames;
+                    floater.tiltDegrees=1.5f;floater.bobAmplitude=.1f;
+                    break;
+                }
+                default:
+                    NewRenderer("Book",t,Vector3.zero,Quaternion.identity,kind==FloaterKind.OpenBook?OpenBookMesh:ClosedBookMesh,BookMaterials,true);
+                    floater.tiltDegrees=7;floater.bobAmplitude=.16f;floater.yawDegreesPerSecond=6;floater.bobHertz=.17f;
+                    break;
+            }
+            return floater;
+        }
+
+        // ---- rune ring ----
+        // A floor ring of glowing runes centred at `localPosition` (world if parent
+        // is null). The ring lies in the XZ plane. watcher may be null (camera).
+        public static RuneRing MakeRuneRing(Transform parent,Vector3 localPosition,float radius=5.5f,int runeCount=28,Transform watcher=null)
+        {
+            var t=NewChild("Rune ring",parent,localPosition,Quaternion.identity);
+            var ring=t.gameObject.AddComponent<RuneRing>();
+            ring.radius=radius;ring.runeCount=runeCount;ring.watcher=watcher;
+            ring.runeSize=Mathf.Clamp(radius*.075f,.25f,.6f);
+            return ring;
+        }
+
+        // ---- portrait eyes ----
+        // A framed portrait whose painted eyes follow `target` (null = camera). The
+        // portrait faces along the returned transform's +Z (out of the wall); place
+        // its position at the picture centre. Size is the canvas in metres.
+        public static PortraitEyes MakePortraitEyes(Transform parent,Vector3 localPosition,Quaternion localRotation,float width=.9f,float height=1.3f,Transform target=null)
+        {
+            var t=NewChild("Watching portrait",parent,localPosition,localRotation);
+            var eyes=t.gameObject.AddComponent<PortraitEyes>();
+            var frame=NewRenderer("Frame",t,Vector3.zero,Quaternion.identity,FrameMesh,new[]{FrameMaterial},true);
+            frame.transform.localScale=new Vector3(width,height,1);
+            var back=Quaternion.Euler(0,180,0); // quads show their front on -Z; turn it to face +Z
+            var canvas=NewRenderer("Canvas",t,Vector3.zero,back,CentreQuad,new[]{PortraitMaterial},false);
+            canvas.transform.localScale=new Vector3(width,height,1);
+            var pupils=new Transform[2];
+            float size=width*.045f;
+            for(int i=0;i<2;i++)
+            {
+                float side=i==0?-1:1;
+                var p=NewRenderer("Pupil",t,new Vector3(side*PortraitEyeU*width,(PortraitEyeV-.5f)*height,.004f),back,CentreQuad,new[]{PupilMaterial},false);
+                p.transform.localScale=new Vector3(size,size,1);
+                pupils[i]=p.transform;
+            }
+            eyes.pupils=pupils;eyes.target=target;
+            eyes.maxOffset=width*.018f;
+            return eyes;
+        }
+
+        // ---- stair loop ----
+        // A trigger volume of `size` metres centred on localPosition (its floor
+        // sits size.y/2 below). Armed is false until the game arms it. It lives on
+        // layer 2 (Ignore Raycast) so interaction rays never hit it.
+        public static StairLoop MakeStairLoop(Transform parent,Vector3 localPosition,Vector3 size,Transform destination,bool armed=false,Quaternion? localRotation=null)
+        {
+            var t=NewChild("Stair loop",parent,localPosition,localRotation??Quaternion.identity);
+            t.gameObject.layer=2;
+            var box=t.gameObject.AddComponent<BoxCollider>();box.size=size;box.isTrigger=true;
+            var loop=t.gameObject.AddComponent<StairLoop>();
+            loop.destination=destination;loop.Armed=armed;
+            return loop;
+        }
+
+        // ---- orbiting knives ----
+        // `knives` steel knives circling localPosition (the middle of the orbit
+        // plane). knifeScale 1 makes ~0.33 m blades; 1.5 reads as "too big".
+        public static KnifeOrbit MakeKnifeOrbit(Transform parent,Vector3 localPosition,int knives=7,float radius=.9f,float knifeScale=1.4f)
+        {
+            var t=NewChild("Knife orbit",parent,localPosition,Quaternion.identity);
+            var orbit=t.gameObject.AddComponent<KnifeOrbit>();
+            orbit.radius=radius;
+            var list=new Transform[knives];
+            for(int i=0;i<knives;i++)
+            {
+                var r=NewRenderer("Knife "+i,t,Vector3.zero,Quaternion.identity,KnifeMesh,KnifeMaterials,true);
+                r.transform.localScale=Vector3.one*knifeScale;
+                list[i]=r.transform;
+            }
+            orbit.knives=list;
+            return orbit;
+        }
+
+        // ---- giant bats ----
+        // A flock of `bats` (clamped to 5-8) circling `localPosition` at `height`
+        // metres above it. Keep the parent chain at scale 1.
+        public static GiantBat MakeGiantBat(Transform parent,Vector3 localPosition,int bats=6,float radius=6,float height=3.5f,float wingspan=1.6f)
+        {
+            bats=Mathf.Clamp(bats,5,8);
+            var t=NewChild("Giant bats",parent,localPosition,Quaternion.identity);
+            var flock=t.gameObject.AddComponent<GiantBat>();
+            flock.radius=radius;flock.height=height;flock.wingspan=wingspan;
+            var list=new Transform[bats];
+            for(int i=0;i<bats;i++)
+            {
+                var r=NewRenderer("Bat "+i,t,Vector3.zero,Quaternion.identity,CentreQuad,new[]{BatMaterial},false);
+                r.transform.localScale=new Vector3(wingspan,wingspan*.5f,1);
+                list[i]=r.transform;
+            }
+            flock.bats=list;
+            return flock;
+        }
+    }
+}
