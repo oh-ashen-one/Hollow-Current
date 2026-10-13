@@ -174,7 +174,11 @@ namespace HollowCurrent
                 // (r6 measured 34.7% of frame height against a 58% request).
                 var pose=game.Creature.Actor.PoseBounds(0);
                 float feetY=game.Creature.transform.position.y,headTop=(game.Creature.Actor.Head?game.Creature.Actor.Head.position.y:pose.max.y)+.15f;
-                float bodyHeight=Mathf.Max(.5f,headTop-feetY);var bodyCentre=new Vector3(pose.center.x,(feetY+headTop)*.5f,pose.center.z);
+                // r7 first pass: the demon's perch crouch puts his head top only 0.94 m above his feet
+                // while the hands hang below the ledge, so head-to-feet alone framed him at 1.7 m and
+                // cropped him. The visible figure measured ~0.6 of PoseBounds in r6 (34.7% at a 58%
+                // request), so the framed height is the larger of the two, centred on the pose.
+                float bodyHeight=Mathf.Max(.5f,Mathf.Max(headTop-feetY,.6f*pose.size.y));var bodyCentre=pose.center;
                 var flat=t-e;flat.y=0;if(flat.sqrMagnitude<.01f)flat=Vector3.forward;flat.Normalize();
                 const float s5ViewFov=50,fill=.58f,pitch=4;
                 float d=bodyHeight/(fill*2*Mathf.Tan(s5ViewFov*.5f*Mathf.Deg2Rad));
@@ -186,7 +190,7 @@ namespace HollowCurrent
                     if(!floater)continue;var q=floater.transform.position;var seg=t-e;float u=Mathf.Clamp01(Vector3.Dot(q-e,seg)/seg.sqrMagnitude);
                     if(Vector3.Distance(q,e+seg*u)<1.2f)foreach(var r in floater.GetComponentsInChildren<Renderer>())if(r.enabled){r.enabled=false;hidden.Add(r);}
                 }
-                s5+=" -> flattened: pitch "+pitch+" deg, FOV "+s5ViewFov+", distance "+d.ToString("F2")+" m, body height (feet to head top) "+bodyHeight.ToString("F2")+" m, pose height "+pose.size.y.ToString("F2")+" m, floaters hidden "+hidden.Count;
+                s5+=" -> flattened: pitch "+pitch+" deg, FOV "+s5ViewFov+", distance "+d.ToString("F2")+" m, framed height max(head-to-feet "+(headTop-feetY).ToString("F2")+", 0.6 x pose) "+bodyHeight.ToString("F2")+" m, pose height "+pose.size.y.ToString("F2")+" m, floaters hidden "+hidden.Count;
             }
             Place(e,t);
             int moonsInFrame=0;
@@ -205,12 +209,13 @@ namespace HollowCurrent
             // Round 7: the demon's head is ~2.5 m; aim at mid-height so head, feet and the 1.80 m
             // figure stay in frame, and log their viewport positions.
             e=new Vector3(.4f,1.3f,5.6f);t=new Vector3(.4f,1.25f,2.2f);Place(e,t);
+            yield return new WaitForSecondsRealtime(1.5f);
             {
                 var cam=game.Player.View;var head=game.Creature.Actor.Head?game.Creature.Actor.Head.position+Vector3.up*.15f:new Vector3(-.2f,2.5f,2.2f);
                 string Vp(Vector3 w){var v=cam.WorldToViewportPoint(w);return "("+v.x.ToString("F2")+","+v.y.ToString("F2")+")";}
                 Log("S6 framing countHeadTop="+Vp(head)+" countFeet="+Vp(new Vector3(-.2f,0,2.2f))+" figureTop="+Vp(new Vector3(1.05f,1.8f,2.2f))+" figureFeet="+Vp(new Vector3(1.05f,0,2.2f))+" headTopY="+head.y.ToString("F2"));
             }
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse facing the gate (eye 0.4,1.3,5.6); Count feet (-0.2,0,2.2) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (1.05,0,2.2), investigator torch on");
+            yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse facing the gate (eye 0.4,1.3,5.6); Count feet (-0.2,0,2.2) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (1.05,0,2.2), investigator torch on");
             game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(man);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;
