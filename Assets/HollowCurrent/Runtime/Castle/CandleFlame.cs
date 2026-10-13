@@ -40,7 +40,8 @@ namespace HollowCurrent
 
         float seed;
         bool ready;
-        static bool reported;
+        static bool reported,leanReported;
+        Floater floater;
         static string Describe(Material m)
         {
             if(!m)return "<no material>";
@@ -71,6 +72,7 @@ namespace HollowCurrent
         void Start()
         {
             UseRuntimeMaterials();
+            floater=GetComponentInParent<Floater>();
             var p=transform.position;
             seed=Mathf.Abs(Mathf.Sin(p.x*12.9898f+p.y*37.719f+p.z*78.233f))*100f;
             ready=true;
@@ -88,7 +90,31 @@ namespace HollowCurrent
                 billboard.localScale=new Vector3(size*widthRatio*(2-level),height,1);
                 var to=billboard.position-viewer;
                 if(haveViewer&&to.sqrMagnitude<billboardRange*billboardRange&&to.sqrMagnitude>1e-4f)
-                    billboard.rotation=Quaternion.LookRotation(to,transform.up);
+                {
+                    // Lean toward the Count ON SCREEN. A 3D lean toward him is invisible when the camera looks along it (the S5
+                    // camera stands next to the candles and looks at him), so tilt the billboard's up toward his screen position:
+                    // the tip always points at him in the image. Degrees follow the floater's bend (about 33 at 6 m).
+                    var up=transform.up;
+                    if(floater&&floater.flameTarget&&floater.Bend01>.01f)
+                    {
+                        var view=to.normalized;
+                        var toTarget=floater.flameTarget.position+Vector3.up*1.2f-billboard.position;
+                        var across=toTarget-view*Vector3.Dot(toTarget,view);
+                        if(across.sqrMagnitude>.25f)
+                        {
+                            float degrees=floater.maxBendDegrees*floater.Bend01;
+                            up=Vector3.RotateTowards(Vector3.up,across.normalized,degrees*Mathf.Deg2Rad,0);
+                            if(!leanReported&&degrees>=20)
+                            {
+                                leanReported=true;
+                                Debug.Log("HC_LEAN_CHECK flame leans "+degrees.ToString("F0")+" deg toward the target at "+toTarget.magnitude.ToString("F1")+" m (floater bend "+floater.Bend01.ToString("F2")+")");
+                            }
+                        }
+                    }
+                    billboard.rotation=Quaternion.LookRotation(to,up);
+                }
+                // the halo rides on the flame's body, wherever the flame leans
+                if(glow)glow.position=billboard.position+billboard.up*(billboard.lossyScale.y*.45f);
             }
             if(glow)
             {
