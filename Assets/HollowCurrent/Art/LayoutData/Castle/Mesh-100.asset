@@ -6,7 +6,7 @@ Mesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Mesh-100
+  m_Name: Surreal base quad
   serializedVersion: 12
   m_SubMeshes:
   - serializedVersion: 2
@@ -17,7 +17,7 @@ Mesh:
     firstVertex: 0
     vertexCount: 4
     localAABB:
-      m_Center: {x: 0, y: 0, z: 0}
+      m_Center: {x: 0, y: 0.5, z: 0}
       m_Extent: {x: 0.5, y: 0.5, z: 0}
   m_Shapes:
     vertices: []
@@ -97,7 +97,7 @@ Mesh:
       format: 0
       dimension: 0
     m_DataSize: 128
-    _typelessdata: 000000bf000000bf000000000000000000000000000080bf8fc2f53b0ad7233c0000003f000000bf000000000000000000000000000080bfec51783e0ad7233c000000bf0000003f000000000000000000000000000080bf8fc2f53bf28ba53e0000003f0000003f000000000000000000000000000080bfec51783ef28ba53e
+    _typelessdata: 000000bf00000080000000000000000000000000000080bf00000000000000000000003f00000080000000000000000000000000000080bf0000803f00000000000000bf0000803f000000000000000000000000000080bf000000000000803f0000003f0000803f000000000000000000000000000080bf0000803f0000803f
   m_CompressedMesh:
     m_Vertices:
       m_NumItems: 0
@@ -151,7 +151,7 @@ Mesh:
       m_BitSize: 0
     m_UVInfo: 0
   m_LocalAABB:
-    m_Center: {x: 0, y: 0, z: 0}
+    m_Center: {x: 0, y: 0.5, z: 0}
     m_Extent: {x: 0.5, y: 0.5, z: 0}
   m_MeshUsageFlags: 0
   m_CookingOptions: 30
