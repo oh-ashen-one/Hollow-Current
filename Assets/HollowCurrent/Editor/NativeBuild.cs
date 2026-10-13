@@ -213,17 +213,33 @@ namespace HollowCurrent.Editor
             if(world.Map!=MapId.Castle)throw new Exception("Not a castle world");
             if(!NavMesh.SamplePosition(world.Spawn,out var origin,1,NavMesh.AllAreas))throw new Exception("Gatehouse spawn has no navigation surface");
             int routes=0;
+            // A point counts as reachable when some floor-level spot within 2.5 m of it
+            // (points often sit over furniture: dining table, altar, orrery) has a
+            // complete path from the gatehouse spawn.
+            var failures=new List<string>();
             foreach(var point in world.CastleRoutePoints())
             {
-                if(!NavMesh.SamplePosition(point,out var sample,1.2f,NavMesh.AllAreas))throw new Exception("No walkable surface near castle point: "+point);
-                var path=new NavMeshPath();if(!NavMesh.CalculatePath(origin.position,sample.position,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete)throw new Exception("Disconnected castle route: "+point);
-                routes++;
+                bool reached=false;
+                for(float r=0;r<=2.51f&&!reached;r+=.5f)for(int k=0;k<(r==0?1:12)&&!reached;k++)
+                {
+                    float a=k*Mathf.PI/6;var probe=point+new Vector3(Mathf.Cos(a)*r,.1f,Mathf.Sin(a)*r);
+                    if(!NavMesh.SamplePosition(probe,out var sample,.5f,NavMesh.AllAreas)||Mathf.Abs(sample.position.y-point.y)>.4f)continue;
+                    var path=new NavMeshPath();reached=NavMesh.CalculatePath(origin.position,sample.position,NavMesh.AllAreas,path)&&path.status==NavMeshPathStatus.PathComplete;
+                }
+                Debug.Log("HC_CASTLE_ROUTE "+point+" reachable="+reached);
+                if(reached)routes++;else failures.Add(point.ToString());
             }
-            foreach(InteractKind kind in new[]{InteractKind.Kit,InteractKind.Van,InteractKind.Anchor,InteractKind.Breaker})
+            if(failures.Count>0)throw new Exception("Disconnected castle routes ("+failures.Count+"): "+string.Join(" ",failures));
+            foreach(InteractKind kind in new[]{InteractKind.Kit,InteractKind.Van,InteractKind.Anchor,InteractKind.Breaker,InteractKind.Altar,InteractKind.Relic})
             {
                 bool found=false;foreach(var item in world.Root.GetComponentsInChildren<Interactable>())if(item.Kind==kind)found=true;
                 if(!found)throw new Exception("Castle is missing a "+kind+" interactable");
             }
+            // The castle hunter must load exactly as Presence loads it (no placeholder in a release).
+            var profile=HunterProfile.For(MapId.Castle);var model=Resources.Load<GameObject>(profile.ModelResource);
+            var actor=model?model.GetComponent<HearthboundActor>():null;
+            if(!actor||actor.BoneCount<profile.MinimumBones||!actor.Animator||!actor.Animator.runtimeAnimatorController)throw new Exception("Castle hunter model not loadable as a rigged HearthboundActor: "+profile.ModelResource);
+            Debug.Log("HC_CASTLE_HUNTER_PASS "+profile.Name+" "+profile.ModelResource+" bones="+actor.BoneCount);
             Debug.Log("HC_CASTLE_GEOMETRY_PASS "+routes+" routes from the gatehouse; case interactables present");
         }
         static void ValidateWorld(World world)

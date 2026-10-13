@@ -144,7 +144,7 @@ namespace HollowCurrent
         {
             var list=new List<Vector3>();if(Map!=MapId.Castle||Castle==null)return list;
             void Add(Vector3 p){list.Add(new Vector3(p.x,FloorBelow(p.y),p.z));}
-            Add(Castle.Compass);Add(Castle.Voice);Add(Castle.Anchor);Add(Castle.AltarPosition);Add(Castle.HunterSpawn);Add(Castle.DrawbridgeTrigger.center);
+            Add(Castle.Compass);Add(Castle.Voice);Add(Castle.Anchor);Add(Castle.AltarPosition);Add(Castle.HunterSpawn);Add(Castle.DrawbridgeWinch); // the far-bank trigger is only reachable once the bridge is lowered
             if(Castle.RelicPositions!=null)foreach(var p in Castle.RelicPositions)Add(p);
             return list;
         }
