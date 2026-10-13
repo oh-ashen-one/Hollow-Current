@@ -40,8 +40,49 @@ namespace HollowCurrent
 
         float seed;
         bool ready;
-        static bool reported,leanReported;
+        static bool reported;
         Floater floater;
+        // Degrees the billboard is rotated about the view axis away from the candle's on-screen axis (0 when not leaning).
+        public float LeanDegrees{get;private set;}
+        public static readonly System.Collections.Generic.List<CandleFlame> All=new System.Collections.Generic.List<CandleFlame>();
+        static float nextReport;static int reportsLeft=3;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetStatics(){All.Clear();reported=false;nextReport=0;reportsLeft=3;}
+        void OnEnable(){if(!All.Contains(this))All.Add(this);}
+        void OnDisable(){All.Remove(this);}
+
+        // Self-test: logs, for the three flames nearest the viewer that are leaning, the on-screen tilt of the flame quad against the
+        // candle's own axis, measured from the screen positions of the quad's base and tip (HC_LEAN_CHECK). Called automatically
+        // (up to three times, 2 s apart, once a flame leans) and by capture code after a shot: CandleFlame.LogLeanReport("S5").
+        public static void LogLeanReport(string tag)
+        {
+            var cam=Camera.main;if(!cam&&SurrealProps.Viewer)cam=SurrealProps.Viewer.GetComponent<Camera>();
+            if(!cam){Debug.Log("HC_LEAN_CHECK "+tag+": no camera");return;}
+            var pick=new CandleFlame[3];var dist=new float[3];int n=0;
+            foreach(var f in All)
+            {
+                if(!f||!f.billboard||f.LeanDegrees<=0)continue;
+                float d=Vector3.Distance(cam.transform.position,f.billboard.position);
+                int slot=n<3?n++:-1;
+                if(slot<0){int worst=0;for(int i=1;i<3;i++)if(dist[i]>dist[worst])worst=i;if(d<dist[worst])slot=worst;else continue;}
+                pick[slot]=f;dist[slot]=d;
+            }
+            if(n==0){Debug.Log("HC_LEAN_CHECK "+tag+": no flame is leaning ("+All.Count+" flames, none with a target in range)");return;}
+            for(int i=0;i<n;i++)
+            {
+                var b=pick[i].billboard;float h=Mathf.Max(.01f,b.lossyScale.y);
+                Vector2 p0=cam.WorldToScreenPoint(b.position),quad=(Vector2)cam.WorldToScreenPoint(b.position+b.up*h)-p0,candle=(Vector2)cam.WorldToScreenPoint(b.position+Vector3.up*h)-p0;
+                Debug.Log("HC_LEAN_CHECK "+tag+" candle "+(i+1)+" at "+dist[i].ToString("F1")+" m: flame quad is tilted "+Mathf.Abs(Vector2.SignedAngle(candle,quad)).ToString("F0")+" deg on screen from its candle axis (quad "+Vector2.SignedAngle(Vector2.up,quad).ToString("F0")+" deg, candle "+Vector2.SignedAngle(Vector2.up,candle).ToString("F0")+" deg from screen vertical; applied lean "+pick[i].LeanDegrees.ToString("F0")+" deg)");
+            }
+        }
+        static void MaybeReport()
+        {
+            if(reportsLeft<=0||Time.unscaledTime<nextReport)return;
+            foreach(var f in All)if(f&&f.LeanDegrees>=20)
+            {
+                nextReport=Time.unscaledTime+2f;reportsLeft--;LogLeanReport("auto");return;
+            }
+        }
         static string Describe(Material m)
         {
             if(!m)return "<no material>";
@@ -91,29 +132,25 @@ namespace HollowCurrent
                 var to=billboard.position-viewer;
                 if(haveViewer&&to.sqrMagnitude<billboardRange*billboardRange&&to.sqrMagnitude>1e-4f)
                 {
-                    // Lean toward the Count ON SCREEN. A 3D lean toward him is invisible when the camera looks along it (the S5
-                    // camera stands next to the candles and looks at him), so tilt the billboard's up toward his screen position:
-                    // the tip always points at him in the image. Degrees follow the floater's bend (about 33 at 6 m).
+                    // The lean is a ROTATION OF THE BILLBOARD ABOUT THE VIEW AXIS: from the candle's own axis as it appears on screen
+                    // (world up flattened against the sight line) toward the side of the screen the Count is on, by the floater's bend
+                    // (55 deg x smoothstep: about 33 at 6 m, 50 at 3 m). It is visible from any camera, however the Count is placed
+                    // relative to the sight line (a 3D lean along the view axis, or toward a Count straight above, is not).
                     var up=transform.up;
+                    LeanDegrees=0;
                     if(floater&&floater.flameTarget&&floater.Bend01>.01f)
                     {
                         var view=to.normalized;
-                        var toTarget=floater.flameTarget.position+Vector3.up*1.2f-billboard.position;
-                        // Lean horizontally toward him, as seen on screen. The Count usually perches above the candles, so
-                        // "toward him on screen" would be straight up (no visible lean): use the horizontal part of the offset,
-                        // and when that runs along the sight line (foreshortened), lean toward the side of the screen he is on.
-                        var horizontal=new Vector3(toTarget.x,0,toTarget.z);
-                        var across=horizontal-view*Vector3.Dot(horizontal,view);
-                        Vector3 lean;
-                        if(horizontal.sqrMagnitude>.04f&&across.sqrMagnitude>.25f*horizontal.sqrMagnitude)lean=across.normalized;
-                        else{var right=SurrealProps.ViewerRight;lean=Vector3.Dot(toTarget,right)<0?-right:right;}
+                        var axis=Vector3.up-view*Vector3.Dot(Vector3.up,view);
+                        axis=axis.sqrMagnitude<.01f?SurrealProps.ViewerUp:axis.normalized;
+                        var right=Vector3.Cross(axis,view).normalized;   // Unity: right = up x forward
                         float degrees=floater.maxBendDegrees*floater.Bend01;
-                        up=Vector3.RotateTowards(Vector3.up,lean,degrees*Mathf.Deg2Rad,0);
-                        if(!leanReported&&degrees>=20)
-                        {
-                            leanReported=true;
-                            Debug.Log("HC_LEAN_CHECK flame leans "+degrees.ToString("F0")+" deg off its candle toward the target at "+toTarget.magnitude.ToString("F1")+" m (floater bend "+floater.Bend01.ToString("F2")+", screen lean "+Vector3.Angle(Vector3.up,up).ToString("F0")+" deg)");
-                        }
+                        var toTarget=floater.flameTarget.position+Vector3.up*1.2f-billboard.position;
+                        float side=Vector3.Dot(toTarget,right);
+                        float sign=Mathf.Abs(side)>.05f?Mathf.Sign(side):(seed>50?1f:-1f);
+                        float radians=degrees*Mathf.Deg2Rad;
+                        up=axis*Mathf.Cos(radians)+right*(sign*Mathf.Sin(radians));
+                        LeanDegrees=degrees;
                     }
                     billboard.rotation=Quaternion.LookRotation(to,up);
                 }
@@ -126,6 +163,7 @@ namespace HollowCurrent
                 var to=glow.position-viewer;
                 if(haveViewer&&to.sqrMagnitude<billboardRange*billboardRange&&to.sqrMagnitude>1e-4f)glow.rotation=Quaternion.LookRotation(to,Vector3.up);
             }
+            if(this==(All.Count>0?All[0]:null))MaybeReport();
             if(flameLight)
             {
                 float fade=1;

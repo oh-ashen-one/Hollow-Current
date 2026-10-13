@@ -19,10 +19,11 @@ namespace HollowCurrent
         // from Resources. Defaults to Sprites/Default (alpha blended, unlit).
         public static Shader GlowShader;
         static int viewerFrame=-1;
-        static Vector3 viewerPosition,viewerRight=Vector3.right;
+        static Vector3 viewerPosition,viewerRight=Vector3.right,viewerUp=Vector3.up;
         static bool viewerFound;
         // Screen-right of the viewer (valid after TryGetViewer this frame).
         public static Vector3 ViewerRight=>viewerRight;
+        public static Vector3 ViewerUp=>viewerUp;
         public static bool TryGetViewer(out Vector3 position)
         {
             if(viewerFrame!=Time.frameCount)
@@ -30,7 +31,7 @@ namespace HollowCurrent
                 viewerFrame=Time.frameCount;
                 var t=Viewer;
                 if(!t){var cam=Camera.main;t=cam?cam.transform:null;}
-                viewerFound=t;viewerPosition=t?t.position:Vector3.zero;viewerRight=t?t.right:Vector3.right;
+                viewerFound=t;viewerPosition=t?t.position:Vector3.zero;viewerRight=t?t.right:Vector3.right;viewerUp=t?t.up:Vector3.up;
             }
             position=viewerPosition;return viewerFound;
         }

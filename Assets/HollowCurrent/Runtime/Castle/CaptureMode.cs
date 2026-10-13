@@ -99,7 +99,7 @@ namespace HollowCurrent
             // S1: great hall from the entrance doors at eye level.
             var e=new Vector3(0,1.64f,14.7f);var t=new Vector3(0,2.6f,27);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S1_great_hall",3);
-            yield return Shot("S1_great_hall","refs/great_hall.png",e,t);
+            yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");
             // S2: chapel altar from the nave.
             e=new Vector3(7.0f,1.64f,6.5f);t=spots!=null?spots.AltarPosition+Vector3.up*.3f:new Vector3(13,1.6f,6.5f);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S2_chapel_altar","refs/chapel_altar.png",e,t);
@@ -187,6 +187,7 @@ namespace HollowCurrent
             foreach(var tr in game.World.Root.GetComponentsInChildren<Transform>(true))if(tr.name=="Pale moon"||tr.name=="Red moon"){var vp=game.Player.View.WorldToViewportPoint(tr.position);if(vp.z>0&&vp.x>0&&vp.x<1&&vp.y>0&&vp.y<1)moonsInFrame++;}
             Log("S5 "+s5+" eye="+V(e)+" target="+V(t)+" moonSpritesInFrame="+moonsInFrame);
             yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,s5+"; moon sprites in frame "+moonsInFrame+"; Count feet "+V(game.Creature.transform.position)+", investigator torch on");
+            CandleFlame.LogLeanReport("S5");
             foreach(var r in hidden)if(r)r.enabled=true;game.Player.View.fieldOfView=s5Fov;
             game.Creature.Dismiss();
             // S6: Count Claude standing on the courtyard floor (Mode 2 Search) with a 1.80 m
@@ -223,6 +224,7 @@ namespace HollowCurrent
             {
                 while(game.Creature.CaptureClock<i+1){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
                 var view=game.Player.View.transform;
+                if(i==4)CandleFlame.LogLeanReport("H05");
                 yield return Shot("H"+(i+1).ToString("00")+"_hunt_dive","(hunt sequence)",view.position,view.position+view.forward*5,"clock="+game.Creature.CaptureClock.ToString("F2")+" phase="+game.Case.Phase+" "+game.Creature.CaptureNote);
             }
             game.Creature.EndCaptureChoreography();

@@ -171,12 +171,13 @@ namespace HollowCurrent
             Mat("blood", new Color(.45f, .03f, .04f), new Color(.38f, .02f, .03f));
             Mat("bloodpool", new Color(.36f, .02f, .03f), new Color(.45f, .02f, .035f));
             Mat("ember", new Color(.35f, .1f, .04f), new Color(1.8f, .5f, .12f));
+            Mat("silver", new Color(.62f, .64f, .68f)); Mat("socket", new Color(.012f, .012f, .018f));
         }
         void Mat(string id, Color c, Color emission = default(Color))
         {
             var shader = Shader.Find("Standard");
             var m = new Material(shader) { name = "HC castle / " + id, color = c };
-            m.SetFloat("_Glossiness", id == "metal" || id == "brass" ? .35f : id == "blood" || id == "bloodpool" ? .55f : .12f);
+            m.SetFloat("_Glossiness", id == "metal" || id == "brass" ? .35f : id == "silver" ? .75f : id == "blood" || id == "bloodpool" ? .55f : .12f);
             if (id == "bloodpool") m.SetFloat("_Metallic", .2f);
             if (emission.maxColorComponent > 0) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", emission); }
             mats[id] = m;
@@ -340,25 +341,31 @@ namespace HollowCurrent
             // crypt
             new VeneerRule(false, -6, 14, 28, -3.2f, -.2f, 1), new VeneerRule(false, 6, 14, 28, -3.2f, -.2f, -1),
             new VeneerRule(true, 14, -6, 6, -3.2f, -.2f, 1), new VeneerRule(true, 28, -6, 6, -3.2f, -.2f, -1),
+            // gatehouse (S6): the inner faces of its four walls
+            new VeneerRule(false, -6, 0, 6, 0, 7.5f, 1), new VeneerRule(false, 6, 0, 6, 0, 7.5f, -1),
+            new VeneerRule(true, 0, -6, 6, 0, 7.5f, 1), new VeneerRule(true, 6, -6, 6, 0, 7.5f, -1),
             // exterior front, outer face (seen from the far bank)
             new VeneerRule(true, 0, -14.45f, 14.45f, -.3f, 7.5f, -1),
         };
-        // Stone variants in weighted order: mostly weathered grey, some cold, mossy and warm, one black stone in twelve.
-        static readonly int[] StoneOrder = { 0, 1, 2, 5, 4, 0, 1, 2, 5, 3, 4, 0 };
-        // hc/look5 provides Castle_StoneWeathered / Castle_StoneDark / Castle_StoneMossy; until they are merged Surface() returns null for
-        // them and the module falls back to the tinted Castle_Stone of the same slot.
-        static readonly (string material, string fallback, Color tint)[] StoneVariants =
+        // One stone family, per-module seeded pick (round 6): Weathered / Dark / Mossy with tints that equalise their mean luminance
+        // (about 0.38) so neighbouring modules differ in texture and hue, not in brightness. Lower bands lean Mossy/Dark, upper
+        // bands Weathered. No black stone and no flag tint: those read as untextured panels in the r5 captures.
+        static readonly (string material, Color tint)[] StoneFamily =
         {
-            ("Castle_StoneWeathered", "Castle_Stone", new Color(.8f, .8f, .84f)), ("Castle_StoneDark", "Castle_Stone", new Color(.62f, .65f, .74f)),
-            ("Castle_StoneMossy", "Castle_Stone", new Color(.66f, .78f, .62f)), ("Castle_BlackStone", "Castle_BlackStone", Color.white),
-            ("Castle_FlagStone", "Castle_FlagStone", new Color(.74f, .74f, .8f)), ("Castle_Stone", "Castle_Stone", new Color(.88f, .80f, .70f)),
+            ("Castle_StoneWeathered", new Color(.80f, .80f, .82f)), ("Castle_StoneDark", new Color(1.9f, 1.9f, 1.85f)), ("Castle_StoneMossy", new Color(1.05f, 1.05f, 1.05f)),
         };
-        int tileCount;
-        Material StoneVariant(int hash)
+        static readonly string[] DecalNames = { "Castle_DecalCracksA", "Castle_DecalCracksB", "Castle_DecalChips", "Castle_DecalStain", "Castle_SootBase" };
+        Material StoneVariant(int pick)
         {
-            var v = StoneVariants[StoneOrder[((hash % StoneOrder.Length) + StoneOrder.Length) % StoneOrder.Length]];
-            return CastleArt.Surface(v.material, CastleArt.SurfaceKind.World, v.tint) ?? CastleArt.Surface(v.fallback, CastleArt.SurfaceKind.World, v.tint);
+            var v = StoneFamily[((pick % 3) + 3) % 3];
+            return CastleArt.Surface(v.material, CastleArt.SurfaceKind.World, v.tint) ?? CastleArt.Surface("Castle_Stone", CastleArt.SurfaceKind.World, new Color(.8f, .8f, .84f));
         }
+        static int PickFamily(System.Random rnd, bool lowerBand)
+        {
+            double p = rnd.NextDouble();
+            return lowerBand ? (p < .38 ? 2 : p < .75 ? 1 : 0) : (p < .6 ? 0 : p < .8 ? 1 : 2);
+        }
+        int tileCount;
         static void Paint(Transform tile, Material m)
         {
             if (!m) return;
@@ -373,20 +380,48 @@ namespace HollowCurrent
             float s0 = Mathf.Max(a0, r.A0), s1 = Mathf.Min(a1, r.A1), v0 = Mathf.Max(y0, r.Y0), v1 = Mathf.Min(y1, r.Y1);
             float len = s1 - s0, h = v1 - v0;
             if (len < .8f || h < 1.0f) return;
-            int n = Mathf.Max(1, Mathf.RoundToInt(len / 4f)); float w = len / n;
+            int n = Mathf.Max(1, Mathf.RoundToInt(len / 2f)); float w = len / n;      // 2 m modules, stretched 0.7x to 1.5x to fit
             int bands = Mathf.Max(1, Mathf.RoundToInt(h / 3.2f)); float bh = h / bands;
-            bool wide = w >= 3f; string art = wide ? Art.Wall4m : Art.Wall2m; float baseW = wide ? 4f : 2f;
             float centre = line + r.Side * (t * .5f + .0625f);   // module body is 0.125 m thick after the squeeze; its back face sits on the cube face
+            var rnd = new System.Random(Mathf.RoundToInt(s0 * 37) * 7919 + Mathf.RoundToInt(line * 13) * 104729 + Mathf.RoundToInt(v0 * 11) * 1299709 + r.Side);
             for (int i = 0; i < n; i++)
                 for (int j = 0; j < bands; j++)
                 {
                     float along = s0 + (i + .5f) * w, y = v0 + j * bh;
                     var pos = alongX ? new Vector3(along, y, centre) : new Vector3(centre, y, along);
-                    var tile = ArtAt(art, pos, alongX ? 0 : 90);
-                    tile.localScale = new Vector3(w / baseW, bh / 3.2f, .25f);
-                    Paint(tile, StoneVariant(Mathf.RoundToInt(s0 * 7) + 13 * i + 31 * j + Mathf.RoundToInt(line * 3) + Mathf.RoundToInt(v0 * 5)));
+                    var tile = ArtAt(Art.Wall2m, pos, alongX ? 0 : 90);
+                    tile.localScale = new Vector3(w / 2f, bh / 3.2f, .25f);
+                    Paint(tile, StoneVariant(PickFamily(rnd, y < v0 + 1.5f && v0 < 1f)));
+                    MakeStatic(tile);
                     tileCount++;
+                    if (rnd.NextDouble() < .30) WallDecal(rnd, alongX, line, r.Side, t, along, y, w, bh);
                 }
+        }
+
+        static void MakeStatic(Transform t)
+        {
+#if UNITY_EDITOR
+            // the prepared scene is built in the editor: mark the module static (batching, GI) so the player merges equal-material modules
+            t.gameObject.isStatic = true;
+#endif
+        }
+
+        // Crack / chip / stain / soot decal on a module, 1.5 cm off the relief face (the decal shader carries its own depth bias).
+        void WallDecal(System.Random rnd, bool alongX, float line, int side, float t, float along, float y, float w, float bh)
+        {
+            string name = DecalNames[rnd.Next(DecalNames.Length)];
+            if (name == "Castle_SootBase" && y > 1f) name = "Castle_DecalStain";   // soot only at the foot of a wall
+            var m = CastleArt.Decal(name);
+            if (!m) return;
+            bool soot = name == "Castle_SootBase";
+            float sw = soot ? Mathf.Max(1.2f, w) : (name == "Castle_DecalChips" ? 1.5f : 2f), sh = soot ? 1.2f : (name == "Castle_DecalStain" ? 2f : (name == "Castle_DecalChips" ? 1.5f : 2f));
+            float cy = soot ? y + .6f : y + bh * (.35f + .3f * (float)rnd.NextDouble());
+            float ca = along + (float)(rnd.NextDouble() - .5) * Mathf.Max(0f, w - sw * .5f);
+            float off = line + side * (t * .5f + .125f + .045f);
+            var pos = alongX ? new Vector3(ca, cy, off) : new Vector3(off, cy, ca);
+            var normal = alongX ? new Vector3(0, 0, side) : new Vector3(side, 0, 0);
+            var r = SurrealProps.NewRenderer("Wall decal " + name, root, pos, Quaternion.LookRotation(-normal), SurrealProps.CentreQuad, new[] { m }, false);
+            r.transform.localScale = new Vector3(sw, sh, 1);
         }
 
         // 2 m flagstones over a cube floor (collision unchanged). `skip` returns true for tiles that must stay open.
@@ -400,6 +435,7 @@ namespace HollowCurrent
                     var tile = ArtAt(Art.FloorTile, new Vector3(cx, y, cz), 90 * (k % 4));
                     var v = CastleArt.Surface("Castle_FlagStone", CastleArt.SurfaceKind.World, Color.Lerp(new Color(.66f, .66f, .72f), new Color(.92f, .9f, .94f), Mathf.Repeat(k * .6180339f, 1)));
                     Paint(tile, v);
+                    MakeStatic(tile);
                     tileCount++;
                 }
         }
@@ -550,6 +586,15 @@ namespace HollowCurrent
             var leafArt = CastleArt.Place(Art.Drawbridge, hinge.transform, Vector3.zero, Quaternion.identity);
             float artYaw = 0;
             if (ArtLocalCentre(leafArt, hinge.transform).z > 0) { artYaw = 180; leafArt.transform.localRotation = Quaternion.Euler(0, 180, 0); }
+            // planks: the oak slots of the leaf get a world-space plank surface (brighter than the prop upgrade, which read as a flat
+            // dark plane from the far bank); Castle_Planks is used when the look builder provides it.
+            var plank = CastleArt.Surface("Castle_Planks", CastleArt.SurfaceKind.World, Color.white) ?? CastleArt.Surface("Castle_Oak", CastleArt.SurfaceKind.World, new Color(1.5f, 1.4f, 1.3f));
+            if (plank) foreach (var pr in leafArt.transform.GetComponentsInChildren<Renderer>())
+            {
+                var slots = pr.sharedMaterials; bool any = false;
+                for (int pi = 0; pi < slots.Length; pi++) if (slots[pi] && slots[pi].name.StartsWith("Castle_Oak", System.StringComparison.Ordinal)) { slots[pi] = plank; any = true; }
+                if (any) pr.sharedMaterials = slots;
+            }
             var chains = CastleArt.Place(Art.DrawbridgeChains, root, new Vector3(0, 0, -.45f), Quaternion.Euler(0, artYaw, 0));
             chains.gameObject.SetActive(false);
             var chainGate = chains.gameObject;
@@ -728,7 +773,7 @@ namespace HollowCurrent
         {
             foreach (int side in new[] { -1, 1 })
                 foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
-                    Prop(Art.ColumnGreat, new Vector3(side * 3.9f, 0, z), 0);
+                    Pier(new Vector3(side * 3.9f, 0, z));
             // The banquet table lies on the hall axis (x = 0), its throne at the far end, chairs down both sides.
             var table = ArtAt(Art.LongTable, CastleLayout.TablePos, CastleLayout.TableYaw);
             table.localScale = new Vector3(CastleLayout.TableLengthScale, 1, CastleLayout.TableWidthScale);
@@ -755,17 +800,17 @@ namespace HollowCurrent
             var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
             skeleton.localScale = CastleLayout.SkeletonScaleVec;
             CheckHallAxis(skeleton);
-            foreach (var b in CastleLayout.HallBanners) ArtAt(Art.Banner, b.Pos, b.Yaw);
+            foreach (var b in CastleLayout.HallBanners) ArtAt(CastleArt.Names.TapestryPanel, b.Pos, b.Yaw);
             int seed = 100;
             foreach (var p in CastleLayout.HallCandelabras)
             {
-                if (CastleLayout.NearCaptureLine(p, 2f)) continue;   // keep the S5/S6 camera lines clear
+                if (CastleLayout.NearCaptureLine(p, 1.2f)) continue;   // keep the S5/S6 camera lines clear
                 var f = SurrealProps.MakeFloater(root, p, FloaterKind.Candelabra, seed++, 0);
                 f.transform.localScale = Vector3.one * 1.6f;
             }
             for (int i = 0; i < CastleLayout.HallBooks.Length; i++)
             {
-                if (CastleLayout.NearCaptureLine(CastleLayout.HallBooks[i], 2f)) continue;
+                if (CastleLayout.NearCaptureLine(CastleLayout.HallBooks[i], 1.2f)) continue;
                 var book = ArtAt(Art.FloatingBook, CastleLayout.HallBooks[i], 0);
                 book.localScale = Vector3.one * 2.2f;
                 // pages tipped up toward the entrance so the open book reads from the aisle
@@ -786,13 +831,13 @@ namespace HollowCurrent
                 {
                     var arch = ArtAt(Art.PointedArch, new Vector3(side * 3.9f, 0, zc), 90);
                     arch.localScale = new Vector3(Mathf.Approximately(zc, 23.0f) ? .93f : 1f, 1, 1);
-                    Paint(arch, StoneVariant(100 + k++));
+                    Paint(arch, StoneVariant(k)); MakeStatic(arch); k++;
                 }
             foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
             {
                 var rib = ArtAt(Art.VaultRib, new Vector3(0, 6.0f, z), 0);
                 rib.localScale = new Vector3(1.95f, 1, 1);   // 4 m span -> 7.8 m, apex 8.84 under the 9.0 roof
-                Paint(rib, StoneVariant(200 + k++));
+                Paint(rib, StoneVariant(k)); MakeStatic(rib); k++;
             }
         }
 
@@ -850,20 +895,43 @@ namespace HollowCurrent
             if (ok) Debug.Log(line); else Debug.LogError(line);
         }
 
+        // Colonnade pier built from the wall modules (round 6): the round ColumnGreat art stood inside the square arch piers and poked
+        // through them. The column visual is gone; the collider box of the old column stays. Four module faces form a coursed square
+        // pier of the old footprint (0.9 m, 8.8 m); the arch piers and cross ribs spring from it.
+        void Pier(Vector3 foot)
+        {
+            const float size = .9f, height = 8.8f;
+            Proxy("ColumnGreat collision", foot + new Vector3(0, height * .5f, 0), new Vector3(size, height, size));
+            int bands = Mathf.RoundToInt(height / 3.2f); float bh = height / bands;
+            var rnd = new System.Random(Mathf.RoundToInt(foot.x * 10) * 31 + Mathf.RoundToInt(foot.z * 10));
+            for (int face = 0; face < 4; face++)
+            {
+                bool alongX = face < 2; int sign = face % 2 == 0 ? 1 : -1;
+                for (int j = 0; j < bands; j++)
+                {
+                    float off = size * .5f - .0625f;    // outer face flush with the old column footprint
+                    var pos = foot + (alongX ? new Vector3(0, j * bh + (face == 1 ? .004f : 0), sign * off) : new Vector3(sign * off, j * bh + (face == 3 ? .004f : 0), 0));
+                    var tile = ArtAt(Art.Wall2m, pos, alongX ? 0 : 90);
+                    tile.localScale = new Vector3(size / 2f, bh / 3.2f, .25f);
+                    Paint(tile, StoneVariant(PickFamily(rnd, j == 0)));
+                    MakeStatic(tile);
+                    tileCount++;
+                }
+            }
+        }
+
         // The two moons are painted into the openings of the rose window and the chapel windows as distant sprites, placed
         // on the rays from the capture eyes through each opening (the skybox moons sit at azimuths no narrow window frames).
         void Moons()
         {
-            void Pair(Vector3 eye, Vector3 window, Vector3 tangent, float spread, float radius, float distance)
+            // Rose window: both moons are painted into the opening itself, just outside the wall, so they sit inside the glass from
+            // every viewpoint in the hall (S1 from the doors, the round-6 S5 from the rose-window ledge) instead of on one eye's ray.
+            // WindowMoon hides them from outside, where the real sky moons are the only moons.
+            foreach (int k in new[] { 0, 1 })
             {
-                for (int k = 0; k < 2; k++)
-                {
-                    var through = window + tangent * (k == 0 ? -spread : spread) + Vector3.up * (k == 0 ? .15f : -.15f);
-                    var at = eye + (through - eye).normalized * distance;
-                    SurrealProps.MakeMoon(root, at, eye, radius, k == 1);
-                }
+                var at = new Vector3(k == 0 ? -.72f : .72f, k == 0 ? 7.25f : 6.95f, 28.85f);
+                SurrealProps.MakeMoon(root, at, at + new Vector3(0, -.3f, -8f), .5f, k == 1);
             }
-            Pair(CastleLayout.RoseWindowEye, new Vector3(0, 7.1f, 28f), Vector3.right, .62f, 1.9f, 55f);
             // Chapel windows: no sprites (round 4). The real sky shows through them, and the only window pane in the chapel is
             // CastleAtmosphere's painted-over sun window.
         }
@@ -909,9 +977,41 @@ namespace HollowCurrent
             Note("Chapel inscription", new Vector3(12.75f, 1.44f, 5.7f), "Chapel inscription",
                 "Cut into the altar slab:\n\nWHAT WAS BARGAINED FOR NIGHT IS PAID IN BLOOD. WHAT WAS HIDDEN FROM HIM IS HIDDEN IN THREE: THE BLADE UNDER THE CRYPT, THE HILT AMONG THE STARS, THE STONE BEHIND A FACE.\n\nBring them here and the altar remembers its trade.");
             FloorTiles(6, 14, 0, 14, 0, null);
+            AltarInlay();
             ChapelFont();
             ChapelBrazier();
             ChapelCandles();
+        }
+
+        // The three relic sockets on the altar top (round 6): a blade slot, a cross for the hilt and a round seat for the moonstone,
+        // each a dark inset inside a silver rim, laid along the altar's length (world z) at the art's recess positions.
+        void AltarInlay()
+        {
+            const float x = 13.0f, top = 1.422f;
+            void Pair(string name, Vector3 centre, Vector3 rim, Vector3 inset, bool round = false)
+            {
+                if (round)
+                {
+                    Cyl(name + " rim", centre + new Vector3(0, top, 0), rim.x, .006f, "silver");
+                    Cyl(name + " socket", centre + new Vector3(0, top + .004f, 0), inset.x, .006f, "socket");
+                }
+                else
+                {
+                    Box(name + " rim", centre + new Vector3(0, top, 0), rim, "silver", false);
+                    Box(name + " socket", centre + new Vector3(0, top + .004f, 0), inset, "socket", false);
+                }
+            }
+            Pair("Blade", new Vector3(x, 0, 5.85f), new Vector3(.2f, .006f, .66f), new Vector3(.12f, .006f, .56f));
+            Pair("Hilt bar", new Vector3(x, 0, 6.5f), new Vector3(.17f, .006f, .5f), new Vector3(.09f, .006f, .42f));
+            Pair("Hilt guard", new Vector3(x, 0, 6.5f), new Vector3(.42f, .006f, .15f), new Vector3(.34f, .006f, .09f));
+            Pair("Moonstone", new Vector3(x, 0, 7.15f), new Vector3(.38f, 0, 0), new Vector3(.3f, 0, 0), true);
+            // carved front: chips and a damp stain so the black box has relief and wear (decals 2 cm off the altar front)
+            foreach (var d in new[] { ("Castle_DecalChips", 5.75f, 1.2f), ("Castle_DecalStain", 7.0f, 1.5f) })
+            {
+                var m = CastleArt.Decal(d.Item1); if (!m) continue;
+                var r = SurrealProps.NewRenderer("Altar decal", root, new Vector3(12.43f, .86f, d.Item2), Quaternion.LookRotation(Vector3.right), SurrealProps.CentreQuad, new[] { m }, false);
+                r.transform.localScale = new Vector3(d.Item3, .9f, 1);
+            }
         }
 
         // A pew knocked onto its side: rolled about its own length axis, lifted so the low edge rests on the floor.
@@ -1038,7 +1138,7 @@ namespace HollowCurrent
             Box("Inner curb south west", new Vector3(-1.25f, cy, 20.8f), new Vector3(1.1f, ch, ct), "darkstone");
             Box("Inner curb south east", new Vector3(1.25f, cy, 20.8f), new Vector3(1.1f, ch, ct), "darkstone");
             Box("Bridge deck", new Vector3(0, -3.3f, 20.1f), new Vector3(1.4f, .2f, 1.2f), "darkstone", true, false);
-            ArtAt(Art.CryptBridge, new Vector3(0, -3.3f, 19.5f), 0);
+            CryptBridgeAndPosts();
             Prop(Art.Sarcophagus, new Vector3(0, -3.2f, 22.5f), 0);
             SarcophagusRunes(new Vector3(0, -3.2f, 22.5f));
             foreach (float z in new[] { 16.5f, 26.5f })
@@ -1050,6 +1150,21 @@ namespace HollowCurrent
             FloorTiles(-6, 6, 14, 28, -3.2f, (cx, cz) => cx + 1 > -3.1f && cx - 1 < 3.1f && cz + 1 > 19.4f && cz - 1 < 25.6f);
             CoffinNiches();
             HandRoots();
+        }
+
+        // The crypt bridge sat 0.6 m off its collider (art at z 19.5, deck collider at 20.1) and 0.2 m above it; it now covers the deck,
+        // with candle posts (lit billboard flames, no lights) on the four curb ends beside it so the crossing reads from afar.
+        void CryptBridgeAndPosts()
+        {
+            ArtAt(Art.CryptBridge, new Vector3(0, -3.5f, 20.1f), 0);
+            foreach (float x in new[] { -.85f, .85f })
+                foreach (float z in new[] { 19.4f, 20.8f })
+                    CandlePost(new Vector3(x, -3.2f + .45f, z));
+        }
+        void CandlePost(Vector3 top)
+        {
+            Cyl("Candle stub", top + new Vector3(0, .1f, 0), .07f, .2f, "paper");
+            SurrealProps.MakeCandleFlame(root, top + new Vector3(0, .2f, 0), .2f, false, "Post flame", .18f);
         }
 
         // Coffin niches lining the west, south and north walls. The niche block sits behind the wall (Wall() cuts the
@@ -1064,6 +1179,9 @@ namespace HollowCurrent
                 // distance from the wall line to the proxy centre: half the wall + half the protrusion
                 var c = n.RunsAlongX ? new Vector3(n.Center, n.FloorY + .4f, n.Line + n.Inward * centre) : new Vector3(n.Line + n.Inward * centre, n.FloorY + .4f, n.Center);
                 Proxy("Coffin niche collision", c, n.RunsAlongX ? new Vector3(1.2f, .8f, protrusion) : new Vector3(protrusion, .8f, 1.2f), 0);
+                // a lit candle on the coffin lid so the niche reads from across the crypt
+                var lid = n.RunsAlongX ? new Vector3(n.Center, n.FloorY + .79f, n.Line + n.Inward * (n.Thickness * .5f + protrusion * .8f)) : new Vector3(n.Line + n.Inward * (n.Thickness * .5f + protrusion * .8f), n.FloorY + .79f, n.Center);
+                CandlePost(lid - new Vector3(0, .1f, 0));
             }
         }
 

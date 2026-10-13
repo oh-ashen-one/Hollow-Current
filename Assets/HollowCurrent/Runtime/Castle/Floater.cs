@@ -21,7 +21,20 @@ namespace HollowCurrent
             for(int i=0;i<All.Count;i++)if(All[i])All[i].flameTarget=target;
         }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics(){All.Clear();globalTarget=null;}
+        static void ResetStatics(){All.Clear();globalTarget=null;autoTarget=null;autoNext=0;}
+        // When nobody has set a target, the Count himself is the target whenever he is in the scene and active (perched, gliding or
+        // hunting): the candle rule must show in any state, not only in the Hunt phase CastleRun reacts to.
+        static Transform autoTarget;static float autoNext;
+        static Transform AutoTarget()
+        {
+            if(Time.unscaledTime>=autoNext)
+            {
+                autoNext=Time.unscaledTime+1f;
+                var presence=Object.FindFirstObjectByType<Presence>();
+                autoTarget=presence&&presence.isActiveAndEnabled?presence.transform:null;
+            }
+            return autoTarget;
+        }
 
         [Header("Float")]
         [Tooltip("Vertical bob half-height in metres.")] public float bobAmplitude=.12f;
@@ -52,7 +65,7 @@ namespace HollowCurrent
         Vector3 basePosition;
         Quaternion baseRotation;
         Quaternion[] flameRest;
-        bool ready,flamesDirty,haveLastTarget;
+        bool ready,flamesDirty,haveLastTarget,autoSet;
         Vector3 lastTargetPosition;
         void OnEnable()
         {
@@ -92,6 +105,7 @@ namespace HollowCurrent
         {
             if(flames==null||flames.Length==0)return;
             float want=0;
+            if(!globalTarget&&(!flameTarget||autoSet)){var auto=AutoTarget();flameTarget=auto;autoSet=auto;}
             bool hasTarget=flameTarget; // false for null and for a destroyed target
             // Remember where the target was: flames that are still leaning when it is cleared ease back up while
             // still pointing at that spot, so there is never a dereference of a missing target.

@@ -300,7 +300,7 @@ namespace HollowCurrent
 
         // Camera lines the dressing must stay clear of (round 4): S5 looks from the hall floor up at the Count's perch,
         // S6 stands in the gatehouse. Nothing that floats may sit within 2 m of the eye-to-subject segment.
-        public static readonly Vector3 S5Eye = new Vector3(-0.41f, 3.62f, 19.37f), S5Subject = new Vector3(-3.5f, 4.4f, 20.7f);
+        public static readonly Vector3 S5Eye = new Vector3(0f, 6.0f, 25.3f), S5Subject = new Vector3(0f, 5.6f, 27.3f);   // round 6: the rose-window ledge perch
         public static readonly Vector3 S6Eye = new Vector3(-0.30f, 1.15f, 1.00f), S6Subject = new Vector3(-0.9f, 1.2f, 4.4f);
         public static bool NearCaptureLine(Vector3 p, float radius)
         {
@@ -318,7 +318,10 @@ namespace HollowCurrent
             new Vector3(-2.3f, 2.7f, 17.2f), new Vector3(2.4f, 3.0f, 17.8f), new Vector3(-1.2f, 4.8f, 16.5f), new Vector3(1.4f, 5.4f, 18.9f),
             new Vector3(-1.8f, 3.3f, 15.8f), new Vector3(2.5f, 4.4f, 22.1f), new Vector3(-0.4f, 6.0f, 20.5f), new Vector3(-4.8f, 6.2f, 17.5f),
             new Vector3(4.6f, 5.4f, 16.8f), new Vector3(-3.9f, 5.8f, 23.4f), new Vector3(3.9f, 5.6f, 24.2f), new Vector3(0.3f, 3.5f, 23.1f),
-            new Vector3(2.0f, 6.4f, 24.0f), new Vector3(-2.1f, 6.2f, 25.0f),
+            new Vector3(2.0f, 6.4f, 24.0f), new Vector3(-2.1f, 6.6f, 23.0f),
+            // the S5 view (eye (0,6,25.3) looking at the rose-window ledge): six candelabras in its lower third, off the camera line
+            new Vector3(-1.9f, 4.2f, 26.6f), new Vector3(1.9f, 4.2f, 26.6f), new Vector3(-3.2f, 4.8f, 26.3f),
+            new Vector3(3.2f, 4.8f, 26.3f), new Vector3(-1.0f, 3.9f, 26.9f), new Vector3(1.0f, 3.9f, 26.9f),
         };
         // Books sit east of the S5 line (hall floor to the Count's perch) and above 2.7 m; none within 2 m of an S5/S6 camera line.
         public static readonly Vector3[] HallBooks =
@@ -336,9 +339,10 @@ namespace HollowCurrent
         // Hung on the wall faces between the clerestory windows (west/east) and flanking the rose window (north).
         public static readonly CastleBannerDef[] HallBanners =
         {
-            new CastleBannerDef(-5.45f, 3.9f, 19.5f, 90), new CastleBannerDef(-5.45f, 3.9f, 23.3f, 90),
-            new CastleBannerDef(5.45f, 3.9f, 19.5f, -90), new CastleBannerDef(5.45f, 3.9f, 23.3f, -90),
-            new CastleBannerDef(-2.4f, 3.9f, 27.35f, 180), new CastleBannerDef(2.4f, 3.9f, 27.35f, 180),
+            // TapestryPanel art (origin: centre of the back face, base at the fringe), back face 2 cm proud of the 0.17 m wall relief
+            new CastleBannerDef(-5.51f, 3.5f, 19.5f, 90), new CastleBannerDef(-5.51f, 3.5f, 23.3f, 90),
+            new CastleBannerDef(5.51f, 3.5f, 19.5f, -90), new CastleBannerDef(5.51f, 3.5f, 23.3f, -90),
+            new CastleBannerDef(-2.4f, 3.5f, 27.36f, 180), new CastleBannerDef(2.4f, 3.5f, 27.36f, 180),
         };
 
         // Chapel: knocked-over pews. Roll is about the pew's own length axis; the top leans toward +x for positive roll.
@@ -379,6 +383,8 @@ namespace HollowCurrent
             // north wall z = 28 (room to -z), the thick exterior wall
             new CastleNicheDef(true, 28, -4.6f, -1, .9f), new CastleNicheDef(true, 28, -2.3f, -1, .9f), new CastleNicheDef(true, 28, 0f, -1, .9f),
             new CastleNicheDef(true, 28, 2.3f, -1, .9f), new CastleNicheDef(true, 28, 4.6f, -1, .9f),
+            // east wall x = 6 (room to -x): the one stretch north of the reliquary partition (z 26.3) that is free of the reliquary room
+            new CastleNicheDef(false, 6, 27.0f, -1, .6f),
         };
 
         // Moons painted into the openings of the rose window and the chapel windows, seen from the capture positions.
