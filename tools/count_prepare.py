@@ -78,7 +78,7 @@ for eb in arm.edit_bones:
 bpy.ops.object.mode_set(mode='OBJECT')
 hi = max(v.co.z for v in me.vertices); lo = min(v.co.z for v in me.vertices)
 triangles = sum(len(p.vertices) - 2 for p in me.polygons)
-assert triangles < 40000 and abs(lo) < .005, (triangles, lo)
+assert triangles < 40000 and abs(lo) < .005, (triangles, lo)   # source mesh; the two-sided membrane adds faces below
 
 # ---------------------------------------------------------------- wing fan rig (post-scale metres)
 def smooth(x):
@@ -87,7 +87,8 @@ SIDES = (('L', 1), ('R', -1))
 PIVOT = {s: Vector((sg * .30, .31, 1.72)) for s, sg in SIDES}               # shoulder-blade root of each wing
 OUTWARD = {s: Vector((sg * .87, .49, 0)).normalized() for s, sg in SIDES}   # folded wing plane runs out and back
 FAN_AXIS = {s: Vector((0, 0, 1)).cross(OUTWARD[s]).normalized() for s, _ in SIDES}  # +angle: up -> outward
-FAN_REST = [15.0, 55.0, 95.0, 135.0, 172.0]      # in-plane angle from straight up: hook .. lowest finger
+FAN_REST = [15.0, 55.0, 95.0, 135.0, 172.0]
+EXT_R = 1.4                                       # radius of each fan bone's extension child (folded tip reach)      # in-plane angle from straight up: hook .. lowest finger
 FAN_OPEN = [48.0, 72.0, 95.0, 115.0, 132.0]      # fully spread: hook out-up, fingers out-down
 NFAN = len(FAN_REST)
 def fan_dir(side, phi):
@@ -146,8 +147,13 @@ for v, old in zip(me.vertices, original):
         k = max(i for i in range(NFAN - 1) if FAN_REST[i] <= p) if p < FAN_REST[-1] else NFAN - 2
         t = (p - FAN_REST[k]) / (FAN_REST[k + 1] - FAN_REST[k])
         w['Wing' + side] = w.get('Wing' + side, 0) + wf * rootw
-        w['WingFan%s%d' % (side, k)] = w.get('WingFan%s%d' % (side, k), 0) + wf * (1 - rootw) * (1 - t)
-        w['WingFan%s%d' % (side, k + 1)] = w.get('WingFan%s%d' % (side, k + 1), 0) + wf * (1 - rootw) * t
+        # Radial split between each fan bone and its extension child (weight r / EXT_R): translating the extension
+        # outward by (s - 1) * EXT_R stretches the finger linearly by s. (Blender's FBX export drops bone scale.)
+        e = min(r / EXT_R, 1.0)
+        for kk, share in ((k, 1 - t), (k + 1, t)):
+            base = wf * (1 - rootw) * share
+            w['WingFan%s%d' % (side, kk)] = w.get('WingFan%s%d' % (side, kk), 0) + base * (1 - e)
+            w['WingFan%s%dExt' % (side, kk)] = w.get('WingFan%s%dExt' % (side, kk), 0) + base * e
         if wf > .5:
             wing_verts += 1; radii[(side, k if t < .5 else k + 1)].append(r)
     top = sorted(((k, val) for k, val in w.items() if val > 1e-4), key=lambda kv: -kv[1])[:4]
@@ -161,8 +167,10 @@ for s, sg in SIDES:
         fb = arm.edit_bones.new('WingFan%s%d' % (s, k)); fb.head = PIVOT[s]; fb.tail = PIVOT[s] + fan_dir(s, phi) * .25
         fb.parent = root
         rr = sorted(radii[(s, k)]); reach = rr[int(len(rr) * .97)] if rr else .5
+        ext = arm.edit_bones.new('WingFan%s%dExt' % (s, k)); ext.head = PIVOT[s] + fan_dir(s, phi) * EXT_R
+        ext.tail = ext.head + fan_dir(s, phi) * .05; ext.parent = fb
         end = arm.edit_bones.new('WingFan%s%dEnd' % (s, k)); end.head = PIVOT[s] + fan_dir(s, phi) * reach
-        end.tail = end.head + fan_dir(s, phi) * .05; end.parent = fb; end.use_deform = False
+        end.tail = end.head + fan_dir(s, phi) * .05; end.parent = ext; end.use_deform = False
 bpy.ops.object.mode_set(mode='OBJECT')
 for g in list(body.vertex_groups):
     g.remove(range(len(me.vertices)))
@@ -170,6 +178,51 @@ for b in arm.bones:
     if b.use_deform and b.name not in body.vertex_groups: body.vertex_groups.new(name=b.name)
 for i, entries in enumerate(skin):
     for k, val in entries: body.vertex_groups[k].add([i], val, 'REPLACE')
+
+# Two-sided membrane (round 3: the hunt showed a wing as a black smear). About half of the membrane is a single sheet,
+# so Unity's back-face culling hides it, or shows its dark inside, from behind. Duplicate every single-sheet wing face
+# with reversed winding and negated custom normals; faces that already have an opposite-facing twin within 1.5 cm
+# (the double-layered parts) are left alone so nothing z-fights.
+from mathutils import kdtree
+corner = [tuple(c.vector) for c in me.corner_normals]
+loop_normals = {pl.index: [corner[li] for li in pl.loop_indices] for pl in me.polygons}
+loop_verts = {pl.index: list(pl.vertices) for pl in me.polygons}
+wingw = [0.0] * len(me.vertices)
+gname = {g.index: g.name for g in body.vertex_groups}
+for v in me.vertices: wingw[v.index] = sum(g.weight for g in v.groups if gname[g.group].startswith('Wing'))
+wing_faces = [pl for pl in me.polygons if all(wingw[i] > .5 for i in pl.vertices)]
+tree = kdtree.KDTree(len(wing_faces))
+for n, pl in enumerate(wing_faces): tree.insert(pl.center, n)
+tree.balance()
+single = set()
+for n, pl in enumerate(wing_faces):
+    if not any(m != n and wing_faces[m].normal.dot(pl.normal) < -.5 for _, m, _ in tree.find_range(pl.center, .015)): single.add(pl.index)
+original_polys = len(me.polygons)
+bm = bmesh.new(); bm.from_mesh(me); bm.faces.ensure_lookup_table()
+src_face = bm.faces.layers.int.new('hc_src_face'); src_vert = bm.verts.layers.int.new('hc_src_vert')
+bm.verts.index_update()
+for f in bm.faces: f[src_face] = f.index           # duplicates inherit these values from their source
+for v in bm.verts: v[src_vert] = v.index
+dup = bmesh.ops.duplicate(bm, geom=[bm.faces[i] for i in sorted(single)])
+new_faces = [f for f in dup['geom'] if isinstance(f, bmesh.types.BMFace)]
+bmesh.ops.reverse_faces(bm, faces=new_faces)
+bm.to_mesh(me); bm.free(); me.update()
+sf = me.attributes['hc_src_face'].data; sv = me.attributes['hc_src_vert'].data
+normals = []
+for pl in me.polygons:
+    s0 = sf[pl.index].value
+    if pl.index < original_polys:
+        normals.extend(loop_normals[pl.index])
+    else:
+        for li in pl.loop_indices:
+            k = loop_verts[s0].index(sv[me.loops[li].vertex_index].value)
+            normals.append(tuple(-c for c in loop_normals[s0][k]))
+me.normals_split_custom_set(normals)
+me.attributes.remove(me.attributes['hc_src_face']); me.attributes.remove(me.attributes['hc_src_vert']); me.update()
+two_sided_faces = len(me.polygons) - original_polys
+triangles = sum(len(pl.vertices) - 2 for pl in me.polygons)
+assert triangles < 50000, triangles
+print('HC_TWO_SIDED single-sheet wing faces duplicated', two_sided_faces, 'of', len(wing_faces), 'triangles', triangles, flush=True)
 
 # ---------------------------------------------------------------- pose helpers
 scene = bpy.context.scene; scene.render.fps = FPS
@@ -181,12 +234,12 @@ def Q(axis, deg): return Quaternion(Vector(axis).normalized(), D(deg))
 class Pose:
     """Rotations are deltas in armature axes (X character-left, Y back, Z up) applied relative to the parent:
     +X swings a down-pointing limb back and tilts an up-pointing bone forward."""
-    def __init__(s): s.q = {}; s.loc = {}
+    def __init__(s): s.q = {}; s.loc = {}; s.scl = {}
     def rq(s, bone, q): s.q[bone] = q @ s.q.get(bone, Quaternion())
     def r(s, bone, x=0, y=0, z=0): s.rq(bone, Euler((D(x), D(y), D(z)), 'XYZ').to_quaternion())
     def l(s, bone, x=0, y=0, z=0):
         a = s.loc.get(bone, (0, 0, 0)); s.loc[bone] = (a[0] + x, a[1] + y, a[2] + z)
-    def wings(s, spread, yaw=0, beat=0, pitch=0, curl=0, lag=0):
+    def wings(s, spread, yaw=0, beat=0, pitch=0, curl=0, lag=0, stretch=1.0):
         """spread 0 = folded rest .. 1 = open fan; yaw + sweeps the wing forward, - back; beat + raises it;
         pitch + tilts its top back; curl bends the lower fingers further out; lag delays the lower fan (flap wave)."""
         for side, sg in SIDES:
@@ -195,6 +248,7 @@ class Pose:
                 f = k / (NFAN - 1)
                 ang = lerp(FAN_REST[k], FAN_OPEN[k], spread) - FAN_REST[k] + curl * f + lag * f * f
                 s.rq('WingFan%s%d' % (side, k), Quaternion(FAN_AXIS[side], D(ang)))
+                if stretch != 1.0: s.l('WingFan%s%dExt' % (side, k), *(fan_dir(side, FAN_REST[k]) * ((lerp(1.0, stretch, f) - 1) * EXT_R)))
     def arms(s, swing, out=0, forearm=0, hand=0, inward=0):
         for side, sg in (('Left', 1), ('Right', -1)):
             s.r(side + 'Arm', x=swing, y=-sg * out, z=-sg * inward)
@@ -209,10 +263,12 @@ class Pose:
 
 def pose_to_bones(pose):
     for b in rig.pose.bones:
-        b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0)
+        b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
     for name, delta in pose.q.items():
         rest = arm.bones[name].matrix_local.to_quaternion()
         rig.pose.bones[name].rotation_quaternion = rest.inverted() @ delta @ rest
+    for name, v in pose.scl.items():
+        rig.pose.bones[name].scale = (1.0, v, 1.0)
     for name, v in pose.loc.items():
         rest = arm.bones[name].matrix_local.to_quaternion(); rig.pose.bones[name].location = rest.inverted() @ Vector(v)
 def update(): bpy.context.view_layer.update()
@@ -258,13 +314,14 @@ def glide(p, ph, f):
     p.r('Hips', x=30); p.l('Hips', z=.03 * math.sin(a - .4), y=.02 * flap)
     p.spine(8 + 2 * flap, neck=-24, head=-36, yaw=5 * math.sin(a * .5))
     p.legs(14 + 3 * flap, 20 + 5 * flap, 38, spread=3); p.arms(36 + 4 * flap, out=8, forearm=18, hand=12, inward=-6)
-    p.wings(.98 + .06 * math.sin(a - .5), yaw=26, beat=10 + 24 * flap, pitch=10, curl=-6 * math.sin(a - 1.0), lag=10 * math.sin(a - 1.4))
+    p.wings(.98 + .06 * math.sin(a - .5), yaw=26, beat=10 + 24 * flap, pitch=10, curl=-6 * math.sin(a - 1.0), lag=10 * math.sin(a - 1.4), stretch=1.3)
 def search(p, ph, f):
+    # Landed prowl as on the sheet: upright, arms at his sides, wings folded to the shins and twitching, head scanning.
     a = ph * 2 * math.pi; look = math.tanh(3.0 * math.sin(a))
-    p.r('Hips', x=8); p.l('Hips', z=-.05 + .01 * math.sin(2 * a))
-    p.spine(10, head=4, yaw=58 * look, tilt=5 * look); p.legs(-12, 22, -10, spread=4)
-    p.arms(-8, out=16, forearm=-34, hand=14, inward=6)
-    p.wings(.62 + .08 * math.sin(2 * a), yaw=6, beat=12 + 6 * math.sin(2 * a - .4), pitch=6, curl=5 * math.sin(2 * a - .9))
+    p.r('Hips', x=6); p.l('Hips', z=-.04 + .008 * math.sin(2 * a))
+    p.spine(8, head=4, yaw=58 * look, tilt=5 * look); p.legs(-10, 18, -8, spread=2)
+    p.arms(4, out=3, forearm=-14 + 3 * math.sin(2 * a + .5), hand=8, inward=4)
+    p.wings(.12 + .05 * math.sin(2 * a), yaw=-4, beat=3 + 2 * math.sin(2 * a - .4), pitch=2, curl=4 * math.sin(2 * a - .9))
 def search_ik(f, ph):
     for side, sg in (('Left', 1), ('Right', -1)):
         two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * .24, .12 if sg > 0 else -.08, .172), (sg * .3, -1.0, .6)); plant(side + 'Foot', sg * 10)
@@ -273,20 +330,20 @@ def dive(p, ph, f):
     p.r('Hips', x=52); p.l('Hips', z=.02 * fl)
     p.spine(10, neck=-36, head=-44); p.legs(18 + 3 * fl, 26 + 4 * fl, 42, spread=2)
     p.arms(-70 + 4 * fl, out=14, forearm=-6, hand=-14, inward=6)
-    p.wings(.58 + .05 * fl, yaw=-38, beat=6 + 7 * fl, pitch=26, curl=-4 * math.sin(a - .8), lag=6 * math.sin(a - 1.2))
+    p.wings(.58 + .05 * fl, yaw=-38, beat=6 + 7 * fl, pitch=26, curl=-4 * math.sin(a - .8), lag=6 * math.sin(a - 1.2), stretch=1.2)
 def grab(p, ph, f):
     a = ease(min(1, f / .45)); b = ease(max(0, min(1, (f - .25) / .55)))
     p.r('Hips', x=lerp(48, 16, a)); p.spine(lerp(10, 16, a), neck=lerp(-36, -10, a), head=lerp(-44, -12, a))
     p.legs(lerp(18, 6, a), lerp(26, 18, a), lerp(42, 20, a))
     p.arms(lerp(-72, -58, a), out=lerp(14, 4, a), forearm=lerp(-6, -48, b), hand=lerp(-14, -20, b), inward=lerp(6, 34, b))
-    p.wings(lerp(.6, .5, b), yaw=lerp(-30, 64, a), beat=lerp(6, 22, a), pitch=lerp(26, -8, a), curl=lerp(0, -10, b))
+    p.wings(lerp(.6, .5, b), yaw=lerp(-30, 64, a), beat=lerp(6, 22, a), pitch=lerp(26, -8, a), curl=lerp(0, -10, b), stretch=1.2)
 def stagger(p, ph, f):
     a = ease(min(1, f / .14)); rec = ease(max(0, min(1, (f - .32) / .68))); sh = math.sin(f * 38) * (1 - f) ** 2
     p.r('Hips', x=lerp(-14, 10, rec) * a); p.l('Hips', y=.14 * a * (1 - rec), z=-.06 * a)
     p.spine(lerp(-24, 12, rec) * a, head=lerp(-26, 4, rec) * a, yaw=8 * sh)
     p.legs(lerp(-10, 6, rec) * a, lerp(16, 20, rec) * a, lerp(-6, 0, rec) * a)
     p.arms(lerp(-30, 10, rec) * a, out=lerp(38, 14, rec) * a, forearm=lerp(40, 34, rec) * a, hand=22 * a)
-    p.wings(lerp(.2, lerp(.55, .45, rec), a) + .05 * sh, yaw=lerp(0, lerp(10, 2, rec), a), beat=lerp(0, lerp(14, 8, rec), a) + 6 * sh, pitch=lerp(0, lerp(34, 10, rec), a), curl=10 * sh)
+    p.wings(lerp(.2, lerp(.55, .45, rec), a) + .05 * sh, yaw=lerp(0, lerp(10, 2, rec), a), beat=lerp(0, lerp(14, 8, rec), a) + 6 * sh, pitch=lerp(0, lerp(34, 10, rec), a), curl=10 * sh, stretch=1.15)
 def death(p, ph, f):
     # buckles at the knees, then topples backward (away from the sword) and lies flat on his spread wings
     a = ease(min(1, f / .38)); b = ease(max(0, min(1, (f - .30) / .55)))
@@ -336,14 +393,14 @@ for name, fn, seconds, loop, ik, floor in CLIPS:
             q = b.rotation_quaternion.copy()
             if b.name in prev and prev[b.name].dot(q) < 0: q.negate(); b.rotation_quaternion = q
             prev[b.name] = q
-            b.keyframe_insert('rotation_quaternion', frame=frame, group=b.name); b.keyframe_insert('location', frame=frame, group=b.name)
+            b.keyframe_insert('rotation_quaternion', frame=frame, group=b.name); b.keyframe_insert('location', frame=frame, group=b.name); b.keyframe_insert('scale', frame=frame, group=b.name)
     actions[name] = (action, end, loop)
     metrics[name] = {'seconds': round(end / FPS, 3), 'loop': loop, 'hip_shift_m': round(shift, 3), 'span_m_min': round(min(spans), 3), 'span_m_max': round(max(spans), 3),
                      'top_m_max': round(max(tops), 3), 'lowest_z_min': round(min(lows), 3), 'forward_reach_m_max': round(max(reach), 3),
                      'forward_reach_m_last': round(reach[-1], 3)}
     print('HC_CLIP', name, json.dumps(metrics[name]), flush=True)
 rig.animation_data.action = None
-for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0)
+for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
 update()
 rest_pts = mesh_points()
 shoulder_width = (arm.bones['LeftArm'].head_local - arm.bones['RightArm'].head_local).length
@@ -370,7 +427,7 @@ def preview(directory):
             sc.frame_set(int(round(end * frac)))
         else:
             rig.animation_data.action = None
-            for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0)
+            for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
         update()
         for vname in (('front', 'side', 'three') if clip else ('front', 'side', 'back', 'three')):
             loc = Vector(views[vname]); cam.location = loc
@@ -380,12 +437,12 @@ def preview(directory):
     rig.animation_data.action = None
 if PREVIEW:
     preview(PREVIEW)
-    for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0)
+    for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
     bpy.ops.wm.save_as_mainfile(filepath=str(PREVIEW / 'count.blend'))
 
 # ---------------------------------------------------------------- export (mirrors tools/prepare_splitgrin.py)
 rig.animation_data.action = None
-for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0)
+for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
 update()
 select_only(rig, body)
 bpy.ops.export_scene.fbx(filepath=str(OUT / 'Native/CountClaudeBody.fbx'), use_selection=True, object_types={'ARMATURE', 'MESH'},

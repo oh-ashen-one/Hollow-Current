@@ -136,10 +136,11 @@ namespace HollowCurrent
             game.Creature.Dismiss();
             // S6: Count Claude standing on the courtyard floor (Mode 2 Search) with a 1.80 m
             // mannequin (Presence.ScaleReference) beside him for scale.
-            game.Creature.ManifestAt(new Vector3(-3,0,11),180,9999,true);
-            var man=Presence.ScaleReference(new Vector3(-1.75f,0,11),180);
-            e=new Vector3(-2.4f,1.15f,7.4f);t=new Vector3(-2.4f,1.1f,11);Place(e,t);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count feet (-3,0,11) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (-1.75,0,11), investigator torch on");
+            // S6 in the gatehouse (hc/count3): the courtyard dead tree no longer stands behind him.
+            game.Creature.ManifestAt(new Vector3(-.9f,0,4.4f),180,9999,true);
+            var man=Presence.ScaleReference(new Vector3(.35f,0,4.4f),180);
+            e=new Vector3(-.3f,1.15f,1.0f);t=new Vector3(-.3f,1.1f,4.4f);Place(e,t);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse; Count feet (-0.9,0,4.4) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (0.35,0,4.4), investigator torch on");
             game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(man);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;
@@ -147,19 +148,24 @@ namespace HollowCurrent
             game.ShowNote(book.NoteTitles[0],body);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S8_journal_ledger","(journal)",Vector3.zero,Vector3.zero,book.NoteTitles[0]);
             game.NoteBody=null;game.Journal=false;ui.enabled=false;game.ApplyFocus();yield return null;
-            // Hunt: Count Claude dives at the investigator in the great hall; 10 frames, 1 s apart.
-            e=new Vector3(0,1.64f,15.6f);var origin=new Vector3(4.6f,0,26.8f);t=new Vector3(1.5f,3.0f,24f);Place(e,t);Torch(true); // keeps the east-balcony perch (y ~4.3) in frame
+            // Hunt: hc/count3's scripted capture choreography from the east balcony perch
+            // (H01-H03 Perch, H04-H06 Glide, H07 Dive, H08-H09 Hold at 2.5 m, H10 Feint).
+            // The investigator's view tracks him; shot k is taken at CaptureClock = k.
+            e=new Vector3(0,1.64f,15.6f);var origin=new Vector3(4.6f,0,26.8f);t=new Vector3(1.5f,1.6f,24f);Place(e,t);Torch(true);
             game.Case.Equip();game.Case.EnterHouse();game.Case.Record(Evidence.Induction);game.Case.Record(Evidence.Handprint);
             game.Case.BeginWarning();game.Creature.SetHuntOrigin(origin);game.Case.Tick(9.05f,true);
             Log("hunt phase="+game.Case.Phase+" "+game.Creature.DiagnosticState);
+            // The warning-phase scare mist (ScareDirector.Pulse, 2.8 s lifetime) spawns 3 m ahead.
+            yield return new WaitForSecondsRealtime(3f);
+            bool choreo=game.Creature.BeginCaptureChoreography(1);Log("choreography begin="+choreo);
             var samples=new List<float>();
             for(int i=0;i<10;i++)
             {
-                float next=Time.realtimeSinceStartup+1;
-                while(Time.realtimeSinceStartup<next){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
-                var hunter=game.Creature.transform.position;
-                yield return Shot("H"+(i+1).ToString("00")+"_hunt_dive","(hunt sequence)",e,t,"t="+(i+1)+"s phase="+game.Case.Phase+" hunter="+V(hunter)+" distance="+Vector3.Distance(hunter,game.Player.transform.position).ToString("F2"));
+                while(game.Creature.CaptureClock<i+1){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
+                var view=game.Player.View.transform;
+                yield return Shot("H"+(i+1).ToString("00")+"_hunt_dive","(hunt sequence)",view.position,view.position+view.forward*5,"clock="+game.Creature.CaptureClock.ToString("F2")+" phase="+game.Case.Phase+" "+game.Creature.CaptureNote);
             }
+            game.Creature.EndCaptureChoreography();
             Record("hunt_dive",samples);
             File.WriteAllText(Path.Combine(Directory,"capture.json"),"{\"unity\":\""+Application.unityVersion+"\",\"screen\":\""+Screen.width+"x"+Screen.height+"\",\"quality\":\""+QualitySettings.names[QualitySettings.GetQualityLevel()]+"\",\"antiAliasing\":"+QualitySettings.antiAliasing+",\"shadowResolution\":\""+QualitySettings.shadowResolution+"\",\"shadowDistance\":"+QualitySettings.shadowDistance+",\"targetFrameRate\":"+Application.targetFrameRate+",\"vSync\":"+QualitySettings.vSyncCount+",\"fov\":"+game.Player.View.fieldOfView+",\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");
             Log("DONE "+entries.Count+" entries");

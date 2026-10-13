@@ -40,6 +40,7 @@ namespace HollowCurrent
                 if(!actor||actor.BoneCount<Profile.MinimumBones)throw new System.InvalidOperationException("Apparition is not a verified skinned rig");
             }
             agent=gameObject.AddComponent<NavMeshAgent>();agent.radius=Profile.AgentRadius;agent.height=Profile.AgentHeight;agent.speed=Profile.Speed;agent.angularSpeed=Profile.AngularSpeed;agent.acceleration=Profile.Acceleration;agent.stoppingDistance=Profile.StoppingDistance;
+            if(count!=null)CountRimLight();
             silhouette.gameObject.SetActive(false);agent.enabled=false;
         }
         // Magenta stand-in (no rig, no animator controller) so a map runs before its hunter art lands.
@@ -64,7 +65,7 @@ namespace HollowCurrent
             silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeSearch);presentationRemaining=seconds;Appearances++;Game.Sound.Cue("apparition",point+Vector3.up,.85f);return true;
         }
         // End a staged appearance immediately (capture tooling, scripted beats).
-        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;if(silhouette)silhouette.gameObject.SetActive(false);}
+        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;choreo=false;if(silhouette)silhouette.gameObject.SetActive(false);}
         public void FacePlayer()
         {
             var delta=Game.Player.transform.position-transform.position;delta.y=0;
@@ -265,6 +266,7 @@ namespace HollowCurrent
         }
         void CountPhaseChanged(Phase phase)
         {
+            if(choreo)return;   // the scripted capture choreography ignores case phases until it is ended
             staged=false;agent.enabled=false;route.Clear();holdTimer=0;
             if(flight==Flight.Dead){silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeDeath);return;}
             if(phase==Phase.Dead)
@@ -359,6 +361,7 @@ namespace HollowCurrent
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
         bool CountFrame()
         {
+            if(choreo){CaptureChoreography(Mathf.Min(Time.deltaTime,1f/30));return true;}
             if(staged)return true;
             float dt=Time.deltaTime;
             if(flight==Flight.Dead)
@@ -534,6 +537,10 @@ namespace HollowCurrent
             Vector3 end=goal;
             if(!goalAir){if(GroundUnder(goal,out var g))goal=g;end=goal+Vector3.up*HoverAt(goal,flight==Flight.Chase);}
             if(Clear(start,end)){route.Add(end);return true;}
+            // Round 2: from a rail perch the downward sweep clipped the coping under his own feet, so he walked the
+            // NavMesh route back across the balcony deck, out of sight. Lift forward off the ledge first.
+            var launch=start+transform.forward*.6f+Vector3.up*.5f;
+            if(Clear(start,launch)&&Clear(launch,end)){route.Add(launch);route.Add(end);return true;}
             if(path==null)path=new NavMeshPath();
             if(!GroundUnder(start,out var g0)||!GroundUnder(goal,out var g1)||!NavMesh.CalculatePath(g0,g1,NavMesh.AllAreas,path)||path.status==NavMeshPathStatus.PathInvalid||path.corners.Length==0)
                 return false;
@@ -592,6 +599,100 @@ namespace HollowCurrent
             var moved=view;for(int i=0;i<60&&bounds.Contains(moved);i++)moved+=away*.1f;
             Game.Player.transform.position+=moved-view;Physics.SyncTransforms();
             Debug.Log("HC_CAPTURE_CAMERA_PUSHED by "+(moved-view).magnitude.ToString("F2")+" "+DiagnosticState);
+        }
+        // ---- Scripted hunt choreography for the critic capture (round 3) -------------------------------------
+        // Round 2's live hunt left the frame: the straight swoop's sphere cast clipped the rail he crouched on, so he
+        // took the NavMesh route back across the balcony deck and out of view, and the capture camera was fixed.
+        // This timeline is a pure function of CaptureClock (seconds, advanced by at most 1/30 s per frame so a slow
+        // screenshot frame cannot skip a phase). Phases (Animator Mode): Perch 0 [0,3.5) on the perch, Glide 1
+        // [3.5,6.5) off the rail and down toward the camera, Dive 3 [6.5,9.5) to the hold distance and holding,
+        // Feint 1 [9.5,12.5) back to the perch; then it repeats. The investigator's view tracks his posed bounds at
+        // the investigator's own eye height. Each phase change logs HC_COUNT_CAPTURE.
+        public const float CapturePerchEnd=3.5f,CaptureGlideEnd=6.5f,CaptureDiveEnd=9.5f,CaptureFeintEnd=12.5f,CaptureDiveArrive=1.5f;
+        static readonly string[] CapturePhases={"Perch","Glide","Dive","Hold","Feint"};
+        bool choreo;
+        float choreoClock;
+        int choreoPhase=-1;
+        Vector3 cPerch,cFacing,cGlideEnd,cHold,cCamForward,cLook;
+        public float CaptureClock=>choreoClock;
+        public bool CaptureChoreographyActive=>choreo;
+        public string CaptureNote {get;private set;}="";
+        /// <summary>Start the deterministic capture choreography from perch <paramref name="perchIndex"/> (1 = east balcony).
+        /// Call after placing the investigator (CaptureMode.Place) and after any warning mist has cleared; then shoot at
+        /// CaptureClock = 1, 2, ... 10. Holds the Count out of the hunt AI until EndCaptureChoreography or Dismiss.</summary>
+        public bool BeginCaptureChoreography(int perchIndex=1,float holdDistance=-1)
+        {
+            if(count==null||Game.World.PerchPoints.Count==0)return false;
+            int i=Mathf.Clamp(perchIndex,0,Game.World.PerchPoints.Count-1);
+            Ledge(i,out cPerch,out var yaw);cFacing=Quaternion.Euler(0,yaw,0)*Vector3.forward;
+            var player=Game.Player;var ground=player.transform.position;
+            cCamForward=player.View.transform.forward;cCamForward.y=0;
+            if(cCamForward.sqrMagnitude<.01f)cCamForward=player.transform.forward;cCamForward.Normalize();
+            float hold=holdDistance>0?holdDistance:count.CaptureHoldDistance;
+            cGlideEnd=ground+cCamForward*5.5f+Vector3.up*1.5f;          // Glide clip's lowest point is 0.10 m over this
+            cHold=ground+cCamForward*hold+Vector3.up*.8f;                // Dive pose centre ~0.8 m up: at the investigator's eye line
+            presentationRemaining=0;capturePresentation=false;fakeRush=false;staged=false;agent.enabled=false;route.Clear();contact=0;
+            CanSeePlayer=false;Memory.Clear();perchIndex=i;flight=Flight.Perched;
+            transform.SetPositionAndRotation(cPerch,Quaternion.Euler(0,yaw,0));silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeIdle);
+            cLook=cPerch+Vector3.up;choreo=true;choreoClock=0;choreoPhase=-1;
+            Debug.Log("HC_COUNT_CAPTURE begin perch="+i+" feet="+cPerch+" glideEnd="+cGlideEnd+" hold="+cHold+" holdDistance="+hold.ToString("F2")+" eye="+player.View.transform.position);
+            return true;
+        }
+        public void EndCaptureChoreography(){if(!choreo)return;choreo=false;Debug.Log("HC_COUNT_CAPTURE end clock="+choreoClock.ToString("F2"));}
+        static Vector3 Bezier(Vector3 a,Vector3 b,Vector3 c,Vector3 d,float t){float u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;}
+        Vector3 ChoreoPosition(float t,out int phase,out int mode)
+        {
+            t%=CaptureFeintEnd;
+            if(t<CapturePerchEnd){phase=0;mode=Profile.ModeIdle;return cPerch;}
+            if(t<CaptureGlideEnd)
+            {
+                phase=1;mode=Profile.ModeMove;float u=Mathf.SmoothStep(0,1,(t-CapturePerchEnd)/(CaptureGlideEnd-CapturePerchEnd));
+                return Bezier(cPerch,cPerch+cFacing*2.5f+Vector3.up*1.1f,cGlideEnd+cCamForward*3f+Vector3.up*.8f,cGlideEnd,u);
+            }
+            if(t<CaptureDiveEnd)
+            {
+                mode=Profile.ModeReach;float k=(t-CaptureGlideEnd)/CaptureDiveArrive;
+                if(k<1){phase=2;return Vector3.Lerp(cGlideEnd,cHold,k*k);}
+                phase=3;return cHold+Vector3.up*.06f*Mathf.Sin((t-CaptureGlideEnd-CaptureDiveArrive)*5);
+            }
+            phase=4;mode=Profile.ModeMove;float f=Mathf.SmoothStep(0,1,(t-CaptureDiveEnd)/(CaptureFeintEnd-CaptureDiveEnd));
+            return Bezier(cHold,cHold+Vector3.up*1.4f+cCamForward*1.2f,cPerch+cFacing*2.2f+Vector3.up*1.2f,cPerch,f);
+        }
+        void CaptureChoreography(float dt)
+        {
+            choreoClock+=dt;
+            var position=ChoreoPosition(choreoClock,out int phase,out int mode);
+            var ahead=ChoreoPosition(choreoClock+.05f,out _,out _);
+            var eye=Game.Player.View.transform.position;
+            var toCamera=eye-position;toCamera.y=0;
+            var heading=phase==0||phase==3?toCamera:ahead-position;heading.y=0;
+            float speed=(ahead-position).magnitude/.05f;
+            transform.position=position;
+            if(heading.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(heading),(phase==0?120:540)*dt);
+            actor.Pose(mode,1.2f+speed*.35f);
+            if(phase!=choreoPhase)
+            {
+                choreoPhase=phase;
+                Debug.Log("HC_COUNT_CAPTURE phase="+CapturePhases[phase]+" clock="+choreoClock.ToString("F2")+" mode="+mode+" pos="+position+" distance="+Vector3.Distance(position+Vector3.up,eye).ToString("F2"));
+            }
+            // The investigator's view follows him from the investigator's own eye height (the body stays put).
+            var bounds=actor.PoseBounds(0);cLook=Vector3.Lerp(cLook,bounds.center,1-Mathf.Exp(-10*dt));
+            var player=Game.Player;var look=cLook-eye;var flat=new Vector2(look.x,look.z).magnitude;
+            if(look.sqrMagnitude>.0001f)
+            {
+                player.transform.rotation=Quaternion.Euler(0,Mathf.Atan2(look.x,look.z)*Mathf.Rad2Deg,0);
+                player.View.transform.localRotation=Quaternion.Euler(-Mathf.Atan2(look.y,flat)*Mathf.Rad2Deg,0,0);
+            }
+            CaptureNote="phase="+CapturePhases[phase]+" mode="+mode+" clock="+choreoClock.ToString("F2")+" distance="+Vector3.Distance(bounds.center,eye).ToString("F2")+" span="+bounds.size.x.ToString("F2")+" height="+bounds.size.y.ToString("F2");
+            KeepCameraClear();
+        }
+        // A cold, shadowless rim light that rides behind his shoulders so wings and coat read against dark stone
+        // (r2 hunt: "an unlit black smear"). Castle only; Split Grin never gets it.
+        void CountRimLight()
+        {
+            var rim=new GameObject("Count rim light").AddComponent<Light>();rim.transform.SetParent(silhouette,false);
+            rim.transform.localPosition=new Vector3(0,2.3f,-1.1f);rim.type=LightType.Point;rim.color=new Color(.62f,.72f,1f);
+            rim.range=count.RimLightRange;rim.intensity=count.RimLightIntensity;rim.shadows=LightShadows.None;rim.renderMode=LightRenderMode.ForcePixel;
         }
     }
 }
