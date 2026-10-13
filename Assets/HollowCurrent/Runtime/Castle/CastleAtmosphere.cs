@@ -13,35 +13,43 @@ namespace HollowCurrent
     //   3. swaps CastleWorld's flat "HC castle / x" cube materials for the textured world-space surfaces in CastleArt.Surface
     //      (blood becomes the scrolling-normal liquid) and the FBX props for the UV-mapped lit surfaces,
     //   4. builds the painted-over sun window above the chapel altar (emissive blue rim, no pure-black slab),
-    //   5. draws a cheap black-lift (additive) and vignette in Camera.onPostRender (the project is built-in pipeline, no post stack).
+    //   5. stacks alpha-blended noise layers at 0-1.1 m over the great-hall and crypt floors (ground fog; built-in pipeline, no volumes),
+    //   6. draws a subtle vignette in Camera.onPostRender. Round 3: the black lift is gone; blacks are real again.
     // Every step is wrapped: a missing shader/texture/material falls back to the old look and logs once, never throws.
     public sealed class CastleAtmosphere : MonoBehaviour
     {
         [Header("Fog (exponential squared)")]
         public bool EnableFog = true;
-        // f = exp(-(d * density)^2): 12 m (S1 camera to far wall) keeps 80%, 25 m keeps 41%, 28 m keeps 32% of the surface colour.
-        public Color FogColor = new Color(.15f, .19f, .28f);
-        public float FogDensity = .038f;
+        // f = exp(-(d * density)^2): 12 m (S1 camera to far wall) keeps 70%, 25 m keeps 21%, 28 m 12% of the surface colour.
+        // The fog colour is lighter than the surroundings so distant geometry visibly dissolves into mist.
+        public Color FogColor = new Color(.30f, .37f, .52f);
+        public float FogDensity = .05f;
 
         [Header("Ambient (trilight; gamma-space colours as in the Lighting window)")]
-        public Color AmbientSky = new Color(.30f, .38f, .56f);
-        public Color AmbientEquator = new Color(.20f, .24f, .36f);
-        public Color AmbientGround = new Color(.09f, .09f, .14f);
+        public Color AmbientSky = new Color(.16f, .20f, .30f);
+        public Color AmbientEquator = new Color(.095f, .12f, .185f);
+        public Color AmbientGround = new Color(.04f, .04f, .06f);
         public float AmbientIntensity = 1f;
 
-        [Header("Ambient fill for the castle surface shaders (linear). Needed because the baked lightmaps carry the dim bake ambient.")]
-        public Color FillSky = new Color(.050f, .068f, .110f);
-        public Color FillGround = new Color(.014f, .014f, .024f);
+        [Header("Ambient fill for the castle surface shaders (linear). Kept low so shadows can reach real black.")]
+        public Color FillSky = new Color(.016f, .022f, .036f);
+        public Color FillGround = new Color(.004f, .004f, .008f);
 
         [Header("Materials")]
         public bool UpgradeMaterials = true;
         public bool UpgradeProps = true;
 
-        [Header("Black lift and vignette (camera post-render, linear)")]
-        public bool BlackLift = true;
-        public Color LiftColor = new Color(.0040f, .0055f, .0110f);   // added to every pixel: pure black becomes sRGB ~ (13, 15, 22)
+        [Header("Vignette (camera post-render)")]
         public bool Vignette = true;
-        [Range(0f, 1f)] public float VignetteStrength = .28f;
+        [Range(0f, 1f)] public float VignetteStrength = .22f;
+
+        [Header("Ground fog (layered noise planes, castle-local)")]
+        public bool GroundFog = true;
+        public Color GroundFogColor = new Color(.34f, .42f, .58f);
+        public int FogLayers = 6;
+        public float FogLayerAlpha = .16f;
+        public Vector3[] FogAreaCentres = { new Vector3(0f, 0f, 21f), new Vector3(0f, -3.2f, 21f) };   // floor centre of the great hall, crypt
+        public Vector2[] FogAreaSizes = { new Vector2(12f, 14f), new Vector2(12f, 14f) };
 
         [Header("Painted-over sun window above the chapel altar")]
         public bool BuildSunWindow = true;
@@ -51,10 +59,10 @@ namespace HollowCurrent
 
         static readonly Dictionary<string, (string material, Color tint, bool liquid)> World = new Dictionary<string, (string, Color, bool)>
         {
-            { "stone", ("Castle_Stone", Color.white, false) },
-            { "wall", ("Castle_Stone", new Color(.84f, .84f, .88f), false) },
-            { "darkstone", ("Castle_FlagStone", Color.white, false) },
-            { "cobble", ("Castle_FlagStone", new Color(.85f, .85f, .85f), false) },
+            { "stone", ("Castle_Stone", new Color(.78f, .78f, .82f), false) },
+            { "wall", ("Castle_Stone", new Color(.64f, .64f, .70f), false) },
+            { "darkstone", ("Castle_FlagStone", new Color(.85f, .85f, .85f), false) },
+            { "cobble", ("Castle_FlagStone", new Color(.70f, .70f, .70f), false) },
             { "wood", ("Castle_Oak", Color.white, false) },
             { "darkwood", ("Castle_Oak", new Color(.55f, .55f, .55f), false) },
             { "carpet", ("Castle_Oxblood", new Color(.9f, .9f, .9f), false) },
@@ -63,7 +71,7 @@ namespace HollowCurrent
             { "paper", ("Castle_Paper", Color.white, false) },
             { "metal", ("Castle_Iron", Color.white, false) },
             { "black", ("Castle_BlackStone", Color.white, false) },
-            { "earth", ("Castle_FlagStone", new Color(.50f, .55f, .50f), false) },
+            { "earth", ("Castle_FlagStone", new Color(.40f, .44f, .40f), false) },
             { "blood", ("Castle_Blood", Color.white, true) },
         };
         static readonly HashSet<string> PropMaterials = new HashSet<string>
@@ -73,7 +81,7 @@ namespace HollowCurrent
         };
 
         const string WorldPrefix = "HC castle / ";
-        Material glMaterial, glBlend;
+        Material glBlend;
         bool warnedGl;
         readonly HashSet<Renderer> done = new HashSet<Renderer>();
 
@@ -91,6 +99,7 @@ namespace HollowCurrent
             }
             ApplyEnvironment();
             if (BuildSunWindow) Safe("sun window", MakeSunWindow);
+            if (GroundFog) Safe("ground fog", MakeGroundFog);
             StartCoroutine(Passes());
         }
 
@@ -144,7 +153,10 @@ namespace HollowCurrent
                     Material replacement = null;
                     if (n.StartsWith(WorldPrefix, StringComparison.Ordinal) && World.TryGetValue(n.Substring(WorldPrefix.Length), out var spec))
                     {
-                        replacement = CastleArt.Surface(spec.material, spec.liquid ? CastleArt.SurfaceKind.Liquid : CastleArt.SurfaceKind.World, spec.tint);
+                        string mat = spec.material;
+                        // floors and ceilings are cube "Slab / x" objects: lay flagstone on them instead of the wall coursing
+                        if (mat == "Castle_Stone" && r.name.StartsWith("Slab /", StringComparison.Ordinal)) mat = "Castle_FlagStone";
+                        replacement = CastleArt.Surface(mat, spec.liquid ? CastleArt.SurfaceKind.Liquid : CastleArt.SurfaceKind.World, spec.tint);
                         if (replacement) world++;
                     }
                     else if (UpgradeProps && PropMaterials.Contains(n))
@@ -220,19 +232,66 @@ namespace HollowCurrent
             return mesh;
         }
 
-        // ---- black lift and vignette (built-in pipeline, no post stack) ------------------------------------------------------
+        // ---- ground fog -----------------------------------------------------------------------------------------------
+        // Built-in pipeline: no volumetrics, so stack FogLayers alpha-blended noise planes between 0.08 and 1.1 m over each floor.
+        // Seen from eye height they build a veil that thickens towards the floor; each layer scrolls at its own speed.
+        void MakeGroundFog()
+        {
+            var parent = Root ? Root : transform;
+            if (parent.Find("Ground fog")) return;
+            var shader = Resources.Load<Shader>("Castle/Shaders/CastleFogLayer");
+            var noise = Resources.Load<Texture2D>("Castle/Textures/Castle_FogNoise");
+            if (shader == null || !shader.isSupported || noise == null) { Debug.LogWarning("[CastleAtmosphere] CastleFogLayer unavailable; ground fog skipped (exponential fog still active)"); return; }
+            var group = new GameObject("Ground fog").transform;
+            group.SetParent(parent, false);
+            int layers = Mathf.Clamp(FogLayers, 1, 12);
+            var quad = BuildQuad();
+            for (int a = 0; a < FogAreaCentres.Length && a < FogAreaSizes.Length; a++)
+            {
+                for (int i = 0; i < layers; i++)
+                {
+                    float t = i / (float)Mathf.Max(1, layers - 1);
+                    var m = new Material(shader) { name = "Castle ground fog " + a + "/" + i };
+                    m.SetTexture("_MainTex", noise);
+                    m.SetColor("_Color", GroundFogColor);
+                    m.SetFloat("_Alpha", FogLayerAlpha * Mathf.Lerp(1.25f, .6f, t));            // denser near the floor
+                    m.SetFloat("_Tile", .18f + .05f * i);
+                    m.SetVector("_Scroll", new Vector4(.008f + .003f * i, (i % 2 == 0 ? .005f : -.006f) - .001f * i, 0f, 0f));
+                    m.SetVector("_Fade", new Vector4(.9f, 2.8f, 0f, 0f));
+                    var go = new GameObject("Fog layer " + a + "." + i);
+                    go.transform.SetParent(group, false);
+                    go.transform.localPosition = FogAreaCentres[a] + new Vector3(0f, Mathf.Lerp(.08f, 1.1f, t), 0f);
+                    go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                    go.transform.localScale = new Vector3(FogAreaSizes[a].x, FogAreaSizes[a].y, 1f);
+                    go.AddComponent<MeshFilter>().sharedMesh = quad;
+                    var r = go.AddComponent<MeshRenderer>();
+                    r.sharedMaterial = m; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
+                    r.lightProbeUsage = LightProbeUsage.Off; r.reflectionProbeUsage = ReflectionProbeUsage.Off;
+                }
+            }
+        }
+
+        // Unit quad in XY facing -Z (rotated 90 deg about X it lies flat facing up), uv 0..1 for the edge falloff.
+        static Mesh BuildQuad()
+        {
+            var mesh = new Mesh { name = "Fog quad" };
+            mesh.SetVertices(new[] { new Vector3(-.5f, -.5f, 0), new Vector3(.5f, -.5f, 0), new Vector3(.5f, .5f, 0), new Vector3(-.5f, .5f, 0) });
+            mesh.SetUVs(0, new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) });
+            mesh.SetTriangles(new[] { 0, 2, 1, 0, 3, 2 }, 0);
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        // ---- vignette (built-in pipeline, no post stack) ----------------------------------------------------------------------
         void EnsureGl()
         {
-            if (glMaterial != null) return;
+            if (glBlend != null) return;
             var shader = Shader.Find("Hidden/Internal-Colored");
             if (shader == null)
             {
-                if (!warnedGl) { warnedGl = true; Debug.LogWarning("[CastleAtmosphere] Hidden/Internal-Colored missing: black lift and vignette disabled"); }
-                BlackLift = false; Vignette = false; return;
+                if (!warnedGl) { warnedGl = true; Debug.LogWarning("[CastleAtmosphere] Hidden/Internal-Colored missing: vignette disabled"); }
+                Vignette = false; return;
             }
-            glMaterial = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };   // additive
-            glMaterial.SetInt("_SrcBlend", (int)BlendMode.One); glMaterial.SetInt("_DstBlend", (int)BlendMode.One);
-            glMaterial.SetInt("_Cull", (int)CullMode.Off); glMaterial.SetInt("_ZWrite", 0); glMaterial.SetInt("_ZTest", (int)CompareFunction.Always);
             glBlend = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };      // alpha
             glBlend.SetInt("_SrcBlend", (int)BlendMode.SrcAlpha); glBlend.SetInt("_DstBlend", (int)BlendMode.OneMinusSrcAlpha);
             glBlend.SetInt("_Cull", (int)CullMode.Off); glBlend.SetInt("_ZWrite", 0); glBlend.SetInt("_ZTest", (int)CompareFunction.Always);
@@ -240,48 +299,37 @@ namespace HollowCurrent
 
         void PostRender(Camera cam)
         {
-            // skip the depth-only first-person equipment overlay camera so the lift is applied exactly once
-            if (!cam || cam.cameraType != CameraType.Game || cam.clearFlags == CameraClearFlags.Depth || !(BlackLift || Vignette)) return;
+            // skip the depth-only first-person equipment overlay camera so the vignette is applied exactly once
+            if (!cam || cam.cameraType != CameraType.Game || cam.clearFlags == CameraClearFlags.Depth || !Vignette || VignetteStrength <= 0f) return;
             try
             {
                 EnsureGl();
-                if (glMaterial == null) return;
+                if (glBlend == null) return;
                 GL.PushMatrix();
                 GL.LoadOrtho();
-                if (BlackLift)
+                glBlend.SetPass(0);
+                GL.Begin(GL.TRIANGLES);
+                const int seg = 48, rings = 5;
+                for (int k = 0; k < rings; k++)
                 {
-                    glMaterial.SetPass(0);
-                    GL.Begin(GL.QUADS);
-                    GL.Color(new Color(LiftColor.r, LiftColor.g, LiftColor.b, 1f));
-                    GL.Vertex3(0, 0, 0); GL.Vertex3(0, 1, 0); GL.Vertex3(1, 1, 0); GL.Vertex3(1, 0, 0);
-                    GL.End();
-                }
-                if (Vignette && VignetteStrength > 0f)
-                {
-                    glBlend.SetPass(0);
-                    GL.Begin(GL.TRIANGLES);
-                    const int seg = 48, rings = 5;
-                    for (int k = 0; k < rings; k++)
+                    float r0 = Mathf.Lerp(.35f, 1.15f, k / (float)rings), r1 = Mathf.Lerp(.35f, 1.15f, (k + 1) / (float)rings);
+                    float a0 = VignetteStrength * Mathf.Pow(k / (float)rings, 2.2f), a1 = VignetteStrength * Mathf.Pow((k + 1) / (float)rings, 2.2f);
+                    for (int i = 0; i < seg; i++)
                     {
-                        float r0 = Mathf.Lerp(.35f, 1.15f, k / (float)rings), r1 = Mathf.Lerp(.35f, 1.15f, (k + 1) / (float)rings);
-                        float a0 = VignetteStrength * Mathf.Pow(k / (float)rings, 2.2f), a1 = VignetteStrength * Mathf.Pow((k + 1) / (float)rings, 2.2f);
-                        for (int s = 0; s < seg; s++)
-                        {
-                            float t0 = s / (float)seg * Mathf.PI * 2f, t1 = (s + 1) / (float)seg * Mathf.PI * 2f;
-                            Vector3 p00 = Ring(r0, t0), p01 = Ring(r0, t1), p10 = Ring(r1, t0), p11 = Ring(r1, t1);
-                            Color c0 = new Color(.004f, .006f, .012f, a0), c1 = new Color(.004f, .006f, .012f, a1);
-                            GL.Color(c0); GL.Vertex(p00); GL.Color(c1); GL.Vertex(p10); GL.Color(c1); GL.Vertex(p11);
-                            GL.Color(c0); GL.Vertex(p00); GL.Color(c1); GL.Vertex(p11); GL.Color(c0); GL.Vertex(p01);
-                        }
+                        float t0 = i / (float)seg * Mathf.PI * 2f, t1 = (i + 1) / (float)seg * Mathf.PI * 2f;
+                        Vector3 p00 = Ring(r0, t0), p01 = Ring(r0, t1), p10 = Ring(r1, t0), p11 = Ring(r1, t1);
+                        Color c0 = new Color(.004f, .006f, .012f, a0), c1 = new Color(.004f, .006f, .012f, a1);
+                        GL.Color(c0); GL.Vertex(p00); GL.Color(c1); GL.Vertex(p10); GL.Color(c1); GL.Vertex(p11);
+                        GL.Color(c0); GL.Vertex(p00); GL.Color(c1); GL.Vertex(p11); GL.Color(c0); GL.Vertex(p01);
                     }
-                    GL.End();
                 }
+                GL.End();
                 GL.PopMatrix();
             }
             catch (Exception e)
             {
-                if (!warnedGl) { warnedGl = true; Debug.LogWarning("[CastleAtmosphere] post-render pass disabled: " + e.Message); }
-                BlackLift = false; Vignette = false;
+                if (!warnedGl) { warnedGl = true; Debug.LogWarning("[CastleAtmosphere] vignette disabled: " + e.Message); }
+                Vignette = false;
             }
         }
 

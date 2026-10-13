@@ -50,9 +50,17 @@ namespace HollowCurrent.Editor
                 RenderSettings.ambientEquatorColor=new Color(.035f,.045f,.055f);RenderSettings.ambientGroundColor=new Color(.018f,.02f,.023f);
                 if(map==MapId.Castle)
                 {
-                    // hc/look: bake with CastleAtmosphere's default trilight (AmbientSky/Equator/Ground)
-                    // so static stone carries the cold fill. Keep in step with CastleAtmosphere.cs.
-                    RenderSettings.ambientSkyColor=new Color(.30f,.38f,.56f);RenderSettings.ambientEquatorColor=new Color(.20f,.24f,.36f);RenderSettings.ambientGroundColor=new Color(.09f,.09f,.14f);
+                    // hc/look3 bake ambient (docs/haunted-castle/handoffs/look3.md); keep in step with it.
+                    RenderSettings.ambientSkyColor=new Color(.050f,.065f,.100f);RenderSettings.ambientEquatorColor=new Color(.022f,.028f,.040f);RenderSettings.ambientGroundColor=new Color(.010f,.012f,.016f);
+                    // Window spots and both directional moons are baked: apply hc/look3's tuned
+                    // intensities to the layout before the bake reads them.
+                    // Candle tuning is multiplicative and realtime; the runtime CastleLightTuning
+                    // component applies it in the player, so candles are restored here to avoid
+                    // saving a scaled value that the player would scale a second time.
+                    var candles=lights.Where(l=>l.name=="Candle light").ToDictionary(l=>l,l=>(l.intensity,l.range,l.color));
+                    int tuned=CastleLightTuning.Tune(layout.transform);
+                    foreach(var c in candles){c.Key.intensity=c.Value.intensity;c.Key.range=c.Value.range;c.Key.color=c.Value.color;}
+                    Debug.Log("HC_CASTLE_LIGHT_TUNING lights="+tuned+" (baked window/moon values kept; "+candles.Count+" candles left for runtime)");
                 }
                 foreach(var light in lights)
                 {
