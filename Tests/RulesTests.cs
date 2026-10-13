@@ -72,6 +72,19 @@ static class RulesTests
         Assert(Math.Abs(timing.minimum_one_second_fps-96)<.01,"rolling interval includes the hitch");
         Assert(timing.p99_ms==10&&timing.one_percent_low_fps<100,"percentile and one-percent-low remain distinct metrics");
         Assert(!FrameStatistics.Measure(new float[0]).meets_60_fps_floor,"no rendered samples cannot pass performance");
+        MapTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
+    }
+    // Map catalog (piece 0): one source for scene names, receipts and display names.
+    static void MapTests()
+    {
+        Assert(MapCatalog.All.Count==2&&MapCatalog.Get(MapId.Bellwether).ScenePath=="Assets/HollowCurrent/Scenes/Bellwether.unity","Bellwether keeps its scene path");
+        Assert(MapCatalog.Get(MapId.Bellwether).BakeReceiptPath=="Assets/HollowCurrent/Art/LayoutData/BellwetherBake.json","Bellwether keeps its bake receipt");
+        Assert(MapCatalog.Get(MapId.Castle).BakeReceiptPath=="Assets/HollowCurrent/Art/LayoutData/CastleBake.json"&&MapCatalog.Get(MapId.Castle).SceneName=="Castle","castle receipt per contract");
+        Assert(MapCatalog.Get(MapId.Castle).LayoutFolder!=MapCatalog.Get(MapId.Bellwether).LayoutFolder,"castle never overwrites Bellwether layout assets");
+        Assert(MapCatalog.Get(MapId.Bellwether).HunterName=="Split Grin"&&MapCatalog.Get(MapId.Castle).HunterName=="Count Claude","hunter names");
+        Assert(MapCatalog.TryParse("castle",out var parsed)&&parsed==MapId.Castle&&!MapCatalog.TryParse("Attic",out _),"map argument parsing");
+        Assert(MapCatalog.TryFromSceneName("Castle",out var scene)&&scene==MapId.Castle&&!MapCatalog.TryFromSceneName("Untitled",out _),"scene name lookup");
+        Assert(MapCatalog.FromPreference(1)==MapId.Castle&&MapCatalog.FromPreference(7)==MapId.Bellwether&&MapCatalog.FromPreference(-1)==MapId.Bellwether,"corrupt preference falls back to Bellwether");
     }
 }
