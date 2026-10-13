@@ -48,3 +48,56 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4g — Count Claude round 7: the demon (branch `hc/count7`, Opus 5.5)
+
+Commit `168f1ee` (+ this handoff). `check_source.py` PASS. Unity not launched; Blender headless only.
+
+## Generation (Customuse, owner account; details in `docs/haunted-castle/ASSET_LOG.md`)
+- Workflow `79358063-a4bd-4a8e-ac51-50effc66655b`: Tripo v3.1 multiview mesh **100 credits** (4621 → 4521), clean-up + auto-rig
+  (Tripo provider) **35 credits** (→ 4486). **Total 135.** Not moderated. Licence line added to `ASSET_LICENSES.md`.
+- The mesh came back **untextured**. `tools/count_project_refs.py` projects the three reference views onto its UVs, with per-view
+  depth tests for occlusion and a mirrored side view for his right. The result, `tools/count_source/CountClaude_demon_albedo.png`,
+  is committed because the reference PNGs are gitignored.
+- Inspected in headless Blender: skin-membrane wings with hooks, skinless skull with the split jaw and blood, flayed red chest,
+  six-finger-length claws, shredded coat and collar. Previews are in the session scratchpad (not committed).
+
+## Model
+- Head top **2.5 m**; **46,306 triangles** (38,875 source + the doubled single-sheet membrane); 54 bones (22 remapped humanoid +
+  Jaw, 2 wing roots, 10 fan + 10 Ext, 10 zero-weight End markers); 2 submeshes (0 body/coat, 1 wing membrane).
+- The rig maps 117 generic Tripo bones to the canonical names; unmapped bones fold into their mapped ancestor (fingers into the
+  hands; coat back tails and side flap into the thighs; centre flap split by side). The wing membrane comes from the rig's wing
+  chains, re-skinned onto the fan derived from those chains (pivots at the shoulder blades, fan 5–175 deg).
+- Gore: Presence swaps `CastleArt.Gore(Skin, …, .55)` onto submesh 0 and `Gore(Membrane, …, .35)` onto submesh 1 in the castle
+  (`CountClaudeProfile.GoreMaterials`). Look-dev is unverified in engine; turn the toggle off if the coat reads skin-tinted.
+
+| Mode | Clip | Length | Wrap | Max span | Max top |
+|---|---|---|---|---|---|
+| 0 | Perch | 3.2 s | loop | 3.47 m | 1.66 m |
+| 1 | Glide | 2.0 s | loop | 4.57 m | 2.33 m |
+| 2 | Search | 2.6 s | loop | 2.32 m | 2.50 m |
+| 3 | Dive | 1.0 s | loop | 2.52 m | 1.89 m |
+| 4 | Stagger | 1.3 s | hold last | 2.97 m | 2.60 m |
+| 5 | Death | 2.4 s | hold last | 2.85 m | 2.63 m |
+| 6 | Grab | 0.9 s | hold last | 4.39 m | 2.72 m |
+| 7 | Crawl | 1.4 s | loop | 2.18 m | 1.75 m |
+
+- Crawl (top 1.75 m) is used on foot at service doors and where the clear height is under `CrawlCeiling` 2.45 m.
+- Grab, in a Blender camera matching the capture (2.8 m, eye 0.39 m above his origin, vFOV 66, aimed at his bounds centre): wing
+  tips leave both frame edges (x 0.00–1.06), the claws reach forward-down at the lens beside a clear face, the jaw gapes, and his
+  feet stay in frame (y 0.12–0.83). The membranes read thin and edge-on at that angle.
+- Exported FBX re-imported in Blender: Perch/Glide/Dive/Grab/Death world joints match the source rig exactly.
+
+## Integrator steps
+1. Merge `hc/count7`; run `CountClaudeImport.Prepare` (all FBX, the albedo and bone names changed). Expect `HC_CHARACTER_RIG bones=54`,
+   eight `HC_CHARACTER_CLIP` lines and `HC_COUNTCLAUDE_PASS ... 8 independent motions`; no `HC_COUNTCLAUDE_GRAB_REACH` warning.
+   Commit `Resources/Characters/CountClaude*`. ValidateCastleGeometry contract unchanged (rigged, ≥20 bones, Animator).
+2. In the castle log expect `HC_COUNT_GORE applied`.
+3. CaptureMode: no call changes. He is 16% taller, so S6 framing should be re-checked (head 2.5 m against the 1.8 m figure =
+   1.39×). For S5, `RoseLedgeFraming` re-sizes from his bounds.
+
+## Not done
+- No provider texture (projection from three views only; the right side mirrors the left).
+- Membrane reads edge-on in the Grab at the capture angle. Death still reclines on the wings.
