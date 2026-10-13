@@ -48,6 +48,12 @@ namespace HollowCurrent.Editor
             {
                 RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.08f,.105f,.14f);
                 RenderSettings.ambientEquatorColor=new Color(.035f,.045f,.055f);RenderSettings.ambientGroundColor=new Color(.018f,.02f,.023f);
+                if(map==MapId.Castle)
+                {
+                    // hc/look: bake with CastleAtmosphere's default trilight (AmbientSky/Equator/Ground)
+                    // so static stone carries the cold fill. Keep in step with CastleAtmosphere.cs.
+                    RenderSettings.ambientSkyColor=new Color(.30f,.38f,.56f);RenderSettings.ambientEquatorColor=new Color(.20f,.24f,.36f);RenderSettings.ambientGroundColor=new Color(.09f,.09f,.14f);
+                }
                 foreach(var light in lights)
                 {
                     // Castle: the layout's directional moons are baked like the window lights.

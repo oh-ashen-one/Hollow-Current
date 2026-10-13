@@ -16,16 +16,20 @@ SKY = CASTLE / "Sky"
 # name -> (base colour rgb linear-ish 0..1, smoothness, metallic, textured?)
 # Mirrors Unity Standard-shader values and the Blender Principled values.
 MATERIALS = {
-    "Castle_Stone":      ((0.34, 0.35, 0.37), 0.14, 0.0, True),   # weathered grey stone
-    "Castle_BlackStone": ((0.075, 0.075, 0.09), 0.55, 0.0, True), # altar / crypt
-    "Castle_Oak":        ((0.17, 0.105, 0.06), 0.22, 0.0, True),  # dark oak
-    "Castle_Brass":      ((0.40, 0.31, 0.14), 0.42, 0.80, True),  # tarnished brass
-    "Castle_Oxblood":    ((0.30, 0.045, 0.055), 0.08, 0.0, True), # cloth
-    "Castle_Silver":     ((0.56, 0.57, 0.60), 0.38, 0.85, True),  # dull silver
-    "Castle_Iron":       ((0.13, 0.13, 0.15), 0.30, 0.85, True),
-    "Castle_Bone":       ((0.62, 0.58, 0.48), 0.20, 0.0, True),
-    "Castle_Paper":      ((0.62, 0.55, 0.40), 0.05, 0.0, False),
-    "Castle_Canvas":     ((0.20, 0.17, 0.14), 0.05, 0.0, False),
+    # Round 2 (hc/look): albedo lifted so mid-tones exist under moonlight (stone reads grey-blue, not black).
+    "Castle_Stone":      ((0.50, 0.52, 0.57), 0.20, 0.0, True),   # weathered grey-blue ashlar
+    "Castle_BlackStone": ((0.20, 0.20, 0.25), 0.62, 0.0, True),   # altar / crypt: polished, veined
+    "Castle_FlagStone":  ((0.30, 0.32, 0.38), 0.58, 0.0, True),   # wet floor slabs (rune-reflecting)
+    "Castle_Oak":        ((0.30, 0.19, 0.11), 0.28, 0.0, True),   # dark oak
+    "Castle_Brass":      ((0.62, 0.48, 0.22), 0.50, 0.85, True),  # scratched, tarnished brass
+    "Castle_Oxblood":    ((0.42, 0.07, 0.09), 0.10, 0.0, True),   # woven cloth
+    "Castle_Silver":     ((0.70, 0.71, 0.75), 0.45, 0.90, True),
+    "Castle_Iron":       ((0.22, 0.22, 0.25), 0.35, 0.85, True),
+    "Castle_Bone":       ((0.72, 0.67, 0.56), 0.30, 0.0, True),
+    "Castle_Paper":      ((0.70, 0.62, 0.45), 0.08, 0.0, True),
+    "Castle_Canvas":     ((1.00, 1.00, 1.00), 0.08, 0.0, False),  # portrait painting (Portrait.png) + canvas weave normal
+    "Castle_Blood":      ((0.22, 0.012, 0.02), 0.95, 0.0, True),  # liquid: moat + crypt channel (scrolling normal in CastleArt/shader)
+    "Castle_SunWindow":  ((1.00, 1.00, 1.00), 0.55, 0.0, False),  # painted-over sun window above the chapel altar
     "Castle_Flame":      ((1.00, 0.62, 0.22), 0.00, 0.0, False),  # emissive
 }
 
@@ -147,6 +151,8 @@ def write_texture_meta(png, kind="color"):
     g = guid(rel_to_project(png))
     cfg = dict(color=dict(srgb=1, ttype=0, wrap=0, mips=1, aniso=4),
                normal=dict(srgb=0, ttype=1, wrap=0, mips=1, aniso=4),
+               mask=dict(srgb=0, ttype=0, wrap=0, mips=1, aniso=4),
+               emission=dict(srgb=1, ttype=0, wrap=1, mips=1, aniso=4),
                sky=dict(srgb=1, ttype=0, wrap=1, mips=0, aniso=0))[kind]
     Path(str(png) + ".meta").write_text(_TEX_META.format(guid=g, **cfg))
     return g
@@ -162,17 +168,21 @@ def _tex_env(name, tex_guid):
         return "    - %s:\n        m_Texture: {fileID: 2800000, guid: %s, type: 3}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n" % (name, tex_guid)
     return "    - %s:\n        m_Texture: {fileID: 0}\n        m_Scale: {x: 1, y: 1}\n        m_Offset: {x: 0, y: 0}\n" % name
 
-def write_standard_mat(path, name, color, smooth, metal, albedo_guid=None, normal_guid=None, emission=None):
+def write_standard_mat(path, name, color, smooth, metal, albedo_guid=None, normal_guid=None, emission=None,
+                       mask_guid=None, emission_guid=None, bump_scale=1.0, occlusion=0.8):
     path = Path(path)
     keywords = []
     if normal_guid:
         keywords.append("_NORMALMAP")
+    if mask_guid:
+        keywords.append("_METALLICGLOSSMAP")
     if emission:
         keywords.append("_EMISSION")
     envs = ""
     for slot in ["_BumpMap", "_DetailAlbedoMap", "_DetailMask", "_DetailNormalMap", "_EmissionMap", "_MainTex",
                  "_MetallicGlossMap", "_OcclusionMap", "_ParallaxMap"]:
-        g = albedo_guid if slot == "_MainTex" else (normal_guid if slot == "_BumpMap" else None)
+        g = {"_MainTex": albedo_guid, "_BumpMap": normal_guid, "_MetallicGlossMap": mask_guid,
+             "_OcclusionMap": mask_guid, "_EmissionMap": emission_guid}.get(slot)
         envs += _tex_env(slot, g)
     em = emission or (0, 0, 0)
     text = f"""%YAML 1.1
@@ -202,7 +212,7 @@ Material:
     m_TexEnvs:
 {envs}    m_Ints: []
     m_Floats:
-    - _BumpScale: 1
+    - _BumpScale: {bump_scale}
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
@@ -211,7 +221,7 @@ Material:
     - _GlossyReflections: 1
     - _Metallic: {metal}
     - _Mode: 0
-    - _OcclusionStrength: 1
+    - _OcclusionStrength: {occlusion if mask_guid else 1}
     - _Parallax: 0.02
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
