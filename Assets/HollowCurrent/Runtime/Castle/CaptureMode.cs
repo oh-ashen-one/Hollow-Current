@@ -59,18 +59,6 @@ namespace HollowCurrent
             Log(id+" "+texture.width+"x"+texture.height+" "+file);
             Destroy(texture);
         }
-        // A 1.80 m investigator stand-in (the player has no third-person body) for scale.
-        GameObject ScaleFigure(Vector3 feet)
-        {
-            var root=new GameObject("Capture scale figure (1.80 m investigator)");root.transform.position=feet;root.transform.rotation=Quaternion.Euler(0,180,0);
-            var cloth=new Material(Shader.Find("Standard")){name="Capture scale figure",color=new Color(.32f,.30f,.27f)};
-            GameObject Part(PrimitiveType type,Vector3 local,Vector3 scale)
-            {var g=GameObject.CreatePrimitive(type);g.transform.SetParent(root.transform,false);g.transform.localPosition=local;g.transform.localScale=scale;Destroy(g.GetComponent<Collider>());g.GetComponent<Renderer>().sharedMaterial=cloth;return g;}
-            Part(PrimitiveType.Capsule,new Vector3(0,.78f,0),new Vector3(.46f,.78f,.30f));   // legs and torso to 1.56 m
-            Part(PrimitiveType.Sphere,new Vector3(0,1.69f,0),new Vector3(.22f,.24f,.24f));    // head top at 1.81 m
-            foreach(int side in new[]{-1,1})Part(PrimitiveType.Capsule,new Vector3(side*.29f,1.08f,0),new Vector3(.11f,.34f,.11f));
-            return root;
-        }
         // The investigator's flashlight as in play (Investigator input is off in capture).
         void Torch(bool on){var l=game.Player.Torch;l.enabled=on;l.intensity=.85f*game.Player.Brightness;}
         static string V(Vector3 v)=>v.x.ToString("F2")+","+v.y.ToString("F2")+","+v.z.ToString("F2");
@@ -136,25 +124,23 @@ namespace HollowCurrent
             Place(e,t);Log("S4 search "+s4);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"drawbridge lowered (Snap); moon-clear search "+s4);
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
-            // S5: great hall floor looking up at the balcony; Count Claude on the balcony perch, Mode 0.
-            // Staged on the balustrade top above the west balcony perch (the deck point
-            // itself is hidden behind the rail from the hall floor).
-            var deck=spots!=null&&spots.PerchPoints!=null&&spots.PerchPoints.Length>0?spots.PerchPoints[0]:new Vector3(-4.4f,3.2f,21);
-            var perch=new Vector3(-3.15f,deck.y+1.12f,deck.z);
+            // S5: great hall floor looking up at the balcony; Count Claude staged on balcony
+            // perch 0 in Mode 0 (Presence.StageForCapture, hc/count2), framed by
+            // Presence.CaptureFraming (fill 0.5 of frame height, eye 30 degrees below him).
             Torch(true);Floater.SetFlameTarget(game.Creature.transform);
-            // Eye moved 1.1 m east of the r1 position so the lancet window is no longer
-            // directly behind his shoulder (r1 "light leak" was sky through that window).
-            e=new Vector3(3.6f,1.64f,15.2f);t=perch+Vector3.up*1.2f;Place(e,t);
-            var toCamera=e-perch;
-            game.Creature.ManifestAt(perch,Mathf.Atan2(toCamera.x,toCamera.z)*Mathf.Rad2Deg,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeIdle);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"Count staged on the balustrade at "+V(perch)+" above perch "+V(deck)+", mode "+game.Creature.Profile.ModeIdle+", investigator torch on");
-            // S6: Count Claude 3 m in front of the camera on the courtyard, Mode 1 Glide.
-            // Aimed between the Count and the scale figure so both sit inside the flashlight cone.
-            e=new Vector3(-3,1.64f,8);var stand=new Vector3(-3,0,11);t=stand+new Vector3(1,1.3f,0);Place(e,t);
-            game.Creature.ManifestAt(stand,180,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeMove,3);
-            var figure=ScaleFigure(stand+new Vector3(2,0,0));
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count 3 m ahead, mode "+game.Creature.Profile.ModeMove+", investigator torch on, 1.80 m scale figure 2 m to his left (+x)");
-            game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(figure);
+            bool staged=game.Creature.StageForCapture(0);
+            yield return new WaitForSecondsRealtime(1.5f);
+            if(!game.Creature.CaptureFraming(.5f,30,out e,out t)){e=new Vector3(3.6f,1.64f,15.2f);t=game.Creature.transform.position+Vector3.up*1.2f;}
+            Place(e,t);
+            yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"StageForCapture(0)="+staged+" Count feet "+V(game.Creature.transform.position)+", CaptureFraming(0.5,30), investigator torch on");
+            game.Creature.Dismiss();
+            // S6: Count Claude standing on the courtyard floor (Mode 2 Search) with a 1.80 m
+            // mannequin (Presence.ScaleReference) beside him for scale.
+            game.Creature.ManifestAt(new Vector3(-3,0,11),180,9999,true);
+            var man=Presence.ScaleReference(new Vector3(-1.75f,0,11),180);
+            e=new Vector3(-2.4f,1.15f,7.4f);t=new Vector3(-2.4f,1.1f,11);Place(e,t);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count feet (-3,0,11) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (-1.75,0,11), investigator torch on");
+            game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(man);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;
             string body=book.NoteBodies[0];foreach(var item in game.World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Note&&item.Label==book.NoteTitles[0])body=item.Body;
@@ -162,7 +148,7 @@ namespace HollowCurrent
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S8_journal_ledger","(journal)",Vector3.zero,Vector3.zero,book.NoteTitles[0]);
             game.NoteBody=null;game.Journal=false;ui.enabled=false;game.ApplyFocus();yield return null;
             // Hunt: Count Claude dives at the investigator in the great hall; 10 frames, 1 s apart.
-            e=new Vector3(0,1.64f,15.6f);var origin=new Vector3(4.6f,0,26.8f);t=new Vector3(1.5f,1.6f,24f);Place(e,t);Torch(true);
+            e=new Vector3(0,1.64f,15.6f);var origin=new Vector3(4.6f,0,26.8f);t=new Vector3(1.5f,3.0f,24f);Place(e,t);Torch(true); // keeps the east-balcony perch (y ~4.3) in frame
             game.Case.Equip();game.Case.EnterHouse();game.Case.Record(Evidence.Induction);game.Case.Record(Evidence.Handprint);
             game.Case.BeginWarning();game.Creature.SetHuntOrigin(origin);game.Case.Tick(9.05f,true);
             Log("hunt phase="+game.Case.Phase+" "+game.Creature.DiagnosticState);
