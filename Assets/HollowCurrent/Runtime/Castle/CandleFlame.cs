@@ -99,16 +99,20 @@ namespace HollowCurrent
                     {
                         var view=to.normalized;
                         var toTarget=floater.flameTarget.position+Vector3.up*1.2f-billboard.position;
-                        var across=toTarget-view*Vector3.Dot(toTarget,view);
-                        if(across.sqrMagnitude>.25f)
+                        // Lean horizontally toward him, as seen on screen. The Count usually perches above the candles, so
+                        // "toward him on screen" would be straight up (no visible lean): use the horizontal part of the offset,
+                        // and when that runs along the sight line (foreshortened), lean toward the side of the screen he is on.
+                        var horizontal=new Vector3(toTarget.x,0,toTarget.z);
+                        var across=horizontal-view*Vector3.Dot(horizontal,view);
+                        Vector3 lean;
+                        if(horizontal.sqrMagnitude>.04f&&across.sqrMagnitude>.25f*horizontal.sqrMagnitude)lean=across.normalized;
+                        else{var right=SurrealProps.ViewerRight;lean=Vector3.Dot(toTarget,right)<0?-right:right;}
+                        float degrees=floater.maxBendDegrees*floater.Bend01;
+                        up=Vector3.RotateTowards(Vector3.up,lean,degrees*Mathf.Deg2Rad,0);
+                        if(!leanReported&&degrees>=20)
                         {
-                            float degrees=floater.maxBendDegrees*floater.Bend01;
-                            up=Vector3.RotateTowards(Vector3.up,across.normalized,degrees*Mathf.Deg2Rad,0);
-                            if(!leanReported&&degrees>=20)
-                            {
-                                leanReported=true;
-                                Debug.Log("HC_LEAN_CHECK flame leans "+degrees.ToString("F0")+" deg toward the target at "+toTarget.magnitude.ToString("F1")+" m (floater bend "+floater.Bend01.ToString("F2")+")");
-                            }
+                            leanReported=true;
+                            Debug.Log("HC_LEAN_CHECK flame leans "+degrees.ToString("F0")+" deg off its candle toward the target at "+toTarget.magnitude.ToString("F1")+" m (floater bend "+floater.Bend01.ToString("F2")+", screen lean "+Vector3.Angle(Vector3.up,up).ToString("F0")+" deg)");
                         }
                     }
                     billboard.rotation=Quaternion.LookRotation(to,up);
