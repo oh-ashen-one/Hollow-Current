@@ -26,6 +26,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # (the mesh came back untextured); the baked PNG is committed because the reference PNGs are not in git.
 SOURCE = ROOT / 'tools/count_source/CountClaude_demon_rigged.glb'
 ALBEDO = ROOT / 'tools/count_source/CountClaude_demon_albedo.png'
+EMISSION = ROOT / 'tools/count_source/CountClaude_demon_albedo_emission.png'   # ember eyes
+FLESH = ROOT / 'tools/count_source/CountClaude_demon_albedo_flesh.png'         # flayed chest/forearm UV mask
 OUT = ROOT / 'Assets/HollowCurrent/Art/Characters/CountClaude'
 HEAD_TOP = 2.5                     # a nine-foot demon; 2.5 m keeps him under the 3.0 m ceilings
 K = HEAD_TOP / 2.15                # clip offsets and IK targets were authored for the 2.15 m round-6 figure
@@ -136,7 +138,10 @@ def raw_angle(s, c):
 phis = sorted(raw_angle('L' if c.x > 0 else 'R', c)[0] for c, w in zip(co, wingshare) if w > .5)
 lo_phi = max(5.0, phis[int(len(phis) * .03)]); hi_phi = min(178.0, phis[int(len(phis) * .97)])
 FAN_REST = [lo_phi + (hi_phi - lo_phi) * k / 4 for k in range(5)]
-FAN_OPEN = [48.0, 72.0, 95.0, 115.0, 132.0]      # fully spread: hook out-up, fingers out-down
+# Round 8: spreading keeps 72% of the folded fan's angular range (r7 compressed 170 deg into 84 deg, halving the membrane:
+# the 'strands' in the grab). The Ext stretch makes up the rest; membrane area per clip is measured into the receipt.
+FAN_MID = (FAN_REST[0] + FAN_REST[-1]) / 2
+FAN_OPEN = [FAN_MID + (r - FAN_MID) * .72 for r in FAN_REST]
 NFAN = len(FAN_REST)
 radii_all = sorted(raw_angle('L' if c.x > 0 else 'R', c)[1] for c, w in zip(co, wingshare) if w > .5)
 EXT_R = radii_all[int(len(radii_all) * .97)]      # radius of each fan bone's extension child (folded tip reach)
@@ -257,7 +262,23 @@ for v in me.vertices: wingw[v.index] = sum(g.weight for g in v.groups if gname[g
 membrane_faces = 0
 for pl in me.polygons:
     pl.material_index = 1 if all(wingw[i] > .5 for i in pl.vertices) else 0; membrane_faces += pl.material_index
-print('HC_MATERIAL_SLOTS body', len(me.polygons) - membrane_faces, 'membrane', membrane_faces, flush=True)
+# Material slot 2 = flayed flesh (CastleArt.Gore Flesh in the castle), from the baked UV mask of red torso/forearm texels.
+if len(me.materials) < 3:
+    flesh_mat = me.materials[0].copy(); flesh_mat.name = 'CountClaudeFlesh'; me.materials.append(flesh_mat)
+_fl = bpy.data.images.load(str(FLESH)); _fw, _fh = _fl.size
+_fpx = np.empty(_fw * _fh * 4, dtype=np.float32); _fl.pixels.foreach_get(_fpx); _fpx = _fpx.reshape(_fh, _fw, 4)[..., 0]
+_uv = me.uv_layers.active.data; flesh_faces = 0
+for pl in me.polygons:
+    if pl.material_index == 1: continue
+    u = sum(_uv[li].uv[0] for li in pl.loop_indices) / len(pl.loop_indices); v = sum(_uv[li].uv[1] for li in pl.loop_indices) / len(pl.loop_indices)
+    if _fpx[min(_fh - 1, max(0, int(v * _fh))), min(_fw - 1, max(0, int(u * _fw)))] > .5: pl.material_index = 2; flesh_faces += 1
+print('HC_MATERIAL_SLOTS body', len(me.polygons) - membrane_faces - flesh_faces, 'membrane', membrane_faces, 'flesh', flesh_faces, flush=True)
+def membrane_area():
+    dg = bpy.context.evaluated_depsgraph_get(); m = body.evaluated_get(dg).to_mesh(); a = 0.0
+    for pl in m.polygons:
+        if pl.material_index == 1: a += pl.area
+    body.evaluated_get(dg).to_mesh_clear(); return a / 2      # the membrane is doubled (two-sided): count one side
+REST_MEMBRANE = membrane_area()
 
 # ---------------------------------------------------------------- pose helpers
 scene = bpy.context.scene; scene.render.fps = FPS
@@ -369,15 +390,16 @@ def dive(p, ph, f):
     p.arms(-70 + 4 * fl, out=14, forearm=-6, hand=-14, inward=6)
     p.wings(.58 + .05 * fl, yaw=-38, beat=6 + 7 * fl, pitch=26, curl=-4 * math.sin(a - .8), lag=6 * math.sin(a - 1.2), stretch=1.35)
 def grab(p, ph, f):
-    # Round 6 climax: a forward wing-wrap. He rears up, looks down at the lens, both arms reach straight at it at
-    # shoulder width, and the wings sweep forward on both sides (yaw ~52 deg, membranes' inner faces toward the camera)
-    # so their tips reach the frame edges at the 2.8 m capture hold.
+    # Round 8 climax: a forward wing-wrap with the torso pitched ~33 deg toward the camera (critic r7: >= 25), the head
+    # looking down the lens with the split jaw open, both claws reaching at the lens at shoulder width (arm = -85 relative
+    # to the leaned torso = ~52 deg forward of straight down, i.e. along the line to a camera 2.8 m out and 1.6 m lower),
+    # and the wings half-wrapped (yaw 45: the membranes' inner faces toward the camera, not edge-on) with full area.
     a = ease(min(1, f / .45)); b = ease(max(0, min(1, (f - .15) / .6)))
-    p.r('Hips', x=lerp(48, 6, a)); p.spine(lerp(10, 4, a), neck=lerp(-36, 14, a), head=lerp(-44, 22, a))
+    p.r('Hips', x=lerp(48, 30, a)); p.spine(lerp(10, 10, a), neck=lerp(-36, -14, a), head=lerp(-44, -10, a))
     p.r('Jaw', x=lerp(0, JAW_OPEN, b))                       # the split jaw gapes at the lens
-    p.legs(lerp(18, 8, a), lerp(26, 22, a), lerp(42, 30, a))
-    p.arms(lerp(-70, -40, b), out=lerp(14, 8, b), forearm=lerp(-6, -12, b), hand=lerp(-14, -10, b), inward=lerp(6, -2, b))   # forward-down at the lens
-    p.wings(lerp(.6, 1.0, b), yaw=lerp(-30, 84, a), beat=lerp(6, 20, a), pitch=lerp(26, 6, a), curl=lerp(0, -22, b), stretch=2.0)
+    p.legs(lerp(18, -6, a), lerp(26, 30, a), lerp(42, 34, a))
+    p.arms(lerp(-70, -66, b), out=lerp(14, 22, b), forearm=lerp(-6, -10, b), hand=lerp(-14, -18, b), inward=lerp(6, 4, b))   # down-out past the lens, framing it
+    p.wings(lerp(.6, 1.0, b), yaw=lerp(-30, 66, a), beat=lerp(6, 30, a), pitch=lerp(26, 10, a), curl=lerp(0, -10, b), stretch=2.2)
 def crawl(p, ph, f):
     # Mode 7: stooped four-limbed crawl under 2.0 m lintels. Hips ~0.9 m, torso near horizontal, head up, wings folded
     # flat along the back; hands and feet are planted by crawl_ik in a diagonal gait. Navigation moves him.
@@ -436,7 +458,7 @@ for name, fn, seconds, loop, ik, floor in CLIPS:
     shift = (SKIM if floor == 'skim' else 0.0) - lowest_over(fn, end, loop, ik) if floor in ('skim', 'ground') else 0.0
     action = bpy.data.actions.new(name); action.use_fake_user = True; rig.animation_data.action = action
     if action.slots: rig.animation_data.action_slot = action.slots[0]
-    prev = {}; spans = []; tops = []; lows = []; reach = []
+    prev = {}; spans = []; tops = []; lows = []; reach = []; areas = []
     for frame in range(0, end + 1):
         ph = (frame / end) % 1.0 if loop else frame / end; f = frame / end
         if loop and frame == end: ph = 0.0
@@ -448,6 +470,7 @@ for name, fn, seconds, loop, ik, floor in CLIPS:
             lift_hips(-float(pts[:, 2].min())); pts = mesh_points()
         spans.append(float(pts[:, 0].max() - pts[:, 0].min())); tops.append(float(pts[:, 2].max()))
         lows.append(float(pts[:, 2].min())); reach.append(float(-pts[:, 1].min()))
+        if frame % 6 == 0 or frame == end: areas.append(membrane_area() / REST_MEMBRANE)
         for b in rig.pose.bones:
             q = b.rotation_quaternion.copy()
             if b.name in prev and prev[b.name].dot(q) < 0: q.negate(); b.rotation_quaternion = q
@@ -456,7 +479,7 @@ for name, fn, seconds, loop, ik, floor in CLIPS:
     actions[name] = (action, end, loop)
     metrics[name] = {'seconds': round(end / FPS, 3), 'loop': loop, 'hip_shift_m': round(shift, 3), 'span_m_min': round(min(spans), 3), 'span_m_max': round(max(spans), 3),
                      'top_m_max': round(max(tops), 3), 'lowest_z_min': round(min(lows), 3), 'forward_reach_m_max': round(max(reach), 3),
-                     'forward_reach_m_last': round(reach[-1], 3)}
+                     'forward_reach_m_last': round(reach[-1], 3), 'membrane_area_ratio_min': round(min(areas), 3), 'membrane_area_ratio_last': round(areas[-1], 3)}
     print('HC_CLIP', name, json.dumps(metrics[name]), flush=True)
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
@@ -465,7 +488,7 @@ rest_pts = mesh_points()
 shoulder_width = (arm.bones['LeftArm'].head_local - arm.bones['RightArm'].head_local).length
 
 # ---------------------------------------------------------------- texture and receipts
-import shutil; shutil.copyfile(ALBEDO, OUT / 'Maps/Albedo.png')   # baked by tools/count_project_refs.py
+import shutil; shutil.copyfile(ALBEDO, OUT / 'Maps/Albedo.png'); shutil.copyfile(EMISSION, OUT / 'Maps/Emission.png')   # tools/count_project_refs.py
 
 # ---------------------------------------------------------------- preview (optional, not part of the deliverable)
 def preview(directory):
@@ -517,7 +540,7 @@ for name, (action, end, loop) in actions.items():
                              add_leaf_bones=False, bake_anim=True, bake_anim_use_all_actions=False, bake_anim_use_nla_strips=False,
                              bake_anim_simplify_factor=0, axis_forward='-Z', axis_up='Y', path_mode='STRIP')
 report = {'source': str(SOURCE.relative_to(ROOT)), 'head_top_m': HEAD_TOP, 'mesh_height_m': round(hi - lo, 4), 'triangles': triangles,
-          'vertices': len(me.vertices), 'bones': len(arm.bones), 'wing_vertices': wing_verts, 'membrane_faces': membrane_faces,
+          'vertices': len(me.vertices), 'bones': len(arm.bones), 'wing_vertices': wing_verts, 'membrane_faces': membrane_faces, 'flesh_faces': flesh_faces, 'rest_membrane_m2': round(REST_MEMBRANE, 3),
           'rest_span_m': round(float(rest_pts[:, 0].max() - rest_pts[:, 0].min()), 3), 'shoulder_width_m': round(shoulder_width, 3),
           'grab_reach_m': metrics['Grab']['forward_reach_m_last'], 'clips': metrics}
 (OUT / 'Native/CountClaude.json').write_text(json.dumps(report, indent=2) + '\n')

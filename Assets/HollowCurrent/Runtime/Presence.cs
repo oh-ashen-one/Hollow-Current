@@ -789,8 +789,8 @@ namespace HollowCurrent
             CaptureNote="phase="+CapturePhases[phase]+" mode="+mode+" clock="+choreoClock.ToString("F2")+" distance="+Vector3.Distance(bounds.center,eye).ToString("F2")+" span="+bounds.size.x.ToString("F2")+" height="+bounds.size.y.ToString("F2");
             KeepCameraClear();
         }
-        // Round 7: the projected albedo reads dry; CastleArt.Gore keeps it and adds pallid skin tint, wet blood and translucency
-        // (submesh 0 body/coat = Skin, submesh 1 wing membrane = Membrane). Any failure keeps the imported material.
+        // CastleArt.Gore keeps the projected albedo and adds wet blood and translucency on the wing membrane (submesh 1) and the
+        // flayed flesh (submesh 2); the body/coat (submesh 0) keeps the imported material. Any failure keeps the imported material.
         void CountGoreMaterials()
         {
             if(!count.GoreMaterials)return;
@@ -800,8 +800,11 @@ namespace HollowCurrent
                 {
                     var mats=skin.sharedMaterials;if(mats==null||mats.Length==0)continue;
                     var gore=new Material[mats.Length];
+                    // Round 8 (critic r7: 80% red-dominant px): no Skin gore on the body; submesh 1 wing membrane, 2 flayed flesh.
                     for(int i=0;i<mats.Length;i++)
-                        gore[i]=CastleArt.Gore(i==1?CastleArt.GoreKind.Membrane:CastleArt.GoreKind.Skin,mats[i],i==1?count.GoreMembraneWet:count.GoreSkinWet)??mats[i];
+                        gore[i]=i==1?CastleArt.Gore(CastleArt.GoreKind.Membrane,mats[i],count.GoreMembraneWet)??mats[i]
+                               :i==2?CastleArt.Gore(CastleArt.GoreKind.Flesh,mats[i],count.GoreFleshWet)??mats[i]
+                               :count.GoreSkinOnBody?CastleArt.Gore(CastleArt.GoreKind.Skin,mats[i],count.GoreSkinWet)??mats[i]:mats[i];
                     skin.sharedMaterials=gore;
                 }
                 Debug.Log("HC_COUNT_GORE applied");
