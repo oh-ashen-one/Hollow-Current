@@ -53,6 +53,9 @@ namespace HollowCurrent
         public int FlashlightVertexCount => FieldKitArt.VertexCount(torchModel);
         public string InductionDisplay => inductionReadout.text;
         public FieldInput TestInput;
+        // This frame's interact-hold and instrument-press (live or test input).
+        public bool UseHeld=>input!=null&&input.UseHeld;
+        public bool FirePressed=>input!=null&&input.Fire;
         FieldInput input;
         readonly FieldInput liveInput=new FieldInput();
         static readonly string[] InductionLevels={"0.0","1.0","2.0","3.0","4.0","5.0"};

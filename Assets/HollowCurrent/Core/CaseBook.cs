@@ -39,6 +39,9 @@ namespace HollowCurrent
         // Location labels: safe zone, outside, below ground, ground, upper, tower (tower used above TowerY).
         public string LocSafe, LocOutside, LocLower, LocGround, LocUpper, LocTower;
         public float TowerY=float.MaxValue;
+        // Castle kill ending and forge (Bellwether has no fight: copies of its won text).
+        public string KillHero, KillBody, KillFooter, AltarLabel, AltarHint, SwordForged, HitLanded;
+        public string[] RelicNames, RelicFound;
 
         public string EvidenceName(Evidence e)=>EvidenceNames[(int)e];
         public string EvidenceId(Evidence e)=>EvidenceIds[(int)e];
@@ -118,6 +121,8 @@ namespace HollowCurrent
             LostBody="Your last transmission dissolves into static.\n\nBreak sight before hiding. Silence the torch and radio. She can follow you to the van.",
             WonFooter="CONTAINMENT CONFIRMED   /   FIELD RECORD ARCHIVED",LostFooter="CASE UNRESOLVED   /   A NEW INVESTIGATION CAN BEGIN",
             LocSafe="FIELD VAN",LocOutside="BELLWETHER LANE",LocLower="BASEMENT",LocGround="GROUND FLOOR",LocUpper="UPPER FLOOR",LocTower="UPPER FLOOR",
+            KillHero="The house\nfalls silent.",KillBody="",KillFooter="CONTAINMENT CONFIRMED   /   FIELD RECORD ARCHIVED",AltarLabel="",AltarHint="",SwordForged="",HitLanded="",
+            RelicNames=new[]{"","",""},RelicFound=new[]{"","",""},
         };
 
         // The Blood Ledger (DESIGN.md): compass / grave-ash lantern / ear-trumpet,
@@ -190,6 +195,15 @@ namespace HollowCurrent
             LostBody="Your lantern gutters into the dark.\n\nBreak sight before hiding. Douse the lantern and radio. He can follow you to the gatehouse.",
             WonFooter="BARGAIN BROKEN   /   BLOOD LEDGER CLOSED",LostFooter="BARGAIN UNBROKEN   /   A NEW INVESTIGATION CAN BEGIN",
             LocSafe="GATEHOUSE",LocOutside="OUTSIDE THE WALLS",LocLower="CRYPT",LocGround="GROUND FLOOR",LocUpper="GALLERIES",LocTower="TOWER",TowerY=5,
+            KillHero="Sunrise\nthrough the rose.",
+            KillBody="Three strokes of moonstone and silver. He folds into the light like ash.\nThe sun comes over the wall for the first time in centuries.\n\nThe bargain is broken. Nobody has to ring the bell again.",
+            KillFooter="COUNT CLAUDE SLAIN   /   BLOOD LEDGER CLOSED",
+            AltarLabel="Chapel altar · hold [E] with three relics to forge",
+            AltarHint="The altar is cold. The chapel inscription names three relics: the blade under the crypt, the hilt among the stars, the stone behind a face.",
+            SwordForged="Dispatch / The altar remembers its trade. A moonstone sword. Meet him in the great hall and strike three times. Or run for the drawbridge.",
+            HitLanded="Dispatch / A clean strike. He is falling back to his perch. Ready yourself; he will come back lower.",
+            RelicNames=new[]{"Silver blade","Hallowed hilt","Moonstone"},
+            RelicFound=new[]{"Dispatch / The silver blade. Cold as a grave, bright as a coin.","Dispatch / The hallowed hilt, from the orrery's empty socket.","Dispatch / The moonstone. It hums when you face the chapel."},
         };
     }
 }

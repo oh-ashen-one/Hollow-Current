@@ -57,9 +57,14 @@ namespace HollowCurrent
         }
         public void Speak(string id,Vector3? location=null)
         {
-            // Castle speech uses its own cc_ lines only (voice_cc_<id>); never the house's voices.
+            // Castle speech uses its own cc_ lines only (voice_cc_*); never the house's voices.
+            // Shared ids map onto Count lines; "cc_*" ids are used as given.
             AudioClip clip;
-            if(castle){if(!clips.TryGetValue("voice_cc_"+id,out clip)){MissingArt.Report("speech","voice_cc_"+id);return;}}
+            if(castle)
+            {
+                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":"cc_"+id;
+                if(!clips.TryGetValue("voice_"+key,out clip)){MissingArt.Report("speech","voice_"+key);return;}
+            }
             else if(!clips.TryGetValue("voice_"+id,out clip))throw new InvalidOperationException("Missing speech "+id);
             PlayedSpeech++;
             if(location.HasValue){int slot=Play(clip,location.Value,.70f,1);speechUntil[slot]=Time.unscaledTime+clip.length;return;}
@@ -77,6 +82,16 @@ namespace HollowCurrent
             if(!clips.TryGetValue(id,out var clip)){if(castle){MissingArt.Report("audio",id);return;}throw new InvalidOperationException("Missing sound "+id);}
             if(generated.Contains(id))GeneratedCues++;
             Play(clip,position+Vector3.up*.12f,volume,1+(cursor%5-2)*.012f);
+        }
+        public bool Has(string id)=>clips.ContainsKey(id);
+        // Looping 3D source (castle loops: AUDIO.md); silent if the clip is missing.
+        public AudioSource SpatialLoop(string id,Transform parent,Vector3 position,float volume,float minDistance,float maxDistance)
+        {
+            var g=new GameObject("Spatial loop / "+id);g.transform.SetParent(parent?parent:transform,false);g.transform.position=position;
+            var a=g.AddComponent<AudioSource>();
+            if(!clips.TryGetValue(id,out var clip)){MissingArt.Report("audio",id);clip=MissingArt.Silence;}
+            a.clip=clip;a.loop=true;a.playOnAwake=false;a.volume=volume;a.spatialBlend=1;a.rolloffMode=AudioRolloffMode.Logarithmic;a.minDistance=minDistance;a.maxDistance=maxDistance;a.dopplerLevel=0;a.Play();
+            return a;
         }
         public void UI(string id="ui_paper")
         {

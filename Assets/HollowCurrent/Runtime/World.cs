@@ -174,6 +174,14 @@ namespace HollowCurrent
             if(!Find(InteractKind.Anchor))Interact("Fallback / chapel bell",Anchor,new Vector3(.6f,.7f,.6f),"brass",InteractKind.Anchor,book.AnchorLabel,"");
             if(!Find(InteractKind.Breaker))Interact("Fallback / chapel brazier",FreeSpot(Castle.AltarPosition+new Vector3(0,.8f,0),new Vector3(.6f,1,.6f),around),new Vector3(.6f,1,.6f),"black",InteractKind.Breaker,book.BreakerLabel,"");
             if(!Find(InteractKind.Note,book.ArrivalNoteTitle))Interact("Fallback / arrival note",FreeSpot(Spawn+new Vector3(0,.85f,0),new Vector3(.42f,.04f,.3f),new Vector3(-1.4f,0,1.2f),new Vector3(1.4f,0,-.6f),new Vector3(0,0,1)),new Vector3(.42f,.04f,.3f),"paper",InteractKind.Note,book.ArrivalNoteTitle,book.ArrivalNoteBody);
+            if(!Find(InteractKind.Altar))
+            {var altar=Interact("Forge altar",Castle.AltarPosition+new Vector3(0,.15f,0),new Vector3(.9f,.3f,1.6f),"black",InteractKind.Altar,book.AltarLabel,"");altar.GetComponent<Renderer>().enabled=false;altar.GetComponent<Collider>().isTrigger=true;}
+            if(Castle.RelicPositions!=null)for(int i=0;i<Castle.RelicPositions.Length&&i<book.RelicNames.Length;i++)
+            {
+                bool exists=false;foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Relic&&item.RelicIndex==i)exists=true;
+                if(exists)continue;
+                var relic=Interact("Relic / "+book.RelicNames[i],Castle.RelicPositions[i]+Vector3.up*.08f,new Vector3(.3f,.16f,.3f),"brass",InteractKind.Relic,book.RelicNames[i],"");relic.RelicIndex=i;
+            }
             var anchors=new[]{Castle.Compass,Castle.Voice,Castle.AltarPosition};
             for(int i=0;i<book.NoteTitles.Length;i++)
             {

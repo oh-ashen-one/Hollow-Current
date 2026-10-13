@@ -139,6 +139,9 @@ namespace HollowCurrent
             Set(Phase.Won); return true;
         }
         public void Die() { if (!Terminal && Phase == Phase.Hunt) Set(Phase.Dead); }
+        // Castle second win: the hunter is slain (Forge/Fight). Escape stays FinishAtVan.
+        public bool HunterSlain { get; private set; }
+        public bool WinByKill() { if (Terminal) return false; HunterSlain = true; Set(Phase.Won); return true; }
         void Set(Phase next) { Phase = next; PhaseTime = 0; Changed?.Invoke(next); }
         void Say(string value) => Message?.Invoke(value);
         public string Goal

@@ -155,6 +155,8 @@ static class RulesTests
         foreach(var title in CaseBook.Castle.NoteTitles)castle.Read(title);Assert(castle.ContextCount==3&&castle.MysteryReady,"Blood Ledger pages make the castle ready");
         Assert(!castle.Conclude(AnchorKind.Doll,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd)&&said==CaseBook.Castle.WrongAnchor,"castle wrong-anchor hint");
         Assert(castle.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd)&&said==CaseBook.Castle.Diagnosed,"chapel bell slot solves the castle with the shared rules");
+        var slay=new Investigation(CaseBook.Castle);slay.Equip();slay.EnterHouse();Assert(slay.WinByKill()&&slay.Phase==Phase.Won&&slay.HunterSlain,"slaying the Count wins");Assert(!slay.WinByKill(),"kill win is terminal once");
+        var lost=Start();Hunt(lost);lost.Die();Assert(!lost.WinByKill()&&!lost.HunterSlain,"no kill win after death");
         Assert(CaseBook.Castle.AnchorChoices[(int)AnchorKind.MusicBox]=="The chapel bell"&&CaseBook.Castle.NoteIds[0]=="cc_ledger_steward","castle anchor and ledger ids");
     }
 }

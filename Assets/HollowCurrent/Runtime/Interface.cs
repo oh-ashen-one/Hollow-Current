@@ -239,14 +239,15 @@ namespace HollowCurrent
         void Ending()
         {
             bool won=Game.Case.Phase==Phase.Won;Backdrop(!won,won?0:.14f);Brand();if(won)Card(new Rect(45,145,850,685));else DarkCard(new Rect(45,145,850,685));Track(80,175,won?Book.CaseTag+" / CLOSED":"LAST TRANSMISSION / LOST");
-            Label(76,214,635,188,won?Book.WonHero:"Signal\nlost.",hero);
-            Label(82,428,530,125,won?Book.WonBody:Book.LostBody);
+            bool slain=won&&Game.Case.HunterSlain;
+            Label(76,214,635,188,won?(slain?Book.KillHero:Book.WonHero):"Signal\nlost.",hero);
+            Label(82,428,530,125,won?(slain?Book.KillBody:Book.WonBody):Book.LostBody);
             Metric(82,588,Game.Case.Evidence.Count+" / 3","EVIDENCE");Metric(285,588,(Game.Case.Survived?Game.Case.Hunts:0).ToString(),"HUNTS SURVIVED");Metric(505,588,TimeSpan.FromSeconds(Game.Case.Elapsed).ToString(@"mm\:ss"),"FIELD TIME");
             Panel(new Rect(261,597,1,76),line);Panel(new Rect(481,597,1,76),line);
             if(!won&&Game.HasCheckpoint&&Action(80,704,440,52,"RETRY CHECKPOINT","",true))Game.RetryCheckpoint();
             if(Action(80,772,440,52,"NEW INVESTIGATION","N",won))Game.Retry();
             if(Action(543,736,310,46,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
-            Footer(won?Book.WonFooter:Book.LostFooter);
+            Footer(won?(slain?Book.KillFooter:Book.WonFooter):Book.LostFooter);
         }
         float SliderRow(float x,float y,float w,string label,float value,float min,float max,string formatted,string hint)
         {
@@ -399,6 +400,8 @@ namespace HollowCurrent
             string use=PadInput.Active?(PadInput.Current.PlayStation?"[×] ":"[A] "):"[E] ",torch=PadInput.Active?(PadInput.Current.PlayStation?"[□] ":"[X] "):"[F] ";
             string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+"TORCH OFF":"Stay quiet"):p.Focus!=null?use+p.Focus.Label+(p.Focus.Kind==InteractKind.Anchor?" · hold":""):"";
             Label(405,510,790,62,interaction,center);if(p.Capture>0)Panel(new Rect(630,568,340*Mathf.Clamp01(p.Capture),3),copper);
+            if(Game.Castle&&Game.Castle.Forge.CraftProgress01>0&&!Game.Castle.Forge.HasSword){Label(545,583,510,30,"FORGING "+Mathf.RoundToInt(Game.Castle.Forge.CraftProgress01*100)+"%",center);Panel(new Rect(615,622,370*Game.Castle.Forge.CraftProgress01,3),copper);}
+            if(Game.Castle&&(Game.Castle.Forge.RelicCount>0||Game.Castle.Forge.HasSword))Label(1290,100,268,24,Game.Castle.Forge.HasSword?"MOONSTONE SWORD · "+Game.Castle.Fight.Hits+" / 3":"RELICS "+Game.Castle.Forge.RelicCount+" / 3",rightBody);
             if(Game.Case.SealProgress>0){Label(545,583,510,30,"SEALING "+Mathf.RoundToInt(Game.Case.SealProgress*100)+"%",center);Panel(new Rect(615,622,370*Game.Case.SealProgress,3),copper);}
             if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))SubtitleCard();
             Track(42,796,Book.InstrumentNames[Mathf.Clamp(p.Tool-1,0,2)],ink);

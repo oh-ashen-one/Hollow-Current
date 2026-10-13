@@ -25,6 +25,8 @@ namespace HollowCurrent
         public Investigator Player {get;private set;}
         public Presence Creature {get;private set;}
         public ScareDirector Scares {get;private set;}
+        // Castle-only run state (relics, forge, fight, props); null in Bellwether.
+        public CastleRun Castle {get;private set;}
         public Soundscape Sound {get;private set;}
         public bool Started, Paused, Journal;
         public bool Loading {get;private set;}
@@ -87,6 +89,7 @@ namespace HollowCurrent
             Player.InvertY=PlayerPrefs.GetInt("hc.invert-y",0)!=0;Volume=Mathf.Clamp01(PlayerPrefs.GetFloat("hc.volume",.65f));Subtitles=PlayerPrefs.GetInt("hc.subtitles",1)!=0;HelpHints=PlayerPrefs.GetInt("hc.help",0)!=0;
             var entity=new GameObject("Presence senses and navigation");Creature=entity.AddComponent<Presence>();Creature.Initialize(this);
             Scares=gameObject.AddComponent<ScareDirector>();Scares.Initialize(this);
+            if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);}
             foreach(var lamp in World.Lamps)lampLevels[lamp]=lamp.intensity;
             foreach(var doll in World.Dolls)dollHomes[doll]=doll.position;
             gameObject.AddComponent<Interface>().Game=this;
@@ -205,7 +208,7 @@ namespace HollowCurrent
         public void StartCase(){if(Loading||Paused)return;SavePreferences();Started=true;ApplyFocus();if(uiProbe)Debug.Log("HC_UI_STARTED cursor="+Cursor.lockState);}
         public void Resume(){SavePreferences();Paused=false;Journal=false;NoteBody=null;ApplyFocus();}
         public void ApplyFocus(){bool modal=Modal;Time.timeScale=modal?0:1;AudioListener.pause=Loading||!Started||Paused||Journal||NoteBody!=null;Cursor.lockState=modal||NativeVerification.Requested?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=(modal&&!PadInput.Active)||NativeVerification.Requested;if(uiProbe)Debug.Log("HC_UI_STATE started="+Started+" paused="+Paused+" journal="+Journal+" cursor="+Cursor.lockState+" visible="+Cursor.visible+" timeScale="+Time.timeScale);}
-        public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();}
+        public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();if(Castle)Castle.NoteRead(title);}
         public void Say(string value)
         {
             Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);
