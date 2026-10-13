@@ -159,8 +159,30 @@ namespace HollowCurrent
         static Material GlowMaterial=>glowMaterial?glowMaterial:glowMaterial=UnlitAdditive("Surreal flame glow",GlowTexture,Color.white);
         // Runtime-built shared materials. Props saved into the prepared scene re-assign these in Start (see CandleFlame), so
         // what is drawn never depends on what the scene serialized.
-        internal static Material SharedFlameMaterial=>FlameMaterial;
-        internal static Material SharedGlowMaterial=>GlowMaterial;
+        // Round 9: one quad per flame holds core AND halo (Surreal_FlameHalo: teardrop plus a soft halo centred 0.45 flame heights up) and is
+        // built in the CastleFlame vertex stage around the wick, so the two can never separate. The mesh spans x -0.9..0.9, y -0.4..1.4
+        // flame heights (y = 0 is the wick); the object's x/y scale is the flame height.
+        static Mesh flameQuad;
+        static Texture2D flameHaloTexture;
+        static Material flameHaloMaterial;
+        public static Mesh FlameQuad
+        {
+            get
+            {
+                if(flameQuad)return flameQuad;
+                var mesh=new Mesh{name="Surreal flame quad"};
+                mesh.vertices=new[]{new Vector3(-.9f,-.4f,0),new Vector3(.9f,-.4f,0),new Vector3(-.9f,1.4f,0),new Vector3(.9f,1.4f,0)};
+                mesh.uv=new[]{new Vector2(0,0),new Vector2(1,0),new Vector2(0,1),new Vector2(1,1)};
+                mesh.normals=new[]{Vector3.back,Vector3.back,Vector3.back,Vector3.back};
+                mesh.triangles=new[]{0,2,1,2,3,1};
+                mesh.bounds=new Bounds(new Vector3(0,.5f,0),new Vector3(2.2f,2.2f,2.2f));   // the vertex stage turns the quad: keep culling generous
+                return flameQuad=mesh;
+            }
+        }
+        static Texture2D FlameHaloTexture=>flameHaloTexture?flameHaloTexture:flameHaloTexture=LoadSprite("Surreal_FlameHalo")??FlameTexture;
+        static Material FlameHaloMaterial=>flameHaloMaterial?flameHaloMaterial:flameHaloMaterial=UnlitAdditive("Surreal flame",FlameHaloTexture,Color.white);
+        internal static Material SharedFlameMaterial=>FlameHaloMaterial;
+        internal static Mesh SharedFlameQuad=>FlameQuad;
 
         // glowRadius > 0 adds a soft additive halo (a billboard, not a light) around the flame.
         public static CandleFlame MakeCandleFlame(Transform parent,Vector3 localPosition,float height=.11f,bool withLight=false,string name="Candle flame",float glowRadius=0)
@@ -168,15 +190,10 @@ namespace HollowCurrent
             var t=NewChild(name,parent,localPosition,Quaternion.identity);
             var flame=t.gameObject.AddComponent<CandleFlame>();
             flame.size=height;
-            var renderer=NewRenderer("Billboard",t,Vector3.zero,Quaternion.identity,BaseQuad,new[]{FlameMaterial},false);
-            renderer.transform.localScale=new Vector3(height*flame.widthRatio,height,1);
+            // glowRadius is kept for callers but no longer creates a second quad: the halo is part of the flame sprite
+            var renderer=NewRenderer("Billboard",t,Vector3.zero,Quaternion.identity,FlameQuad,new[]{FlameHaloMaterial},false);
+            renderer.transform.localScale=new Vector3(height,height,1);
             flame.billboard=renderer.transform;
-            if(glowRadius>0)
-            {
-                var halo=NewRenderer("Glow",t,Vector3.up*height*.45f,Quaternion.identity,CentreQuad,new[]{GlowMaterial},false);
-                halo.transform.localScale=new Vector3(glowRadius*2,glowRadius*2,1);
-                flame.glow=halo.transform;flame.glowSize=glowRadius*2;
-            }
             if(withLight)
             {
                 var lightObject=NewChild("Flame light",t,Vector3.up*height*.7f,Quaternion.identity).gameObject;

@@ -160,6 +160,29 @@ def flame():
     save("Surreal_Flame", np.dstack([rgb, a]))
 
 
+def flame_halo():
+    """Round 9: core and halo in ONE sprite (128 x 128). The quad spans x -0.9..0.9 and y -0.4..1.4 flame heights (y = 0 the wick), so
+    the teardrop fills the middle and the soft halo is centred at y = 0.45. The core runs orange to amber (B < 150 at full alpha)."""
+    u, v = grid(128, 128)
+    xf = (u - .5) * 1.8
+    yf = v * 1.8 - .4
+    yc = np.clip(yf, 0, 1)
+    halfw = np.where((yf > 0) & (yf < 1), .25 * np.power(np.abs(np.sin(np.pi * np.power(yc, .6))), .8) * (1 - .25 * yc), 0)
+    d = np.abs(xf)
+    edge = np.where(halfw < .001, 0, np.clip((halfw - d) / .045, 0, 1))
+    core = np.clip(1 - d / np.maximum(halfw, .001), 0, 1) * (1 - yc * .6) * (halfw > .001)
+    t = np.power(core, 1.5)[..., None]
+    core_rgb = np.array([1, .40, .06]) * (1 - t) + np.array([1, .82, .42]) * t
+    core_a = edge * (.55 + .45 * core)
+    r = np.sqrt(xf ** 2 + (yf - .45) ** 2) / .9
+    halo_a = np.power(np.clip(1 - r, 0, 1), 2.2) * .5
+    halo_rgb = np.ones(r.shape + (3,)) * np.array([1, .55, .2])
+    pre = core_rgb * core_a[..., None] + halo_rgb * halo_a[..., None]
+    a = np.clip(core_a + halo_a, 0, 1)
+    rgb = np.where(a[..., None] > 1e-4, pre / np.maximum(a[..., None], 1e-4), 0)
+    save("Surreal_FlameHalo", np.dstack([np.clip(rgb, 0, 1), a]))
+
+
 def glow():
     u, v = grid(64, 64)
     r = np.sqrt((u - .5) ** 2 + (v - .5) ** 2) * 2
@@ -230,6 +253,6 @@ def moon(name, body, halo, seed):
 
 
 if __name__ == "__main__":
-    flame(); glow(); runes()
+    flame(); flame_halo(); glow(); runes()
     moon("Surreal_MoonPale", (.9, .94, 1), (.45, .6, .95), 3)
     moon("Surreal_MoonRed", (.95, .3, .3), (.7, .18, .3), 11)

@@ -55,24 +55,27 @@ namespace HollowCurrent
         void OnEnable(){if(!All.Contains(this))All.Add(this);}
         void OnDisable(){All.Remove(this);}
 
-        // ---- the lean lives in the flame shader (HollowCurrent/CastleFlame) ----
-        // The billboard only faces the viewer. Its material reads _LeanDir (world direction to the Count, w = side hint) and
-        // _LeanAmount (degrees, clamped to MaxLean) from a per-renderer MaterialPropertyBlock, and the vertex stage ROTATES the quad
-        // about its base: a vertex at fraction f along the quad (0 at the wick, 1 at the tip) moves by
-        //   right*sign*sin(a)*height*f - quadUp*(1-cos(a))*height*f.
-        // LeanVertexOffset mirrors the shader exactly, for the self-test. f = 0 gives exactly zero: the wick never moves.
+        // ---- the flame is built in the flame shader (HollowCurrent/CastleFlame) ----
+        // One quad per flame (core and halo in one sprite). The vertex stage builds it in the view plane of the rendering camera around the
+        // wick (the object's origin), with the lean as a rigid rotation about the view axis: no CPU facing, no separate halo object.
+        // FlameVertexWorld mirrors the shader line for line, for the self-tests. (vx, vy) = mesh vertex (x -0.9..0.9, y -0.4..1.4, y = 0 the wick).
         public const float MaxLean=45f;
-        public static Vector3 LeanVertexOffset(Vector3 vertexWorld,Vector3 viewerPosition,Vector3 quadUp,Vector3 leanDirection,float sideHint,float degrees,float height,float f)
+        public static Vector3 FlameVertexWorld(Vector3 pivot,Vector3 cameraPosition,float sx,float sy,float vx,float vy,Vector3 leanDirection,float sideHint,float degrees)
         {
-            if(degrees<=.01f)return Vector3.zero;
-            var view=(vertexWorld-viewerPosition).normalized;
-            var right=Vector3.Cross(Vector3.up,view);
-            if(right.sqrMagnitude<1e-6f)right=SurrealProps.ViewerRight;
-            right.Normalize();
-            float side=Vector3.Dot(leanDirection,right);
-            float sign=Mathf.Abs(side)>.05f?Mathf.Sign(side):(sideHint>=0?1f:-1f);
-            float a=Mathf.Min(degrees,MaxLean)*Mathf.Deg2Rad;
-            return (right*(sign*Mathf.Sin(a))-quadUp.normalized*(1f-Mathf.Cos(a)))*(height*f);
+            var view=(pivot-cameraPosition).normalized;
+            var axis=Vector3.up-view*view.y;
+            axis=axis.sqrMagnitude>1e-4f?axis.normalized:SurrealProps.ViewerUp;
+            var right=Vector3.Cross(axis,view).normalized;
+            if(degrees>.01f)
+            {
+                float side=Vector3.Dot(leanDirection,right);
+                float sign=Mathf.Abs(side)>.05f?Mathf.Sign(side):(sideHint>=0?1f:-1f);
+                float a=Mathf.Min(degrees,MaxLean)*Mathf.Deg2Rad;
+                var axisLean=axis*Mathf.Cos(a)+right*(sign*Mathf.Sin(a));
+                var rightLean=right*Mathf.Cos(a)-axis*(sign*Mathf.Sin(a));
+                axis=axisLean;right=rightLean;
+            }
+            return pivot+right*(vx*sx)+axis*(vy*sy);
         }
 
         // Self-test (HC_LEAN_CHECK). For the three leaning flames nearest the camera it projects the flame's base and its tip, with
@@ -96,18 +99,44 @@ namespace HollowCurrent
             if(block==null)block=new MaterialPropertyBlock();
             for(int i=0;i<n;i++)
             {
-                var f=pick[i];var b=f.billboard;float h=Mathf.Max(.01f,b.lossyScale.y);
-                var baseWorld=b.position;var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;var cp=cam.transform.position;
-                var tipWorld=baseWorld+b.up*h+LeanVertexOffset(baseWorld+b.up*h,cp,b.up,dir,hint,f.leanNow,h,1f);
-                // the wick (base vertices, f = 0): where the vertex stage puts it with the lean applied against where it sits with none
-                var baseAfter=baseWorld+LeanVertexOffset(baseWorld,cp,b.up,dir,hint,f.leanNow,h,0f);
-                Vector2 p0=cam.WorldToScreenPoint(baseWorld),p0After=cam.WorldToScreenPoint(baseAfter);
-                Vector2 tip=(Vector2)cam.WorldToScreenPoint(tipWorld)-p0,candle=(Vector2)cam.WorldToScreenPoint(baseWorld+Vector3.up*h)-p0;
+                var f=pick[i];var b=f.billboard;
+                var pivot=b.position;float sx=b.lossyScale.x,sy=Mathf.Max(.01f,b.lossyScale.y);var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;var cp=cam.transform.position;
+                // wick = vertex (0,0): with the lean applied against with none (the pivot of the rotation, so they must be identical)
+                var wickLean=FlameVertexWorld(pivot,cp,sx,sy,0,0,dir,hint,f.leanNow);var wickPlain=FlameVertexWorld(pivot,cp,sx,sy,0,0,dir,hint,0);
+                Vector2 p0=cam.WorldToScreenPoint(wickPlain),p0After=cam.WorldToScreenPoint(wickLean);
+                Vector2 tip=(Vector2)cam.WorldToScreenPoint(FlameVertexWorld(pivot,cp,sx,sy,0,1,dir,hint,f.leanNow))-p0;
+                Vector2 candle=(Vector2)cam.WorldToScreenPoint(FlameVertexWorld(pivot,cp,sx,sy,0,1,dir,hint,0))-p0;
                 float amount=-1;Vector4 sent=Vector4.zero;string shader="<no renderer>";
                 if(f.flameRenderer){f.flameRenderer.GetPropertyBlock(block);amount=block.GetFloat(LeanAmountId);sent=block.GetVector(LeanDirId);var m=f.flameRenderer.sharedMaterial;shader=m&&m.shader?m.shader.name+(m.shader.isSupported?"":" (NOT SUPPORTED)"):"<none>";}
                 Debug.Log("HC_LEAN_CHECK "+tag+" candle "+(i+1)+" at "+dist[i].ToString("F1")+" m: wick screen position before lean ("+p0.x.ToString("F1")+","+p0.y.ToString("F1")+") after ("+p0After.x.ToString("F1")+","+p0After.y.ToString("F1")+") moved "+Vector2.Distance(p0,p0After).ToString("F2")+" px; rendered flame tip is tilted "+Mathf.Abs(Vector2.SignedAngle(candle,tip)).ToString("F0")+" deg on screen from its candle axis, tip distance from wick "+tip.magnitude.ToString("F0")+" px (unleaned "+candle.magnitude.ToString("F0")+" px); shader "+shader+", property block _LeanAmount="+amount.ToString("F1")+" _LeanDir=("+sent.x.ToString("F2")+","+sent.y.ToString("F2")+","+sent.z.ToString("F2")+")");
             }
             if(tag.StartsWith("S5",System.StringComparison.Ordinal))LogLedgeCandles(cam);
+            LogRigidReport(tag,5);
+        }
+
+        // HC_FLAME_RIGID: for the `count` flames nearest the camera (leaning or not): is the core enabled, how far is the halo centre from the
+        // core centre (one quad: the sprite's halo is centred 0.45 flame heights up, the teardrop 0.5, so the gap is 0.05 x height), and how
+        // far has the flame object drifted from where it was seated on its wick at Start (local position), including the billboard against it.
+        // The brief's limit is 0.05 m for the halo-core gap.
+        public static void LogRigidReport(string tag,int count)
+        {
+            var cam=Camera.main;if(!cam&&SurrealProps.Viewer)cam=SurrealProps.Viewer.GetComponent<Camera>();
+            if(!cam)return;
+            var ordered=new System.Collections.Generic.List<CandleFlame>();
+            foreach(var f in All)if(f&&f.billboard)ordered.Add(f);
+            var cp=cam.transform.position;
+            ordered.Sort((p,q)=>Vector3.Distance(cp,p.billboard.position).CompareTo(Vector3.Distance(cp,q.billboard.position)));
+            bool all=true;int n=Mathf.Min(count,ordered.Count);
+            for(int i=0;i<n;i++)
+            {
+                var f=ordered[i];var b=f.billboard;float sx=b.lossyScale.x,sy=Mathf.Max(.01f,b.lossyScale.y);var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;
+                var core=FlameVertexWorld(b.position,cp,sx,sy,0,.5f,dir,hint,f.leanNow);var halo=FlameVertexWorld(b.position,cp,sx,sy,0,.45f,dir,hint,f.leanNow);
+                float gap=Vector3.Distance(core,halo),drift=Vector3.Distance(f.transform.localPosition,f.seatedLocal),billboardOffset=Vector3.Distance(b.position,f.transform.position);
+                bool enabled=f.flameRenderer&&f.flameRenderer.enabled&&f.gameObject.activeInHierarchy&&f.flameRenderer.sharedMaterial&&f.flameRenderer.sharedMaterial.shader&&f.flameRenderer.sharedMaterial.shader.isSupported;
+                bool ok=enabled&&gap<=.05f&&drift<.01f&&billboardOffset<.01f;all&=ok;
+                Debug.Log("HC_FLAME_RIGID "+tag+" flame "+(i+1)+" at "+Vector3.Distance(cp,b.position).ToString("F1")+" m: core enabled="+enabled+", halo centre to core centre "+gap.ToString("F3")+" m (limit 0.05), wick drift "+drift.ToString("F3")+" m, quad offset from its wick "+billboardOffset.ToString("F3")+" m, flame height "+sy.ToString("F2")+" m, lean "+f.leanNow.ToString("F0")+" deg "+(ok?"PASS":"FAIL"));
+            }
+            Debug.Log("HC_FLAME_RIGID "+tag+" summary: "+n+" nearest flames "+(all?"PASS":"FAIL")+" ("+All.Count+" flames in the scene)");
         }
         // HC_S5_CANDLES: how many ledge candelabras (Floater.neverHide) exist, are still enabled after the capture's hide-for-shot
         // pass, and have a flame inside the camera frame.
@@ -153,21 +182,25 @@ namespace HollowCurrent
             string before=flameRenderer?Describe(flameRenderer.sharedMaterial):"<no billboard>";
             var flameMaterial=SurrealProps.SharedFlameMaterial;
             if(flameRenderer&&flameMaterial)flameRenderer.sharedMaterial=flameMaterial;
-            if(glow)
+            // A prepared scene baked before round 9 holds the old base-pivot quad plus a separate halo object: use the one-quad flame mesh
+            // and switch the halo object off, so the saved scene cannot bring the detached halo back.
+            if(billboard)
             {
-                var glowRenderer=glow.GetComponent<Renderer>();
-                var glowMaterial=SurrealProps.SharedGlowMaterial;
-                if(glowRenderer&&glowMaterial)glowRenderer.sharedMaterial=glowMaterial;
+                var filter=billboard.GetComponent<MeshFilter>();
+                if(filter&&filter.sharedMesh!=SurrealProps.SharedFlameQuad)filter.sharedMesh=SurrealProps.SharedFlameQuad;
             }
+            if(glow){glow.gameObject.SetActive(false);glow=null;}
             if(!reported)
             {
                 reported=true;
-                Debug.Log("HC_FLAME_CHECK scene material: "+before+" | runtime material: "+Describe(flameMaterial)+(flameRenderer?" | queue="+flameRenderer.sharedMaterial.renderQueue:"")+" | lean shader property _LeanAmount "+(flameMaterial&&flameMaterial.HasProperty(LeanAmountId)?"present":"MISSING (old shader?)"));
+                Debug.Log("HC_FLAME_CHECK scene material: "+before+" | runtime material: "+Describe(flameMaterial)+(flameRenderer?" | queue="+flameRenderer.sharedMaterial.renderQueue:"")+" | lean shader property _LeanAmount "+(flameMaterial&&flameMaterial.HasProperty(LeanAmountId)?"present":"MISSING (old shader?)")+" | one-quad flame mesh "+(billboard&&billboard.GetComponent<MeshFilter>()&&billboard.GetComponent<MeshFilter>().sharedMesh==SurrealProps.SharedFlameQuad?"in use":"NOT in use"));
             }
         }
+        Vector3 seatedLocal;
         void Start()
         {
             UseRuntimeMaterials();
+            seatedLocal=transform.localPosition;
             floater=GetComponentInParent<Floater>();
             var p=transform.position;
             seed=Mathf.Abs(Mathf.Sin(p.x*12.9898f+p.y*37.719f+p.z*78.233f))*100f;
@@ -183,7 +216,7 @@ namespace HollowCurrent
             if(billboard)
             {
                 float height=size*level;
-                billboard.localScale=new Vector3(size*widthRatio*(2-level),height,1);
+                billboard.localScale=new Vector3(size*(2-level),height,1);   // the quad spans 1.8 flame heights across: x scale = height (about)
                 var to=billboard.position-viewer;
                 if(haveViewer&&to.sqrMagnitude<billboardRange*billboardRange&&to.sqrMagnitude>1e-4f)
                     billboard.rotation=Quaternion.LookRotation(to,Vector3.up);   // faces the viewer; the lean is done by the shader
@@ -204,20 +237,6 @@ namespace HollowCurrent
                     flameRenderer.SetPropertyBlock(block);
                     leaned=leanNow>0;
                 }
-                // the halo rides on the flame's body, wherever the tip has been leaned to (half way up, half the tip shift)
-                if(glow)
-                {
-                    float h=billboard.lossyScale.y;
-                    var pos=billboard.position+billboard.up*(h*.45f);
-                    if(leanNow>0&&haveViewer)pos+=LeanVertexOffset(pos,viewer,billboard.up,lastLeanDir,seed>50?1f:-1f,leanNow,h,.45f);
-                    glow.position=pos;
-                }
-            }
-            if(glow)
-            {
-                glow.localScale=new Vector3(glowSize*(.9f+.2f*level),glowSize*(.9f+.2f*level),1);
-                var to=glow.position-viewer;
-                if(haveViewer&&to.sqrMagnitude<billboardRange*billboardRange&&to.sqrMagnitude>1e-4f)glow.rotation=Quaternion.LookRotation(to,Vector3.up);
             }
             if(this==(All.Count>0?All[0]:null))MaybeReport();
             if(flameLight)

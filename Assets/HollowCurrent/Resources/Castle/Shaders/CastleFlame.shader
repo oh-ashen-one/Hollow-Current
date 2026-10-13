@@ -1,15 +1,18 @@
-// Unlit additive flame/glow shader (premultiplied by alpha, so a soft teardrop sprite adds warm light and never a card).
+// Unlit additive flame shader (premultiplied by alpha, so a soft teardrop sprite adds warm light and never a card).
 // Lives in Resources so it is always in a player build.
 //
-// The candle lean lives HERE, in the vertex stage, so nothing that happens to the billboard transform (facing code, batching,
-// the baked scene copy, instancing) can cancel it. The quad is a base-pivot billboard (local y runs 0..1 base to tip).
-// _LeanDir.xyz is the world-space direction from the flame to the Count (.w = side hint, +1/-1, used when the Count is dead
-// ahead or behind), _LeanAmount is the lean in degrees (clamped to 45). Round 8: the flame is ROTATED about its wick, not
-// sheared. For a vertex at fraction f (= local y, 0 at the base vertices, 1 at the tip) the offset is
-//     right * sign * sin(a) * height * f  -  quadUp * (1 - cos(a)) * height * f
-// which is exactly zero at f = 0 (the wick never moves) and keeps the flame's length (a shear stretched it by 1/cos(a), and with
-// a = 55 degrees on a candle 0.7 m from the camera put the tip 240 px away: a streak or a petal detached from its wick).
-// _LeanAmount = 0 (the default) leaves the quad untouched, which is what the halo (same shader, no property block) gets.
+// ONE QUAD PER FLAME (round 9): the sprite holds the flame core and its halo, so the two can never separate, and the quad is built
+// here in the vertex stage, in the view plane of the camera that is actually rendering, around the wick (the object's origin). Nothing
+// on the CPU (a camera that moved after Update, facing code, Floater rotations of the transform) can leave it facing the wrong way
+// or off its wick. Mesh: x -0.9..0.9, y -0.4..1.4 (in flame heights; y = 0 is the wick, 1 the tip), scaled by the object's x/y axes.
+//
+//   axis  = world up flattened against the sight line (the candle's own axis as it appears on screen)
+//   right = axis x view
+//   lean  = a rigid rotation of the whole quad about the view axis, by _LeanAmount degrees (clamped to 45) toward the side of the
+//           screen the Count is on (_LeanDir.xyz = world direction to the Count, .w = side hint when he is dead ahead / behind)
+//   world = wick + right' * (x * sx) + axis' * (y * sy)
+//
+// The wick (x = y = 0) is the pivot of the rotation, so it never moves; the flame keeps its length. _LeanAmount = 0 leaves the quad upright.
 Shader "HollowCurrent/CastleFlame"
 {
     Properties
@@ -21,7 +24,7 @@ Shader "HollowCurrent/CastleFlame"
     }
     SubShader
     {
-        Tags { "Queue"="Transparent+1" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Tags { "Queue"="Transparent+1" "RenderType"="Transparent" "IgnoreProjector"="True" "DisableBatching"="True" }
         Cull Off
         ZWrite Off
         Blend One One
@@ -54,22 +57,25 @@ Shader "HollowCurrent/CastleFlame"
             {
                 UNITY_SETUP_INSTANCE_ID(v);
                 v2f o;
-                float3 world = mul(unity_ObjectToWorld, v.vertex).xyz;
+                float3 pivot = float3(unity_ObjectToWorld._m03, unity_ObjectToWorld._m13, unity_ObjectToWorld._m23);
+                float sx = length(float3(unity_ObjectToWorld._m00, unity_ObjectToWorld._m10, unity_ObjectToWorld._m20));
+                float sy = length(float3(unity_ObjectToWorld._m01, unity_ObjectToWorld._m11, unity_ObjectToWorld._m21));
+                float3 view = normalize(pivot - _WorldSpaceCameraPos);
+                float3 axis = float3(0, 1, 0) - view * view.y;                       // world up flattened against the sight line
+                axis = dot(axis, axis) > 1e-4 ? normalize(axis) : normalize(UNITY_MATRIX_V[1].xyz);
+                float3 right = normalize(cross(axis, view));                          // Unity: right = up x forward
                 float4 lean = UNITY_ACCESS_INSTANCED_PROP(Props, _LeanDir);
                 float amount = UNITY_ACCESS_INSTANCED_PROP(Props, _LeanAmount);
                 if (amount > 0.01)
                 {
-                    float3 view = normalize(world - _WorldSpaceCameraPos);
-                    float3 right = normalize(cross(float3(0, 1, 0), view));        // Unity: right = up x forward
-                    float3 quadUp = normalize(float3(unity_ObjectToWorld._m01, unity_ObjectToWorld._m11, unity_ObjectToWorld._m21));
                     float side = dot(lean.xyz, right);
                     float sgn = abs(side) > 0.05 ? sign(side) : (lean.w >= 0 ? 1.0 : -1.0);
-                    // flame height in metres: the length of the object's y axis in world space
-                    float height = length(float3(unity_ObjectToWorld._m01, unity_ObjectToWorld._m11, unity_ObjectToWorld._m21));
                     float a = radians(min(amount, 45.0));
-                    float f = v.vertex.y;                                           // 0 at the base vertices, 1 at the tip
-                    world += (right * (sgn * sin(a)) - quadUp * (1.0 - cos(a))) * (height * f);
+                    float3 axisLean = axis * cos(a) + right * (sgn * sin(a));
+                    float3 rightLean = right * cos(a) - axis * (sgn * sin(a));
+                    axis = axisLean; right = rightLean;
                 }
+                float3 world = pivot + right * (v.vertex.x * sx) + axis * (v.vertex.y * sy);
                 o.pos = mul(UNITY_MATRIX_VP, float4(world, 1.0));
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 return o;
