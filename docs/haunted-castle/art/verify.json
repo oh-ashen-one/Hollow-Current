@@ -1,0 +1,312 @@
+{
+ "Altar": {
+  "bytes": 23164,
+  "parts": 1,
+  "size": [
+   2.8,
+   1.3,
+   1.133
+  ],
+  "tris": 264
+ },
+ "BalconyRailing": {
+  "bytes": 27820,
+  "parts": 1,
+  "size": [
+   2.0,
+   0.3,
+   1.0
+  ],
+  "tris": 552
+ },
+ "Banner": {
+  "bytes": 25548,
+  "parts": 1,
+  "size": [
+   1.39,
+   0.092,
+   2.985
+  ],
+  "tris": 304
+ },
+ "BanquetTable": {
+  "bytes": 79596,
+  "parts": 1,
+  "size": [
+   9.6,
+   2.4,
+   1.4
+  ],
+  "tris": 2756
+ },
+ "Bookshelf": {
+  "bytes": 50076,
+  "parts": 1,
+  "size": [
+   2.1,
+   0.5,
+   3.03
+  ],
+  "tris": 1464
+ },
+ "Candelabra": {
+  "bytes": 49436,
+  "parts": 6,
+  "size": [
+   0.472,
+   0.472,
+   0.838
+  ],
+  "tris": 742
+ },
+ "CoffinNiche": {
+  "bytes": 20444,
+  "parts": 1,
+  "size": [
+   2.2,
+   2.583,
+   1.45
+  ],
+  "tris": 136
+ },
+ "Column": {
+  "bytes": 23020,
+  "parts": 1,
+  "size": [
+   1.1,
+   1.1,
+   3.2
+  ],
+  "tris": 296
+ },
+ "DeadFountain": {
+  "bytes": 22492,
+  "parts": 1,
+  "size": [
+   3.4,
+   3.234,
+   1.95
+  ],
+  "tris": 280
+ },
+ "DeadTree": {
+  "bytes": 89868,
+  "parts": 1,
+  "size": [
+   7.779,
+   5.49,
+   5.807
+  ],
+  "tris": 2002
+ },
+ "Door": {
+  "bytes": 25020,
+  "parts": 2,
+  "size": [
+   1.8,
+   0.4,
+   2.15
+  ],
+  "tris": 164
+ },
+ "Drawbridge": {
+  "bytes": 66460,
+  "parts": 1,
+  "size": [
+   3.052,
+   6.0,
+   4.61
+  ],
+  "tris": 2184
+ },
+ "FloatingBook": {
+  "bytes": 17932,
+  "parts": 1,
+  "size": [
+   0.401,
+   0.285,
+   0.1
+  ],
+  "tris": 60
+ },
+ "FloorTile": {
+  "bytes": 15596,
+  "parts": 1,
+  "size": [
+   2.0,
+   2.0,
+   0.26
+  ],
+  "tris": 24
+ },
+ "GiantSkeleton": {
+  "bytes": 158876,
+  "parts": 1,
+  "size": [
+   4.106,
+   11.958,
+   3.391
+  ],
+  "tris": 4222
+ },
+ "GreatDoor": {
+  "bytes": 31948,
+  "parts": 3,
+  "size": [
+   3.6,
+   0.5,
+   4.8
+  ],
+  "tris": 340
+ },
+ "Orrery": {
+  "bytes": 54476,
+  "parts": 2,
+  "size": [
+   1.212,
+   1.19,
+   1.261
+  ],
+  "tris": 1236
+ },
+ "Pew": {
+  "bytes": 17244,
+  "parts": 1,
+  "size": [
+   2.5,
+   0.89,
+   1.14
+  ],
+  "tris": 96
+ },
+ "PointedArch": {
+  "bytes": 17948,
+  "parts": 1,
+  "size": [
+   3.9,
+   0.5,
+   5.107
+  ],
+  "tris": 116
+ },
+ "PortraitFrame": {
+  "bytes": 20652,
+  "parts": 2,
+  "size": [
+   1.1,
+   0.09,
+   1.5
+  ],
+  "tris": 98
+ },
+ "RoseWindow": {
+  "bytes": 38364,
+  "parts": 1,
+  "size": [
+   3.2,
+   0.4,
+   3.2
+  ],
+  "tris": 864
+ },
+ "Sarcophagus": {
+  "bytes": 20380,
+  "parts": 1,
+  "size": [
+   3.371,
+   1.462,
+   1.07
+  ],
+  "tris": 120
+ },
+ "ServiceDoor": {
+  "bytes": 25068,
+  "parts": 2,
+  "size": [
+   1.14,
+   0.35,
+   2.12
+  ],
+  "tris": 164
+ },
+ "StairFlight": {
+  "bytes": 18620,
+  "parts": 1,
+  "size": [
+   2.6,
+   5.04,
+   4.15
+  ],
+  "tris": 172
+ },
+ "StoneBridge": {
+  "bytes": 18044,
+  "parts": 1,
+  "size": [
+   2.68,
+   8.06,
+   4.3
+  ],
+  "tris": 128
+ },
+ "StoneFont": {
+  "bytes": 21516,
+  "parts": 1,
+  "size": [
+   1.04,
+   1.04,
+   1.08
+  ],
+  "tris": 200
+ },
+ "VaultRib": {
+  "bytes": 20092,
+  "parts": 1,
+  "size": [
+   4.6,
+   0.4,
+   2.837
+  ],
+  "tris": 180
+ },
+ "Wall_2m": {
+  "bytes": 15820,
+  "parts": 1,
+  "size": [
+   2.0,
+   0.66,
+   3.2
+  ],
+  "tris": 36
+ },
+ "Wall_2m_Window": {
+  "bytes": 18044,
+  "parts": 1,
+  "size": [
+   2.0,
+   0.66,
+   3.2
+  ],
+  "tris": 128
+ },
+ "Wall_4m": {
+  "bytes": 15804,
+  "parts": 1,
+  "size": [
+   4.0,
+   0.66,
+   3.2
+  ],
+  "tris": 36
+ },
+ "Wall_4m_Window": {
+  "bytes": 18396,
+  "parts": 1,
+  "size": [
+   4.0,
+   0.66,
+   3.2
+  ],
+  "tris": 140
+ }
+}
