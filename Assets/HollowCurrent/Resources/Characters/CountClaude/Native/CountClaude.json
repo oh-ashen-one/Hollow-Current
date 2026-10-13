@@ -1,0 +1,35 @@
+{
+  "source": "tools/count_source/CountClaude_rigged.glb",
+  "head_top_m": 2.15,
+  "mesh_height_m": 2.1791,
+  "triangles": 30696,
+  "vertices": 41753,
+  "bones": 28,
+  "wing_vertices": 10101,
+  "clips": {
+    "Perch": {
+      "seconds": 3.2,
+      "loop": true
+    },
+    "Glide": {
+      "seconds": 1.5,
+      "loop": true
+    },
+    "Search": {
+      "seconds": 2.6,
+      "loop": true
+    },
+    "Dive": {
+      "seconds": 1.1,
+      "loop": false
+    },
+    "Stagger": {
+      "seconds": 1.7,
+      "loop": false
+    },
+    "Death": {
+      "seconds": 2.4,
+      "loop": false
+    }
+  }
+}
