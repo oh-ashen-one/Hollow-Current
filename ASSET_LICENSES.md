@@ -49,3 +49,15 @@ No assertion is made that provider terms are an infringement warranty. The revie
 ## Higgsfield 3D: Count Claude (added 2026-10-13)
 
 `Assets/HollowCurrent/Resources/Characters/CountClaude/` and `tools/count_source/` hold the Haunted Castle hunter: a Higgsfield `multi_image_to_3d` mesh and texture (job `0599a54a-d8de-42fe-a9cb-b3a3ec94d655`) from original GPT Image 2.5 concept views, rigged by Higgsfield `3d_rigging` (job `325ca2e8-31f1-4706-9063-ae103a0b714d`), then re-skinned, scaled and animated locally with `tools/count_prepare.py`. The generated mesh and texture fall under the same Higgsfield asset permission and restrictions as the recordings above (copying, modification, redistribution and commercial use allowed with credit to “Hollow Current by Ashen — 3D generated with Higgsfield”; no AI/ML training use). The six animation clips are original project work (CC BY 4.0). Provenance and costs: `docs/haunted-castle/ASSET_LOG_count.md`.
+
+## Haunted Castle art (added 2026-10-13)
+
+Original project work, CC BY 4.0 like the rest of the project media. Produced headless by the committed generators (no downloaded packs, no paid generation; nothing to log in `docs/haunted-castle/ASSET_LOG.md`):
+
+- `Resources/Castle/*.fbx` architecture (walls, windows, arches, vault and crypt ribs, columns, buttresses, battlements, gate arch, drawbridge and chains, stairs, bridges, floor tiles, door frames and leaves): `tools/castle_architecture.py` (Blender).
+- `Resources/Castle/*.fbx` furniture (tables, chairs, throne, pews, altar, beds, bookshelves, hearths, sideboard, lectern, reliquary box, sarcophagus, coffin niche, font, pedestal): `tools/castle_furniture.py` (Blender).
+- `Resources/Castle/*.fbx` props (candelabra, chapel bell, orrery, telescope, portraits, fountain, dead tree, banner, floating book, cauldron, butcher block, winch, lantern cart, giant skeleton): `tools/castle_props.py` (Blender).
+- `Resources/Castle/Textures/*.png` and `Resources/Castle/Materials/*.mat` (stone, black stone, oak, brass, oxblood, silver, iron, bone, portrait canvas): `tools/castle_textures.py`.
+- `Resources/Castle/Sky/*.png` and `Resources/Castle/SkyCastle.mat` (two-moon skybox): `tools/castle_sky.py`.
+
+Shared helpers: `tools/castle_common.py`, `tools/castle_lib.py`; verification `tools/castle_verify.py`; previews `tools/castle_preview.py`; all in order: `tools/castle_build_all.sh`.

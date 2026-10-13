@@ -79,6 +79,10 @@ The public-edition radio/EVP voices are intentionally different from the private
 python3 tools/generate_open_voice.py
 ```
 
+### Haunted Castle assets
+
+Castle art is regenerated headlessly from committed scripts: `tools/castle_build_all.sh` runs `python3 tools/castle_textures.py`, `python3 tools/castle_sky.py 2048`, then Blender `-b -P` on `tools/castle_architecture.py`, `tools/castle_props.py`, `tools/castle_furniture.py` and `tools/castle_verify.py` (`tools/castle_preview.py` renders a contact sheet). Count Claude: `/Applications/Blender.app/Contents/MacOS/Blender -b -P tools/count_prepare.py`, then the Unity editor method `HollowCurrent.Editor.CountClaudeImport.Prepare`. Castle voices: `python3 tools/generate_open_voice.py --castle`; orrery tick: `python3 tools/audio_orrery_tick.py`.
+
 ## Licensing
 
 Project code and documentation: **MIT**. Most project-owned media: **CC BY 4.0**. Higgsfield audio has a separate creative-use redistribution grant and an AI-training restriction. Unity and dependencies retain their own licenses. Read [ASSET_LICENSES.md](ASSET_LICENSES.md) before reusing media.
