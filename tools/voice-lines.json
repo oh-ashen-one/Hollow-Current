@@ -53,5 +53,95 @@
     "text": "Keep it quiet. Let the last note end.",
     "rate": 132,
     "voice": "en-gb"
+  },
+  "cc_bargain": {
+    "text": "I asked for a night that would never end. Something under the stones said yes.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_night": {
+    "text": "Dawn is only a rumour here. The moons keep the hours now.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_steward": {
+    "text": "The steward hid them. Faithful fool. He thought I would not remember.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_relic_blade": {
+    "text": "Silver, cold in the dark. Where the dead keep what they cannot spend.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_relic_hilt": {
+    "text": "A hilt held up to the stars. The wanderer's socket sits empty, waiting.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_relic_moon": {
+    "text": "A moon behind a painted face. Some doors are only faces.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_listen": {
+    "text": "I can hear your heart. It is very loud in my house.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_stay": {
+    "text": "Stay. Everyone stays. The drawbridge is only a memory of leaving.",
+    "rate": 124,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_ledger_steward": {
+    "text": "Eleventh night, and no dawn. I have hidden the silver blade among the dead beneath the chapel, in a box that opens only to the marks of his claws. He will not look where he sleeps in blood.",
+    "rate": 132,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_ledger_orrery": {
+    "text": "Thirteenth night. The Count's orrery carries a planet that does not exist, and its socket stands empty. I set the hallowed hilt there, where the brass wanders and the third moon should be.",
+    "rate": 132,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_ledger_portrait": {
+    "text": "Fifteenth night. The portraits watch me write. One of them is a door. Behind its face I have set the moonstone. If I do not return, forge all three at the chapel altar.",
+    "rate": 132,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 18
+  },
+  "cc_hunt_smell": {
+    "text": "I can smell the lamp oil.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 16
+  },
+  "cc_hunt_run": {
+    "text": "Run. The hall is very long.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 16
+  },
+  "cc_hunt_found": {
+    "text": "There you are.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 14
+  },
+  "cc_hunt_hungry": {
+    "text": "Come out. I am so very hungry.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 16
   }
 }
