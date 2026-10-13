@@ -228,3 +228,22 @@ Material:
     Path(str(path) + ".meta").write_text(
         "fileFormatVersion: 2\nguid: %s\nNativeFormatImporter:\n  externalObjects: {}\n  mainObjectFileID: 2100000\n  userData: \n  assetBundleName: \n  assetBundleVariant: \n"
         % guid(rel_to_project(path)))
+
+
+# Nominal sizes reserved by piece 1 (hc/layout CastleLayout.ArtSizes), Unity axes (width X, height Y, depth Z).
+# Origin = base centre, front = +Z at yaw 0 (the art contract in CastleLayout.cs).
+NOMINAL = {
+    "GateArch": (3.8, 5.6, 1.0), "Drawbridge": (3.2, .25, 6.0), "Winch": (1.0, 1.6, .8), "LanternCart": (1.8, 1.3, 1.0),
+    "Buttress": (.9, 6.4, 1.2), "Battlement": (4.0, 1.0, .8), "DoorFrame": (1.9, 2.6, .8), "GreatDoorFrame": (3.6, 5.2, .9),
+    "ServiceDoorFrame": (1.2, 2.3, .8), "DoorLeaf": (1.5, 2.0, .09), "GreatDoorLeaf": (1.5, 4.5, .12),
+    "ServiceDoorLeaf": (.9, 2.0, .08), "PortraitDoorLeaf": (.9, 2.0, .1), "LancetWindow": (1.2, 1.6, .35),
+    "TallLancetWindow": (1.4, 3.5, .35), "ClerestoryWindow": (1.2, 1.8, .35), "ObservatoryWindow": (1.6, 2.7, .35),
+    "RoseWindow": (3.0, 3.0, .5), "ColumnGreat": (.9, 8.8, .9), "Column": (.7, 3.0, .7), "CryptRib": (8.4, .6, .6),
+    "RafterBeam": (11.4, .5, .5), "Balustrade": (2.0, 1.1, .2), "Fountain": (2.6, 1.8, 2.6), "DeadTree": (2.4, 4.5, 2.4),
+    "Candelabra": (.5, 1.7, .5), "Pew": (2.4, 1.0, .7), "Altar": (2.4, 1.1, 1.1), "ChapelBell": (1.2, 2.0, .9),
+    "LongTable": (6.6, .95, 1.4), "DiningTable": (5.6, .9, 1.6), "HighBackChair": (.6, 1.3, .6), "Throne": (1.0, 1.9, .9),
+    "Fireplace": (2.6, 2.6, .9), "Sideboard": (2.6, 1.1, .6), "KitchenHearth": (2.8, 2.4, 1.0), "ButcherBlock": (1.5, .9, 1.0),
+    "Cauldron": (1.0, .9, 1.0), "Bookshelf": (2.0, 3.0, .5), "ReadingTable": (2.0, .85, 1.0), "Lectern": (.7, 1.2, .6),
+    "Portrait": (.9, 1.3, .1), "CanopyBed": (2.4, 2.8, 2.6), "Orrery": (3.0, 2.8, 3.0), "Telescope": (1.0, 2.2, 2.4),
+    "Sarcophagus": (2.2, 1.2, 1.0), "CryptBridge": (1.4, .3, 1.2), "ReliquaryBox": (1.0, 1.0, .7), "Pedestal": (.6, 1.0, .6),
+}

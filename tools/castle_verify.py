@@ -78,11 +78,21 @@ for f in sorted(cc.CASTLE.glob("*.fbx")):
     if name == "GiantSkeleton" and tris >= 15000: fails.append("skeleton tris")
     if not name.startswith(("Giant",)) and not name.startswith("Wall_") and tris >= 3000 and name != "GiantSkeleton":
         fails.append("%s: %d tris >= 3000" % (name, tris))
+    nom = cc.NOMINAL.get(name)
+    if nom:
+        got = (size[0], size[2], size[1])           # Unity W, H, D
+        dev = [round(g - n, 2) for g, n in zip(got, nom)]
+        note.append("vs layout %s dev %s" % (nom, dev))
+        if any(abs(d) > max(.2, .2 * n) for d, n in zip(dev, nom)):
+            fails.append("%s: size (W,H,D) %s deviates from layout nominal %s" % (name, got, nom))
+    free_pivot = {"Drawbridge", "DrawbridgeChains", "RoseWindow"}
+    if name not in free_pivot and not name.startswith("Wall_") and abs(mn.z) > .03 and name not in ("FloorTile", "FloatingBook", "Orrery"):
+        note.append("PIVOT z_min=%.2f" % mn.z)
     rows.append((name, size, tris, len(objs), f.stat().st_size, mats, "; ".join(note)))
 
 print("HC_VERIFY %-16s %-26s %6s %5s %9s" % ("asset", "size X x Y x Z (m)", "tris", "parts", "bytes"))
 for r in rows:
-    print("HC_VERIFY %-16s %-26s %6d %5d %9d  %s %s" % (r[0], "%.2f x %.2f x %.2f" % tuple(r[1]), r[2], r[3], r[4], ",".join(x[7:] for x in r[5]), r[6]))
+    print("HC_VERIFY %-17s %-26s %6d %5d %9d  %s %s" % (r[0], "%.2f x %.2f x %.2f" % tuple(r[1]), r[2], r[3], r[4], ",".join(x[7:] for x in r[5]), r[6]))
 (cc.ROOT / "docs/haunted-castle/art/verify.json").write_text(json.dumps(
     {r[0]: dict(size=r[1], tris=r[2], parts=r[3], bytes=r[4]) for r in rows}, indent=1, sort_keys=True) + "\n")
 missing = [n for n in manifest if not (cc.CASTLE / (n + ".fbx")).exists()]

@@ -332,5 +332,17 @@ def write_manifest(tag):
     p.write_text(json.dumps(MANIFEST, indent=1, sort_keys=True) + "\n")
     print("HC_MANIFEST %s %d assets" % (p, len(MANIFEST)))
 
+def hb_chair(b, c=(0, 0, 0), yaw=0, mat="Castle_Oak", width=.54):
+    """High-back carved chair, 0.54 x 0.54 footprint, 1.3 m high, seat faces +Y. Used by chair assets and tables."""
+    h = width / 2 - .04
+    with b.xf(T(*c) @ Rz(yaw)):
+        b.box((0, 0, .46), (width - .04, width - .04, .06), mat)
+        for sx in (-1, 1):
+            for sy in (-1, 1):
+                b.box((sx * (h - .02), sy * (h - .02), .215), (.05, .05, .43), mat)
+            b.box((sx * h, -h, .83), (.05, .05, .74), mat)
+        b.poly([(-h, .55), (h, .55), (h, 1.05), (0, 1.3), (-h, 1.05)], -h - .02, -h + .02, mat, 'XZ')
+        b.box((0, -h, .42), (width - .12, .04, .04), mat)
+
 def approx(a, b, tol=0.02):
     return abs(a - b) <= tol
