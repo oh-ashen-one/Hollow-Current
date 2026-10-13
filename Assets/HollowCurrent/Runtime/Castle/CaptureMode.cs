@@ -249,7 +249,7 @@ namespace HollowCurrent
                 while(game.Creature.CaptureClock<i+1){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
                 var view=game.Player.View.transform;
                 yield return Shot("H"+(i+1).ToString("00")+"_hunt_dive","(hunt sequence)",view.position,view.position+view.forward*5,"clock="+game.Creature.CaptureClock.ToString("F2")+" phase="+game.Case.Phase+" "+game.Creature.CaptureNote);
-                if(i==4)CandleFlame.LogLeanReport("H05");
+                if(i==4)CandleFlame.LogLeanReport("H05");if(i==7)CandleFlame.LogLeanReport("H08");
             }
             game.Creature.EndCaptureChoreography();
             Record("hunt_dive",samples);
