@@ -90,7 +90,6 @@ def cards():
     panel = stains(panel, 7, 5, (92, 10, 16), .55)
     w, h = panel.size
     seal(panel, int(w * .86), int(h * .80), int(min(w, h) * .075))
-    ImageDraw.Draw(panel).line([(w * .1, h * .16), (w * .9, h * .16)], fill=(110, 18, 24, 200), width=3)
     panel.save(OUT / "Panel.png", optimize=True)
     dialogue = tint(Image.open(SRC / "Dialogue.png").convert("RGBA"), (.86, .72, .62))
     dialogue = stains(dialogue, 11, 3, (92, 10, 16), .45)
@@ -102,12 +101,34 @@ def cards():
         write_meta(OUT / f"{name}.png", SRC / f"{name}.png")
 
 
+def moon(img, cx, cy, r, light, dark, seed):
+    rnd = random.Random(seed)
+    glow = Image.new("L", img.size, 0)
+    ImageDraw.Draw(glow).ellipse([cx - r * 1.5, cy - r * 1.5, cx + r * 1.5, cy + r * 1.5], fill=70)
+    glow = glow.filter(ImageFilter.GaussianBlur(r * .5))
+    img.paste(Image.new("RGB", img.size, light), (0, 0), glow)
+    disc = Image.new("RGB", (2 * r, 2 * r), light)
+    dd = ImageDraw.Draw(disc)
+    for _ in range(14):
+        cr = rnd.uniform(.06, .22) * r
+        x, y = rnd.uniform(cr, 2 * r - cr), rnd.uniform(cr, 2 * r - cr)
+        dd.ellipse([x - cr, y - cr, x + cr, y + cr], fill=dark)
+    disc = disc.filter(ImageFilter.GaussianBlur(r * .04))
+    mask = Image.new("L", (2 * r, 2 * r), 0)
+    ImageDraw.Draw(mask).ellipse([0, 0, 2 * r - 1, 2 * r - 1], fill=255)
+    img.paste(disc, (cx - r, cy - r), mask)
+
+
 def backdrop():
     """1920x1080 title key art: the two-moon sky over a black castle on a red moat."""
     sky = Image.open(SKY).convert("RGB")
     sw, sh = sky.size
     sky = sky.crop((0, 0, sw, int(sw * 9 / 16))).resize((1920, 1080), Image.LANCZOS)
     img = sky.copy()
+    # The sky faces carry the moons high (55 / 42 degrees since look3), outside the
+    # front face crop: paint both moons into the key art, clear of the brand lettering.
+    moon(img, 1290, 250, 150, (226, 228, 236), (150, 154, 168), 21)
+    moon(img, 1545, 360, 62, (196, 40, 34), (120, 16, 16), 5)
     d = ImageDraw.Draw(img)
     horizon = 760
     black = (6, 5, 9)
@@ -135,9 +156,16 @@ def backdrop():
     moat = Image.blend(moat, red, .62)
     img.paste(moat, (0, moat_top))
     d = ImageDraw.Draw(img)
-    for y in range(moat_top, 1080, 9):
-        d.line([(0, y), (1920, y)], fill=(70, 4, 8), width=1)
     d.rectangle([0, 1050, 1920, 1080], fill=black)
+    # Darken the top-left so the brand lettering never sits on the bright moon.
+    shade = Image.new("L", (1920, 1080), 0)
+    sd = ImageDraw.Draw(shade)
+    for i in range(60):
+        t = i / 59
+        sd.rectangle([0, 0, int(1100 * (1 - t * .5)), int(260 * (1 - t * .5))], fill=int(150 * t))
+    shade = shade.filter(ImageFilter.GaussianBlur(40))
+    img = Image.composite(Image.new("RGB", img.size, (4, 4, 8)), img, shade)
+    d = ImageDraw.Draw(img)
     img.save(UI / "CastleBackdrop.png", optimize=True)
     write_meta(UI / "CastleBackdrop.png", UI / "MenuBackdrop.png")
 

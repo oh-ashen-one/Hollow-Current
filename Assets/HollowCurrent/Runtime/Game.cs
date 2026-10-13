@@ -167,17 +167,21 @@ namespace HollowCurrent
             }
             // Budget visible practical lights without allocating a new material or shadow map.
             Light nearest=null,second=null;float nearestDistance=float.MaxValue,secondDistance=float.MaxValue;
+            // Bellwether's warning trips the breaker and kills every practical lamp. The
+            // castle's candles are its hunt tell (flames lean toward the Count), so they
+            // stay lit; only the chapel brazier (the breaker interactable) goes out.
+            bool lampsPowered=Case.BreakerOn||Map==MapId.Castle;
             foreach(var lamp in World.Lamps)
             {
                 float d=Vector3.Distance(Player.transform.position,lamp.transform.position);
-                if(!Case.BreakerOn||darkCircuits.Contains(lamp)||d>=8||Mathf.Abs(Player.transform.position.y-lamp.transform.position.y+2.5f)>=3)continue;
+                if(!lampsPowered||darkCircuits.Contains(lamp)||d>=8||Mathf.Abs(Player.transform.position.y-lamp.transform.position.y+2.5f)>=3)continue;
                 if(d<nearestDistance){second=nearest;secondDistance=nearestDistance;nearest=lamp;nearestDistance=d;}
                 else if(d<secondDistance){second=lamp;secondDistance=d;}
             }
             foreach(var kv in lampLevels)
             {
                 bool local=Vector3.Distance(Player.transform.position,kv.Key.transform.position)<8&&Mathf.Abs(Player.transform.position.y-kv.Key.transform.position.y+2.5f)<3;
-                kv.Key.enabled=local&&Case.BreakerOn&&!darkCircuits.Contains(kv.Key);
+                kv.Key.enabled=local&&lampsPowered&&!darkCircuits.Contains(kv.Key);
                 kv.Key.shadows=kv.Key==nearest||kv.Key==second?LightShadows.Soft:LightShadows.None;
                 kv.Key.intensity=kv.Value*(Scares?Scares.LightMultiplier:1)*(Case.Phase==Phase.Warning&&Mathf.Sin(Time.time*17)>0?.08f:1);
             }

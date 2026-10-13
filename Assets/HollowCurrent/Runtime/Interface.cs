@@ -214,7 +214,7 @@ namespace HollowCurrent
             if(ConsumeControllerAction(id,GUI.enabled,Event.current.type==EventType.Layout))clicked=true;
             if(PadInput.Active)key=padFocus?PadInput.Prompt("ENTER"):"";
             var old=button.normal.textColor;button.normal.textColor=GUI.enabled?(plain&&!hover&&!focus&&OnPaper(rect.center)?paperInk:ink):new Color(.47f,.43f,.38f);
-            button.padding.left=Mathf.Clamp(Mathf.RoundToInt(w*.14f),22,68);button.padding.right=key.Length>0?(w<300?54:70):22;GUI.Label(rect,text,button);button.normal.textColor=old;
+            button.padding.left=Mathf.Clamp(Mathf.RoundToInt(w*.14f),22,68);button.padding.right=key.Length>0?80:22; // >=12 px clear of the key cap (cap spans w-66..w-18)GUI.Label(rect,text,button);button.normal.textColor=old;
             if(key.Length>0){var keyRect=new Rect(x+w-66,y+(h-24)/2,48,24);Border(keyRect,GUI.enabled?line:new Color(.16f,.18f,.17f));var oldKey=keyStyle.normal.textColor;keyStyle.normal.textColor=plain&&!hover&&!focus&&OnPaper(rect.center)?paperInk:ink;GUI.Label(keyRect,key,keyStyle);keyStyle.normal.textColor=oldKey;}
             if(clicked)Game.Sound.UI();
             return clicked;
@@ -228,13 +228,17 @@ namespace HollowCurrent
             if(Action(80,617,440,62,"BEGIN INVESTIGATION","ENTER",true))Game.BeginInvestigation();
             for(int i=0;i<MapCatalog.All.Count;i++)
             {
-                var map=MapCatalog.All[i];GUI.enabled=Game.MapAvailable(map.Id);
-                bool chosen=Game.SelectedMap==map.Id;
-                if(Action(80+i*325,550,310,50,chosen?"•  "+map.DisplayName:map.DisplayName,"",chosen,false,chosen,"map/"+map.Id))Game.SelectMap(map.Id);
-                GUI.enabled=true;
+                var map=MapCatalog.All[i];bool chosen=Game.SelectedMap==map.Id;var tab=new Rect(80+i*325,550,310,50);
+                if(Game.MapAvailable(map.Id)){if(Action(tab.x,tab.y,tab.width,tab.height,chosen?"•  "+map.DisplayName:map.DisplayName,"",chosen,false,chosen,"map/"+map.Id))Game.SelectMap(map.Id);continue;}
+                // A map whose scene is not in this player: a parchment tab with dark ink
+                // (readable, not focusable), never an empty disabled bar.
+                TextureFrame(tab,paperPanel,new Color(1,1,1,.97f));Border(tab,line);
+                var ink=button.normal.textColor;var size=button.fontSize;button.normal.textColor=paperInk;button.fontSize=17;button.padding.left=22;button.padding.right=22;
+                GUI.Label(new Rect(tab.x,tab.y-7,tab.width,tab.height),map.DisplayName,button);button.normal.textColor=ink;button.fontSize=size;
+                var oldSmall=small.normal.textColor;small.normal.textColor=oxblood;GUI.Label(new Rect(tab.x+22,tab.y+26,tab.width-30,20),"not in this build",small);small.normal.textColor=oldSmall;
             }
             if(Action(80,700,270,46,"FIELD SETTINGS","S",false,true)){Game.Paused=true;Game.ApplyFocus();}
-            if(Action(355,700,260,46,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
+            if(Action(355,700,300,46,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
             Footer("1 / 2 choose map   ·   WASD move   ·   Mouse look   ·   E interact   ·   Headphones suggested");
         }
         void Loading()
