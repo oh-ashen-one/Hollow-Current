@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Castle decal / Castle_DecalCracksB
+  m_Name: Castle decal / Castle_DecalChips
   m_Shader: {fileID: 4800000, guid: 26b19b7ec880bc4602be0c39067e7ab5, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -24,7 +24,7 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: e71cbb518e0ee772fe3cc6c9b6a07a6b, type: 3}
+        m_Texture: {fileID: 2800000, guid: 65f814fa03afa1f977316f4e9314f4c6, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
