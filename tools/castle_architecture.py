@@ -43,15 +43,25 @@ def wall(name, W, window):
     b.notes["footprint"] = [W, T]
     return b
 
-def column():
-    b = Builder("Column")
-    b.box((0, 0, .09), (.9, .9, .18), S)
-    prof = [(0, .18), (.44, .18), (.44, .26), (.36, .32), (.31, .36), (.31, 2.72), (.37, 2.78), (.52, 2.92), (.55, 3.02), (0, 3.02)]
+def column(name="Column", height=3.0, foot=.7, bands=()):
+    """Gothic column with capital: square plinth + round shaft with four engaged colonettes + flared capital + abacus.
+    Footprint foot x foot, origin floor centre. Column = crypt (3.0 m, .7), ColumnGreat = great hall (8.8 m, .9)."""
+    k = foot / .9
+    b = Builder(name)
+    pl, cap_h, aba = .18 * k + .02, .30 * k, .16 * k
+    b.box((0, 0, pl / 2), (foot, foot, pl), S)
+    r = .31 * k
+    z0, z1 = pl, height - aba - cap_h
+    prof = [(0, pl), (.44 * k, pl), (.44 * k, pl + .08 * k), (r + .04, pl + .14), (r, pl + .18), (r, z1)]
+    rc = foot * .47
+    prof += [(r + .03 * k, z1 + .06 * k), (r + (rc - r) * .7, z1 + .2 * k), (rc, height - aba), (0, height - aba)]
     b.lathe((0, 0, 0), prof, 12, S, cap=False)
-    for k in range(4):
-        a = math.radians(45 + 90 * k)
-        b.lathe((.37 * math.cos(a), .37 * math.sin(a), 0), [(.07, .36), (.07, 2.72)], 6, S)
-    b.box((0, 0, 3.11), (1.0, 1.0, .18), S)
+    for kk in range(4):
+        a_ = math.radians(45 + 90 * kk)
+        b.lathe((r * 1.18 * math.cos(a_), r * 1.18 * math.sin(a_), 0), [(.06 * k + .02, pl + .18), (.06 * k + .02, z1)], 6, S)
+    for z in bands:
+        b.lathe((0, 0, 0), [(r + .03, z - .06), (r + .06, z), (r + .03, z + .06)], 12, S, cap=False)
+    b.box((0, 0, height - aba / 2), (foot, foot, aba), S)
     return b
 
 def pointed_arch():
@@ -78,17 +88,18 @@ def vault_rib():
     return b
 
 def rose_window():
-    """Tracery frame, 3.2 m across, 0.4 m thick, in the XZ plane facing +-Y. Origin: centre of the circle."""
+    """Tracery frame, 3.0 m across, 0.5 m deep, in the XZ plane facing +-Y. Origin: bottom centre of the opening
+    (circle centre is 1.5 m above the origin)."""
     b = Builder("RoseWindow")
-    with b.xf(Rx(90)):
-        b.lathe((0, 0, 0), [(1.45, -.2), (1.6, -.2), (1.6, .2), (1.45, .2)], 24, S, closed_profile=True, smooth=False)
-        b.lathe((0, 0, 0), [(0, -.12), (.32, -.12), (.32, .12), (0, .12)], 12, S, cap=False, smooth=False)
+    with b.xf(T(0, 0, 1.5) @ Rx(90)):
+        b.lathe((0, 0, 0), [(1.3, -.25), (1.5, -.25), (1.5, .25), (1.3, .25)], 24, S, closed_profile=True, smooth=False)
+        b.lathe((0, 0, 0), [(0, -.15), (.3, -.15), (.3, .15), (0, .15)], 12, S, cap=False, smooth=False)
         for i in range(12):
             with b.xf(Rz(i * 30)):
-                b.box((.875, 0, 0), (1.17, .08, .24), S)
+                b.box((.8, 0, 0), (1.05, .09, .26), S)
         for i in range(6):
-            a = math.radians(30 + 60 * i)
-            b.ring_loop((.8 * math.cos(a), .8 * math.sin(a), 0), (1, 0, 0), (0, 1, 0), .27, .035, 10, 4, S)
+            a_ = math.radians(30 + 60 * i)
+            b.ring_loop((.75 * math.cos(a_), .75 * math.sin(a_), 0), (1, 0, 0), (0, 1, 0), .25, .035, 10, 4, S)
     return b
 
 def floor_tile():
@@ -116,17 +127,169 @@ def stair_flight():
     b.notes.update(rise=H, steps=n, riser=round(r, 4), tread=t, run=round(L, 3))
     return b
 
-def balcony_railing():
-    """2.0 m stone balustrade, 1.0 m high. Origin: bottom centre; front +Y."""
-    b = Builder("BalconyRailing")
-    b.box((0, 0, .08), (2.0, .3, .16), S)
-    b.box((0, 0, .95), (2.0, .3, .1), S)
+def balustrade():
+    """2.0 m stone balustrade section, 1.1 m high, 0.2 m deep. Origin: bottom centre."""
+    b = Builder("Balustrade")
+    b.box((0, 0, .09), (2.0, .2, .18), S)
+    b.box((0, 0, 1.04), (2.0, .2, .12), S)
     for sx in (-1, 1):
-        b.box((sx * .92, 0, .5), (.16, .26, 1.0), S)
+        b.box((sx * .93, 0, .56), (.14, .18, 1.12), S)
     for i in range(9):
         x = -.72 + i * .18
-        b.lathe((x, 0, 0), [(.04, .16), (.06, .35), (.04, .55), (.05, .75), (.04, .9)], 6, S, cap=True)
+        b.lathe((x, 0, 0), [(.04, .18), (.06, .38), (.04, .6), (.05, .82), (.04, .98)], 6, S, cap=True)
     return b
+
+def crypt_rib():
+    """8.4 m cambered stone rib between a pair of crypt columns, 0.6 x 0.6. Origin: bottom centre (springs at z=0)."""
+    n = 14
+    bot = [(-4.2 + 8.4 * i / n, .28 * (1 - (-1 + 2 * i / n) ** 2)) for i in range(n + 1)]
+    b = Builder("CryptRib")
+    b.poly(bot + [(4.2, .6), (-4.2, .6)], -.3, .3, S, 'XZ', smooth_range=(0, n))
+    b.box((0, 0, .26), (.5, .5, .1), S)
+    return b
+
+def rafter_beam():
+    """11.4 m oak tie-beam with chamfered ends and four iron straps. Origin: bottom centre."""
+    b = Builder("RafterBeam")
+    b.box((0, 0, .25), (11.4, .5, .5), OAK)
+    for x in (-4.5, -1.5, 1.5, 4.5):
+        b.box((x, 0, .25), (.12, .54, .54), IRON)
+    for sx in (-1, 1):
+        b.box((sx * 5.6, 0, .25), (.3, .56, .56), IRON)
+    return b
+
+def crypt_bridge():
+    """1.4 x 1.2 m flagstone slab bridge, 0.3 thick, worn kerbs. Origin: bottom centre; spans along Y."""
+    b = Builder("CryptBridge")
+    b.box((0, 0, .11), (1.4, 1.2, .22), S)
+    for sx in (-1, 1):
+        b.box((sx * .62, 0, .26), (.16, 1.2, .1), S)
+    b.box((0, 0, .27), (1.0, 1.0, .06), S)
+    return b
+
+def buttress():
+    """Stepped stone buttress, 0.9 wide x 6.4 high x 1.2 deep, weathered offsets on both faces (symmetric, so it works
+    whichever side faces the wall). Origin: base centre."""
+    pts = [(-.6, 0), (.6, 0), (.6, 1.3), (.4, 1.7), (.4, 3.6), (.28, 4.0), (.28, 5.6), (.0, 6.0), (-.28, 5.6), (-.28, 4.0), (-.4, 3.6), (-.4, 1.7), (-.6, 1.3)]
+    b = Builder("Buttress")
+    b.poly(pts, -.45, .45, S, 'YZ')
+    b.lathe((0, 0, 6.0), [(0, 0), (.14, .0), (.1, .25), (0, .4)], 6, S, cap=False)
+    return b
+
+def battlement():
+    """4.0 m crenellated parapet, 0.8 thick, 1.0 high, four merlons. Origin: bottom centre."""
+    b = Builder("Battlement")
+    b.box((0, 0, .225), (4.0, .8, .45), S)
+    b.box((0, 0, .45), (4.0, .88, .06), S)
+    for x in (-1.5, -.5, .5, 1.5):
+        b.box((x, 0, .725), (.62, .7, .5), S)
+    return b
+
+def gate_arch():
+    """Gate surround for the 3.0 x 4.5 opening: 0.4 m piers, lintel and a pointed gable to 5.6 m. 3.8 x 5.6 x 1.0.
+    Origin: floor centre of the opening, centred on the wall line."""
+    b = Builder("GateArch")
+    for sx in (-1, 1):
+        b.box((sx * 1.7, 0, 2.25), (.4, 1.0, 4.5), S)
+        b.box((sx * 1.7, 0, .15), (.5, 1.0, .3), S)
+        b.lathe((sx * 1.7, 0, 4.9), [(.11, 0), (.11, .35), (0, .7)], 6, S, cap=False)
+    b.box((0, 0, 4.7), (3.8, 1.0, .4), S)
+    b.poly([(-1.9, 4.9), (1.9, 4.9), (.0, 5.6)], -.5, .5, S, 'XZ')
+    for sx in (-1, 1):
+        b.box((sx * 1.2, .35, 4.35), (.3, .3, .3), S)
+    return b
+
+def drawbridge():
+    """Lowered drawbridge leaf 3.2 x 6.0 m, 0.25 thick. Origin: hinge line on the top surface, deck extends towards -Y
+    (Unity -Z, the layout's lowered pose). Planks across, side beams, iron straps. Chains are the separate asset
+    DrawbridgeChains."""
+    b = Builder("Drawbridge")
+    n = 20; pl = 6.0 / n
+    for i in range(n):
+        b.box((0, -(i + .5) * pl, -.125), (3.2, pl - .02, .25), OAK)
+    for sx in (-1, 1):
+        b.box((sx * 1.5, -3.0, -.125), (.2, 6.0, .25), OAK)
+    for y in (-.5, -2.0, -4.0, -5.6):
+        b.box((0, y, -.005), (3.2, .14, .01), IRON)
+    for sx in (-1, 1):
+        b.box((sx * 1.5, -5.9, -.125), (.24, .16, .27), IRON)
+    return b
+
+def drawbridge_chains():
+    """Pair of chains from the far corners of the lowered leaf (y=-5.9) to anchors 4.4 m up at the gate (y=-0.3).
+    Static: they do not follow the leaf when it is raised. Origin: hinge line, top surface."""
+    b = Builder("DrawbridgeChains")
+    for sx in (-1, 1):
+        a = Vector((sx * 1.5, -5.9, .0)); c = Vector((sx * 1.5, -.3, 4.4))
+        d = c - a; L = d.length; dn = d.normalized()
+        side = Vector((1, 0, 0)); up = dn.cross(side).normalized(); side2 = up.cross(dn).normalized()
+        k = int(L / .27)
+        for i in range(k):
+            ctr = a + dn * (.27 * (i + .5))
+            b.ring_loop(ctr, dn, side2 if i % 2 == 0 else up, .13, .02, 6, 3, IRON, ry=.07)
+    return b
+
+def door_frame(name, ow, oh, jamb, lint, top, depth):
+    """Stone frame around an ow x oh opening: two jambs, lintel and a low pointed gable to `top`. Origin: floor centre."""
+    b = Builder(name)
+    W = ow + 2 * jamb
+    for sx in (-1, 1):
+        b.box((sx * (ow / 2 + jamb / 2), 0, oh / 2), (jamb, depth, oh), S)
+        b.box((sx * (ow / 2 + jamb / 2), 0, .08), (jamb + .06, depth + .04, .16), S)
+    b.box((0, 0, oh + lint / 2), (W, depth, lint), S)
+    b.poly([(-W / 2, oh + lint), (W / 2, oh + lint), (0, top)], -depth / 2, depth / 2, S, 'XZ')
+    b.notes.update(opening=[ow, oh])
+    return b
+
+def door_leaf(name, w, h, t, straps, ring_r, portrait=False):
+    """One door leaf. Origin: hinge edge at floor level; the leaf extends +X, thickness centred on Y."""
+    b = Builder(name)
+    b.box((w / 2, 0, h / 2), (w, t, h), OAK)
+    for z in straps:
+        b.box((w / 2, 0, z), (w - .04, t + .03, .15 if h > 3 else .09), IRON)
+    for sy in (-1, 1):
+        rc = (w - (.2 if h > 3 else .15), sy * (t / 2 + .03), h * .46 - ring_r)
+        with b.xf(about(rc, Rx(90))):
+            b.ring_loop(rc, (1, 0, 0), (0, 1, 0), ring_r, .022 if h < 3 else .03, 10, 4, BRASS)
+        b.box((rc[0], sy * (t / 2 + .015), rc[2] + ring_r + .04), (.1 if h < 3 else .15, .03, .1 if h < 3 else .15), BRASS)
+    if portrait:
+        b.part("Canvas", (w / 2, t / 2 + .012, h * .55)); b.use("Canvas")
+        cw, ch = w * .7, h * .62
+        v = [b._v((w / 2 + x, t / 2 + .012, h * .55 + z)) for x, z in ((-cw / 2, -ch / 2), (cw / 2, -ch / 2), (cw / 2, ch / 2), (-cw / 2, ch / 2))]
+        b._f(v, "Castle_Canvas", False, [(0, 0), (1, 0), (1, 1), (0, 1)], closed=False)
+        b.use(name)
+    return b
+
+def lancet_window(name, W, H, depth=.35, mullions=1):
+    """Open stone tracery for a pointed-arch window (no glass: moonlight/sky shows through). W x H x 0.35, origin at the
+    sill centre. Jambs, arch band, sill, mullion(s), iron glazing bars, a roundel in the head."""
+    b = Builder(name)
+    j = .1; hwi = W / 2 - j
+    Ri = hwi * 2
+    # outer apex relative to spring: use arch_curve with offset j
+    outer = arch_curve(hwi, 0, Ri, 8, j); inner = arch_curve(hwi, 0, Ri, 8)
+    apex = max(z for x, z in outer)
+    spring = H - apex
+    inner = [(x, z + spring) for x, z in inner]; outer = [(x, z + spring) for x, z in outer]
+    for sx in (-1, 1):
+        b.box((sx * (W / 2 - j / 2), 0, spring / 2 + .04), (j, depth, spring - .08 + .0), S)
+    b.poly(inner + list(reversed(outer)), -depth / 2, depth / 2, S, 'XZ', smooth_range=[(0, len(inner) - 1), (len(inner), 2 * len(inner) - 1)])
+    b.box((0, 0, .04), (W, depth, .08), S)
+    top_in = max(z for x, z in inner)
+    for i in range(mullions):
+        x = 0 if mullions == 1 else (-.5 + (i + .5) / mullions * 1.0 - 0.0) * 2 * hwi * .66
+        b.box((x, 0, (.08 + top_in - .25) / 2), (.06, depth * .8, top_in - .25 - .08), S)
+    for z in (H * .35, H * .62):
+        if z < spring + .1:
+            b.box((0, 0, z), (2 * hwi, .04, .025), IRON)
+    r = min(.14, hwi * .5)
+    if top_in - spring > .4:
+        b.ring_loop((0, 0, spring + .12 + r), (1, 0, 0), (0, 0, 1), r, .025, 10, 4, S)
+    b.notes["sill_to_apex"] = H
+    return b
+
+DOOR_LEAF_SPECS = {"DoorLeaf": (1.5, 2.0, .09, [.4, 1.6], .07), "GreatDoorLeaf": (1.5, 4.5, .12, [.55, 1.7, 2.9, 4.05], .14),
+                   "ServiceDoorLeaf": (.9, 2.0, .08, [.35, 1.65], .06), "PortraitDoorLeaf": (.9, 2.0, .1, [.35, 1.65], .06)}
 
 def door(name, W, Ht, frame, ring_r, straps, leaves=1, depth=.5, leaf_t=.12):
     """Frame part + hinged leaf part(s). Opening is W x Ht. Origin: bottom centre of the opening at the
@@ -192,47 +355,30 @@ def stone_bridge():
     b.notes.update(span=2 * hw, length=8, width=2.6)
     return b
 
-def drawbridge():
-    """Lowered drawbridge, 3.0 x 6.0 m deck, top at z=0, hinge edge at y=0 (extends to +Y). Two chains rise from the
-    far corners to anchors 4.4 m up over the gate (y=0.2)."""
-    b = Builder("Drawbridge")
-    n = 20; pl = 6.0 / n
-    for i in range(n):
-        b.box((0, (i + .5) * pl, -.125), (3.0, pl - .02, .25), OAK)
-    for sx in (-1, 1):
-        b.box((sx * 1.4, 3.0, .06), (.22, 6.0, .12), OAK)
-    for y in (.5, 2.0, 4.0, 5.6):
-        b.box((0, y, .005), (3.0, .14, .01), IRON)
-    chain_pitch = .27
-    for sx in (-1, 1):
-        a = Vector((sx * 1.45, 5.9, .12)); c = Vector((sx * 1.45, .2, 4.4))
-        d = c - a; L = d.length; dn = d.normalized()
-        side = Vector((1, 0, 0)); up = dn.cross(side).normalized(); side2 = up.cross(dn).normalized()
-        k = int(L / chain_pitch)
-        for i in range(k):
-            ctr = a + dn * (chain_pitch * (i + .5))
-            b.ring_loop(ctr, dn, side2 if i % 2 == 0 else up, .13, .02, 6, 3, IRON, ry=.07)
-    b.notes.update(deck=[3.0, 6.0])
-    return b
 
 BUILDERS = [
-    ("Wall_2m", lambda: wall("Wall_2m", 2.0, False), 200),
-    ("Wall_4m", lambda: wall("Wall_4m", 4.0, False), 200),
-    ("Wall_2m_Window", lambda: wall("Wall_2m_Window", 2.0, True), 200),
-    ("Wall_4m_Window", lambda: wall("Wall_4m_Window", 4.0, True), 200),
-    ("Column", column, 800),
-    ("PointedArch", pointed_arch, 600),
-    ("VaultRib", vault_rib, 600),
-    ("RoseWindow", rose_window, 1500),
-    ("FloorTile", floor_tile, 100),
-    ("StairFlight", stair_flight, 600),
-    ("BalconyRailing", balcony_railing, 700),
-    ("GreatDoor", great_door, 1200),
-    ("ServiceDoor", service_door, 800),
-    ("Door", std_door, 800),
-    ("CoffinNiche", coffin_niche, 800),
-    ("StoneBridge", stone_bridge, 800),
-    ("Drawbridge", drawbridge, 3000),
+    ("Wall_2m", lambda: wall("Wall_2m", 2.0, False), 200), ("Wall_4m", lambda: wall("Wall_4m", 4.0, False), 200),
+    ("Wall_2m_Window", lambda: wall("Wall_2m_Window", 2.0, True), 200), ("Wall_4m_Window", lambda: wall("Wall_4m_Window", 4.0, True), 200),
+    ("Column", lambda: column("Column", 3.0, .7), 800),
+    ("ColumnGreat", lambda: column("ColumnGreat", 8.8, .9, bands=(2.9, 5.8)), 1000),
+    ("PointedArch", pointed_arch, 600), ("VaultRib", vault_rib, 600), ("CryptRib", crypt_rib, 400),
+    ("RoseWindow", rose_window, 1500), ("FloorTile", floor_tile, 100), ("StairFlight", stair_flight, 600),
+    ("Balustrade", balustrade, 700), ("RafterBeam", rafter_beam, 300), ("CryptBridge", crypt_bridge, 200),
+    ("Buttress", buttress, 300), ("Battlement", battlement, 200), ("GateArch", gate_arch, 400),
+    ("Drawbridge", drawbridge, 3000), ("DrawbridgeChains", drawbridge_chains, 3000),
+    ("DoorFrame", lambda: door_frame("DoorFrame", 1.5, 2.0, .2, .2, 2.6, .8), 400),
+    ("GreatDoorFrame", lambda: door_frame("GreatDoorFrame", 3.0, 4.5, .3, .3, 5.2, .9), 400),
+    ("ServiceDoorFrame", lambda: door_frame("ServiceDoorFrame", .9, 2.0, .15, .15, 2.3, .8), 400),
+    ("DoorLeaf", lambda: door_leaf("DoorLeaf", *DOOR_LEAF_SPECS["DoorLeaf"]), 800),
+    ("GreatDoorLeaf", lambda: door_leaf("GreatDoorLeaf", *DOOR_LEAF_SPECS["GreatDoorLeaf"]), 800),
+    ("ServiceDoorLeaf", lambda: door_leaf("ServiceDoorLeaf", *DOOR_LEAF_SPECS["ServiceDoorLeaf"]), 800),
+    ("PortraitDoorLeaf", lambda: door_leaf("PortraitDoorLeaf", *DOOR_LEAF_SPECS["PortraitDoorLeaf"], portrait=True), 800),
+    ("LancetWindow", lambda: lancet_window("LancetWindow", 1.2, 1.6), 600),
+    ("TallLancetWindow", lambda: lancet_window("TallLancetWindow", 1.4, 3.5), 600),
+    ("ClerestoryWindow", lambda: lancet_window("ClerestoryWindow", 1.2, 1.8), 600),
+    ("ObservatoryWindow", lambda: lancet_window("ObservatoryWindow", 1.6, 2.7, mullions=2), 700),
+    ("GreatDoor", great_door, 1200), ("ServiceDoor", service_door, 800), ("Door", std_door, 800),
+    ("CoffinNiche", coffin_niche, 800), ("StoneBridge", stone_bridge, 800),
 ]
 
 def spec_for(name):
@@ -247,6 +393,9 @@ def spec_for(name):
             s = info["parts"]["LeafL"]["size"]; assert approx(s[2], 1.98, .03) and approx(s[0], .89, .02), s
         if name == "Door":
             s = info["parts"]["LeafL"]["size"]; assert approx(s[2], 1.98, .03) and approx(s[0], 1.49, .02), s
+        if name in DOOR_LEAF_SPECS:
+            w, h = DOOR_LEAF_SPECS[name][:2]
+            s = info["parts"][name]["size"]; assert approx(s[0], w, .01) and approx(s[2], h, .01), (name, s)
         if name == "StairFlight":
             assert approx(info["notes"]["rise"], 3.2, 1e-6)
     return check

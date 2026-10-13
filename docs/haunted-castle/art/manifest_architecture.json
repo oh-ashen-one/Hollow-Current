@@ -1,48 +1,186 @@
 {
- "BalconyRailing": {
+ "Balustrade": {
   "budget": 700,
-  "bytes": 27820,
-  "file": "Assets/HollowCurrent/Resources/Castle/BalconyRailing.fbx",
+  "bytes": 27884,
+  "file": "Assets/HollowCurrent/Resources/Castle/Balustrade.fbx",
   "materials": [
    "Castle_Stone"
   ],
   "max": [
    1.0,
-   0.15,
-   1.0
+   0.1,
+   1.12
   ],
   "min": [
    -1.0,
-   -0.15,
+   -0.1,
    0.0
   ],
   "notes": {},
   "parts": {
-   "BalconyRailing": {
+   "Balustrade": {
     "max": [
      1.0,
-     0.15,
-     1.0
+     0.1,
+     1.12
     ],
     "min": [
      -1.0,
-     -0.15,
+     -0.1,
      0.0
     ],
     "size": [
      2.0,
-     0.3,
-     1.0
+     0.2,
+     1.12
     ],
     "tris": 552
    }
   },
   "size": [
    2.0,
-   0.3,
-   1.0
+   0.2,
+   1.12
   ],
   "tris": 552
+ },
+ "Battlement": {
+  "budget": 200,
+  "bytes": 16524,
+  "file": "Assets/HollowCurrent/Resources/Castle/Battlement.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   2.0,
+   0.44,
+   0.975
+  ],
+  "min": [
+   -2.0,
+   -0.44,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "Battlement": {
+    "max": [
+     2.0,
+     0.44,
+     0.975
+    ],
+    "min": [
+     -2.0,
+     -0.44,
+     0.0
+    ],
+    "size": [
+     4.0,
+     0.88,
+     0.975
+    ],
+    "tris": 72
+   }
+  },
+  "size": [
+   4.0,
+   0.88,
+   0.975
+  ],
+  "tris": 72
+ },
+ "Buttress": {
+  "budget": 300,
+  "bytes": 16940,
+  "file": "Assets/HollowCurrent/Resources/Castle/Buttress.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   0.45,
+   0.6,
+   6.4
+  ],
+  "min": [
+   -0.45,
+   -0.6,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "Buttress": {
+    "max": [
+     0.45,
+     0.6,
+     6.4
+    ],
+    "min": [
+     -0.45,
+     -0.6,
+     0.0
+    ],
+    "size": [
+     0.9,
+     1.2,
+     6.4
+    ],
+    "tris": 72
+   }
+  },
+  "size": [
+   0.9,
+   1.2,
+   6.4
+  ],
+  "tris": 72
+ },
+ "ClerestoryWindow": {
+  "budget": 600,
+  "bytes": 23324,
+  "file": "Assets/HollowCurrent/Resources/Castle/ClerestoryWindow.fbx",
+  "materials": [
+   "Castle_Stone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.6,
+   0.175,
+   1.8
+  ],
+  "min": [
+   -0.6,
+   -0.175,
+   0.0
+  ],
+  "notes": {
+   "sill_to_apex": 1.8
+  },
+  "parts": {
+   "ClerestoryWindow": {
+    "max": [
+     0.6,
+     0.175,
+     1.8
+    ],
+    "min": [
+     -0.6,
+     -0.175,
+     0.0
+    ],
+    "size": [
+     1.2,
+     0.35,
+     1.8
+    ],
+    "tris": 272
+   }
+  },
+  "size": [
+   1.2,
+   0.35,
+   1.8
+  ],
+  "tris": 272
  },
  "CoffinNiche": {
   "budget": 800,
@@ -93,48 +231,183 @@
  },
  "Column": {
   "budget": 800,
-  "bytes": 23020,
+  "bytes": 22972,
   "file": "Assets/HollowCurrent/Resources/Castle/Column.fbx",
   "materials": [
    "Castle_Stone"
   ],
   "max": [
-   0.55,
-   0.55,
-   3.2
+   0.35,
+   0.35,
+   3.0
   ],
   "min": [
-   -0.55,
-   -0.55,
+   -0.35,
+   -0.35,
    0.0
   ],
   "notes": {},
   "parts": {
    "Column": {
     "max": [
-     0.55,
-     0.55,
-     3.2
+     0.35,
+     0.35,
+     3.0
     ],
     "min": [
-     -0.55,
-     -0.55,
+     -0.35,
+     -0.35,
      0.0
     ],
     "size": [
-     1.1,
-     1.1,
-     3.2
+     0.7,
+     0.7,
+     3.0
     ],
     "tris": 296
    }
   },
   "size": [
-   1.1,
-   1.1,
-   3.2
+   0.7,
+   0.7,
+   3.0
   ],
   "tris": 296
+ },
+ "ColumnGreat": {
+  "budget": 1000,
+  "bytes": 25628,
+  "file": "Assets/HollowCurrent/Resources/Castle/ColumnGreat.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   0.45,
+   0.45,
+   8.8
+  ],
+  "min": [
+   -0.45,
+   -0.45,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "ColumnGreat": {
+    "max": [
+     0.45,
+     0.45,
+     8.8
+    ],
+    "min": [
+     -0.45,
+     -0.45,
+     0.0
+    ],
+    "size": [
+     0.9,
+     0.9,
+     8.8
+    ],
+    "tris": 392
+   }
+  },
+  "size": [
+   0.9,
+   0.9,
+   8.8
+  ],
+  "tris": 392
+ },
+ "CryptBridge": {
+  "budget": 200,
+  "bytes": 16012,
+  "file": "Assets/HollowCurrent/Resources/Castle/CryptBridge.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   0.7,
+   0.6,
+   0.31
+  ],
+  "min": [
+   -0.7,
+   -0.6,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "CryptBridge": {
+    "max": [
+     0.7,
+     0.6,
+     0.31
+    ],
+    "min": [
+     -0.7,
+     -0.6,
+     0.0
+    ],
+    "size": [
+     1.4,
+     1.2,
+     0.31
+    ],
+    "tris": 48
+   }
+  },
+  "size": [
+   1.4,
+   1.2,
+   0.31
+  ],
+  "tris": 48
+ },
+ "CryptRib": {
+  "budget": 400,
+  "bytes": 17100,
+  "file": "Assets/HollowCurrent/Resources/Castle/CryptRib.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   4.2,
+   0.3,
+   0.6
+  ],
+  "min": [
+   -4.2,
+   -0.3,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "CryptRib": {
+    "max": [
+     4.2,
+     0.3,
+     0.6
+    ],
+    "min": [
+     -4.2,
+     -0.3,
+     0.0
+    ],
+    "size": [
+     8.4,
+     0.6,
+     0.6
+    ],
+    "tris": 76
+   }
+  },
+  "size": [
+   8.4,
+   0.6,
+   0.6
+  ],
+  "tris": 76
  },
  "Door": {
   "budget": 800,
@@ -208,56 +481,193 @@
   ],
   "tris": 164
  },
+ "DoorFrame": {
+  "budget": 400,
+  "bytes": 16492,
+  "file": "Assets/HollowCurrent/Resources/Castle/DoorFrame.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   0.98,
+   0.42,
+   2.6
+  ],
+  "min": [
+   -0.98,
+   -0.42,
+   0.0
+  ],
+  "notes": {
+   "opening": [
+    1.5,
+    2.0
+   ]
+  },
+  "parts": {
+   "DoorFrame": {
+    "max": [
+     0.98,
+     0.42,
+     2.6
+    ],
+    "min": [
+     -0.98,
+     -0.42,
+     0.0
+    ],
+    "size": [
+     1.96,
+     0.84,
+     2.6
+    ],
+    "tris": 68
+   }
+  },
+  "size": [
+   1.96,
+   0.84,
+   2.6
+  ],
+  "tris": 68
+ },
+ "DoorLeaf": {
+  "budget": 800,
+  "bytes": 22684,
+  "file": "Assets/HollowCurrent/Resources/Castle/DoorLeaf.fbx",
+  "materials": [
+   "Castle_Oak",
+   "Castle_Iron",
+   "Castle_Brass"
+  ],
+  "max": [
+   1.5,
+   0.097,
+   2.0
+  ],
+  "min": [
+   0.0,
+   -0.097,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "DoorLeaf": {
+    "max": [
+     1.5,
+     0.097,
+     2.0
+    ],
+    "min": [
+     0.0,
+     -0.097,
+     0.0
+    ],
+    "size": [
+     1.5,
+     0.194,
+     2.0
+    ],
+    "tris": 220
+   }
+  },
+  "size": [
+   1.5,
+   0.194,
+   2.0
+  ],
+  "tris": 220
+ },
  "Drawbridge": {
   "budget": 3000,
-  "bytes": 66460,
+  "bytes": 22716,
   "file": "Assets/HollowCurrent/Resources/Castle/Drawbridge.fbx",
   "materials": [
    "Castle_Oak",
    "Castle_Iron"
   ],
   "max": [
-   1.5252,
-   6.0,
-   4.3604
+   1.62,
+   0.0,
+   0.01
   ],
   "min": [
-   -1.527,
-   0.0,
-   -0.25
+   -1.62,
+   -6.0,
+   -0.26
   ],
-  "notes": {
-   "deck": [
-    3.0,
-    6.0
-   ]
-  },
+  "notes": {},
   "parts": {
    "Drawbridge": {
     "max": [
-     1.5252,
-     6.0,
-     4.3604
+     1.62,
+     0.0,
+     0.01
     ],
     "min": [
-     -1.527,
-     0.0,
-     -0.25
+     -1.62,
+     -6.0,
+     -0.26
     ],
     "size": [
-     3.0522,
+     3.24,
      6.0,
-     4.6104
+     0.27
     ],
-    "tris": 2184
+    "tris": 336
    }
   },
   "size": [
-   3.0522,
+   3.24,
    6.0,
-   4.6104
+   0.27
   ],
-  "tris": 2184
+  "tris": 336
+ },
+ "DrawbridgeChains": {
+  "budget": 3000,
+  "bytes": 50892,
+  "file": "Assets/HollowCurrent/Resources/Castle/DrawbridgeChains.fbx",
+  "materials": [
+   "Castle_Iron"
+  ],
+  "max": [
+   1.5751,
+   -0.3683,
+   4.3602
+  ],
+  "min": [
+   -1.577,
+   -5.9093,
+   -0.0159
+  ],
+  "notes": {},
+  "parts": {
+   "DrawbridgeChains": {
+    "max": [
+     1.5751,
+     -0.3683,
+     4.3602
+    ],
+    "min": [
+     -1.577,
+     -5.9093,
+     -0.0159
+    ],
+    "size": [
+     3.1521,
+     5.541,
+     4.3761
+    ],
+    "tris": 1872
+   }
+  },
+  "size": [
+   3.1521,
+   5.541,
+   4.3761
+  ],
+  "tris": 1872
  },
  "FloorTile": {
   "budget": 100,
@@ -303,6 +713,51 @@
    0.26
   ],
   "tris": 24
+ },
+ "GateArch": {
+  "budget": 400,
+  "bytes": 18060,
+  "file": "Assets/HollowCurrent/Resources/Castle/GateArch.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   1.95,
+   0.5,
+   5.6
+  ],
+  "min": [
+   -1.95,
+   -0.5,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "GateArch": {
+    "max": [
+     1.95,
+     0.5,
+     5.6
+    ],
+    "min": [
+     -1.95,
+     -0.5,
+     0.0
+    ],
+    "size": [
+     3.9,
+     1.0,
+     5.6
+    ],
+    "tris": 128
+   }
+  },
+  "size": [
+   3.9,
+   1.0,
+   5.6
+  ],
+  "tris": 128
  },
  "GreatDoor": {
   "budget": 1200,
@@ -394,6 +849,199 @@
   ],
   "tris": 340
  },
+ "GreatDoorFrame": {
+  "budget": 400,
+  "bytes": 16476,
+  "file": "Assets/HollowCurrent/Resources/Castle/GreatDoorFrame.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   1.83,
+   0.47,
+   5.2
+  ],
+  "min": [
+   -1.83,
+   -0.47,
+   0.0
+  ],
+  "notes": {
+   "opening": [
+    3.0,
+    4.5
+   ]
+  },
+  "parts": {
+   "GreatDoorFrame": {
+    "max": [
+     1.83,
+     0.47,
+     5.2
+    ],
+    "min": [
+     -1.83,
+     -0.47,
+     0.0
+    ],
+    "size": [
+     3.66,
+     0.94,
+     5.2
+    ],
+    "tris": 68
+   }
+  },
+  "size": [
+   3.66,
+   0.94,
+   5.2
+  ],
+  "tris": 68
+ },
+ "GreatDoorLeaf": {
+  "budget": 800,
+  "bytes": 23148,
+  "file": "Assets/HollowCurrent/Resources/Castle/GreatDoorLeaf.fbx",
+  "materials": [
+   "Castle_Oak",
+   "Castle_Iron",
+   "Castle_Brass"
+  ],
+  "max": [
+   1.5,
+   0.12,
+   4.5
+  ],
+  "min": [
+   0.0,
+   -0.12,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "GreatDoorLeaf": {
+    "max": [
+     1.5,
+     0.12,
+     4.5
+    ],
+    "min": [
+     0.0,
+     -0.12,
+     0.0
+    ],
+    "size": [
+     1.5,
+     0.24,
+     4.5
+    ],
+    "tris": 244
+   }
+  },
+  "size": [
+   1.5,
+   0.24,
+   4.5
+  ],
+  "tris": 244
+ },
+ "LancetWindow": {
+  "budget": 600,
+  "bytes": 23324,
+  "file": "Assets/HollowCurrent/Resources/Castle/LancetWindow.fbx",
+  "materials": [
+   "Castle_Stone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.6,
+   0.175,
+   1.6
+  ],
+  "min": [
+   -0.6,
+   -0.175,
+   0.0
+  ],
+  "notes": {
+   "sill_to_apex": 1.6
+  },
+  "parts": {
+   "LancetWindow": {
+    "max": [
+     0.6,
+     0.175,
+     1.6
+    ],
+    "min": [
+     -0.6,
+     -0.175,
+     0.0
+    ],
+    "size": [
+     1.2,
+     0.35,
+     1.6
+    ],
+    "tris": 272
+   }
+  },
+  "size": [
+   1.2,
+   0.35,
+   1.6
+  ],
+  "tris": 272
+ },
+ "ObservatoryWindow": {
+  "budget": 700,
+  "bytes": 23612,
+  "file": "Assets/HollowCurrent/Resources/Castle/ObservatoryWindow.fbx",
+  "materials": [
+   "Castle_Stone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.8,
+   0.175,
+   2.7
+  ],
+  "min": [
+   -0.8,
+   -0.175,
+   0.0
+  ],
+  "notes": {
+   "sill_to_apex": 2.7
+  },
+  "parts": {
+   "ObservatoryWindow": {
+    "max": [
+     0.8,
+     0.175,
+     2.7
+    ],
+    "min": [
+     -0.8,
+     -0.175,
+     0.0
+    ],
+    "size": [
+     1.6,
+     0.35,
+     2.7
+    ],
+    "tris": 284
+   }
+  },
+  "size": [
+   1.6,
+   0.35,
+   2.7
+  ],
+  "tris": 284
+ },
  "PointedArch": {
   "budget": 600,
   "bytes": 17948,
@@ -442,48 +1090,160 @@
   ],
   "tris": 116
  },
+ "PortraitDoorLeaf": {
+  "budget": 800,
+  "bytes": 26540,
+  "file": "Assets/HollowCurrent/Resources/Castle/PortraitDoorLeaf.fbx",
+  "materials": [
+   "Castle_Oak",
+   "Castle_Iron",
+   "Castle_Brass",
+   "Castle_Canvas"
+  ],
+  "max": [
+   0.9,
+   0.102,
+   2.0
+  ],
+  "min": [
+   0.0,
+   -0.102,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "Canvas": {
+    "max": [
+     0.765,
+     0.062,
+     1.72
+    ],
+    "min": [
+     0.135,
+     0.062,
+     0.48
+    ],
+    "size": [
+     0.63,
+     0.0,
+     1.24
+    ],
+    "tris": 2
+   },
+   "PortraitDoorLeaf": {
+    "max": [
+     0.9,
+     0.102,
+     2.0
+    ],
+    "min": [
+     0.0,
+     -0.102,
+     0.0
+    ],
+    "size": [
+     0.9,
+     0.204,
+     2.0
+    ],
+    "tris": 220
+   }
+  },
+  "size": [
+   0.9,
+   0.204,
+   2.0
+  ],
+  "tris": 222
+ },
+ "RafterBeam": {
+  "budget": 300,
+  "bytes": 17852,
+  "file": "Assets/HollowCurrent/Resources/Castle/RafterBeam.fbx",
+  "materials": [
+   "Castle_Oak",
+   "Castle_Iron"
+  ],
+  "max": [
+   5.75,
+   0.28,
+   0.53
+  ],
+  "min": [
+   -5.75,
+   -0.28,
+   -0.03
+  ],
+  "notes": {},
+  "parts": {
+   "RafterBeam": {
+    "max": [
+     5.75,
+     0.28,
+     0.53
+    ],
+    "min": [
+     -5.75,
+     -0.28,
+     -0.03
+    ],
+    "size": [
+     11.5,
+     0.56,
+     0.56
+    ],
+    "tris": 84
+   }
+  },
+  "size": [
+   11.5,
+   0.56,
+   0.56
+  ],
+  "tris": 84
+ },
  "RoseWindow": {
   "budget": 1500,
-  "bytes": 38364,
+  "bytes": 37948,
   "file": "Assets/HollowCurrent/Resources/Castle/RoseWindow.fbx",
   "materials": [
    "Castle_Stone"
   ],
   "max": [
-   1.6,
-   0.2,
-   1.6
+   1.5,
+   0.25,
+   3.0
   ],
   "min": [
-   -1.6,
-   -0.2,
-   -1.6
+   -1.5,
+   -0.25,
+   0.0
   ],
   "notes": {},
   "parts": {
    "RoseWindow": {
     "max": [
-     1.6,
-     0.2,
-     1.6
+     1.5,
+     0.25,
+     3.0
     ],
     "min": [
-     -1.6,
-     -0.2,
-     -1.6
+     -1.5,
+     -0.25,
+     0.0
     ],
     "size": [
-     3.2,
-     0.4,
-     3.2
+     3.0,
+     0.5,
+     3.0
     ],
     "tris": 864
    }
   },
   "size": [
-   3.2,
-   0.4,
-   3.2
+   3.0,
+   0.5,
+   3.0
   ],
   "tris": 864
  },
@@ -558,6 +1318,103 @@
    2.12
   ],
   "tris": 164
+ },
+ "ServiceDoorFrame": {
+  "budget": 400,
+  "bytes": 16492,
+  "file": "Assets/HollowCurrent/Resources/Castle/ServiceDoorFrame.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   0.63,
+   0.42,
+   2.3
+  ],
+  "min": [
+   -0.63,
+   -0.42,
+   0.0
+  ],
+  "notes": {
+   "opening": [
+    0.9,
+    2.0
+   ]
+  },
+  "parts": {
+   "ServiceDoorFrame": {
+    "max": [
+     0.63,
+     0.42,
+     2.3
+    ],
+    "min": [
+     -0.63,
+     -0.42,
+     0.0
+    ],
+    "size": [
+     1.26,
+     0.84,
+     2.3
+    ],
+    "tris": 68
+   }
+  },
+  "size": [
+   1.26,
+   0.84,
+   2.3
+  ],
+  "tris": 68
+ },
+ "ServiceDoorLeaf": {
+  "budget": 800,
+  "bytes": 22636,
+  "file": "Assets/HollowCurrent/Resources/Castle/ServiceDoorLeaf.fbx",
+  "materials": [
+   "Castle_Oak",
+   "Castle_Iron",
+   "Castle_Brass"
+  ],
+  "max": [
+   0.9,
+   0.092,
+   2.0
+  ],
+  "min": [
+   0.0,
+   -0.092,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "ServiceDoorLeaf": {
+    "max": [
+     0.9,
+     0.092,
+     2.0
+    ],
+    "min": [
+     0.0,
+     -0.092,
+     0.0
+    ],
+    "size": [
+     0.9,
+     0.184,
+     2.0
+    ],
+    "tris": 220
+   }
+  },
+  "size": [
+   0.9,
+   0.184,
+   2.0
+  ],
+  "tris": 220
  },
  "StairFlight": {
   "budget": 600,
@@ -658,6 +1515,54 @@
    4.3
   ],
   "tris": 128
+ },
+ "TallLancetWindow": {
+  "budget": 600,
+  "bytes": 23548,
+  "file": "Assets/HollowCurrent/Resources/Castle/TallLancetWindow.fbx",
+  "materials": [
+   "Castle_Stone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.7,
+   0.175,
+   3.5
+  ],
+  "min": [
+   -0.7,
+   -0.175,
+   0.0
+  ],
+  "notes": {
+   "sill_to_apex": 3.5
+  },
+  "parts": {
+   "TallLancetWindow": {
+    "max": [
+     0.7,
+     0.175,
+     3.5
+    ],
+    "min": [
+     -0.7,
+     -0.175,
+     0.0
+    ],
+    "size": [
+     1.4,
+     0.35,
+     3.5
+    ],
+    "tris": 284
+   }
+  },
+  "size": [
+   1.4,
+   0.35,
+   3.5
+  ],
+  "tris": 284
  },
  "VaultRib": {
   "budget": 600,
