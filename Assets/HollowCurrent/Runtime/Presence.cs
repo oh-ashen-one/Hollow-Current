@@ -65,7 +65,7 @@ namespace HollowCurrent
             silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeSearch);presentationRemaining=seconds;Appearances++;Game.Sound.Cue("apparition",point+Vector3.up,.85f);return true;
         }
         // End a staged appearance immediately (capture tooling, scripted beats).
-        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;choreo=false;RestoreHiddenFloaters();if(silhouette)silhouette.gameObject.SetActive(false);}
+        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;choreo=false;RestoreHiddenFloaters();if(silhouette)silhouette.localRotation=Quaternion.identity;if(silhouette)silhouette.gameObject.SetActive(false);}
         public void FacePlayer()
         {
             var delta=Game.Player.transform.position-transform.position;delta.y=0;
@@ -244,6 +244,56 @@ namespace HollowCurrent
             return true;
         }
         bool clearCaptureView;
+        /// <summary>S5 (round 5): crouch him on the rose-window ledge perch (PerchPoints[2], CastleWorld order) with his claws
+        /// on the ledge's front edge, facing down the hall. Then call RoseLedgeFraming after the pose settles (~1.5 s).</summary>
+        public bool StageOnRoseLedge(bool clearViewLine=true)
+        {
+            if(count==null||Game.World.PerchPoints.Count<3)return false;
+            if(!StageForCapture(2,clearViewLine))return false;
+            // The ledge has no balustrade: find its front edge by stepping forward until the floor under him drops away.
+            var feet=transform.position;var dir=transform.forward;dir.y=0;dir.Normalize();var edge=feet;
+            for(int k=1;k<=24;k++)
+            {
+                var probe=feet+dir*(k*.05f)+Vector3.up*.3f;
+                if(!Physics.Raycast(probe,Vector3.down,.45f,FlightMask,QueryTriggerInteraction.Ignore))break;
+                edge=feet+dir*(k*.05f);
+            }
+            transform.position=edge-dir*.30f;   // Perch clip: wrists 0.32 m ahead of the ankles, over the edge
+            Debug.Log("HC_COUNT_STAGED rose ledge feet="+transform.position+" edge="+edge);
+            return true;
+        }
+        /// <summary>Camera for the rose-ledge S5: on the line from CastleLayout.RoseWindowEye through his posed bounds (the
+        /// rose-window moon sprites are placed on rays from that eye), at the distance that makes his bounds
+        /// <paramref name="fill"/> of the frame height, raised until both moons sit about <paramref name="moonsAboveDeg"/>
+        /// degrees above his head. Logs HC_S5_FRAMING with eye, pitch and the moon angles.</summary>
+        public bool RoseLedgeFraming(float fill,out Vector3 eye,out Vector3 target,float moonsAboveDeg=9f)
+        {
+            eye=target=transform.position;if(!actor||!silhouette.gameObject.activeInHierarchy)return false;
+            var b=actor.PoseBounds(0);var head=actor.Head?actor.Head.position:b.center+Vector3.up*b.extents.y*.5f;
+            float half=Game.Player.View.fieldOfView*.5f*Mathf.Deg2Rad;
+            float d=b.size.y/(Mathf.Clamp(fill,.1f,.95f)*2*Mathf.Tan(half));
+            var line=(b.center-CastleLayout.RoseWindowEye).normalized;
+            var moons=new List<Vector3>();
+            foreach(var t in Game.World.Root.GetComponentsInChildren<Transform>(true))if(t.name=="Pale moon"||t.name=="Red moon")moons.Add(t.position);
+            float rise=.35f*d;
+            if(moons.Count>0)
+            {
+                var m=Vector3.zero;foreach(var p in moons)m+=p;m/=moons.Count;
+                float best=float.MaxValue;
+                for(float r=-.2f*d;r<=.9f*d;r+=.01f*d)
+                {
+                    var c=b.center-line*d+Vector3.up*r;
+                    float above=Elevation(m-c)-Elevation(head-c);
+                    float err=Mathf.Abs(above-moonsAboveDeg);if(err<best){best=err;rise=r;}
+                }
+            }
+            eye=b.center-line*d+Vector3.up*rise;target=b.center;
+            if(clearCaptureView){HideFloatersOnViewLine(eye,target);foreach(var p in moons)HideFloatersOnViewLine(eye,p,1.2f);}
+            var v=target-eye;
+            Debug.Log("HC_S5_FRAMING eye="+eye+" target="+target+" pitch="+Elevation(v).ToString("F1")+" distance="+v.magnitude.ToString("F2")+" moons="+moons.Count+" rise="+rise.ToString("F2"));
+            return true;
+        }
+        static float Elevation(Vector3 v)=>Mathf.Atan2(v.y,new Vector2(v.x,v.z).magnitude)*Mathf.Rad2Deg;
         readonly List<GameObject> hiddenFloaters=new List<GameObject>();
         /// <summary>Capture only: deactivate every Floater whose renderers come within <paramref name="radius"/> of the
         /// segment eye -> target (plus 1 m past the target). Returns how many were hidden; RestoreHiddenFloaters undoes it.</summary>
@@ -634,12 +684,13 @@ namespace HollowCurrent
         // [3.5,6.5) off the rail and down toward the camera, Dive 3 [6.5,9.5) to the hold distance and holding,
         // Feint 1 [9.5,12.5) back to the perch; then it repeats. The investigator's view tracks his posed bounds at
         // the investigator's own eye height. Each phase change logs HC_COUNT_CAPTURE.
-        public const float CapturePerchEnd=3.5f,CaptureGlideEnd=6.5f,CaptureDiveEnd=9.5f,CaptureFeintEnd=12.5f,CaptureDiveArrive=1.5f;
+        public const float CapturePerchEnd=3.5f,CaptureGlideEnd=6.5f,CaptureDiveEnd=10.6f,CaptureFeintEnd=13.6f,CaptureDiveArrive=1.5f,CaptureLungeStart=9.2f,CaptureLungeArrive=9.8f;
         static readonly string[] CapturePhases={"Perch","Glide","Dive","Grab","Feint"};
         bool choreo;
         float choreoClock;
         int choreoPhase=-1;
-        Vector3 cPerch,cFacing,cGlideEnd,cHold,cCamForward,cLook;
+        Vector3 cPerch,cFacing,cGlideEnd,cHold,cLunge,cCamForward,cLook;
+        float cLean;
         public float CaptureClock=>choreoClock;
         public bool CaptureChoreographyActive=>choreo;
         public string CaptureNote {get;private set;}="";
@@ -655,17 +706,19 @@ namespace HollowCurrent
             cCamForward=player.View.transform.forward;cCamForward.y=0;
             if(cCamForward.sqrMagnitude<.01f)cCamForward=player.transform.forward;cCamForward.Normalize();
             float hold=holdDistance>0?holdDistance:count.CaptureHoldDistance;
-            cGlideEnd=ground+cCamForward*5.5f+Vector3.up*1.5f;          // Glide clip's lowest point is 0.10 m over this
+            // Round 5: the whole approach stays above the 1.1 m ground-fog planes (r4 H07/H08 waist cut on the descent).
+            cGlideEnd=ground+cCamForward*5.5f+Vector3.up*count.CaptureGlideEndHeight;
             // Round 4: hold high enough that his lowest point clears the 0.08-1.1 m ground-fog planes (the r3 "bust cut").
             cHold=ground+cCamForward*hold+Vector3.up*count.CaptureHoldHeight;
+            cLunge=ground+cCamForward*count.CaptureLungeDistance+Vector3.up*count.CaptureHoldHeight;
             presentationRemaining=0;capturePresentation=false;fakeRush=false;staged=false;agent.enabled=false;route.Clear();contact=0;
             CanSeePlayer=false;Memory.Clear();perchIndex=i;flight=Flight.Perched;
             transform.SetPositionAndRotation(cPerch,Quaternion.Euler(0,yaw,0));silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeIdle);
-            cLook=cPerch+Vector3.up;choreo=true;choreoClock=0;choreoPhase=-1;
+            cLook=cPerch+Vector3.up;cLean=0;silhouette.localRotation=Quaternion.identity;choreo=true;choreoClock=0;choreoPhase=-1;
             Debug.Log("HC_COUNT_CAPTURE begin perch="+i+" feet="+cPerch+" glideEnd="+cGlideEnd+" hold="+cHold+" holdDistance="+hold.ToString("F2")+" eye="+player.View.transform.position);
             return true;
         }
-        public void EndCaptureChoreography(){if(!choreo)return;choreo=false;Debug.Log("HC_COUNT_CAPTURE end clock="+choreoClock.ToString("F2"));}
+        public void EndCaptureChoreography(){if(!choreo)return;choreo=false;silhouette.localRotation=Quaternion.identity;Debug.Log("HC_COUNT_CAPTURE end clock="+choreoClock.ToString("F2"));}
         static Vector3 Bezier(Vector3 a,Vector3 b,Vector3 c,Vector3 d,float t){float u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;}
         Vector3 ChoreoPosition(float t,out int phase,out int mode)
         {
@@ -674,17 +727,20 @@ namespace HollowCurrent
             if(t<CaptureGlideEnd)
             {
                 phase=1;mode=Profile.ModeMove;float u=Mathf.SmoothStep(0,1,(t-CapturePerchEnd)/(CaptureGlideEnd-CapturePerchEnd));
-                return Bezier(cPerch,cPerch+cFacing*2.5f+Vector3.up*1.1f,cGlideEnd+cCamForward*3f+Vector3.up*.8f,cGlideEnd,u);
+                // Out over the hall and straight on toward the camera (r4 H05 flew away, soles to camera).
+                return Bezier(cPerch,cPerch+cFacing*2.2f+Vector3.up*.9f,Vector3.Lerp(cPerch,cGlideEnd,.65f)+Vector3.up*1.2f,cGlideEnd,u);
             }
             if(t<CaptureDiveEnd)
             {
                 mode=Profile.ModeReach;float k=(t-CaptureGlideEnd)/CaptureDiveArrive;
                 if(k<1){phase=2;return Vector3.Lerp(cGlideEnd,cHold,k*k);}
-                // Climax: front-facing wing-wrap (Mode 6 Grab) at the hold, face to the camera.
-                phase=3;mode=count.ModeGrab;return cHold+Vector3.up*.05f*Mathf.Sin((t-CaptureGlideEnd-CaptureDiveArrive)*4);
+                // Climax: front-facing Grab (Mode 6) at the hold, face to the camera, then a short lunge in so the claws
+                // and wing tips frame the lens.
+                phase=3;mode=count.ModeGrab;float l=Mathf.SmoothStep(0,1,(t-CaptureLungeStart)/(CaptureLungeArrive-CaptureLungeStart));
+                return Vector3.Lerp(cHold,cLunge,l)+Vector3.up*.05f*Mathf.Sin((t-CaptureGlideEnd-CaptureDiveArrive)*4);
             }
             phase=4;mode=Profile.ModeMove;float f=Mathf.SmoothStep(0,1,(t-CaptureDiveEnd)/(CaptureFeintEnd-CaptureDiveEnd));
-            return Bezier(cHold,cHold+Vector3.up*1.4f+cCamForward*1.2f,cPerch+cFacing*2.2f+Vector3.up*1.2f,cPerch,f);
+            return Bezier(cLunge,cLunge+Vector3.up*1.4f+cCamForward*1.2f,cPerch+cFacing*2.2f+Vector3.up*1.2f,cPerch,f);
         }
         void CaptureChoreography(float dt)
         {
@@ -696,17 +752,24 @@ namespace HollowCurrent
             // The feint backs away still facing the camera, then turns (no snap to his back while he is close).
             bool facing=phase==0||phase==3||phase==4&&(choreoClock%CaptureFeintEnd)-CaptureDiveEnd<count.CaptureFeintFacingSeconds;
             var heading=facing?toCamera:ahead-position;heading.y=0;
+            // Glide and dive keep his chest and face turned to the camera (blend of travel and camera direction).
+            if(phase==1||phase==2){var travel=heading.normalized;heading=Vector3.Slerp(travel,toCamera.normalized,.6f);}
             float speed=(ahead-position).magnitude/.05f;
             transform.position=position;
             if(heading.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(heading),(phase==0?120:phase==4?150:540)*dt);
             actor.Pose(mode,1.2f+speed*.35f);
+            // Lean the whole figure back while gliding/diving toward the camera so the chest, not the soles, faces it.
+            float lean=phase==1?count.CaptureGlideLean:phase==2?count.CaptureDiveLean:phase==4?count.CaptureGlideLean*.5f:0;
+            cLean=Mathf.Lerp(cLean,lean,1-Mathf.Exp(-4*dt));silhouette.localRotation=Quaternion.Euler(cLean,0,0);
             if(phase!=choreoPhase)
             {
                 choreoPhase=phase;
                 Debug.Log("HC_COUNT_CAPTURE phase="+CapturePhases[phase]+" clock="+choreoClock.ToString("F2")+" mode="+mode+" pos="+position+" distance="+Vector3.Distance(position+Vector3.up,eye).ToString("F2"));
             }
             // The investigator's view follows him from the investigator's own eye height (the body stays put).
-            var bounds=actor.PoseBounds(0);cLook=Vector3.Lerp(cLook,bounds.center,1-Mathf.Exp(-10*dt));
+            // Close in, aim between the bounds centre and his head so the face stays in frame.
+            var bounds=actor.PoseBounds(0);var aim=phase==3&&actor.Head?Vector3.Lerp(bounds.center,actor.Head.position,.55f):bounds.center;
+            cLook=Vector3.Lerp(cLook,aim,1-Mathf.Exp(-10*dt));
             var player=Game.Player;var look=cLook-eye;var flat=new Vector2(look.x,look.z).magnitude;
             if(look.sqrMagnitude>.0001f)
             {

@@ -45,9 +45,9 @@ namespace HollowCurrent
         public int HitsToKill=3;
         public float StaggerRetreatSeconds=20f;                // retreat to a perch for 20 s, return lower and angrier (Fight.RetreatSeconds)
 
-        // Grab presentation: the Grab clip's wing-wrap reaches 0.79 m ahead of his origin (receipt grab_reach_m);
+        // Grab presentation: the Grab clip reaches 0.88 m ahead of his origin (receipt grab_reach_m);
         // keep the camera at least CameraClearance outside it.
-        public float GrabReach=.79f, CameraClearance=.6f;
+        public float GrabReach=.88f, CameraClearance=.6f;
         public float GrabStandOff=>GrabReach+CameraClearance+.05f;
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
@@ -55,7 +55,10 @@ namespace HollowCurrent
         public float CaptureHoldDistance=2.8f, CaptureHoldSeconds=1.6f;
         // Choreography climax (round 4): origin height at the hold (Grab clip lowest point +0.10 => 1.30 m, above the
         // 1.1 m ground-fog planes) and how long the feint keeps facing the camera before it turns.
-        public float CaptureHoldHeight=1.2f, CaptureFeintFacingSeconds=1.3f;
+        public float CaptureHoldHeight=1.6f, CaptureFeintFacingSeconds=1.3f;
+        // Round 5: glide end height (approach stays above the fog), climax lunge distance, and the whole-figure lean back
+        // (degrees, negative = back) while gliding/diving toward the camera so it sees chest and face, not soles.
+        public float CaptureGlideEndHeight=2.2f, CaptureLungeDistance=2.0f, CaptureGlideLean=-24f, CaptureDiveLean=-16f;
 
         // Cold rim light parented behind his shoulders (Presence.CountRimLight): keeps the wings readable in the dark.
         public float RimLightRange=3.6f, RimLightIntensity=1.1f;

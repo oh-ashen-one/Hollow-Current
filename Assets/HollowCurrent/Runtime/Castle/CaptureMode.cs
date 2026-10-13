@@ -146,15 +146,20 @@ namespace HollowCurrent
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+" (14 m back on the bridge axis, 3.5 m), "+s4+";"+moons);
             game.Player.View.fieldOfView=fov;
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
-            // S5: great hall floor looking up at the balcony; Count Claude staged on balcony
-            // perch 0 in Mode 0 (Presence.StageForCapture, hc/count2), framed by
-            // Presence.CaptureFraming (fill 0.5 of frame height, eye 30 degrees below him).
+            // S5 (round 5): Count Claude crouched on the rose-window ledge (Presence.StageOnRoseLedge,
+            // hc/count5) with both moons in the window above his head; RoseLedgeFraming fills 58% of
+            // the frame height. Fallback: the round-4 balcony perch + CaptureFraming.
             Torch(true);Floater.SetFlameTarget(game.Creature.transform);
-            bool staged=game.Creature.StageForCapture(0,true); // true: hide floaters within 2 m of the eye-to-Count line
+            bool staged=game.Creature.StageOnRoseLedge(true);string s5="rose ledge, RoseLedgeFraming(0.58)";
             yield return new WaitForSecondsRealtime(1.5f);
-            if(!game.Creature.CaptureFraming(.5f,30,out e,out t)){e=new Vector3(3.6f,1.64f,15.2f);t=game.Creature.transform.position+Vector3.up*1.2f;}
+            if(!staged||!game.Creature.RoseLedgeFraming(.58f,out e,out t))
+            {
+                game.Creature.Dismiss();staged=game.Creature.StageForCapture(0,true);yield return new WaitForSecondsRealtime(1.5f);
+                if(!game.Creature.CaptureFraming(.5f,30,out e,out t)){e=new Vector3(3.6f,1.64f,15.2f);t=game.Creature.transform.position+Vector3.up*1.2f;}
+                s5="FALLBACK balcony perch 0, CaptureFraming(0.5,30)";Log("S5 rose-ledge staging failed; fallback used");
+            }
             Place(e,t);
-            yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"StageForCapture(0,true)="+staged+" Count feet "+V(game.Creature.transform.position)+", CaptureFraming(0.5,30), investigator torch on");
+            yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,s5+"; Count feet "+V(game.Creature.transform.position)+", investigator torch on");
             game.Creature.Dismiss();
             // S6: Count Claude standing on the courtyard floor (Mode 2 Search) with a 1.80 m
             // mannequin (Presence.ScaleReference) beside him for scale.
