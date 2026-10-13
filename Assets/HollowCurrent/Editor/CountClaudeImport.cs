@@ -23,8 +23,9 @@ namespace HollowCurrent.Editor
         // Perch, Glide, Search and Dive loop; Stagger, Death and Grab hold their last frame (Mode stays set until the next Pose call).
         static readonly bool[] Loops={true,true,true,true,false,false,false};
         // Round 2 wing rig (tools/count_prepare.py): a root at each shoulder blade, a five-bone fan sharing that pivot, and
-        // zero-weight end markers the runtime reads for the posed silhouette (HearthboundActor.PoseBounds).
-        static readonly string[] WingBones={"WingL","WingR","WingFanL0","WingFanL4","WingFanR0","WingFanR4","WingFanL0End","WingFanL4End","WingFanR0End","WingFanR4End"};
+        // zero-weight end markers the runtime reads for the posed silhouette (HearthboundActor.PoseBounds). Round 3: each fan
+        // bone has an Ext child that stretches its finger (translation only) and the single-sheet membrane is doubled.
+        static readonly string[] WingBones={"WingL","WingR","WingFanL0","WingFanL4","WingFanR0","WingFanR4","WingFanL0End","WingFanL4End","WingFanR0End","WingFanR4End","WingFanL4Ext","WingFanR4Ext"};
         [Serializable] class Receipt{public float head_top_m,mesh_height_m,grab_reach_m,shoulder_width_m,rest_span_m;public int triangles,bones,wing_vertices;}
         public static void Prepare()
         {
