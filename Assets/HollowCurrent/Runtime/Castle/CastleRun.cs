@@ -24,6 +24,15 @@ namespace HollowCurrent
         // The grave-ash lantern has shown the claw marks on the reliquary box (opens relic 0).
         public bool BladeRevealed {get;private set;}
 
+        // Floater.SetFlameTarget(null) while flames are still bent throws inside
+        // Floater.UpdateFlames (reads flameTarget.position during the relax); until that
+        // is fixed in the prop script, "clear" parks the target far below the castle.
+        static Transform idleFlameTarget;
+        public static void ClearFlameTarget()
+        {
+            if(!idleFlameTarget){idleFlameTarget=new GameObject("Flame target (idle, far)").transform;idleFlameTarget.position=new Vector3(0,-5000,0);}
+            Floater.SetFlameTarget(idleFlameTarget);
+        }
         public void Initialize(Game game)
         {
             Game=game;
@@ -108,7 +117,7 @@ namespace HollowCurrent
             if(phase!=lastPhase)
             {
                 if(phase==Phase.Hunt){Floater.SetFlameTarget(Game.Creature.transform);Game.Sound.Speak("cc_hunt_smell",Game.Creature.transform.position+Vector3.up*1.8f);}
-                if(lastPhase==Phase.Hunt)Floater.SetFlameTarget(null);
+                if(lastPhase==Phase.Hunt)ClearFlameTarget();
                 if(phase==Phase.Return)Game.Sound.Cue("drawbridge_chains",spots.DrawbridgeWinch,.9f);
                 if(phase==Phase.Dead){if(Fight.Active)Fight.PlayerGrabbed();Game.Sound.Cue("wing_wrap_grab",player.transform.position,.9f);}
                 lastPhase=phase;
@@ -122,6 +131,6 @@ namespace HollowCurrent
             if(candles)candles.volume=Mathf.MoveTowards(candles.volume,phase==Phase.Hunt&&Vector3.Distance(Game.Creature.transform.position,candles.transform.position)<12?.6f:.25f,dt*.5f);
             if(forgeHum)forgeHum.volume=Mathf.MoveTowards(forgeHum.volume,Forge.CraftProgress01>0&&!Forge.HasSword?.6f:0,dt*1.5f);
         }
-        void OnDestroy(){Floater.SetFlameTarget(null);if(SurrealProps.Viewer&&Game&&Game.Player&&SurrealProps.Viewer==Game.Player.View.transform)SurrealProps.Viewer=null;}
+        void OnDestroy(){if(idleFlameTarget)Destroy(idleFlameTarget.gameObject);Floater.SetFlameTarget(null);if(SurrealProps.Viewer&&Game&&Game.Player&&SurrealProps.Viewer==Game.Player.View.transform)SurrealProps.Viewer=null;}
     }
 }

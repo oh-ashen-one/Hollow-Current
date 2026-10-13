@@ -119,7 +119,7 @@ namespace HollowCurrent
             Physics.SyncTransforms();
             string s4="fallback";
             e=new Vector3(0,1.64f,-40);t=e+Quaternion.Euler(-10,4,0)*Vector3.forward*50;
-            for(float z=-6.5f;z>=-70&&s4=="fallback";z-=1.5f)foreach(float pitch in new[]{6f,9f,12f,15f})
+            for(float z=-6.5f;z>=-70&&s4=="fallback";z-=1.5f)foreach(float pitch in new[]{0f,3f,6f,9f,12f})
             {
                 var eye=new Vector3(0,1.64f,z);var aim=eye+Quaternion.Euler(-pitch,4,0)*Vector3.forward*50;Place(eye,aim);
                 var cam=game.Player.View;bool ok=true;
@@ -128,7 +128,9 @@ namespace HollowCurrent
                     var vp=cam.WorldToViewportPoint(eye+dir*500);
                     if(vp.z<0||vp.x<.06f||vp.x>.94f||vp.y<.06f||vp.y>.94f||Physics.Raycast(eye,dir,600,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))ok=false;
                 }
-                var gate=cam.WorldToViewportPoint(new Vector3(0,1,0));if(gate.z<0||gate.y<.08f||gate.y>.6f)ok=false;
+                // The gate and the lowered bridge's far end must sit in the lower half.
+                var gate=cam.WorldToViewportPoint(new Vector3(0,1,0));if(gate.z<0||gate.y<.15f||gate.y>.5f)ok=false;
+                var bridgeEnd=cam.WorldToViewportPoint(new Vector3(0,0,-6));if(bridgeEnd.z<0||bridgeEnd.y<.02f)ok=false;
                 if(ok){e=eye;t=aim;s4="z="+z.ToString("F1")+" pitch="+pitch;break;}
             }
             Place(e,t);Log("S4 search "+s4);
@@ -145,11 +147,12 @@ namespace HollowCurrent
             game.Creature.ManifestAt(perch,Mathf.Atan2(toCamera.x,toCamera.z)*Mathf.Rad2Deg,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeIdle);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"Count staged on the balustrade at "+V(perch)+" above perch "+V(deck)+", mode "+game.Creature.Profile.ModeIdle+", investigator torch on");
             // S6: Count Claude 3 m in front of the camera on the courtyard, Mode 1 Glide.
-            e=new Vector3(-3,1.64f,8);var stand=new Vector3(-3,0,11);t=stand+Vector3.up*1.3f;Place(e,t);
+            // Aimed between the Count and the scale figure so both sit inside the flashlight cone.
+            e=new Vector3(-3,1.64f,8);var stand=new Vector3(-3,0,11);t=stand+new Vector3(1,1.3f,0);Place(e,t);
             game.Creature.ManifestAt(stand,180,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeMove,3);
             var figure=ScaleFigure(stand+new Vector3(2,0,0));
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count 3 m ahead, mode "+game.Creature.Profile.ModeMove+", investigator torch on, 1.80 m scale figure 2 m to his left (+x)");
-            game.Creature.Dismiss();Torch(false);Floater.SetFlameTarget(null);Destroy(figure);
+            game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(figure);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;
             string body=book.NoteBodies[0];foreach(var item in game.World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Note&&item.Label==book.NoteTitles[0])body=item.Body;
