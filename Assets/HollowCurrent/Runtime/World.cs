@@ -157,8 +157,12 @@ namespace HollowCurrent
             if(points.SearchPoints!=null&&points.SearchPoints.Count>0)SearchPoints.AddRange(points.SearchPoints);
             else foreach(var point in CastleRoutePoints())SearchPoints.Add(point+Vector3.up*.1f);
             Physics.SyncTransforms();
-            CastleCaseItems();
             CastleTrace();
+            CastleCaseItems();
+            // Two-moon sky (piece 2) and moonlight from the painted moons' directions.
+            CastleArt.ApplySkybox();
+            if(points.Moon)points.Moon.transform.rotation=Quaternion.LookRotation(-CastleArt.PaleMoonDirection);
+            foreach(var light in Root.GetComponentsInChildren<Light>(true))if(light.name=="Castle second moon")light.transform.rotation=Quaternion.LookRotation(-CastleArt.RedMoonDirection);
         }
         // Floor-level copies of the castle's points of interest: the hunter's
         // patrol route and the castle validator's reachability targets.
@@ -198,11 +202,34 @@ namespace HollowCurrent
             if(!Find(InteractKind.Note,book.ArrivalNoteTitle))Interact("Fallback / arrival note",FreeSpot(Spawn+new Vector3(0,.85f,0),new Vector3(.42f,.04f,.3f),new Vector3(-1.4f,0,1.2f),new Vector3(1.4f,0,-.6f),new Vector3(0,0,1)),new Vector3(.42f,.04f,.3f),"paper",InteractKind.Note,book.ArrivalNoteTitle,book.ArrivalNoteBody);
             if(!Find(InteractKind.Altar))
             {var altar=Interact("Forge altar",Castle.AltarPosition+new Vector3(0,.15f,0),new Vector3(.9f,.3f,1.6f),"black",InteractKind.Altar,book.AltarLabel,"");altar.GetComponent<Renderer>().enabled=false;altar.GetComponent<Collider>().isTrigger=true;}
-            if(Castle.RelicPositions!=null)for(int i=0;i<Castle.RelicPositions.Length&&i<book.RelicNames.Length;i++)
+            // Relics (DESIGN.md): 0 silver blade inside the reliquary box (a trigger volume
+            // around the box; CastleRun keeps it shut until the lantern shows the claw
+            // marks), 1 hallowed hilt in the orrery's planet socket, 2 moonstone on the
+            // pedestal behind the portrait door.
+            if(Castle.RelicPositions!=null&&Castle.RelicPositions.Length>=3)
             {
-                bool exists=false;foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Relic&&item.RelicIndex==i)exists=true;
-                if(exists)continue;
-                var relic=Interact("Relic / "+book.RelicNames[i],Castle.RelicPositions[i]+Vector3.up*.08f,new Vector3(.3f,.16f,.3f),"brass",InteractKind.Relic,book.RelicNames[i],"");relic.RelicIndex=i;
+                var relics=(Vector3[])Castle.RelicPositions.Clone();
+                var orrery=FindArt("Orrery");if(orrery)relics[1]=orrery.TransformPoint(OrrerySocket);
+                Castle.RelicPositions=relics;
+                for(int i=0;i<3;i++)
+                {
+                    bool exists=false;foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Relic&&item.RelicIndex==i)exists=true;
+                    if(exists)continue;
+                    Interactable relic;
+                    var box=i==0?FindArt("ReliquaryBox"):null;
+                    if(box&&ArtBounds(box,out var b))
+                    {
+                        relic=Interact("Relic / reliquary box",b.center,b.size+Vector3.one*.12f,"brass",InteractKind.Relic,book.RelicNames[0],"");
+                        relic.GetComponent<Renderer>().enabled=false;relic.GetComponent<Collider>().isTrigger=true;
+                        // Latent claw-scores on the lid, shown by the grave-ash lantern (CastleRun).
+                        var claws=GameObject.CreatePrimitive(PrimitiveType.Quad);claws.name="Reliquary claw-scores";claws.transform.SetParent(Root,false);
+                        claws.transform.position=new Vector3(b.center.x,b.max.y+.006f,b.center.z);claws.transform.rotation=Quaternion.Euler(90,0,0);claws.transform.localScale=new Vector3(Mathf.Min(b.size.x,b.size.z)*.8f,Mathf.Min(b.size.x,b.size.z)*.6f,1);
+                        Object.DestroyImmediate(claws.GetComponent<Collider>());claws.GetComponent<Renderer>().sharedMaterial=Materials["uvtrace"];claws.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+                        claws.SetActive(false);
+                    }
+                    else relic=Interact("Relic / "+book.RelicNames[i],relics[i]+Vector3.up*.08f,new Vector3(.3f,.16f,.3f),"brass",InteractKind.Relic,book.RelicNames[i],"");
+                    relic.RelicIndex=i;
+                }
             }
             var anchors=new[]{Castle.Compass,Castle.Voice,Castle.AltarPosition};
             for(int i=0;i<book.NoteTitles.Length;i++)
@@ -211,6 +238,16 @@ namespace HollowCurrent
                 var near=anchors[i%anchors.Length];var floor=new Vector3(near.x,FloorBelow(near.y)+.85f,near.z);
                 Interact("Fallback / "+book.NoteTitles[i],FreeSpot(floor,new Vector3(.4f,.04f,.3f),around),new Vector3(.4f,.04f,.3f),"paper",InteractKind.Note,book.NoteTitles[i],book.NoteBodies[i]);
             }
+        }
+        // Orrery planet socket in the Orrery asset's local space (docs/haunted-castle/art/
+        // manifest_props.json notes.socket, Blender x,y,z -> Unity x,z,y).
+        static readonly Vector3 OrrerySocket=new Vector3(-.826f,2.551f,.205f);
+        Transform FindArt(string name){foreach(var t in Root.GetComponentsInChildren<Transform>(true))if(t.name=="Castle / "+name)return t;return null;}
+        static bool ArtBounds(Transform t,out Bounds b)
+        {
+            b=default;bool any=false;
+            foreach(var r in t.GetComponentsInChildren<Renderer>()){if(!any){b=r.bounds;any=true;}else b.Encapsulate(r.bounds);}
+            return any;
         }
         // The grave-ash lantern trace (UV print role): a quad on the wall nearest Print.
         void CastleTrace()

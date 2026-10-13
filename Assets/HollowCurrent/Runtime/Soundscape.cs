@@ -62,7 +62,7 @@ namespace HollowCurrent
             AudioClip clip;
             if(castle)
             {
-                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":"cc_"+id;
+                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":id=="arrival"?"cc_night":id=="warning"?"cc_hunt_hungry":id=="return"?"cc_stay":"cc_"+id;
                 if(!clips.TryGetValue("voice_"+key,out clip)){MissingArt.Report("speech","voice_"+key);return;}
             }
             else if(!clips.TryGetValue("voice_"+id,out clip))throw new InvalidOperationException("Missing speech "+id);

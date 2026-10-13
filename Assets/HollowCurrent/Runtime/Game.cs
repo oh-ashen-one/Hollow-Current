@@ -80,10 +80,12 @@ namespace HollowCurrent
             MissingArt.Placeholders=Map!=MapId.Bellwether;
             Case=new Investigation(CaseBook.For(Map));Case.Message+=Say;Case.Changed+=PhaseChanged;
             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
-            if(!bakedHouse)
+            if(Map==MapId.Castle)CastleArt.ApplySkybox();
+            if(!bakedHouse&&Map!=MapId.Castle)
             {var moon=new GameObject("Cold overcast sky").AddComponent<Light>();moon.transform.SetParent(World.Root);moon.type=LightType.Directional;moon.color=new Color(.36f,.51f,.75f);moon.intensity=.16f;moon.transform.rotation=Quaternion.Euler(55,-30,0);moon.shadows=LightShadows.None;}
             Sound=gameObject.AddComponent<Soundscape>();Sound.Initialize(this);
             var p=new GameObject("Investigator");p.transform.position=World.Spawn;Player=p.AddComponent<Investigator>();Player.Initialize(this);
+            if(Map==MapId.Castle)Player.View.clearFlags=CameraClearFlags.Skybox; // two-moon sky through windows and the courtyard
             Player.Sensitivity=Mathf.Clamp(PlayerPrefs.GetFloat("hc.sensitivity",1.65f),.3f,4);Player.Brightness=Mathf.Clamp(PlayerPrefs.GetFloat("hc.brightness",1),.7f,1.8f);
             SubtitleScale=Mathf.Clamp(PlayerPrefs.GetFloat("hc.subtitle-scale",1),.85f,1.3f);CardOpacity=Mathf.Clamp(PlayerPrefs.GetFloat("hc.card-opacity",.94f),.55f,1);
             Player.InvertY=PlayerPrefs.GetInt("hc.invert-y",0)!=0;Volume=Mathf.Clamp01(PlayerPrefs.GetFloat("hc.volume",.65f));Subtitles=PlayerPrefs.GetInt("hc.subtitles",1)!=0;HelpHints=PlayerPrefs.GetInt("hc.help",0)!=0;

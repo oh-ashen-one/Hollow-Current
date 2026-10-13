@@ -41,7 +41,8 @@ namespace HollowCurrent
         public float TowerY=float.MaxValue;
         // Castle kill ending and forge (Bellwether has no fight: copies of its won text).
         public string KillHero, KillBody, KillFooter, AltarLabel, AltarHint, SwordForged, HitLanded;
-        public string[] RelicNames, RelicFound;
+        public string[] RelicNames, RelicFound, RelicHints;
+        public string BladeSealed;
 
         public string EvidenceName(Evidence e)=>EvidenceNames[(int)e];
         public string EvidenceId(Evidence e)=>EvidenceIds[(int)e];
@@ -122,7 +123,7 @@ namespace HollowCurrent
             WonFooter="CONTAINMENT CONFIRMED   /   FIELD RECORD ARCHIVED",LostFooter="CASE UNRESOLVED   /   A NEW INVESTIGATION CAN BEGIN",
             LocSafe="FIELD VAN",LocOutside="BELLWETHER LANE",LocLower="BASEMENT",LocGround="GROUND FLOOR",LocUpper="UPPER FLOOR",LocTower="UPPER FLOOR",
             KillHero="The house\nfalls silent.",KillBody="",KillFooter="CONTAINMENT CONFIRMED   /   FIELD RECORD ARCHIVED",AltarLabel="",AltarHint="",SwordForged="",HitLanded="",
-            RelicNames=new[]{"","",""},RelicFound=new[]{"","",""},
+            RelicNames=new[]{"","",""},RelicFound=new[]{"","",""},RelicHints=new[]{"","",""},BladeSealed="",
         };
 
         // The Blood Ledger (DESIGN.md): compass / grave-ash lantern / ear-trumpet,
@@ -202,7 +203,11 @@ namespace HollowCurrent
             AltarHint="The altar is cold. The chapel inscription names three relics: the blade under the crypt, the hilt among the stars, the stone behind a face.",
             SwordForged="Dispatch / The altar remembers its trade. A moonstone sword. Meet him in the great hall and strike three times. Or run for the drawbridge.",
             HitLanded="Dispatch / A clean strike. He is falling back to his perch. Ready yourself; he will come back lower.",
-            RelicNames=new[]{"Silver blade","Hallowed hilt","Moonstone"},
+            RelicNames=new[]{"Reliquary box","Hallowed hilt","Moonstone"},
+            RelicHints=new[]{"Dispatch / The steward hid the silver blade in the reliquary below the chapel. The box opens only to the marks of his claws: use the grave-ash lantern on it.",
+                "Dispatch / The hallowed hilt sits in the orrery's empty planet socket, up in the observatory.",
+                "Dispatch / One portrait in the portrait hall is a door. The moonstone is behind it."},
+            BladeSealed="Dispatch / The reliquary box will not open. Something scored the lid; the grave-ash lantern may show where.",
             RelicFound=new[]{"Dispatch / The silver blade. Cold as a grave, bright as a coin.","Dispatch / The hallowed hilt, from the orrery's empty socket.","Dispatch / The moonstone. It hums when you face the chapel."},
         };
     }

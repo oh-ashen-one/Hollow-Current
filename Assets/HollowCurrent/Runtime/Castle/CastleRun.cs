@@ -19,6 +19,10 @@ namespace HollowCurrent
         int seenScares;
         float bellCooldown;
         Phase lastPhase;
+        float revealHold;
+        GameObject claws;
+        // The grave-ash lantern has shown the claw marks on the reliquary box (opens relic 0).
+        public bool BladeRevealed {get;private set;}
 
         public void Initialize(Game game)
         {
@@ -32,6 +36,7 @@ namespace HollowCurrent
             var spots=Game.World.Castle;var root=Game.World.Root;var view=Game.Player.View.transform;
             SurrealProps.Viewer=view;
             if(spots==null)return;
+            foreach(var t in root.GetComponentsInChildren<Transform>(true))if(t.name=="Reliquary claw-scores")claws=t.gameObject;
             // Props on piece 1's anchors (piece 3's factories).
             if(spots.RuneRingAnchor)Rune=SurrealProps.MakeRuneRing(spots.RuneRingAnchor,Vector3.zero,spots.RuneRingRadius>0?spots.RuneRingRadius:3,28,Game.Player.transform);
             if(spots.KnifeOrbitAnchor)SurrealProps.MakeKnifeOrbit(spots.KnifeOrbitAnchor,Vector3.zero);
@@ -61,6 +66,7 @@ namespace HollowCurrent
         public void TakeRelic(Interactable item)
         {
             if(item.RelicIndex<0||item.RelicIndex>2||!Game.Case.Equipped)return;
+            if(item.RelicIndex==0&&!BladeRevealed){Game.Say(Game.Book.BladeSealed);return;}
             if(Forge.Found((Relic)item.RelicIndex))
             {
                 Game.Say(Game.Book.RelicFound[item.RelicIndex]);Game.Sound.Cue("evidence_filed",item.transform.position,.5f);
@@ -72,7 +78,8 @@ namespace HollowCurrent
         public void NoteRead(string title)
         {
             string id=Game.Book.NoteIdFor(title);if(id==null)return;
-            Forge.ReadLedger(id);Game.Sound.Speak(id);
+            if(Forge.ReadLedger(id)&&LedgerHints.TryRelicFor(id,out var relic))Game.Say(Game.Book.RelicHints[(int)relic]);
+            Game.Sound.Speak(id);
         }
         void Update()
         {
@@ -82,6 +89,16 @@ namespace HollowCurrent
             // Forge: hold interact at the altar with three relics for Forge.CraftSeconds.
             Forge.AtAltar=Game.Case.Equipped&&!player.Hidden&&Vector3.Distance(player.transform.position,spots.AltarPosition)<AltarReach&&player.UseHeld&&Mathf.Abs(player.transform.position.y-spots.AltarPosition.y)<2;
             Forge.Tick(dt);Fight.Tick(dt);
+            // Grave-ash lantern (tool 2) held on the reliquary box for a second reveals the claw marks.
+            if(!BladeRevealed&&claws&&Game.Case.Equipped&&player.Tool==2&&player.Ultraviolet.enabled)
+            {
+                var target=claws.transform.position;var eye=player.View.transform;var delta=target-eye.position;
+                bool aimed=delta.magnitude<4.5f&&Vector3.Angle(eye.forward,delta)<25;
+                if(aimed){claws.SetActive(true);revealHold+=dt;if(revealHold>1){BladeRevealed=true;Game.Sound.Cue("evidence_filed",target,.45f);}}
+                else{revealHold=0;claws.SetActive(false);}
+            }
+            // Far bank: crossing the lowered drawbridge after the bell is sealed escapes (same as the winch).
+            if(phase==Phase.Return&&spots.Drawbridge&&spots.Drawbridge.Lowered&&!spots.Drawbridge.Moving&&spots.DrawbridgeTrigger.Contains(player.transform.position+Vector3.up*.5f))Game.Case.FinishAtVan();
             // Strike: the instrument button with the sword, at the visible hunter, during a hunt.
             if(Forge.HasSword&&player.FirePressed&&phase==Phase.Hunt&&Fight.CanBeHit)
             {

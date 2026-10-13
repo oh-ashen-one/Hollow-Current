@@ -50,12 +50,14 @@ namespace HollowCurrent.Editor
                 RenderSettings.ambientEquatorColor=new Color(.035f,.045f,.055f);RenderSettings.ambientGroundColor=new Color(.018f,.02f,.023f);
                 foreach(var light in lights)
                 {
-                    bool moonlight=Array.IndexOf(layout.WindowLights,light)>=0;
+                    // Castle: the layout's directional moons are baked like the window lights.
+                    bool moonlight=Array.IndexOf(layout.WindowLights,light)>=0||(map==MapId.Castle&&light.type==LightType.Directional);
                     light.enabled=moonlight;light.lightmapBakeType=moonlight?LightmapBakeType.Baked:LightmapBakeType.Realtime;
                 }
                 var oldMoon=layout.transform.Find("Baked overcast moon");if(oldMoon)UnityEngine.Object.DestroyImmediate(oldMoon.gameObject);
+                if(map!=MapId.Castle){
                 var moonObject=new GameObject("Baked overcast moon");moonObject.transform.SetParent(layout.transform,false);moonObject.transform.rotation=Quaternion.Euler(55,-30,0);
-                var moon=moonObject.AddComponent<Light>();moon.type=LightType.Directional;moon.color=new Color(.36f,.51f,.75f);moon.intensity=.16f;moon.shadows=LightShadows.Soft;moon.lightmapBakeType=LightmapBakeType.Baked;
+                var moon=moonObject.AddComponent<Light>();moon.type=LightType.Directional;moon.color=new Color(.36f,.51f,.75f);moon.intensity=.16f;moon.shadows=LightShadows.Soft;moon.lightmapBakeType=LightmapBakeType.Baked;}
                 // Switchable bulbs must never leave permanently bright bounce
                 // or bright reflections after the breaker has been switched off.
                 foreach(var material in materials)material.globalIlluminationFlags=MaterialGlobalIlluminationFlags.EmissiveIsBlack;
