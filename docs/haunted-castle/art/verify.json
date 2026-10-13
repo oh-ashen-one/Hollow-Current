@@ -1,21 +1,21 @@
 {
  "Altar": {
-  "bytes": 23164,
+  "bytes": 23276,
   "parts": 1,
   "size": [
-   2.8,
-   1.3,
-   1.133
+   2.4,
+   1.115,
+   1.112
   ],
   "tris": 264
  },
- "BalconyRailing": {
-  "bytes": 27820,
+ "Balustrade": {
+  "bytes": 27884,
   "parts": 1,
   "size": [
    2.0,
-   0.3,
-   1.0
+   0.2,
+   1.12
   ],
   "tris": 552
  },
@@ -30,34 +30,104 @@
   "tris": 304
  },
  "BanquetTable": {
-  "bytes": 79596,
+  "bytes": 79612,
   "parts": 1,
   "size": [
-   9.6,
-   2.4,
-   1.4
+   9.61,
+   2.41,
+   1.3
   ],
   "tris": 2756
  },
- "Bookshelf": {
-  "bytes": 50076,
+ "Battlement": {
+  "bytes": 16524,
   "parts": 1,
   "size": [
-   2.1,
-   0.5,
-   3.03
+   4.0,
+   0.88,
+   0.975
   ],
-  "tris": 1464
+  "tris": 72
+ },
+ "Bookshelf": {
+  "bytes": 51148,
+  "parts": 1,
+  "size": [
+   2.0,
+   0.5,
+   3.0
+  ],
+  "tris": 1512
+ },
+ "ButcherBlock": {
+  "bytes": 18108,
+  "parts": 1,
+  "size": [
+   1.4,
+   1.0,
+   0.94
+  ],
+  "tris": 96
+ },
+ "Buttress": {
+  "bytes": 16940,
+  "parts": 1,
+  "size": [
+   0.9,
+   1.2,
+   6.4
+  ],
+  "tris": 72
  },
  "Candelabra": {
-  "bytes": 49436,
+  "bytes": 50476,
   "parts": 6,
   "size": [
-   0.472,
-   0.472,
-   0.838
+   0.415,
+   0.415,
+   1.68
   ],
-  "tris": 742
+  "tris": 782
+ },
+ "CanopyBed": {
+  "bytes": 31244,
+  "parts": 1,
+  "size": [
+   2.4,
+   2.6,
+   2.8
+  ],
+  "tris": 588
+ },
+ "Cauldron": {
+  "bytes": 24908,
+  "parts": 1,
+  "size": [
+   1.04,
+   0.989,
+   1.025
+  ],
+  "tris": 284
+ },
+ "ChapelBell": {
+  "bytes": 28780,
+  "parts": 1,
+  "size": [
+   1.26,
+   0.86,
+   1.924
+  ],
+  "tris": 400
+ },
+ "ClerestoryWindow": {
+  "bytes": 23324,
+  "parts": 1,
+  "size": [
+   1.2,
+   0.35,
+   1.8
+  ],
+  "tris": 272
  },
  "CoffinNiche": {
   "bytes": 20444,
@@ -70,34 +140,64 @@
   "tris": 136
  },
  "Column": {
-  "bytes": 23020,
+  "bytes": 22972,
   "parts": 1,
   "size": [
-   1.1,
-   1.1,
-   3.2
+   0.7,
+   0.7,
+   3.0
   ],
   "tris": 296
  },
- "DeadFountain": {
-  "bytes": 22492,
+ "ColumnGreat": {
+  "bytes": 25628,
   "parts": 1,
   "size": [
-   3.4,
-   3.234,
-   1.95
+   0.9,
+   0.9,
+   8.8
   ],
-  "tris": 280
+  "tris": 392
+ },
+ "CryptBridge": {
+  "bytes": 16012,
+  "parts": 1,
+  "size": [
+   1.4,
+   1.2,
+   0.31
+  ],
+  "tris": 48
+ },
+ "CryptRib": {
+  "bytes": 17100,
+  "parts": 1,
+  "size": [
+   8.4,
+   0.6,
+   0.6
+  ],
+  "tris": 76
  },
  "DeadTree": {
-  "bytes": 89868,
+  "bytes": 89628,
   "parts": 1,
   "size": [
-   7.779,
-   5.49,
-   5.807
+   2.578,
+   2.198,
+   4.675
   ],
   "tris": 2002
+ },
+ "DiningTable": {
+  "bytes": 33756,
+  "parts": 1,
+  "size": [
+   5.6,
+   1.5,
+   1.09
+  ],
+  "tris": 670
  },
  "Door": {
   "bytes": 25020,
@@ -109,15 +209,55 @@
   ],
   "tris": 164
  },
- "Drawbridge": {
-  "bytes": 66460,
+ "DoorFrame": {
+  "bytes": 16492,
   "parts": 1,
   "size": [
-   3.052,
-   6.0,
-   4.61
+   1.96,
+   0.84,
+   2.6
   ],
-  "tris": 2184
+  "tris": 68
+ },
+ "DoorLeaf": {
+  "bytes": 22684,
+  "parts": 1,
+  "size": [
+   1.5,
+   0.194,
+   2.0
+  ],
+  "tris": 220
+ },
+ "Drawbridge": {
+  "bytes": 22716,
+  "parts": 1,
+  "size": [
+   3.24,
+   6.0,
+   0.27
+  ],
+  "tris": 336
+ },
+ "DrawbridgeChains": {
+  "bytes": 50892,
+  "parts": 1,
+  "size": [
+   3.152,
+   5.541,
+   4.376
+  ],
+  "tris": 1872
+ },
+ "Fireplace": {
+  "bytes": 25644,
+  "parts": 1,
+  "size": [
+   2.68,
+   1.05,
+   2.625
+  ],
+  "tris": 220
  },
  "FloatingBook": {
   "bytes": 17932,
@@ -139,6 +279,26 @@
   ],
   "tris": 24
  },
+ "Fountain": {
+  "bytes": 22572,
+  "parts": 1,
+  "size": [
+   2.56,
+   2.435,
+   1.78
+  ],
+  "tris": 280
+ },
+ "GateArch": {
+  "bytes": 18060,
+  "parts": 1,
+  "size": [
+   3.9,
+   1.0,
+   5.6
+  ],
+  "tris": 128
+ },
  "GiantSkeleton": {
   "bytes": 158876,
   "parts": 1,
@@ -159,25 +319,125 @@
   ],
   "tris": 340
  },
- "Orrery": {
-  "bytes": 54476,
-  "parts": 2,
+ "GreatDoorFrame": {
+  "bytes": 16476,
+  "parts": 1,
   "size": [
-   1.212,
-   1.19,
-   1.261
+   3.66,
+   0.94,
+   5.2
   ],
-  "tris": 1236
+  "tris": 68
  },
- "Pew": {
+ "GreatDoorLeaf": {
+  "bytes": 23148,
+  "parts": 1,
+  "size": [
+   1.5,
+   0.24,
+   4.5
+  ],
+  "tris": 244
+ },
+ "HighBackChair": {
   "bytes": 17244,
   "parts": 1,
   "size": [
-   2.5,
-   0.89,
-   1.14
+   0.51,
+   0.505,
+   1.3
   ],
-  "tris": 96
+  "tris": 112
+ },
+ "KitchenHearth": {
+  "bytes": 24348,
+  "parts": 1,
+  "size": [
+   3.0,
+   1.04,
+   2.4
+  ],
+  "tris": 182
+ },
+ "LancetWindow": {
+  "bytes": 23324,
+  "parts": 1,
+  "size": [
+   1.2,
+   0.35,
+   1.6
+  ],
+  "tris": 272
+ },
+ "LanternCart": {
+  "bytes": 33116,
+  "parts": 1,
+  "size": [
+   1.74,
+   1.105,
+   1.325
+  ],
+  "tris": 628
+ },
+ "Lectern": {
+  "bytes": 20444,
+  "parts": 1,
+  "size": [
+   0.68,
+   0.502,
+   1.126
+  ],
+  "tris": 148
+ },
+ "LongTable": {
+  "bytes": 46780,
+  "parts": 1,
+  "size": [
+   6.6,
+   1.3,
+   1.1
+  ],
+  "tris": 1188
+ },
+ "ObservatoryWindow": {
+  "bytes": 23612,
+  "parts": 1,
+  "size": [
+   1.6,
+   0.35,
+   2.7
+  ],
+  "tris": 284
+ },
+ "Orrery": {
+  "bytes": 54524,
+  "parts": 2,
+  "size": [
+   2.788,
+   2.737,
+   2.901
+  ],
+  "tris": 1236
+ },
+ "Pedestal": {
+  "bytes": 19948,
+  "parts": 1,
+  "size": [
+   0.6,
+   0.6,
+   0.99
+  ],
+  "tris": 160
+ },
+ "Pew": {
+  "bytes": 17724,
+  "parts": 1,
+  "size": [
+   2.4,
+   0.7,
+   1.0
+  ],
+  "tris": 120
  },
  "PointedArch": {
   "bytes": 17948,
@@ -189,33 +449,73 @@
   ],
   "tris": 116
  },
- "PortraitFrame": {
-  "bytes": 20652,
+ "Portrait": {
+  "bytes": 20620,
   "parts": 2,
   "size": [
-   1.1,
-   0.09,
-   1.5
+   0.9,
+   0.1,
+   1.3
   ],
   "tris": 98
  },
- "RoseWindow": {
-  "bytes": 38364,
+ "PortraitDoorLeaf": {
+  "bytes": 26540,
+  "parts": 2,
+  "size": [
+   0.9,
+   0.204,
+   2.0
+  ],
+  "tris": 222
+ },
+ "RafterBeam": {
+  "bytes": 17852,
   "parts": 1,
   "size": [
-   3.2,
-   0.4,
-   3.2
+   11.5,
+   0.56,
+   0.56
+  ],
+  "tris": 84
+ },
+ "ReadingTable": {
+  "bytes": 28876,
+  "parts": 1,
+  "size": [
+   2.0,
+   1.0,
+   0.96
+  ],
+  "tris": 410
+ },
+ "ReliquaryBox": {
+  "bytes": 20332,
+  "parts": 1,
+  "size": [
+   1.0,
+   0.7,
+   0.98
+  ],
+  "tris": 92
+ },
+ "RoseWindow": {
+  "bytes": 37948,
+  "parts": 1,
+  "size": [
+   3.0,
+   0.5,
+   3.0
   ],
   "tris": 864
  },
  "Sarcophagus": {
-  "bytes": 20380,
+  "bytes": 20364,
   "parts": 1,
   "size": [
-   3.371,
-   1.462,
-   1.07
+   2.49,
+   1.179,
+   1.21
   ],
   "tris": 120
  },
@@ -228,6 +528,36 @@
    2.12
   ],
   "tris": 164
+ },
+ "ServiceDoorFrame": {
+  "bytes": 16492,
+  "parts": 1,
+  "size": [
+   1.26,
+   0.84,
+   2.3
+  ],
+  "tris": 68
+ },
+ "ServiceDoorLeaf": {
+  "bytes": 22636,
+  "parts": 1,
+  "size": [
+   0.9,
+   0.184,
+   2.0
+  ],
+  "tris": 220
+ },
+ "Sideboard": {
+  "bytes": 19180,
+  "parts": 1,
+  "size": [
+   2.6,
+   0.605,
+   1.1
+  ],
+  "tris": 144
  },
  "StairFlight": {
   "bytes": 18620,
@@ -258,6 +588,36 @@
    1.08
   ],
   "tris": 200
+ },
+ "TallLancetWindow": {
+  "bytes": 23548,
+  "parts": 1,
+  "size": [
+   1.4,
+   0.35,
+   3.5
+  ],
+  "tris": 284
+ },
+ "Telescope": {
+  "bytes": 31468,
+  "parts": 1,
+  "size": [
+   0.863,
+   2.577,
+   2.353
+  ],
+  "tris": 396
+ },
+ "Throne": {
+  "bytes": 23772,
+  "parts": 1,
+  "size": [
+   1.0,
+   0.9,
+   1.9
+  ],
+  "tris": 208
  },
  "VaultRib": {
   "bytes": 20092,
@@ -308,5 +668,15 @@
    3.2
   ],
   "tris": 140
+ },
+ "Winch": {
+  "bytes": 26844,
+  "parts": 1,
+  "size": [
+   1.125,
+   0.8,
+   1.59
+  ],
+  "tris": 342
  }
 }

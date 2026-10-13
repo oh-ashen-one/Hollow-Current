@@ -9,30 +9,63 @@ namespace HollowCurrent
     // magenta cube placeholder and a "[CastleArt] missing <name>" warning.
     public static class CastleArt
     {
-        // Asset names == FBX file names under Resources/Castle. Piece 1 (CastleLayout) should reference these.
-        // (hc/layout had no ArtNames block when piece 2 was written; these names are defined here.)
+        // Asset names == FBX file names under Resources/Castle. The first block is exactly CastleLayout.ArtNames (hc/layout,
+        // commit 136b002); the second block is extra art the layout does not place yet (surreal dressing and loose kit).
         public static class Names
         {
-            public const string Wall2m = "Wall_2m", Wall4m = "Wall_4m";
-            public const string Wall2mWindow = "Wall_2m_Window", Wall4mWindow = "Wall_4m_Window";
-            public const string Column = "Column", PointedArch = "PointedArch", VaultRib = "VaultRib", RoseWindow = "RoseWindow";
-            public const string FloorTile = "FloorTile", StairFlight = "StairFlight", BalconyRailing = "BalconyRailing";
-            public const string GreatDoor = "GreatDoor", ServiceDoor = "ServiceDoor", Door = "Door";
-            public const string Pew = "Pew", BanquetTable = "BanquetTable", Altar = "Altar", StoneFont = "StoneFont";
-            public const string Sarcophagus = "Sarcophagus", CoffinNiche = "CoffinNiche", StoneBridge = "StoneBridge";
-            public const string GiantSkeleton = "GiantSkeleton", Candelabra = "Candelabra", FloatingBook = "FloatingBook";
-            public const string PortraitFrame = "PortraitFrame", Bookshelf = "Bookshelf", Orrery = "Orrery";
-            public const string DeadFountain = "DeadFountain", Drawbridge = "Drawbridge", DeadTree = "DeadTree", Banner = "Banner";
+            // layout contract (origin = base centre, front = +Z at yaw 0, sizes in docs/haunted-castle/art/manifest_*.json)
+            public const string GateArch = "GateArch", Drawbridge = "Drawbridge", Winch = "Winch", LanternCart = "LanternCart";
+            public const string Buttress = "Buttress", Battlement = "Battlement";
+            public const string DoorFrame = "DoorFrame", GreatDoorFrame = "GreatDoorFrame", ServiceDoorFrame = "ServiceDoorFrame";
+            public const string DoorLeaf = "DoorLeaf", GreatDoorLeaf = "GreatDoorLeaf", ServiceDoorLeaf = "ServiceDoorLeaf", PortraitDoorLeaf = "PortraitDoorLeaf";
+            public const string LancetWindow = "LancetWindow", TallLancetWindow = "TallLancetWindow", ClerestoryWindow = "ClerestoryWindow";
+            public const string ObservatoryWindow = "ObservatoryWindow", RoseWindow = "RoseWindow";
+            public const string ColumnGreat = "ColumnGreat", Column = "Column", CryptRib = "CryptRib", RafterBeam = "RafterBeam";
+            public const string Balustrade = "Balustrade", Fountain = "Fountain", DeadTree = "DeadTree", Candelabra = "Candelabra";
+            public const string Pew = "Pew", Altar = "Altar", ChapelBell = "ChapelBell", LongTable = "LongTable", DiningTable = "DiningTable";
+            public const string HighBackChair = "HighBackChair", Throne = "Throne", Fireplace = "Fireplace", Sideboard = "Sideboard";
+            public const string KitchenHearth = "KitchenHearth", ButcherBlock = "ButcherBlock", Cauldron = "Cauldron", Bookshelf = "Bookshelf";
+            public const string ReadingTable = "ReadingTable", Lectern = "Lectern", Portrait = "Portrait", CanopyBed = "CanopyBed";
+            public const string Orrery = "Orrery", Telescope = "Telescope", Sarcophagus = "Sarcophagus", CryptBridge = "CryptBridge";
+            public const string ReliquaryBox = "ReliquaryBox", Pedestal = "Pedestal";
+            // extras
+            public const string Wall2m = "Wall_2m", Wall4m = "Wall_4m", Wall2mWindow = "Wall_2m_Window", Wall4mWindow = "Wall_4m_Window";
+            public const string PointedArch = "PointedArch", VaultRib = "VaultRib", FloorTile = "FloorTile", StairFlight = "StairFlight";
+            public const string GreatDoor = "GreatDoor", ServiceDoor = "ServiceDoor", Door = "Door", BanquetTable = "BanquetTable";
+            public const string StoneFont = "StoneFont", CoffinNiche = "CoffinNiche", StoneBridge = "StoneBridge";
+            public const string GiantSkeleton = "GiantSkeleton", FloatingBook = "FloatingBook", Banner = "Banner", DrawbridgeChains = "DrawbridgeChains";
         }
 
         public static readonly string[] All =
         {
-            Names.Wall2m, Names.Wall4m, Names.Wall2mWindow, Names.Wall4mWindow, Names.Column, Names.PointedArch, Names.VaultRib,
-            Names.RoseWindow, Names.FloorTile, Names.StairFlight, Names.BalconyRailing, Names.GreatDoor, Names.ServiceDoor, Names.Door,
-            Names.Pew, Names.BanquetTable, Names.Altar, Names.StoneFont, Names.Sarcophagus, Names.CoffinNiche, Names.StoneBridge,
-            Names.GiantSkeleton, Names.Candelabra, Names.FloatingBook, Names.PortraitFrame, Names.Bookshelf, Names.Orrery,
-            Names.DeadFountain, Names.Drawbridge, Names.DeadTree, Names.Banner
+            Names.GateArch, Names.Drawbridge, Names.Winch, Names.LanternCart, Names.Buttress, Names.Battlement, Names.DoorFrame,
+            Names.GreatDoorFrame, Names.ServiceDoorFrame, Names.DoorLeaf, Names.GreatDoorLeaf, Names.ServiceDoorLeaf, Names.PortraitDoorLeaf,
+            Names.LancetWindow, Names.TallLancetWindow, Names.ClerestoryWindow, Names.ObservatoryWindow, Names.RoseWindow, Names.ColumnGreat,
+            Names.Column, Names.CryptRib, Names.RafterBeam, Names.Balustrade, Names.Fountain, Names.DeadTree, Names.Candelabra, Names.Pew,
+            Names.Altar, Names.ChapelBell, Names.LongTable, Names.DiningTable, Names.HighBackChair, Names.Throne, Names.Fireplace,
+            Names.Sideboard, Names.KitchenHearth, Names.ButcherBlock, Names.Cauldron, Names.Bookshelf, Names.ReadingTable, Names.Lectern,
+            Names.Portrait, Names.CanopyBed, Names.Orrery, Names.Telescope, Names.Sarcophagus, Names.CryptBridge, Names.ReliquaryBox,
+            Names.Pedestal, Names.Wall2m, Names.Wall4m, Names.Wall2mWindow, Names.Wall4mWindow, Names.PointedArch, Names.VaultRib,
+            Names.FloorTile, Names.StairFlight, Names.GreatDoor, Names.ServiceDoor, Names.Door, Names.BanquetTable, Names.StoneFont,
+            Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains
         };
+
+        // The Blender FBX -> Unity axis conversion could not be verified without launching Unity. Authoring assumes the standard
+        // result (model front = +Z, +X stays +X). If the first in-engine check shows assets facing -Z (door leaves swinging the
+        // wrong way, drawbridge extending +Z), set this to 180 once; every Place call applies it about the asset's own origin.
+        public const float ImportYaw = 0f;
+
+        // Return value of Place: converts implicitly to Transform (what CastleLayout/CastleWorld use) and to GameObject.
+        public readonly struct Placed
+        {
+            public readonly GameObject gameObject;
+            public readonly bool placeholder;
+            public Placed(GameObject go, bool isPlaceholder) { gameObject = go; placeholder = isPlaceholder; }
+            public Transform transform => gameObject != null ? gameObject.transform : null;
+            public static implicit operator Transform(Placed p) => p.transform;
+            public static implicit operator GameObject(Placed p) => p.gameObject;
+            public static implicit operator bool(Placed p) => p.gameObject != null;
+        }
 
         // Moon directions baked into SkyCastle (azimuth from +Z towards +X). Use for the directional moonlight rig.
         public static readonly Vector3 PaleMoonDirection = Direction(-34f, 27f);
@@ -66,9 +99,10 @@ namespace HollowCurrent
         static Material placeholder;
 
         // pos/rot are local to parent (world space when parent is null). Returns the instantiated root.
-        public static GameObject Place(string name, Transform parent, Vector3 pos, Quaternion rot)
+        public static Placed Place(string name, Transform parent, Vector3 pos, Quaternion rot)
         {
             GameObject item = null;
+            bool missing = false;
             try
             {
                 var prefab = Load(name);
@@ -80,24 +114,25 @@ namespace HollowCurrent
                 }
             }
             catch (Exception e) { Warn(name, e.Message); item = null; }
-            if (item == null) item = Placeholder(name);
+            if (item == null) { item = Placeholder(name); missing = true; }
             var t = item.transform;
             t.SetParent(parent, false);
-            t.localPosition = pos; t.localRotation = rot; t.localScale = Vector3.one;
-            return item;
+            t.localPosition = pos; t.localRotation = rot * Quaternion.Euler(0f, missing ? 0f : ImportYaw, 0f); t.localScale = Vector3.one;
+            return new Placed(item, missing);
         }
 
-        public static GameObject Place(string name, Transform parent, Vector3 pos, float yawDegrees)
+        public static Placed Place(string name, Transform parent, Vector3 pos, float yawDegrees)
             => Place(name, parent, pos, Quaternion.Euler(0f, yawDegrees, 0f));
 
         // Place + a MeshCollider on every mesh part (walls, floors, stairs). Doors/leaves are left collider-free.
-        public static GameObject PlaceSolid(string name, Transform parent, Vector3 pos, Quaternion rot)
+        public static Placed PlaceSolid(string name, Transform parent, Vector3 pos, Quaternion rot)
         {
-            var go = Place(name, parent, pos, rot);
+            var placed = Place(name, parent, pos, rot);
+            var go = placed.gameObject;
             foreach (var f in go.GetComponentsInChildren<MeshFilter>())
                 if (f.sharedMesh != null && f.GetComponent<Collider>() == null && !f.name.StartsWith("Leaf") && !f.name.StartsWith("Flame"))
                     f.gameObject.AddComponent<MeshCollider>();
-            return go;
+            return placed;
         }
 
         // Sets RenderSettings.skybox to Resources/Castle/SkyCastle (rebuilding from the six faces if the .mat shader
