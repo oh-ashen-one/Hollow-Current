@@ -40,8 +40,8 @@ Shader "HollowCurrent/CastleFogLayer"
             {
                 float2 w = i.wpos.xz * _Tile + _Scroll.xy * _Time.y;
                 float a = tex2D(_MainTex, w).a * 0.6 + tex2D(_MainTex, w * 2.3 + float2(0.31, 0.77) - _Scroll.xy * _Time.y * 1.7).a * 0.4;
-                a = saturate((a - 0.30) * 2.0);
-                float2 e = smoothstep(0.0, 0.18, i.uv) * smoothstep(0.0, 0.18, 1.0 - i.uv);
+                a = saturate((a - 0.22) * 2.4);
+                float2 e = smoothstep(0.0, 0.32, i.uv) * smoothstep(0.0, 0.32, 1.0 - i.uv);
                 float d = distance(_WorldSpaceCameraPos, i.wpos);
                 float f = smoothstep(_Fade.x, _Fade.y, d);
                 fixed4 c = _Color;

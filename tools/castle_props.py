@@ -173,19 +173,40 @@ def giant_skeleton():
             b.tube([hip, knee, paw], [.12, .085, .06], 6, BONE)
             for cl in (-.1, 0, .1):
                 b.tube([(paw[0] + cl, paw[1], paw[2]), (paw[0] + cl * 1.6, paw[1] + .3, paw[2] - .02)], [.035, 0], 4, BONE)
-    # skull (head +Y, snout points +Y, resting low, gape open)
-    sc = (0.0, 5.2, .75)
-    with b.xf(T(*sc) @ Rx(-8)):
-        loft(b, (0, 0, 0), [(-.75, .26, .30, .1), (-.5, .35, .40, .14), (-.1, .30, .34, .1), (.3, .2, .22, .02), (.7, .13, .14, -.02), (.75, .11, .12, -.03)], 8, BONE, smooth=False)
-        with b.xf(about((0, -.4, -.2), Rx(-14))):
-            loft(b, (0, 0, 0), [(-.4, .17, .09, -.36), (-.1, .16, .08, -.36), (.3, .11, .06, -.34), (.7, .08, .05, -.32)], 6, BONE, smooth=False)
-            for sx_ in (-1, 1):
-                for i in range(4):
-                    b.tube([(sx_ * .09, .1 + i * .15, -.3), (sx_ * .09, .1 + i * .15, -.2)], [.018, 0], 4, BONE)
+    # skull (round 4): ~1.6 m long, elongated predator cranium with brow ridges, ringed eye sockets, nasal openings,
+    # cheek arches, a hinged lower jaw hanging open and rows of teeth with two long fangs. Head +Y, resting low.
+    # The whole head is yawed 40 deg about its occiput (Blender Rz -40 = Unity yaw -40) so the snout turns toward the viewer's side
+    # of the hall and S1 sees a three-quarter head (eye sockets, jaw) whatever the body's placement yaw is.
+    sc = (0.0, 5.40, .75)
+    with b.xf(T(*sc) @ about((0, -.75, 0), Rz(-40)) @ Rx(-8)):
+        loft(b, (0, 0, 0), [(-.80, .10, .12, .30), (-.68, .24, .25, .32), (-.45, .34, .32, .34), (-.22, .32, .27, .28),
+                            (.02, .24, .21, .21), (.30, .18, .16, .15), (.58, .13, .12, .11), (.80, .09, .09, .08), (.84, .05, .05, .07)], 12, BONE, smooth=True)
         for sx_ in (-1, 1):
-            for i in range(4):
-                b.tube([(sx_ * .1, .12 + i * .15, -.03), (sx_ * .1, .12 + i * .15, -.15)], [.02, 0], 4, BONE)
-            sphere(b, (sx_ * .24, .0, .2), .095, BS, seg=8)
+            # brow ridge over each orbit
+            b.tube([(sx_ * .12, -.02, .50), (sx_ * .27, -.15, .50), (sx_ * .34, -.32, .42)], [.045, .055, .04], 6, BONE)
+            # eye socket: bone rim ring with a dark recess
+            ring = [(sx_ * .30, -.14 + .12 * math.cos(a_), .27 + .12 * math.sin(a_)) for a_ in [i * math.tau / 10 for i in range(10)]]
+            b.tube(ring, .032, 5, BONE, closed=True)
+            b.lathe((sx_ * .27, -.14, .27), [(0, -.07), (.085, -.04), (.11, .03), (.075, .08), (0, .09)], 8, BS, smooth=True)
+            # nasal opening
+            sphere(b, (sx_ * .06, .60, .215), .04, BS, seg=6)
+            # cheek arch
+            b.tube([(sx_ * .33, -.38, .14), (sx_ * .36, -.15, .08), (sx_ * .24, .18, .08)], [.035, .04, .03], 5, BONE)
+            # upper teeth
+            for i in range(6):
+                yy = .02 + i * .13
+                b.tube([(sx_ * (.13 - i * .010), yy, .03), (sx_ * (.13 - i * .010), yy, -.09 - (.03 if i in (2, 3) else 0))], [.028, 0], 5, BONE)
+        # the two long fangs
+        for sx_ in (-1, 1):
+            b.tube([(sx_ * .10, .50, .04), (sx_ * .10, .52, -.24)], [.034, 0], 5, BONE)
+        # lower jaw, hinged behind the cheek and hanging open 24 deg
+        with b.xf(about((0, -.42, .10), Rx(-24))):
+            loft(b, (0, 0, 0), [(-.46, .22, .08, .02), (-.20, .18, .07, -.01), (.20, .13, .055, -.03), (.62, .08, .045, -.035), (.80, .05, .04, -.035)], 8, BONE, smooth=True)
+            for sx_ in (-1, 1):
+                b.tube([(sx_ * .20, -.40, .05), (sx_ * .24, -.46, .30)], [.05, .04], 5, BONE)   # ascending ramus to the joint
+                for i in range(5):
+                    yy = .04 + i * .15
+                    b.tube([(sx_ * (.10 - i * .008), yy, .0), (sx_ * (.10 - i * .008), yy, .11)], [.026, 0], 5, BONE)
     return b
 
 # ---------------------------------------------------------------- surreal dressing

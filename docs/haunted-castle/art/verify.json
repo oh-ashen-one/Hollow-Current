@@ -140,24 +140,24 @@
   "tris": 136
  },
  "Column": {
-  "bytes": 22972,
+  "bytes": 26860,
   "parts": 1,
   "size": [
    0.7,
    0.7,
    3.0
   ],
-  "tris": 296
+  "tris": 456
  },
  "ColumnGreat": {
-  "bytes": 25628,
+  "bytes": 29596,
   "parts": 1,
   "size": [
    0.9,
    0.9,
    8.8
   ],
-  "tris": 392
+  "tris": 552
  },
  "CryptBridge": {
   "bytes": 16012,
@@ -300,14 +300,14 @@
   "tris": 128
  },
  "GiantSkeleton": {
-  "bytes": 158876,
+  "bytes": 185036,
   "parts": 1,
   "size": [
    4.106,
-   11.958,
-   3.391
+   11.905,
+   3.385
   ],
-  "tris": 4222
+  "tris": 4890
  },
  "GreatDoor": {
   "bytes": 31948,
