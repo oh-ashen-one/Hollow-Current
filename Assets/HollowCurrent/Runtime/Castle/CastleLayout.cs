@@ -134,6 +134,12 @@ namespace HollowCurrent
             public const string CryptBridge = "CryptBridge";
             public const string ReliquaryBox = "ReliquaryBox";
             public const string Pedestal = "Pedestal";
+            // surreal dressing and crypt/chapel extras (exist under Resources/Castle; origin = base centre, front +Z)
+            public const string GiantSkeleton = "GiantSkeleton";     // 12 m along its own Z, head +Z, ribs reach the floor
+            public const string FloatingBook = "FloatingBook";       // open book, pages up
+            public const string Banner = "Banner";                   // oxblood hanging banner, origin floor centre
+            public const string StoneFont = "StoneFont";
+            public const string CoffinNiche = "CoffinNiche";         // origin at the front face; recess runs back 1.2 m, the coffin projects 1.15 m
         }
 
         static readonly Dictionary<string, Vector3> sizes = new Dictionary<string, Vector3>
@@ -164,6 +170,9 @@ namespace HollowCurrent
             { ArtNames.Telescope, new Vector3(1.0f, 2.2f, 2.4f) }, { ArtNames.Sarcophagus, new Vector3(2.2f, 1.2f, 1.0f) },
             { ArtNames.CryptBridge, new Vector3(1.4f, .3f, 1.2f) }, { ArtNames.ReliquaryBox, new Vector3(1.0f, 1.0f, .7f) },
             { ArtNames.Pedestal, new Vector3(.6f, 1.0f, .6f) },
+            { ArtNames.GiantSkeleton, new Vector3(3.4f, 3.4f, 12.0f) }, { ArtNames.FloatingBook, new Vector3(.4f, .1f, .29f) },
+            { ArtNames.Banner, new Vector3(1.39f, 3.1f, .09f) }, { ArtNames.StoneFont, new Vector3(1.04f, 1.08f, 1.04f) },
+            { ArtNames.CoffinNiche, new Vector3(2.2f, 1.45f, 2.6f) },
         };
         public static IReadOnlyDictionary<string, Vector3> ArtSizes => sizes;
         public static Vector3 ArtSize(string name) => sizes.TryGetValue(name, out var s) ? s : Vector3.one;
@@ -268,6 +277,86 @@ namespace HollowCurrent
             new CastleWindowDef(false, 6, 25, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, false),
         };
 
+
+        // ---- dressing data (round 2) ---------------------------------------------------------------
+        // Great hall: the long table, its chairs and the giant skeleton arching over them at the far end.
+        public const float HallTableZ = 25.6f;
+        public static readonly Vector3 SkeletonPos = new Vector3(0, 0, HallTableZ);
+        public const float SkeletonYaw = -90f;     // head toward -x, spine along the hall's width
+        public const float SkeletonScale = .88f;   // 12 m -> 10.5 m so it clears the spine walls (inner faces at +-5.7)
+
+        // Floating candelabra (centre of the stand) and books; hall-local. Under the galleries (|x| > 3, y < 3.2) nothing hangs.
+        public static readonly Vector3[] HallCandelabras =
+        {
+            new Vector3(-2.3f, 2.7f, 17.2f), new Vector3(2.4f, 3.0f, 17.8f), new Vector3(-1.2f, 4.8f, 16.5f), new Vector3(1.4f, 5.4f, 18.9f),
+            new Vector3(-2.6f, 3.6f, 21.0f), new Vector3(2.5f, 4.4f, 22.1f), new Vector3(-0.4f, 6.0f, 20.5f), new Vector3(-4.7f, 5.3f, 19.6f),
+            new Vector3(4.6f, 5.4f, 16.8f), new Vector3(-3.9f, 5.8f, 23.4f), new Vector3(3.9f, 5.6f, 24.2f), new Vector3(0.3f, 3.5f, 23.1f),
+            new Vector3(2.0f, 6.4f, 24.0f), new Vector3(-2.1f, 6.2f, 25.0f),
+        };
+        public static readonly Vector3[] HallBooks =
+        {
+            new Vector3(-2.8f, 3.1f, 16.2f), new Vector3(2.2f, 2.7f, 19.8f), new Vector3(-0.9f, 5.0f, 18.2f), new Vector3(1.6f, 4.3f, 15.9f),
+            new Vector3(-2.4f, 4.5f, 22.4f), new Vector3(0.6f, 3.6f, 21.7f), new Vector3(3.8f, 5.0f, 21.0f), new Vector3(-4.2f, 5.9f, 17.6f),
+        };
+
+        public readonly struct CastleBannerDef
+        {
+            public readonly Vector3 Pos; public readonly float Yaw;   // Pos = bottom centre of the cloth
+            public CastleBannerDef(float x, float y, float z, float yaw) { Pos = new Vector3(x, y, z); Yaw = yaw; }
+        }
+        // Hung on the wall faces between the clerestory windows (west/east) and flanking the rose window (north).
+        public static readonly CastleBannerDef[] HallBanners =
+        {
+            new CastleBannerDef(-5.62f, 3.9f, 19.5f, 90), new CastleBannerDef(-5.62f, 3.9f, 23.3f, 90),
+            new CastleBannerDef(5.62f, 3.9f, 19.5f, -90), new CastleBannerDef(5.62f, 3.9f, 23.3f, -90),
+            new CastleBannerDef(-2.4f, 3.9f, 27.52f, 180), new CastleBannerDef(2.4f, 3.9f, 27.52f, 180),
+        };
+
+        // Chapel: knocked-over pews. Roll is about the pew's own length axis; the top leans toward +x for positive roll.
+        public readonly struct CastlePewDef
+        {
+            public readonly float X, Z, Yaw, Roll;
+            public CastlePewDef(float x, float z, float yaw, float roll) { X = x; Z = z; Yaw = yaw; Roll = roll; }
+        }
+        public static readonly CastlePewDef[] ChapelFallenPews =
+        {
+            new CastlePewDef(11.0f, 1.7f, 90, 78), new CastlePewDef(8.4f, 4.2f, 84, -76),
+            new CastlePewDef(9.7f, 11.3f, 100, -70), new CastlePewDef(11.0f, 8.8f, 76, -62),
+        };
+        public static bool IsFallenPew(float x, float z) { foreach (var p in ChapelFallenPews) if (Mathf.Abs(p.X - x) < .01f && Mathf.Abs(p.Z - z) < .01f) return true; return false; }
+        public static readonly Vector3 FontPos = new Vector3(7.55f, 0, 6.95f);
+        public static readonly Vector3 BrazierPos = new Vector3(12.6f, 0, 11.2f);
+        public static readonly Vector3 SunWindowPos = new Vector3(13.55f, 3.2f, 6.5f);   // east wall inner face, behind the altar
+
+        // Crypt: coffin niches cut into the walls. Inward is the room side along the wall normal.
+        public const float NicheWidth = 1.1f, NicheSill = .35f, NicheTop = 1.15f;
+        public readonly struct CastleNicheDef
+        {
+            public readonly bool RunsAlongX;
+            public readonly float Line, Center, FloorY, Thickness;
+            public readonly int Inward;
+            public CastleNicheDef(bool runsAlongX, float line, float center, int inward, float thickness, float floorY = FloorCrypt)
+            { RunsAlongX = runsAlongX; Line = line; Center = center; Inward = inward; Thickness = thickness; FloorY = floorY; }
+            // The niche block sits behind the wall; its front face is flush with the wall's outer face, the coffin comes through the cut.
+            public Vector3 Origin => RunsAlongX ? new Vector3(Center, FloorY, Line - Inward * Thickness * .5f) : new Vector3(Line - Inward * Thickness * .5f, FloorY, Center);
+            public float Yaw => RunsAlongX ? (Inward > 0 ? 0 : 180) : (Inward > 0 ? 90 : -90);
+        }
+        public static readonly CastleNicheDef[] Niches =
+        {
+            // west wall x = -6 (room to +x): clear of the stair door at z 25 and the stair room beyond z 22
+            new CastleNicheDef(false, -6, 15.4f, 1, .6f), new CastleNicheDef(false, -6, 17.8f, 1, .6f), new CastleNicheDef(false, -6, 20.2f, 1, .6f),
+            // south wall z = 14 (room to +z)
+            new CastleNicheDef(true, 14, -4.6f, 1, .6f), new CastleNicheDef(true, 14, -2.3f, 1, .6f), new CastleNicheDef(true, 14, 0f, 1, .6f),
+            new CastleNicheDef(true, 14, 2.3f, 1, .6f), new CastleNicheDef(true, 14, 4.6f, 1, .6f),
+            // north wall z = 28 (room to -z), the thick exterior wall
+            new CastleNicheDef(true, 28, -4.6f, -1, .9f), new CastleNicheDef(true, 28, -2.3f, -1, .9f), new CastleNicheDef(true, 28, 0f, -1, .9f),
+            new CastleNicheDef(true, 28, 2.3f, -1, .9f), new CastleNicheDef(true, 28, 4.6f, -1, .9f),
+        };
+
+        // Moons painted into the openings of the rose window and the chapel windows, seen from the capture positions.
+        public static readonly Vector3 RoseWindowEye = new Vector3(0, 1.64f, 14.7f);
+        public static readonly Vector3 ChapelEye = new Vector3(7.0f, 1.64f, 6.5f);
+
         // ---- candelabra -------------------------------------------------------------------------
         // Warm point lights as in the house (intensity .5 - 1.2, range 5.5); only a few cast shadows.
         public static readonly CastleCandleDef[] Candles =
@@ -279,7 +368,7 @@ namespace HollowCurrent
             // great hall
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
-            new CastleCandleDef(new Vector3(-2.5f, .95f, 25.9f), .8f), new CastleCandleDef(new Vector3(2.5f, .95f, 25.9f), .8f),
+            new CastleCandleDef(new Vector3(-2.5f, .95f, HallTableZ), .8f), new CastleCandleDef(new Vector3(2.5f, .95f, HallTableZ), .8f),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall
@@ -300,7 +389,7 @@ namespace HollowCurrent
             // observatory
             new CastleCandleDef(new Vector3(7.3f, 6.4f, 21.0f), .7f), new CastleCandleDef(new Vector3(8.0f, 6.4f, 27.0f), .6f),
             // crypt (dimmer, as the house basement)
-            new CastleCandleDef(new Vector3(-4.6f, -3.2f, 20.0f), .55f), new CastleCandleDef(new Vector3(4.6f, -3.2f, 20.0f), .55f),
+            new CastleCandleDef(new Vector3(-4.5f, -3.2f, 19.0f), .55f), new CastleCandleDef(new Vector3(4.6f, -3.2f, 20.0f), .55f),
             new CastleCandleDef(new Vector3(-2.4f, -3.2f, 15.2f), .5f), new CastleCandleDef(new Vector3(2.4f, -3.2f, 15.2f), .5f), new CastleCandleDef(new Vector3(0, -3.2f, 26.8f), .5f),
             // reliquary
             new CastleCandleDef(new Vector3(7.2f, -3.2f, 17.0f), .5f), new CastleCandleDef(new Vector3(7.2f, -3.2f, 25.0f), .5f),

@@ -135,6 +135,7 @@ namespace HollowCurrent
             Walls();
             foreach (var d in CastleLayout.Doors) BuildDoor(d);
             foreach (var w in CastleLayout.Windows) BuildWindow(w);
+            Moons();
             Balcony();
             Gatehouse();
             Courtyard();
@@ -166,12 +167,15 @@ namespace HollowCurrent
             Mat("metal", new Color(.18f, .21f, .2f)); Mat("black", new Color(.025f, .03f, .029f)); Mat("earth", new Color(.055f, .06f, .05f));
             Mat("cloth", new Color(.34f, .08f, .1f)); Mat("glass", new Color(.075f, .14f, .2f));
             Mat("blood", new Color(.45f, .03f, .04f), new Color(.38f, .02f, .03f));
+            Mat("bloodpool", new Color(.30f, .018f, .028f), new Color(.2f, .01f, .018f));
+            Mat("ember", new Color(.35f, .1f, .04f), new Color(1.8f, .5f, .12f));
         }
         void Mat(string id, Color c, Color emission = default(Color))
         {
             var shader = Shader.Find("Standard");
             var m = new Material(shader) { name = "HC castle / " + id, color = c };
-            m.SetFloat("_Glossiness", id == "metal" || id == "brass" ? .35f : .12f);
+            m.SetFloat("_Glossiness", id == "metal" || id == "brass" ? .35f : id == "blood" || id == "bloodpool" ? .9f : .12f);
+            if (id == "bloodpool") m.SetFloat("_Metallic", .2f);
             if (emission.maxColorComponent > 0) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", emission); }
             mats[id] = m;
         }
@@ -184,6 +188,16 @@ namespace HollowCurrent
             var r = g.GetComponent<Renderer>();
             if (render) r.sharedMaterial = mats[mat]; else r.enabled = false;
             g.GetComponent<Collider>().enabled = collide;
+            return g;
+        }
+        GameObject Cyl(string name, Vector3 center, float diameter, float height, string mat)
+        {
+            var g = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            g.name = name; g.transform.SetParent(root, false);
+            g.transform.localPosition = center; g.transform.localScale = new Vector3(diameter, height * .5f, diameter);
+            Release(g.GetComponent<Collider>());
+            g.GetComponent<Renderer>().sharedMaterial = mats[mat];
+            g.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             return g;
         }
         // Collision-only box (no mesh): used under CastleArt props so nav and physics never depend on art colliders.
@@ -267,6 +281,9 @@ namespace HollowCurrent
             foreach (var w in CastleLayout.Windows)
                 if (w.RunsAlongX == alongX && Mathf.Abs(w.Line - line) < .01f && w.Center > a && w.Center < b && w.FloorY + w.Sill >= yb - .01f && w.FloorY + w.Sill < yt)
                     ops.Add(new Op { A0 = w.Center - w.Width * .5f, A1 = w.Center + w.Width * .5f, Y0 = w.FloorY + w.Sill, Y1 = w.FloorY + w.Top });
+            foreach (var n in CastleLayout.Niches)
+                if (n.RunsAlongX == alongX && Mathf.Abs(n.Line - line) < .01f && n.Center > a && n.Center < b && n.FloorY >= yb - .01f && n.FloorY < yt - .01f)
+                    ops.Add(new Op { A0 = n.Center - CastleLayout.NicheWidth * .5f, A1 = n.Center + CastleLayout.NicheWidth * .5f, Y0 = n.FloorY + CastleLayout.NicheSill, Y1 = n.FloorY + CastleLayout.NicheTop });
             var cuts = new List<float> { a, b };
             foreach (var o in ops) { cuts.Add(o.A0); cuts.Add(o.A1); }
             cuts.Sort();
@@ -555,11 +572,55 @@ namespace HollowCurrent
             foreach (int side in new[] { -1, 1 })
                 foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
                     Prop(Art.ColumnGreat, new Vector3(side * 3.9f, 0, z), 0);
-            Prop(Art.LongTable, new Vector3(0, 0, 25.9f), 0);
-            Prop(Art.Throne, new Vector3(0, 0, 27.0f), 180);
-            foreach (float x in new[] { -2.4f, -1.2f, 0f, 1.2f, 2.4f }) Prop(Art.HighBackChair, new Vector3(x, 0, 24.8f), 0, false);
+            // The long table sits under the ribs of the giant skeleton (its spine runs along the hall's width behind the rune ring).
+            Prop(Art.LongTable, new Vector3(0, 0, CastleLayout.HallTableZ), 0);
+            Prop(Art.Throne, new Vector3(-5.1f, 0, 18.2f), 90);
+            foreach (float x in new[] { -2.4f, -1.2f, 0f, 1.2f, 2.4f }) Prop(Art.HighBackChair, new Vector3(x, 0, CastleLayout.HallTableZ - 1.1f), 0, false);
             runeAnchor = new GameObject("RuneRing anchor").transform; runeAnchor.SetParent(root, false); runeAnchor.localPosition = RuneLocal;
             Hide("Hall armoire", new Vector3(5.7f, 0, 21.0f), 90);
+            HallDressing();
+        }
+
+        // Giant skeleton, banners, floating candelabras and books. Candelabras share one mesh and carry billboard flames only;
+        // the hall keeps exactly the point lights CastleLayout.Candles gives it.
+        void HallDressing()
+        {
+            var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
+            skeleton.localScale = Vector3.one * CastleLayout.SkeletonScale;
+            foreach (var b in CastleLayout.HallBanners) ArtAt(Art.Banner, b.Pos, b.Yaw);
+            int seed = 100;
+            foreach (var p in CastleLayout.HallCandelabras)
+            {
+                var f = SurrealProps.MakeFloater(root, p, FloaterKind.Candelabra, seed++, 0);
+                f.transform.localScale = Vector3.one * 1.6f;
+            }
+            for (int i = 0; i < CastleLayout.HallBooks.Length; i++)
+            {
+                var book = ArtAt(Art.FloatingBook, CastleLayout.HallBooks[i], 0);
+                book.localScale = Vector3.one * 1.8f;
+                // pages tipped up toward the entrance so the open book reads from the aisle
+                book.localRotation = Quaternion.Euler(-(52 + (i * 7) % 20), (i % 2 == 0 ? 1 : -1) * (14 + i * 9), (i % 3 - 1) * 12);
+                var f = book.gameObject.AddComponent<Floater>();
+                f.phase = Mathf.Repeat((i + 1) * .6180339f, 1);
+                f.bobAmplitude = .16f; f.bobHertz = .13f + .02f * (i % 3); f.tiltDegrees = 6; f.yawDegreesPerSecond = 5;
+            }
+        }
+
+        // The two moons are painted into the openings of the rose window and the chapel windows as distant sprites, placed
+        // on the rays from the capture eyes through each opening (the skybox moons sit at azimuths no narrow window frames).
+        void Moons()
+        {
+            void Pair(Vector3 eye, Vector3 window, Vector3 tangent, float spread, float radius, float distance)
+            {
+                for (int k = 0; k < 2; k++)
+                {
+                    var through = window + tangent * (k == 0 ? -spread : spread) + Vector3.up * (k == 0 ? .15f : -.15f);
+                    var at = eye + (through - eye).normalized * distance;
+                    SurrealProps.MakeMoon(root, at, eye, radius, k == 1);
+                }
+            }
+            Pair(CastleLayout.RoseWindowEye, new Vector3(0, 7.1f, 28f), Vector3.right, .62f, 1.9f, 55f);
+            foreach (float z in new[] { 3.5f, 9.5f }) Pair(CastleLayout.ChapelEye, new Vector3(14f, 3.4f, z), Vector3.forward, .3f, 1.4f, 45f);
         }
 
         void DiningHall()
@@ -595,12 +656,76 @@ namespace HollowCurrent
             altarAnchor = new GameObject("Forge altar anchor").transform; altarAnchor.SetParent(root, false); altarAnchor.localPosition = AltarLocal;
             foreach (float x in new[] { 8.4f, 9.7f, 11.0f })
                 foreach (float z in new[] { 1.7f, 4.2f, 8.8f, 11.3f })
-                    Prop(Art.Pew, new Vector3(x, 0, z), 90);
+                    if (!CastleLayout.IsFallenPew(x, z)) Prop(Art.Pew, new Vector3(x, 0, z), 90);
+            foreach (var pew in CastleLayout.ChapelFallenPews) FallenPew(pew);
             Prop(Art.ChapelBell, new Vector3(AnchorLocal.x, 0, AnchorLocal.z), -90, false);
             Interact("Chapel bell", AnchorLocal, new Vector3(.6f, 1.2f, .6f), "brass", InteractKind.Anchor, "The chapel bell", "", false);
             Hide("Confessional", new Vector3(7.3f, 0, 12.7f), 0);
             Note("Chapel inscription", new Vector3(12.75f, 1.44f, 5.7f), "Chapel inscription",
                 "Cut into the altar slab:\n\nWHAT WAS BARGAINED FOR NIGHT IS PAID IN BLOOD. WHAT WAS HIDDEN FROM HIM IS HIDDEN IN THREE: THE BLADE UNDER THE CRYPT, THE HILT AMONG THE STARS, THE STONE BEHIND A FACE.\n\nBring them here and the altar remembers its trade.");
+            ChapelFont();
+            ChapelBrazier();
+            ChapelSunWindow();
+            ChapelCandles();
+        }
+
+        // A pew knocked onto its side: rolled about its own length axis, lifted so the low edge rests on the floor.
+        void FallenPew(CastleLayout.CastlePewDef d)
+        {
+            var yawRot = Quaternion.Euler(0, d.Yaw, 0);
+            float lift = .36f * Mathf.Sin(Mathf.Abs(d.Roll) * Mathf.Deg2Rad) + .02f;
+            CastleArt.Place(Art.Pew, root, new Vector3(d.X, lift, d.Z), yawRot * Quaternion.AngleAxis(d.Roll, Vector3.right));
+            float side = Mathf.Sign(d.Roll);
+            Proxy("Fallen pew collision", new Vector3(d.X, 0, d.Z) + yawRot * new Vector3(0, .4f, side * .45f), new Vector3(2.4f, .8f, 1.1f), d.Yaw);
+        }
+
+        // The stone font in the aisle, its basin brimming with a glossy red liquid.
+        void ChapelFont()
+        {
+            Prop(Art.StoneFont, CastleLayout.FontPos, 0);
+            Cyl("Font liquid", CastleLayout.FontPos + new Vector3(0, 1.012f, 0), .78f, .012f, "bloodpool");
+        }
+
+        // The breaker analogue: a lit brazier. (World adds an unlit black box as a stand-in when no Breaker exists.)
+        void ChapelBrazier()
+        {
+            var p = CastleLayout.BrazierPos;
+            Cyl("Brazier foot", p + new Vector3(0, .04f, 0), .52f, .08f, "metal");
+            Cyl("Brazier stem", p + new Vector3(0, .46f, 0), .12f, .84f, "metal");
+            Cyl("Brazier bowl", p + new Vector3(0, .92f, 0), .72f, .14f, "metal");
+            Cyl("Brazier coals", p + new Vector3(0, .995f, 0), .62f, .02f, "ember");
+            SurrealProps.MakeCandleFlame(root, p + new Vector3(0, 1.0f, 0), .5f, false, "Brazier flame");
+            Interact("Chapel brazier", p + new Vector3(0, .5f, 0), new Vector3(.7f, 1.0f, .7f), "metal", InteractKind.Breaker, "Chapel brazier", "", false);
+        }
+
+        // Pointed-arch window behind the altar, the gilt sun blotted out with black paint, in a stone reveal.
+        void ChapelSunWindow()
+        {
+            var c = CastleLayout.SunWindowPos;
+            SurrealProps.MakeSunWindow(root, c + new Vector3(-.005f, 0, 0), Vector3.left, 1.9f, 3.2f);
+            foreach (int side in new[] { -1, 1 }) Box("Sun window jamb", c + new Vector3(-.06f, 0, side * 1.0f), new Vector3(.12f, 3.2f, .14f), "stone", false);
+            Box("Sun window sill", c + new Vector3(-.08f, -1.6f, 0), new Vector3(.16f, .06f, 2.1f), "stone", false);
+        }
+
+        // 44 candles hang in the chapel at 1.5 to 5 m; only one burns (a billboard flame, no light).
+        void ChapelCandles()
+        {
+            var rnd = new System.Random(2026);
+            var placed = new List<Vector3> { new Vector3(12.2f, 2.4f, 5.0f) };
+            SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.2f);
+            int guard = 0;
+            while (placed.Count < 44 && guard++ < 4000)
+            {
+                var p = new Vector3(Mathf.Lerp(7.4f, 13.2f, (float)rnd.NextDouble()), Mathf.Lerp(1.5f, 5.0f, (float)rnd.NextDouble()), Mathf.Lerp(.9f, 12.1f, (float)rnd.NextDouble()));
+                if (p.x > 11.3f && Mathf.Abs(p.z - 6.5f) < 1.5f && p.y < 2.2f) continue;                                    // the altar block
+                if (Mathf.Abs(p.x - CastleLayout.FontPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.FontPos.z) < .8f && p.y < 2.2f) continue;
+                if (Mathf.Abs(p.x - CastleLayout.BrazierPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.BrazierPos.z) < .8f && p.y < 2.2f) continue;
+                bool crowded = false;
+                foreach (var q in placed) if ((q - p).sqrMagnitude < .45f) { crowded = true; break; }
+                if (crowded) continue;
+                SurrealProps.MakeFloatingCandle(root, p, placed.Count, false, .9f + .4f * (float)rnd.NextDouble());
+                placed.Add(p);
+            }
         }
 
         void Vestibule()
@@ -645,9 +770,19 @@ namespace HollowCurrent
 
         void Crypt()
         {
-            // blood channel 1.2 m wide, fenced by low curbs, crossed by a single bridge
-            Box("Channel bed", new Vector3(0, -4.15f, 22.5f), new Vector3(6.4f, .3f, 6.4f), "darkstone");
-            Box("Blood channel", new Vector3(0, -3.55f, 22.5f), new Vector3(6.0f, .05f, 6.0f), "blood", false);
+            // Blood channel 1.2 m wide: a 0.3 m deep trench (floor -3.2, bed -3.5) holding glossy blood 0.1 m below the floor,
+            // fenced by low curbs and crossed by a single bridge.
+            Box("Channel bed", new Vector3(0, -3.65f, 22.5f), new Vector3(6.4f, .3f, 6.4f), "darkstone");
+            Box("Blood channel north", new Vector3(0, -3.31f, 24.9f), new Vector3(6.0f, .02f, 1.2f), "bloodpool", false);
+            Box("Blood channel south", new Vector3(0, -3.31f, 20.1f), new Vector3(6.0f, .02f, 1.2f), "bloodpool", false);
+            Box("Blood channel west", new Vector3(-2.4f, -3.31f, 22.5f), new Vector3(1.2f, .02f, 3.6f), "bloodpool", false);
+            Box("Blood channel east", new Vector3(2.4f, -3.31f, 22.5f), new Vector3(1.2f, .02f, 3.6f), "bloodpool", false);
+            // trench walls between the slab underside (-3.4) and the bed (-3.5)
+            const float lw = .04f, lh = .1f, ly = -3.45f;
+            Box("Trench wall W", new Vector3(-3.0f, ly, 22.5f), new Vector3(lw, lh, 6.0f), "darkstone", false); Box("Trench wall E", new Vector3(3.0f, ly, 22.5f), new Vector3(lw, lh, 6.0f), "darkstone", false);
+            Box("Trench wall S", new Vector3(0, ly, 19.5f), new Vector3(6.0f, lh, lw), "darkstone", false); Box("Trench wall N", new Vector3(0, ly, 25.5f), new Vector3(6.0f, lh, lw), "darkstone", false);
+            Box("Island wall W", new Vector3(-1.8f, ly, 22.5f), new Vector3(lw, lh, 3.6f), "darkstone", false); Box("Island wall E", new Vector3(1.8f, ly, 22.5f), new Vector3(lw, lh, 3.6f), "darkstone", false);
+            Box("Island wall S", new Vector3(0, ly, 20.7f), new Vector3(3.6f, lh, lw), "darkstone", false); Box("Island wall N", new Vector3(0, ly, 24.3f), new Vector3(3.6f, lh, lw), "darkstone", false);
             const float ch = .45f, ct = .2f, cy = -3.2f + ch * .5f;
             Box("Outer curb west", new Vector3(-3.1f, cy, 22.5f), new Vector3(ct, ch, 6.4f), "darkstone");
             Box("Outer curb east", new Vector3(3.1f, cy, 22.5f), new Vector3(ct, ch, 6.4f), "darkstone");
@@ -662,12 +797,73 @@ namespace HollowCurrent
             Box("Bridge deck", new Vector3(0, -3.3f, 20.1f), new Vector3(1.4f, .2f, 1.2f), "darkstone", true, false);
             ArtAt(Art.CryptBridge, new Vector3(0, -3.3f, 19.5f), 0);
             Prop(Art.Sarcophagus, new Vector3(0, -3.2f, 22.5f), 0);
+            SarcophagusRunes(new Vector3(0, -3.2f, 22.5f));
             foreach (float z in new[] { 16.5f, 26.5f })
             {
                 foreach (int side in new[] { -1, 1 }) Prop(Art.Column, new Vector3(side * 4.2f, -3.2f, z), 0);
                 ArtAt(Art.CryptRib, new Vector3(0, -3.2f + 3.0f - .6f, z), 0);
             }
             Hide("Ossuary niche", new Vector3(5.7f, -3.2f, 17.6f), 90);
+            CoffinNiches();
+            HandRoots();
+        }
+
+        // Coffin niches lining the west, south and north walls. The niche block sits behind the wall (Wall() cuts the
+        // opening); the drawn-out coffin projects through the cut and stays solid for collision.
+        void CoffinNiches()
+        {
+            foreach (var n in CastleLayout.Niches)
+            {
+                ArtAt(Art.CoffinNiche, n.Origin, n.Yaw);
+                float protrusion = 1.15f - n.Thickness;   // beyond the wall's inner face
+                float centre = n.Thickness * .5f + protrusion * .5f;
+                // distance from the wall line to the proxy centre: half the wall + half the protrusion
+                var c = n.RunsAlongX ? new Vector3(n.Center, n.FloorY + .4f, n.Line + n.Inward * centre) : new Vector3(n.Line + n.Inward * centre, n.FloorY + .4f, n.Center);
+                Proxy("Coffin niche collision", c, n.RunsAlongX ? new Vector3(1.2f, .8f, protrusion) : new Vector3(protrusion, .8f, 1.2f), 0);
+            }
+        }
+
+        // Violet glowing runes carved around the sarcophagus trough (emissive unlit quads pulsing as one).
+        void SarcophagusRunes(Vector3 baseCentre)
+        {
+            var holder = new GameObject("Sarcophagus runes");
+            holder.transform.SetParent(root, false); holder.transform.localPosition = baseCentre;
+            holder.AddComponent<RunePulse>();
+            int glyph = 0;
+            foreach (float y in new[] { .36f, .66f })
+            {
+                foreach (int side in new[] { -1, 1 })
+                {
+                    foreach (float x in new[] { -.75f, -.45f, -.15f, .15f, .45f, .75f })
+                        SurrealProps.MakeGlowRune(holder.transform, new Vector3(x, y, side * .508f), new Vector3(0, 0, side), .15f, glyph++);
+                    foreach (float z in new[] { -.24f, 0f, .24f })
+                        SurrealProps.MakeGlowRune(holder.transform, new Vector3(side * 1.008f, y, z), new Vector3(side, 0, 0), .15f, glyph++);
+                }
+            }
+        }
+
+        // 30 root strands hanging from the vault over the sarcophagus and the channel, each ending in pale hands. The
+        // strand tops sit 2.6 to 3.0 m above the crypt floor, a crown cone reaches the ceiling, and the hands dangle
+        // between roughly 0.4 and 2.3 m above the floor.
+        void HandRoots()
+        {
+            var rnd = new System.Random(77);
+            const float floorY = -3.2f, ceilingY = -.2f;
+            for (int i = 0; i < 30; i++)
+            {
+                Vector3 p; bool overCoffin = false;
+                if (i < 10) { p = new Vector3((float)(rnd.NextDouble() * 2.2 - 1.1), 0, 21.9f + (float)rnd.NextDouble() * 1.2f); overCoffin = true; }
+                else if (i < 20) { p = new Vector3((float)(rnd.NextDouble() * 5.4 - 2.7), 0, 19.6f + (float)rnd.NextDouble() * 5.8f); overCoffin = Mathf.Abs(p.x) < 1.35f && p.z > 21.6f && p.z < 23.4f; }
+                else { p = new Vector3((float)(rnd.NextDouble() * 5.0 - 2.5), 0, 16.0f + (float)rnd.NextDouble() * 3.2f); }
+                float height = 2.6f + .4f * (float)rnd.NextDouble();           // metres above the floor
+                if (overCoffin) height = Mathf.Max(height, 2.7f);
+                float anchor = floorY + height;
+                float maxLength = overCoffin ? anchor + 1.55f : anchor - floorY - .8f - .4f; // hand tips clear the sarcophagus / the floor
+                int variant = rnd.Next(SurrealProps.HandRootVariants);
+                for (int k = 0; k < SurrealProps.HandRootVariants && SurrealProps.HandRootLength(variant) > maxLength; k++) variant = (variant + 1) % SurrealProps.HandRootVariants;
+                p.y = anchor;
+                SurrealProps.MakeHandRoot(root, p, variant + SurrealProps.HandRootVariants * i, ceilingY + .06f - anchor);
+            }
         }
 
         void Reliquary()
