@@ -54,6 +54,9 @@ namespace HollowCurrent
         // then feints back to a perch, so the hunt sequence shows perch, glide and dive without a kill.
         public float CaptureHoldDistance=2.5f, CaptureHoldSeconds=1.6f;
 
+        // Cold rim light parented behind his shoulders (Presence.CountRimLight): keeps the wings readable in the dark.
+        public float RimLightRange=3.6f, RimLightIntensity=1.1f;
+
         public CountClaudeProfile()
         {
             Name="Count Claude";
