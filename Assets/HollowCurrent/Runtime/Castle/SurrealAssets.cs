@@ -13,7 +13,10 @@ namespace HollowCurrent
             candelabraMesh=closedBookMesh=openBookMesh=null;candelabraMaterials=bookMaterials=null;
             ResetMoreAssets();
         }
-        static void ResetMoreAssets(){}
+        static void ResetMoreAssets()
+        {
+            runeAtlas=null;runeGlyphMeshes=null;
+        }
 
         // Small flat-shaded mesh builder (build-time only; allocation is fine here).
         internal sealed class MeshBuilder
@@ -144,5 +147,70 @@ namespace HollowCurrent
             Lit("Floating book leather",new Color(.3f,.07f,.08f),0,.3f),
             Lit("Floating book pages",new Color(.7f,.65f,.5f),0,.05f)
         };
+
+        // ---- rune atlas: 7 glyphs plus a solid cell, 4 x 3 cells of 64 px ----
+        public const int RuneGlyphCount=7;
+        const int AtlasColumns=4,AtlasRows=3,CellPixels=64;
+        static Texture2D runeAtlas;
+        static Mesh[] runeGlyphMeshes;
+        public static Texture2D RuneAtlas
+        {
+            get
+            {
+                if(runeAtlas)return runeAtlas;
+                var strokes=new List<Vector4>[RuneGlyphCount]; // x0,y0,x1,y1 in 0..1 cell space
+                for(int g=0;g<RuneGlyphCount;g++)
+                {
+                    var random=new System.Random(g*7919+13);
+                    var list=new List<Vector4>{new Vector4(.5f,.1f,.5f,.9f)};
+                    if(g%3==2)list.Add(new Vector4(.28f,.1f,.28f,.7f));
+                    int extra=2+random.Next(2);
+                    for(int i=0;i<extra;i++)
+                    {
+                        float y=.25f+.25f*random.Next(3);
+                        float side=random.Next(2)==0?-1:1;
+                        list.Add(new Vector4(.5f,y,.5f+side*(.18f+.22f*(float)random.NextDouble()),Mathf.Clamp(y+(random.Next(3)-1)*.22f,.08f,.92f)));
+                    }
+                    strokes[g]=list;
+                }
+                runeAtlas=MakeTexture("Surreal runes",AtlasColumns*CellPixels,AtlasRows*CellPixels,(u,v)=>
+                {
+                    int column=Mathf.Min(AtlasColumns-1,(int)(u*AtlasColumns)),row=Mathf.Min(AtlasRows-1,(int)(v*AtlasRows));
+                    float cu=u*AtlasColumns-column,cv=v*AtlasRows-row;
+                    int cell=row*AtlasColumns+column;
+                    if(cell==AtlasColumns*2)return new Color32(255,255,255,255); // solid cell
+                    if(cell>=RuneGlyphCount)return new Color32(255,255,255,0);
+                    float best=9;
+                    foreach(var s in strokes[cell])best=Mathf.Min(best,SegmentDistance(cu,cv,s)*CellPixels);
+                    byte a=(byte)(255*Mathf.Clamp01(2.4f-best));
+                    return new Color32(255,255,255,a);
+                });
+                return runeAtlas;
+            }
+        }
+        static float SegmentDistance(float x,float y,Vector4 s)
+        {
+            var a=new Vector2(s.x,s.y);var ab=new Vector2(s.z-s.x,s.w-s.y);var ap=new Vector2(x,y)-a;
+            float t=Mathf.Clamp01(Vector2.Dot(ap,ab)/Mathf.Max(1e-6f,Vector2.Dot(ab,ab)));
+            return (ap-ab*t).magnitude;
+        }
+        // UV of the solid cell centre, for flat-coloured geometry that shares the rune material.
+        public static Vector2 RuneSolidUV=>new Vector2(.5f/AtlasColumns,(2.5f)/AtlasRows);
+        public static Mesh RuneGlyphMesh(int glyph)
+        {
+            if(runeGlyphMeshes==null)runeGlyphMeshes=new Mesh[RuneGlyphCount];
+            glyph=((glyph%RuneGlyphCount)+RuneGlyphCount)%RuneGlyphCount;
+            if(runeGlyphMeshes[glyph])return runeGlyphMeshes[glyph];
+            int column=glyph%AtlasColumns,row=glyph/AtlasColumns;
+            float inset=.03f;
+            float u0=(column+inset)/AtlasColumns,u1=(column+1-inset)/AtlasColumns,v0=(row+inset)/AtlasRows,v1=(row+1-inset)/AtlasRows;
+            var mesh=new Mesh{name="Surreal rune "+glyph};
+            mesh.vertices=new[]{new Vector3(-.5f,-.5f,0),new Vector3(.5f,-.5f,0),new Vector3(-.5f,.5f,0),new Vector3(.5f,.5f,0)};
+            mesh.uv=new[]{new Vector2(u0,v0),new Vector2(u1,v0),new Vector2(u0,v1),new Vector2(u1,v1)};
+            mesh.normals=new[]{Vector3.back,Vector3.back,Vector3.back,Vector3.back};
+            mesh.triangles=new[]{0,2,1,2,3,1};
+            mesh.RecalculateBounds();
+            return runeGlyphMeshes[glyph]=mesh;
+        }
     }
 }

@@ -167,5 +167,17 @@ namespace HollowCurrent
             }
             return floater;
         }
+
+        // ---- rune ring ----
+        // A floor ring of glowing runes centred at `localPosition` (world if parent
+        // is null). The ring lies in the XZ plane. watcher may be null (camera).
+        public static RuneRing MakeRuneRing(Transform parent,Vector3 localPosition,float radius=5.5f,int runeCount=28,Transform watcher=null)
+        {
+            var t=NewChild("Rune ring",parent,localPosition,Quaternion.identity);
+            var ring=t.gameObject.AddComponent<RuneRing>();
+            ring.radius=radius;ring.runeCount=runeCount;ring.watcher=watcher;
+            ring.runeSize=Mathf.Clamp(radius*.075f,.25f,.6f);
+            return ring;
+        }
     }
 }
