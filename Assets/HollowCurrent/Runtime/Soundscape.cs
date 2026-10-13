@@ -11,6 +11,7 @@ namespace HollowCurrent
         readonly HashSet<string> generated=new HashSet<string>();
         readonly List<float> speechUntil=new List<float>();
         Game game;int cursor,foot;float occlusionTime;
+        bool castle;
         AudioSource rain,room,dispatch,interfaceVoice,safeMusic,houseMusic,huntMusic,playerBreath;
         float duck=1,uiCooldown;
         bool lastJournal;
@@ -27,10 +28,14 @@ namespace HollowCurrent
             game=owner;
             foreach(var clip in Resources.LoadAll<AudioClip>("Audio"))clips[clip.name]=clip;
             foreach(var clip in Resources.LoadAll<AudioClip>("HiggsfieldAudio")){clips[clip.name]=clip;generated.Add(clip.name);clip.LoadAudioData();}
+            // The castle layers its own clips (Resources/CastleAudio, keyed by file
+            // name) over the shared ones; missing required clips become silence.
+            castle=game.Map==MapId.Castle;
+            if(castle)foreach(var clip in Resources.LoadAll<AudioClip>("CastleAudio")){clips[clip.name]=clip;clip.LoadAudioData();}
             foreach(string id in new[]{"music_safety","music_house","music_hunt","breath_hidden","breath_presence","apparition","capture","ui_paper","evidence_filed","containment_release"})
-                if(!generated.Contains(id))throw new InvalidOperationException("Required Higgsfield audio missing: "+id);
+                if(!generated.Contains(id)){if(!castle)throw new InvalidOperationException("Required Higgsfield audio missing: "+id);if(!clips.ContainsKey(id)){MissingArt.Report("audio",id);clips[id]=MissingArt.Silence;}}
             foreach(string id in new[]{"step_wood_0","step_tile_0","step_carpet_0","step_gravel_0","rain","roomtone","voice_evp","voice_arrival"})
-                if(!clips.ContainsKey(id))throw new InvalidOperationException("Required authored audio missing: "+id);
+                if(!clips.ContainsKey(id)){if(!castle)throw new InvalidOperationException("Required authored audio missing: "+id);MissingArt.Report("audio",id);clips[id]=MissingArt.Silence;}
             for(int i=0;i<12;i++)
             {
                 var g=new GameObject("Spatial voice "+i);g.SetActive(false);g.transform.SetParent(transform);var a=g.AddComponent<AudioSource>();
@@ -52,7 +57,10 @@ namespace HollowCurrent
         }
         public void Speak(string id,Vector3? location=null)
         {
-            if(!clips.TryGetValue("voice_"+id,out var clip))throw new InvalidOperationException("Missing speech "+id);
+            // Castle speech uses its own cc_ lines only (voice_cc_<id>); never the house's voices.
+            AudioClip clip;
+            if(castle){if(!clips.TryGetValue("voice_cc_"+id,out clip)){MissingArt.Report("speech","voice_cc_"+id);return;}}
+            else if(!clips.TryGetValue("voice_"+id,out clip))throw new InvalidOperationException("Missing speech "+id);
             PlayedSpeech++;
             if(location.HasValue){int slot=Play(clip,location.Value,.70f,1);speechUntil[slot]=Time.unscaledTime+clip.length;return;}
             dispatch.Stop();dispatch.clip=clip;dispatch.Play();
@@ -66,7 +74,7 @@ namespace HollowCurrent
             }
             if(id=="voice"){Speak("evp",position);return;}
             if(id=="breath")id="breath_presence";
-            if(!clips.TryGetValue(id,out var clip))throw new InvalidOperationException("Missing sound "+id);
+            if(!clips.TryGetValue(id,out var clip)){if(castle){MissingArt.Report("audio",id);return;}throw new InvalidOperationException("Missing sound "+id);}
             if(generated.Contains(id))GeneratedCues++;
             Play(clip,position+Vector3.up*.12f,volume,1+(cursor%5-2)*.012f);
         }

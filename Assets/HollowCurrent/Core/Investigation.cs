@@ -12,6 +12,10 @@ namespace HollowCurrent
     // Pure deterministic rules: no scene, provider, clock, or random dependency.
     public sealed class Investigation
     {
+        // Per-map names and text (CaseBook.Bellwether unless a map says otherwise).
+        public CaseBook Book { get; }
+        public Investigation() : this(CaseBook.Bellwether) { }
+        public Investigation(CaseBook book) { Book = book ?? CaseBook.Bellwether; }
         public Phase Phase { get; private set; } = Phase.Briefing;
         public readonly HashSet<Evidence> Evidence = new HashSet<Evidence>();
         public readonly HashSet<string> Notes = new HashSet<string>();
@@ -24,7 +28,7 @@ namespace HollowCurrent
         public float SealProgress { get; private set; }
         public int Hunts { get; private set; }
         public int WrongDiagnoses { get; private set; }
-        public int ContextCount => (Notes.Contains("Family photograph")?1:0)+(Notes.Contains("Child's drawing")?1:0)+(Notes.Contains("Furnace diary")?1:0);
+        public int ContextCount => (Notes.Contains(Book.NoteTitles[0])?1:0)+(Notes.Contains(Book.NoteTitles[1])?1:0)+(Notes.Contains(Book.NoteTitles[2])?1:0);
         public bool MysteryReady => Evidence.Count==3&&ContextCount==3&&Survived&&!Diagnosed&&!Terminal&&Phase!=Phase.Warning&&Phase!=Phase.Hunt;
         public bool Terminal => Phase == Phase.Dead || Phase == Phase.Won;
         public event Action<string> Message;
@@ -50,7 +54,7 @@ namespace HollowCurrent
         {
             if (Equipped) return false;
             Equipped = true;
-            Say("Dispatch / Three instruments checked. Read the family notes. Find a hiding place before you need one.");
+            Say(Book.EquipMessage);
             return true;
         }
         public void EnterHouse()
@@ -61,7 +65,7 @@ namespace HollowCurrent
         {
             if (!Equipped || Terminal || Phase == Phase.Hunt || Phase == Phase.Warning || Phase == Phase.Briefing) return false;
             if (!Evidence.Add(value)) return false;
-            Say("Evidence secured / " + value + ". Journal updated.");
+            Say("Evidence secured / " + Book.EvidenceName(value) + ". Journal updated.");
             if (Evidence.Count == 1 && Phase == Phase.Survey) Set(Phase.Disturbance);
             return true;
         }
@@ -77,20 +81,18 @@ namespace HollowCurrent
             if(anchor!=AnchorKind.MusicBox||pattern!=HauntingPattern.DomesticLoop||closure!=ClosureMethod.LetSongEnd)
             {
                 WrongDiagnoses++;
-                Say(anchor!=AnchorKind.MusicBox?"Case reconstruction / The diary describes an object returning to the same place. Reconsider the anchor.":
-                    pattern!=HauntingPattern.DomesticLoop?"Case reconstruction / Compare the repeated instruction with the family's evening routine.":
-                    "Case reconstruction / The drawing says what happens when the tune is interrupted. Reconsider the closure.");
+                Say(anchor!=AnchorKind.MusicBox?Book.WrongAnchor:pattern!=HauntingPattern.DomesticLoop?Book.WrongPattern:Book.WrongClosure);
                 return false;
             }
             Diagnosed=true;Set(Phase.Containment);
-            Say("Dispatch / A domestic loop, held by the music box. Stabilize the power, then hold the lid gently while the last notes end. Do not wind it again.");
+            Say(Book.Diagnosed);
             return true;
         }
         public void RestorePower()
         {
             if (Phase == Phase.Hunt || Phase == Phase.Warning || Terminal) return;
             BreakerOn = true;
-            Say("Power restored / The field instruments stabilize. A little tune carries through the pipes.");
+            Say(Book.PowerRestored);
         }
         public void Tick(float dt, bool inside)
         {
@@ -105,7 +107,7 @@ namespace HollowCurrent
             {
                 Survived = true;
                 Set(Phase.Recovery);
-                Say("Dispatch / Signal restored. Breathe. You have a quiet window. Finish collecting evidence.");
+                Say(Book.RecoveryMessage);
             }
             else if (Phase == Phase.Recovery && PhaseTime >= 32)
             {
@@ -117,7 +119,7 @@ namespace HollowCurrent
             if (Terminal || Phase == Phase.Return || Phase == Phase.Containment) return;
             BreakerOn = false;
             Set(Phase.Warning);
-            Say("Dispatch / Nine seconds. Get out of its sight. Hide, switch off your torch, stay quiet. The front door is still open.");
+            Say(Book.WarningMessage);
         }
         public void Seal(float dt, bool holding, bool atAnchor)
         {
@@ -128,7 +130,7 @@ namespace HollowCurrent
             if (SealProgress >= 1)
             {
                 Set(Phase.Return);
-                Say("Dispatch / Anchor is sealed. Leave it where it is. Return to the van and close the case.");
+                Say(Book.SealedMessage);
             }
         }
         public bool FinishAtVan()
@@ -143,19 +145,19 @@ namespace HollowCurrent
         {
             get
             {
-                if (!Equipped) return "Collect the field kit from the van rack [E].";
+                if (!Equipped) return Book.GoalNoKit;
                 switch (Phase)
                 {
-                    case Phase.Briefing: return "Enter 14 Bellwether Lane. Read the note in the foyer.";
-                    case Phase.Warning: return "BREAK LINE OF SIGHT · hide [E] · torch off [F] · stay quiet";
-                    case Phase.Hunt: return "Break sight and hide. She follows sight and sound, even outside.";
-                    case Phase.Containment: return BreakerOn ? "Hold the music-box lid [E]. Let the last notes end." : "Restore the basement breaker [E].";
-                    case Phase.Return: return "Return to the van. Close the case at the desk [E].";
-                    case Phase.Won: return "CASE CLOSED";
-                    case Phase.Dead: return "SIGNAL LOST";
+                    case Phase.Briefing: return Book.GoalBriefing;
+                    case Phase.Warning: return Book.GoalWarning;
+                    case Phase.Hunt: return Book.GoalHunt;
+                    case Phase.Containment: return BreakerOn ? Book.GoalContainmentOn : Book.GoalContainmentOff;
+                    case Phase.Return: return Book.GoalReturn;
+                    case Phase.Won: return Book.GoalWon;
+                    case Phase.Dead: return Book.GoalDead;
                     default:
-                        if (Evidence.Count == 3) return !Survived ? "The house is reacting. Find cover before it finds you." : ContextCount<3 ? "The instrument records need context. Examine the family's photograph, drawing and diary." : "Reconstruct the haunting in your journal [J].";
-                        return "Follow activity. Record what the instruments reveal. Compare it with the family's notes.";
+                        if (Evidence.Count == 3) return !Survived ? Book.GoalReacting : ContextCount<3 ? Book.GoalNeedContext : Book.GoalReconstruct;
+                        return Book.GoalDefault;
                 }
             }
         }

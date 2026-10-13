@@ -56,7 +56,9 @@ namespace HollowCurrent
             var page=GameObject.CreatePrimitive(PrimitiveType.Quad);page.name="Original clue art / "+textureName;page.transform.SetParent(w.Root,false);
             page.transform.position=item.position+Vector3.up*(item.localScale.y*.5f+.001f);page.transform.rotation=Quaternion.Euler(90,0,0);page.transform.localScale=new Vector3(item.localScale.x,item.localScale.z,1);
             page.GetComponent<Collider>().enabled=false;
-            var texture=Resources.Load<Texture2D>("Surfaces/"+textureName);if(!texture)throw new InvalidOperationException("Original clue texture missing: "+textureName);
+            var texture=Resources.Load<Texture2D>("Surfaces/"+textureName);
+            if(!texture&&MissingArt.Placeholders){MissingArt.Report("texture",textureName);texture=MissingArt.MagentaTexture;}
+            if(!texture)throw new InvalidOperationException("Original clue texture missing: "+textureName);
             var material=new Material(Shader.Find("Standard")){name="Original clue paper / "+textureName,mainTexture=texture};material.SetFloat("_Glossiness",.03f);
             page.GetComponent<Renderer>().sharedMaterial=material;page.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
         }
@@ -74,6 +76,8 @@ namespace HollowCurrent
         public static Transform Place(Transform parent,string name,Vector3 floor,Vector3 size,float yaw)
         {
             var prefab=Resources.Load<GameObject>("Furniture/"+name);
+            if(!prefab&&MissingArt.Placeholders)
+            {var stand=MissingArt.Placeholder(parent,name,size);stand.position=floor;stand.rotation=Quaternion.Euler(0,yaw,0);return stand;}
             if(!prefab)throw new InvalidOperationException("Required original detail model missing: "+name);
             var root=new GameObject("Original detail / "+name).transform;root.SetParent(parent,false);root.position=floor;root.rotation=Quaternion.Euler(0,yaw,0);
             var model=UnityEngine.Object.Instantiate(prefab,root,false).transform;var filters=model.GetComponentsInChildren<MeshFilter>();

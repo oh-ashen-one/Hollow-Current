@@ -97,9 +97,15 @@ namespace HollowCurrent
             for(int c=32;c<128;c++){glyphs[c]=((char)c).ToString();glyphWidths[c]=kicker.CalcSize(new GUIContent(glyphs[c])).x+2.4f;}
             dialogueText=new GUIStyle(body){font=serif,fontSize=24,wordWrap=true,alignment=TextAnchor.UpperLeft};
             hudGoal=new GUIStyle(body){font=serif,fontSize=19,wordWrap=true};hudTiny=new GUIStyle(small){fontSize=12};
-            dialogueCard=Resources.Load<Texture2D>("UI/MourningNote/Dialogue");
-            warningCard=Resources.Load<Texture2D>("UI/MourningNote/Warning");paperPanel=Resources.Load<Texture2D>("UI/MourningNote/Panel");
-            if(!dialogueCard||!warningCard||!paperPanel)throw new InvalidOperationException("Approved Mourning Note artwork is missing");
+            string cards=CaseBook.For(Game.Map).UiArtFolder;
+            dialogueCard=Resources.Load<Texture2D>(cards+"/Dialogue");
+            warningCard=Resources.Load<Texture2D>(cards+"/Warning");paperPanel=Resources.Load<Texture2D>(cards+"/Panel");
+            if(!dialogueCard||!warningCard||!paperPanel)
+            {
+                if(!MissingArt.Placeholders)throw new InvalidOperationException("Approved Mourning Note artwork is missing");
+                MissingArt.Report("ui",cards);
+                if(!dialogueCard)dialogueCard=MissingArt.MagentaTexture;if(!warningCard)warningCard=MissingArt.MagentaTexture;if(!paperPanel)paperPanel=MissingArt.MagentaTexture;
+            }
             backdrop=Resources.Load<Texture2D>("UI/MenuBackdrop");
             artworkMaterial=new Material(Resources.Load<Shader>("UIArtwork"));
             trackTexture=Solid(new Color(.21f,.24f,.24f));thumbTexture=Solid(copper);hoverTexture=Solid(ink);
@@ -164,13 +170,13 @@ namespace HollowCurrent
             artworkMaterial.SetColor("_Tint",(tint??Color.white).linear);
             Graphics.DrawTexture(new Rect(p.x,p.y,size.x,size.y),texture,artworkMaterial);GUI.matrix=matrix;
         }
-        void Brand(string right="BELLWETHER LANE  /  CASE 014")
-        {Track(80,48,"HOLLOW CURRENT",ink);Track(80,78,"FIELD INVESTIGATION OFFICE",muted);Label(1110,51,410,35,right,small);Rule(80,121,50);}
+        void Brand(string right=null)
+        {right=right??Book.PlaceTag+"  /  "+Book.CaseTag;Track(80,48,"HOLLOW CURRENT",ink);Track(80,78,"FIELD INVESTIGATION OFFICE",muted);Label(1110,51,410,35,right,small);Rule(80,121,50);}
         void Footer(string hint)
         {
             if(PadInput.Active)hint=PadInput.Current.PlayStation?"D-pad / left stick navigate   ·   × select   ·   ○ back   ·   Options pause":"D-pad / left stick navigate   ·   A select   ·   B back   ·   Start pause";
             else if(PadInput.Current&&!PadInput.Current.Connected&&PadInput.Current.DeviceName!="No controller")hint="Controller disconnected. Reconnect, or use keyboard and mouse.";
-            Rule(80,843,1440);Label(80,863,1160,25,hint,small);Label(1260,863,260,25,"THE BELLWETHER HOUSE",kicker);
+            Rule(80,843,1440);Label(80,863,1160,25,hint,small);Label(1260,863,260,25,Book.FooterName,kicker);
         }
         void TextureFrame(Rect rect,Texture texture,Color tint)
         {
@@ -221,7 +227,7 @@ namespace HollowCurrent
         }
         void Loading()
         {
-            Backdrop(false,.15f);Brand("FIELD OFFICE  /  PREPARING CASE");Card(new Rect(45,210,750,555));Track(80,245,"RETURNING TO BELLWETHER");
+            Backdrop(false,.15f);Brand("FIELD OFFICE  /  PREPARING CASE");Card(new Rect(45,210,750,555));Track(80,245,Book.LoadingTrack);
             Label(76,288,680,178,"A new\ninvestigation.",hero);
             Label(82,520,540,50,Game.LoadingProgress<.01f?"Preparing the case files…":"Restoring the house and field equipment…");
             Rule(82,604,510);Panel(new Rect(82,603,510*Mathf.Clamp01(Game.LoadingProgress),3),copper);
@@ -232,15 +238,15 @@ namespace HollowCurrent
         {Label(x,y,180,55,value,number);Track(x,y+65,label,muted);}
         void Ending()
         {
-            bool won=Game.Case.Phase==Phase.Won;Backdrop(!won,won?0:.14f);Brand();if(won)Card(new Rect(45,145,850,685));else DarkCard(new Rect(45,145,850,685));Track(80,175,won?"CASE 014 / CLOSED":"LAST TRANSMISSION / LOST");
-            Label(76,214,635,188,won?"The house\nfalls silent.":"Signal\nlost.",hero);
-            Label(82,428,530,125,won?"The music box is quiet. The furnace cools.\nFor the first time in weeks, no one sets the fourth chair.\n\nThe Harrows can begin again.":"Your last transmission dissolves into static.\n\nBreak sight before hiding. Silence the torch and radio. She can follow you to the van.");
+            bool won=Game.Case.Phase==Phase.Won;Backdrop(!won,won?0:.14f);Brand();if(won)Card(new Rect(45,145,850,685));else DarkCard(new Rect(45,145,850,685));Track(80,175,won?Book.CaseTag+" / CLOSED":"LAST TRANSMISSION / LOST");
+            Label(76,214,635,188,won?Book.WonHero:"Signal\nlost.",hero);
+            Label(82,428,530,125,won?Book.WonBody:Book.LostBody);
             Metric(82,588,Game.Case.Evidence.Count+" / 3","EVIDENCE");Metric(285,588,(Game.Case.Survived?Game.Case.Hunts:0).ToString(),"HUNTS SURVIVED");Metric(505,588,TimeSpan.FromSeconds(Game.Case.Elapsed).ToString(@"mm\:ss"),"FIELD TIME");
             Panel(new Rect(261,597,1,76),line);Panel(new Rect(481,597,1,76),line);
             if(!won&&Game.HasCheckpoint&&Action(80,704,440,52,"RETRY CHECKPOINT","",true))Game.RetryCheckpoint();
             if(Action(80,772,440,52,"NEW INVESTIGATION","N",won))Game.Retry();
             if(Action(543,736,310,46,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
-            Footer(won?"CONTAINMENT CONFIRMED   /   FIELD RECORD ARCHIVED":"CASE UNRESOLVED   /   A NEW INVESTIGATION CAN BEGIN");
+            Footer(won?Book.WonFooter:Book.LostFooter);
         }
         float SliderRow(float x,float y,float w,string label,float value,float min,float max,string formatted,string hint)
         {
@@ -270,7 +276,7 @@ namespace HollowCurrent
             Card(new Rect(520,173,1000,635));
             if(displaySettings)
             {
-                Track(558,202,"MOURNING NOTE / DIALOGUE DISPLAY");
+                Track(558,202,Book.CardStyle+" / DIALOGUE DISPLAY");
                 Game.SubtitleScale=SliderRow(558,256,924,"Subtitle size",Game.SubtitleScale,.85f,1.3f,Mathf.RoundToInt(Game.SubtitleScale*100)+"%","Larger type for living-room play");
                 Game.CardOpacity=SliderRow(558,372,924,"Card opacity",Game.CardOpacity,.55f,1,Mathf.RoundToInt(Game.CardOpacity*100)+"%","Message text stays fully readable");
                 Game.Subtitles=ToggleRow(558,487,924,"Subtitles",Game.Subtitles);
@@ -288,10 +294,11 @@ namespace HollowCurrent
         }
         void Note()
         {
-            Backdrop(false,.48f);Brand("RECOVERED DOCUMENT / CASE 014");
-            Card(new Rect(80,166,1440,633));Track(115,190,"FAMILY ARCHIVE");Label(112,224,1365,65,Game.NoteTitle,heading);Rule(116,300,1368);
-            string asset=Game.NoteTitle=="Child's drawing"?"ChildDrawing":Game.NoteTitle=="Furnace diary"?"FurnaceDiary":Game.NoteTitle=="Family photograph"?"FamilyPhoto":null;
-            var texture=asset==null?null:Resources.Load<Texture2D>("Surfaces/"+asset);
+            Backdrop(false,.48f);Brand("RECOVERED DOCUMENT / "+Book.CaseTag);
+            Card(new Rect(80,166,1440,633));Track(115,190,Book.ArchiveTrack);Label(112,224,1365,65,Game.NoteTitle,heading);Rule(116,300,1368);
+            // Art per map from CaseBook.NoteArt; a missing castle page falls back to text only.
+            string asset=Book.NoteArtFor(Game.NoteTitle);
+            var texture=asset==null?null:Resources.Load<Texture2D>(asset);
             if(texture)
             {
                 var area=new Rect(125,338,580,364);float fit=Mathf.Min(area.width/texture.width,area.height/texture.height);
@@ -319,7 +326,7 @@ namespace HollowCurrent
         }
         void Journal()
         {
-            Backdrop(false,.52f);Brand("FIELD JOURNAL / CASE 014");Label(77,147,1100,62,"What holds the house?",heading);
+            Backdrop(false,.52f);Brand("FIELD JOURNAL / "+Book.CaseTag);Label(77,147,1100,62,Book.JournalQuestion,heading);
             Card(new Rect(80,229,610,568));Card(new Rect(728,229,792,568));Track(111,252,"INSTRUMENT RECORDS");
             float y=293;
             foreach(Evidence e in Enum.GetValues(typeof(Evidence)))
@@ -327,17 +334,17 @@ namespace HollowCurrent
                 bool yes=Game.Case.Evidence.Contains(e);Panel(new Rect(111,y+4,3,67),yes?copper:line);
                 Track(130,y,yes?"RECORDED":"NOT RECORDED",yes?copper:muted);Label(130,y+26,526,65,EvidenceText(e,yes),evidenceStyle);y+=90;
             }
-            Rule(111,570,548);Track(111,592,"FAMILY CONTEXT");
-            string[] names={"Family photograph","Child's drawing","Furnace diary"};
+            Rule(111,570,548);Track(111,592,Book.ContextTrack);
+            string[] names=Book.NoteTitles;
             for(int i=0;i<3;i++)
             {
                 bool filed=Game.Case.Notes.Contains(names[i]);GUI.enabled=filed;
                 if(Action(110,620+i*34,549,32,names[i],filed?"OPEN":"—",false,true))OpenFiledNote(names[i]);GUI.enabled=true;
             }
-            Choice(260,"ANCHOR / WHAT KEEPS RETURNING?",new[]{"The doll","The furnace","The music box"},ref anchor,1);
-            Choice(387,"PATTERN / WHAT IS REPEATED?",new[]{"An evening routine","Our own words","A person's journey"},ref pattern,4);
-            Choice(514,"CLOSURE / WHAT SHOULD WE DO?",new[]{"Let the song end","Burn the anchor","Move the anchor"},ref closure,7);
-            Label(760,630,718,48,Game.Case.Diagnosed?"Reconstruction filed. Follow the containment procedure.":Game.Case.MysteryReady?"Compare the records with the family's notes. Each conclusion needs support.":"Reconstruction needs three records, the photograph, drawing and diary, and a hunt survived.",small);
+            Choice(260,"ANCHOR / WHAT KEEPS RETURNING?",Book.AnchorChoices,ref anchor,1);
+            Choice(387,"PATTERN / WHAT IS REPEATED?",Book.PatternChoices,ref pattern,4);
+            Choice(514,"CLOSURE / WHAT SHOULD WE DO?",Book.ClosureChoices,ref closure,7);
+            Label(760,630,718,48,Game.Case.Diagnosed?"Reconstruction filed. Follow the containment procedure.":Game.Case.MysteryReady?Book.JournalReady:Book.JournalNotReady,small);
             GUI.enabled=CanSubmit();if(Action(760,690,718,46,"FILE RECONSTRUCTION","ENTER",true))Submit();GUI.enabled=true;
             if(Action(1240,149,280,48,"CLOSE JOURNAL","J",false,true)){Game.Journal=false;Game.ApplyFocus();}
             Footer("1–9 choose a conclusion   ·   ENTER file reconstruction   ·   J or ESC close");
@@ -346,12 +353,10 @@ namespace HollowCurrent
         {foreach(var item in Game.World.Root.GetComponentsInChildren<Interactable>())if(item.Kind==InteractKind.Note&&item.Label==title){item.Use(Game);return;}}
         string EvidenceText(Evidence e,bool yes)
         {
-            if(e==Evidence.Induction)return yes?"Pulse / A regular signal at the empty place setting. It repeats even when nobody moves.":"Pulse / Sweep for persistent activity, then hold the reader steady.";
-            if(e==Evidence.Handprint)return yes?"Trace / A hand beside the bedroom window. The mark stays after the figure is gone.":"Trace / Examine surfaces the family describes with ultraviolet.";
-            return yes?"Reply / 'Her chair. Do not put it away. Keep the house warm.' A domestic instruction.":"Reply / Record where activity persists. Ask once, stay still and listen.";
+            return yes?Book.EvidenceRecorded[(int)e]:Book.EvidenceMissing[(int)e];
         }
         void Submit(){if(!CanSubmit())return;Game.Case.Conclude((AnchorKind)anchor,(HauntingPattern)pattern,(ClosureMethod)closure);Game.Journal=false;Game.ApplyFocus();}
-        string Location(){var p=Game.Player;if(p.InVan)return "FIELD VAN";if(!p.Inside)return "BELLWETHER LANE";return p.transform.position.y< -1?"BASEMENT":p.transform.position.y>2?"UPPER FLOOR":"GROUND FLOOR";}
+        string Location(){var p=Game.Player;var b=Book;if(p.InVan)return b.LocSafe;if(!p.Inside)return b.LocOutside;float y=p.transform.position.y;return y< -1?b.LocLower:y>b.TowerY?b.LocTower:y>2?b.LocUpper:b.LocGround;}
         void Dialogue(Rect rect,string speaker,string text,bool danger,float fade)
         {
             TextureFrame(rect,danger?warningCard:dialogueCard,new Color(1,1,1,Game.CardOpacity*fade));
@@ -373,7 +378,7 @@ namespace HollowCurrent
                 if(divider>=0){dialogueSpeaker=cachedSubtitle.Substring(0,divider).ToUpperInvariant();dialogueBody=cachedSubtitle.Substring(divider+3);}
                 
                 if(dialogueSpeaker=="DISPATCH"||dialogueSpeaker=="RADIO")dialogueSpeaker+=" / CHANNEL 04";
-                if(dialogueSpeaker=="EVIDENCE SECURED")dialogueSpeaker="CASE 014 / EVIDENCE RECORDED";
+                if(dialogueSpeaker=="EVIDENCE SECURED")dialogueSpeaker=Book.CaseTag+" / EVIDENCE RECORDED";
             }
             dialogueText.fontSize=Mathf.RoundToInt(24*Game.SubtitleScale);
             float height=Mathf.Clamp(dialogueText.CalcHeight(new GUIContent(dialogueBody),460)/.53f,125,245);
@@ -387,7 +392,7 @@ namespace HollowCurrent
         }
         void HUD()
         {
-            if(shownRecords!=Game.Case.Evidence.Count){shownRecords=Game.Case.Evidence.Count;recordLabel="CASE 014 / "+shownRecords+" RECORDS";}
+            if(shownRecords!=Game.Case.Evidence.Count){shownRecords=Game.Case.Evidence.Count;recordLabel=Book.CaseTag+" / "+shownRecords+" RECORDS";}
             Track(42,24,"OBJECTIVE",ink);Rule(42,53,320);Track(660,24,"HOLLOW CURRENT",ink);Rule(660,53,285);Label(42,63,690,70,Game.Case.Goal,hudGoal);
             Label(1290,28,268,28,Location(),rightBody);Panel(new Rect(1355,62,200,1),copper);Label(1290,73,268,24,recordLabel,rightBody);
             Panel(new Rect(798,448,4,4),new Color(.8f,.8f,.7f,.7f));var p=Game.Player;
@@ -396,7 +401,7 @@ namespace HollowCurrent
             Label(405,510,790,62,interaction,center);if(p.Capture>0)Panel(new Rect(630,568,340*Mathf.Clamp01(p.Capture),3),copper);
             if(Game.Case.SealProgress>0){Label(545,583,510,30,"SEALING "+Mathf.RoundToInt(Game.Case.SealProgress*100)+"%",center);Panel(new Rect(615,622,370*Game.Case.SealProgress,3),copper);}
             if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))SubtitleCard();
-            Track(42,796,p.Tool==1?"INDUCTION READER":p.Tool==2?"ULTRAVIOLET":"EVP RECORDER",ink);
+            Track(42,796,Book.InstrumentNames[Mathf.Clamp(p.Tool-1,0,2)],ink);
             Label(42,824,290,48,Game.Scares.Interference?"SIGNAL UNSTABLE":p.Capture>0?"RECORDING… HOLD STEADY":p.Tool==1?p.InductionDisplay+" / 5.0":"FIELD KIT CONNECTED",hudTiny);
             bool ps=PadInput.Active&&PadInput.Current.PlayStation;
             KeyPill(1315,800,PadInput.Active?(ps?"R2":"RT"):"LMB",p.Tool==3?"ASK / RECORD":"HOLD TO RECORD");

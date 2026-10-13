@@ -20,6 +20,7 @@ namespace HollowCurrent
         static bool startOnLoad;
         public static bool MapAvailable(MapId map)=>Application.CanStreamedLevelBeLoaded(MapCatalog.Get(map).SceneName);
         public Investigation Case {get;private set;}
+        public CaseBook Book=>Case.Book;
         public World World {get;private set;}
         public Investigator Player {get;private set;}
         public Presence Creature {get;private set;}
@@ -74,7 +75,8 @@ namespace HollowCurrent
             if(!bakedHouse)
             {RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.105f,.13f,.16f);RenderSettings.ambientEquatorColor=new Color(.055f,.06f,.07f);RenderSettings.ambientGroundColor=new Color(.025f,.028f,.03f);}
             RenderSettings.fog=true;RenderSettings.fogColor=new Color(.025f,.04f,.055f);RenderSettings.fogDensity=.012f;RenderSettings.fogMode=FogMode.Exponential;
-            Case=new Investigation();Case.Message+=Say;Case.Changed+=PhaseChanged;
+            MissingArt.Placeholders=Map!=MapId.Bellwether;
+            Case=new Investigation(CaseBook.For(Map));Case.Message+=Say;Case.Changed+=PhaseChanged;
             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
             if(!bakedHouse)
             {var moon=new GameObject("Cold overcast sky").AddComponent<Light>();moon.transform.SetParent(World.Root);moon.type=LightType.Directional;moon.color=new Color(.36f,.51f,.75f);moon.intensity=.16f;moon.transform.rotation=Quaternion.Euler(55,-30,0);moon.shadows=LightShadows.None;}
@@ -88,7 +90,7 @@ namespace HollowCurrent
             foreach(var lamp in World.Lamps)lampLevels[lamp]=lamp.intensity;
             foreach(var doll in World.Dolls)dollHomes[doll]=doll.position;
             gameObject.AddComponent<Interface>().Game=this;
-            Say("Dispatch / Bellwether House. Family evacuated. Keep an escape route. She can reach the van. Collect the kit and read your brief.");
+            Say(Book.Arrival);
             ApplyFocus();Debug.Log("HC_READY source-generated house; runtime route remains subject to playtest.");
             if(NativeVerification.Requested&&FindFirstObjectByType<NativeVerification>()==null)new GameObject("Opt-in native verification").AddComponent<NativeVerification>();
         }
@@ -209,8 +211,8 @@ namespace HollowCurrent
             Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);
             if(FieldMessages.ShowCard(value)){Subtitle=value;SubtitleTime=FieldMessages.CardSeconds(value);}
             if(Sound==null)return;
-            if(value.Contains("Family evacuated"))Sound.Speak("arrival");
-            else if(value.Contains("Three instruments"))Sound.Speak("kit");
+            if(value.Contains(Book.ArrivalCue))Sound.Speak("arrival");
+            else if(value.Contains(Book.KitCue))Sound.Speak("kit");
         }
         public void ToggleCircuit(Light lamp,Vector3 switchPosition)
         {
@@ -222,11 +224,11 @@ namespace HollowCurrent
         public void RadioHint()
         {
             if(radioCooldown>0)return;radioCooldown=8;
-            if(Scares&&Scares.Interference){Sound.Speak("whisper");Say("Radio / ...keep... the house... warm...");return;}
-            if(Case.Phase==Phase.Hunt||Case.Phase==Phase.Warning){Say("Radio / Find cover. Light off. Stay quiet.");Sound.Speak("warning");return;}
+            if(Scares&&Scares.Interference){Sound.Speak("whisper");Say(Book.RadioInterference);return;}
+            if(Case.Phase==Phase.Hunt||Case.Phase==Phase.Warning){Say(Book.RadioHunt);Sound.Speak("warning");return;}
             if(Case.Diagnosed){Say("Dispatch / "+Case.Goal);Sound.Speak(Case.Phase==Phase.Return?"return":"contain");return;}
             string hint=!Case.Evidence.Contains(Evidence.Induction)?"hint_signal":!Case.Evidence.Contains(Evidence.Handprint)?"hint_trace":"hint_voice";
-            Say("Dispatch / "+(hint=="hint_signal"?"Follow the meter through the rooms they used most.":hint=="hint_trace"?"Look at what the family left behind. Ultraviolet may reveal a trace.":"The recorder needs a quiet room. Ask once, then listen."));Sound.Speak(hint);
+            Say("Dispatch / "+(hint=="hint_signal"?Book.HintSignal:hint=="hint_trace"?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
         }
         void PhaseChanged(Phase phase)
         {

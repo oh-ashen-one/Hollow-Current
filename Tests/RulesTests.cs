@@ -86,5 +86,27 @@ static class RulesTests
         Assert(MapCatalog.TryParse("castle",out var parsed)&&parsed==MapId.Castle&&!MapCatalog.TryParse("Attic",out _),"map argument parsing");
         Assert(MapCatalog.TryFromSceneName("Castle",out var scene)&&scene==MapId.Castle&&!MapCatalog.TryFromSceneName("Untitled",out _),"scene name lookup");
         Assert(MapCatalog.FromPreference(1)==MapId.Castle&&MapCatalog.FromPreference(7)==MapId.Bellwether&&MapCatalog.FromPreference(-1)==MapId.Bellwether,"corrupt preference falls back to Bellwether");
+        foreach(var book in new[]{CaseBook.Bellwether,CaseBook.Castle})
+        {
+            foreach(var field in typeof(CaseBook).GetFields())
+            {
+                var value=field.GetValue(book);
+                if(field.FieldType==typeof(string))Assert(value!=null,book.Map+" CaseBook."+field.Name+" is set");
+                if(field.FieldType==typeof(string[]))Assert(value!=null&&((string[])value).Length==3,book.Map+" CaseBook."+field.Name+" has three entries");
+            }
+        }
+        Assert(new Investigation().Book==CaseBook.Bellwether&&CaseBook.For(MapId.Castle)==CaseBook.Castle,"default investigation is Bellwether");
+        string said=null;var house=new Investigation();house.Message+=m=>said=m;house.Equip();house.EnterHouse();house.Record(Evidence.Handprint);
+        Assert(said=="Evidence secured / Handprint. Journal updated.","Bellwether evidence message unchanged");
+        Assert(house.Goal=="Follow activity. Record what the instruments reveal. Compare it with the family's notes.","Bellwether goal unchanged");
+        var castle=new Investigation(CaseBook.Castle);castle.Message+=m=>said=m;castle.Equip();castle.EnterHouse();
+        Assert(castle.Phase==Phase.Survey&&castle.Goal==CaseBook.Castle.GoalDefault,"castle goal text");
+        castle.Record(Evidence.Induction);Assert(said=="Evidence secured / Compass. Journal updated.","castle evidence name");
+        castle.Record(Evidence.Handprint);castle.Tick(95,true);castle.Tick(9,true);castle.Tick(38,true);castle.Record(Evidence.Voice);
+        castle.Read("Family photograph");castle.Read("Child's drawing");castle.Read("Furnace diary");Assert(castle.ContextCount==0&&!castle.MysteryReady,"house notes do not count in the castle");
+        foreach(var title in CaseBook.Castle.NoteTitles)castle.Read(title);Assert(castle.ContextCount==3&&castle.MysteryReady,"Blood Ledger pages make the castle ready");
+        Assert(!castle.Conclude(AnchorKind.Doll,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd)&&said==CaseBook.Castle.WrongAnchor,"castle wrong-anchor hint");
+        Assert(castle.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd)&&said==CaseBook.Castle.Diagnosed,"chapel bell slot solves the castle with the shared rules");
+        Assert(CaseBook.Castle.AnchorChoices[(int)AnchorKind.MusicBox]=="The chapel bell"&&CaseBook.Castle.NoteIds[0]=="cc_ledger_steward","castle anchor and ledger ids");
     }
 }

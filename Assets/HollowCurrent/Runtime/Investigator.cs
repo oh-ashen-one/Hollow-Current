@@ -226,24 +226,24 @@ namespace HollowCurrent
                 readerPulse-=dt;
                 if(reading>0&&readerPulse<=0){readerPulse=1.35f-reading*.21f;Game.Sound.Cue("confirm",View.transform.position,.055f);}
 
-                Instrument=near?"INDUCTION  5 / 5 · HOLD STEADY TO RECORD":dist<7?"INDUCTION  2 / 5 · SIGNAL NEARBY":"INDUCTION  0 / 5 · SWEEP FOR ACTIVITY";
+                Instrument=near?Game.Book.ReaderNear:dist<7?Game.Book.ReaderClose:Game.Book.ReaderIdle;
                 valid=near&&scanAngle<1.7f;
             }
             bool trace=Tool==2&&AimAt(Game.World.Print,4.5f,25);
             Game.World.Trace.gameObject.SetActive(trace||Game.Case.Evidence.Contains(Evidence.Handprint)&&Tool==2&&Vector3.Distance(View.transform.position,Game.World.Print)<5);
-            if(Tool==2){Instrument=trace?"ULTRAVIOLET · HANDPRINT · HOLD TO RECORD":"ULTRAVIOLET · INSPECT TOUCHED SURFACES";valid=trace;evidence=Evidence.Handprint;}
+            if(Tool==2){Instrument=trace?Game.Book.TraceFound:Game.Book.TraceIdle;valid=trace;evidence=Evidence.Handprint;}
             if(Tool==3)
             {
-                Instrument=PadInput.Active?"EVP RECORDER · R2 TO ASK: WHO IS HERE?":"EVP RECORDER · CLICK TO ASK: WHO IS HERE?";
-                if(input.Fire&&evp<=0){evp=4.2f;Game.Say("You / Who is keeping this house warm?");Game.Sound.Cue("radio",transform.position);Game.Creature.Hear(transform.position,8);}
+                Instrument=PadInput.Active?Game.Book.AskPad:Game.Book.AskKey;
+                if(input.Fire&&evp<=0){evp=4.2f;Game.Say(Game.Book.Question);Game.Sound.Cue("radio",transform.position);Game.Creature.Hear(transform.position,8);}
                 if(evp>0)
                 {
-                    evp-=dt;Instrument="EVP · LISTENING… STAY STILL";
+                    evp-=dt;Instrument=Game.Book.Listening;
                     if(evp<=0)
                     {
                         if(Vector3.Distance(transform.position,Game.World.Voice)<4&&!Moving&&Game.Case.Phase!=Phase.Hunt)
-                        {Game.Case.Record(Evidence.Voice);Game.Say("Recorder / Her chair. Do not put it away. Keep the house warm.");Game.Sound.Cue("voice",Game.World.Voice);}
-                        else Game.Say("Recorder / Only room noise. Find persistent activity, ask again, and stay still while listening.");
+                        {Game.Case.Record(Evidence.Voice);Game.Say(Game.Book.Reply);Game.Sound.Cue("voice",Game.World.Voice);}
+                        else Game.Say(Game.Book.NoReply);
                     }
                 }
                 Capture=0;return;

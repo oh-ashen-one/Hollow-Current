@@ -7,6 +7,8 @@ namespace HollowCurrent
         public static Transform Place(Transform parent,string name,Vector3 position,Quaternion rotation,Vector3 scale)
         {
             var prefab=Resources.Load<GameObject>("Architecture/"+name);
+            if(!prefab&&MissingArt.Placeholders)
+            {var stand=MissingArt.Placeholder(parent,name,Vector3.one*.5f);stand.localPosition=position;stand.localRotation=rotation;stand.localScale=scale;return stand;}
             if(!prefab)throw new InvalidOperationException("Required original architectural asset missing: "+name);
             var item=UnityEngine.Object.Instantiate(prefab,parent,false).transform;
             item.name="Authored / "+name;item.localPosition=position;item.localRotation=rotation;item.localScale=scale;

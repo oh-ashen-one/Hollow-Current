@@ -21,9 +21,9 @@ namespace HollowCurrent
                 case InteractKind.LightSwitch: game.ToggleCircuit(Circuit,transform.position);break;
                 case InteractKind.Breaker: game.Case.RestorePower();game.Sound.Cue("switch",transform.position);break;
                 case InteractKind.Van:
-                    if(!game.Case.FinishAtVan())game.ShowNote("CASE 014",game.Case.Goal+"\n\nThe van is safe. Equipment never runs out of charge. Take the time you need.");break;
+                    if(!game.Case.FinishAtVan())game.ShowNote(game.Book.FinishNoteTitle,game.Case.Goal+game.Book.FinishNoteSuffix);break;
                 case InteractKind.Anchor:
-                    if(game.Case.Phase!=Phase.Containment)game.Say("A tiny tune circles inside the box. Reconstruct what holds the house in your journal before attempting a seal.");break;
+                    if(game.Case.Phase!=Phase.Containment)game.Say(game.Book.AnchorNotReady);break;
             }
         }
     }

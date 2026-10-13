@@ -75,7 +75,7 @@ namespace HollowCurrent
             var saved=Object.FindFirstObjectByType<WorldLayout>();
             if(!saved){Build(map);return;}
             if(saved.Map!=map)Debug.LogWarning("HC_MAP_MISMATCH scene layout is "+saved.Map+", requested "+map);
-            Map=saved.Map;
+            Map=saved.Map;MissingArt.Placeholders=Map!=MapId.Bellwether;
             ownsMaterials=false;Root=saved.transform;Trace=saved.Trace;
             if(Map==MapId.Castle)ApplyCastlePoints(saved.Castle);
             Anchor=saved.Anchor;Induction=saved.Induction;Voice=saved.Voice;Print=saved.Print;
@@ -85,6 +85,7 @@ namespace HollowCurrent
         }
         public void Build(MapId map)
         {
+            MissingArt.Placeholders=map!=MapId.Bellwether;
             if(map==MapId.Castle)BuildCastle();else Build();
         }
         void ApplyCastlePoints(CastleWorld.Points p)
