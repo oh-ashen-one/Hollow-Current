@@ -364,19 +364,22 @@ def banner():
     """Oxblood hanging banner, 1.0 x 3.0 m with a swallow tail, brass rod and emblem. Origin: floor centre,
     hung from z=3.05 (rod). Double-sided cloth, front +Y."""
     b = Builder("Banner")
-    nx, ny = 4, 12
-    def fn(i, j):
-        u = i / nx * 2 - 1
-        length = 2.9 - .5 * (1 - abs(u))
-        z = 3.0 - j / ny * length
-        y = .04 * math.sin(j * .55 + i * .7) * (j / ny) + .01
-        return ((i / nx - .5) * 1.0, y, z)
-    b.grid_cloth(nx, ny, fn, OX)
-    with b.xf(Ry(90)):
-        b.lathe((-3.04, .0, -.65), [(.025, 0), (.025, 1.3)], 8, BRASS)
-    for sx in (-1, 1):
-        sphere(b, (sx * .65, 0, 3.04), .045, BRASS, seg=6)
-    b.poly([(0, 2.05), (.17, 1.85), (0, 1.55), (-.17, 1.85)], .03, .04, BRASS, 'XZ')
+    # Round 8: the whole banner is tilted 1 deg about its rod so the hem stands ~5 cm off the wall: a 2 cm offset still z-fought
+    # (row striping in S5) at grazing angles.
+    with b.xf(about((0, 0, 3.04), Rx(1))):
+        nx, ny = 4, 12
+        def fn(i, j):
+            u = i / nx * 2 - 1
+            length = 2.9 - .5 * (1 - abs(u))
+            z = 3.0 - j / ny * length
+            y = .04 * math.sin(j * .55 + i * .7) * (j / ny) + .01
+            return ((i / nx - .5) * 1.0, y, z)
+        b.grid_cloth(nx, ny, fn, OX)
+        with b.xf(Ry(90)):
+            b.lathe((-3.04, .0, -.65), [(.025, 0), (.025, 1.3)], 8, BRASS)
+        for sx in (-1, 1):
+            sphere(b, (sx * .65, 0, 3.04), .045, BRASS, seg=6)
+        b.poly([(0, 2.05), (.17, 1.85), (0, 1.55), (-.17, 1.85)], .03, .04, BRASS, 'XZ')
     return b
 
 BUILDERS = [
