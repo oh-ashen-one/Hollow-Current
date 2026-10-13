@@ -65,7 +65,7 @@ namespace HollowCurrent
             silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeSearch);presentationRemaining=seconds;Appearances++;Game.Sound.Cue("apparition",point+Vector3.up,.85f);return true;
         }
         // End a staged appearance immediately (capture tooling, scripted beats).
-        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;choreo=false;if(silhouette)silhouette.gameObject.SetActive(false);}
+        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;choreo=false;RestoreHiddenFloaters();if(silhouette)silhouette.gameObject.SetActive(false);}
         public void FacePlayer()
         {
             var delta=Game.Player.transform.position-transform.position;delta.y=0;
@@ -217,8 +217,12 @@ namespace HollowCurrent
 
         /// <summary>Capture hook (S5): crouch the Count on perch <paramref name="perchIndex"/> (its balustrade edge when
         /// one is in front of it), facing the open room, in Mode 0 Perch. Holds until Dismiss, ManifestAt or a phase change.</summary>
-        public bool StageForCapture(int perchIndex)
+        public bool StageForCapture(int perchIndex)=>StageForCapture(perchIndex,false);
+        /// <param name="clearViewLine">CaptureFraming then hides Floater props within 2 m of its eye-to-Count line
+        /// (r3 S5: a floating book covered his face); Dismiss restores them.</param>
+        public bool StageForCapture(int perchIndex,bool clearViewLine)
         {
+            clearCaptureView=clearViewLine;
             if(count==null||Game.World.PerchPoints.Count==0)return false;
             int i=Mathf.Clamp(perchIndex,0,Game.World.PerchPoints.Count-1);
             presentationRemaining=0;capturePresentation=false;fakeRush=false;agent.enabled=false;route.Clear();
@@ -235,8 +239,30 @@ namespace HollowCurrent
             float d=Mathf.Max(b.size.y,b.size.x*.5625f)/(Mathf.Clamp(fill,.1f,.95f)*2*Mathf.Tan(half));
             var dir=(transform.forward*Mathf.Cos(below*Mathf.Deg2Rad)-Vector3.up*Mathf.Sin(below*Mathf.Deg2Rad)).normalized;
             if(Physics.SphereCast(b.center,.25f,dir,out var hit,d,FlightMask,QueryTriggerInteraction.Ignore))d=Mathf.Max(1.2f,hit.distance-.3f);
-            eye=b.center+dir*d;target=b.center;return true;
+            eye=b.center+dir*d;target=b.center;
+            if(clearCaptureView)HideFloatersOnViewLine(eye,target);
+            return true;
         }
+        bool clearCaptureView;
+        readonly List<GameObject> hiddenFloaters=new List<GameObject>();
+        /// <summary>Capture only: deactivate every Floater whose renderers come within <paramref name="radius"/> of the
+        /// segment eye -> target (plus 1 m past the target). Returns how many were hidden; RestoreHiddenFloaters undoes it.</summary>
+        public int HideFloatersOnViewLine(Vector3 eye,Vector3 target,float radius=2f)
+        {
+            int hidden=0;var end=target+(target-eye).normalized;
+            foreach(var floater in Floater.All.ToArray())
+            {
+                if(!floater||!floater.gameObject.activeInHierarchy)continue;
+                var renderers=floater.GetComponentsInChildren<Renderer>();if(renderers.Length==0)continue;
+                var b=renderers[0].bounds;foreach(var r in renderers)b.Encapsulate(r.bounds);
+                var closest=ClosestOnSegment(eye,end,b.center);
+                if(Vector3.Distance(b.ClosestPoint(closest),closest)<radius){floater.gameObject.SetActive(false);hiddenFloaters.Add(floater.gameObject);hidden++;}
+            }
+            Debug.Log("HC_CAPTURE_FLOATERS_HIDDEN "+hidden+" eye="+eye+" target="+target);
+            return hidden;
+        }
+        public void RestoreHiddenFloaters(){foreach(var g in hiddenFloaters)if(g)g.SetActive(true);hiddenFloaters.Clear();clearCaptureView=false;}
+        static Vector3 ClosestOnSegment(Vector3 a,Vector3 b,Vector3 p){var ab=b-a;float t=Mathf.Clamp01(Vector3.Dot(p-a,ab)/Mathf.Max(ab.sqrMagnitude,1e-6f));return a+ab*t;}
         /// <summary>Capture helper: a neutral 1.8 m mannequin (the investigator's standing height) for scale shots.</summary>
         public static GameObject ScaleReference(Vector3 feet,float yaw,float height=1.8f)
         {
@@ -609,7 +635,7 @@ namespace HollowCurrent
         // Feint 1 [9.5,12.5) back to the perch; then it repeats. The investigator's view tracks his posed bounds at
         // the investigator's own eye height. Each phase change logs HC_COUNT_CAPTURE.
         public const float CapturePerchEnd=3.5f,CaptureGlideEnd=6.5f,CaptureDiveEnd=9.5f,CaptureFeintEnd=12.5f,CaptureDiveArrive=1.5f;
-        static readonly string[] CapturePhases={"Perch","Glide","Dive","Hold","Feint"};
+        static readonly string[] CapturePhases={"Perch","Glide","Dive","Grab","Feint"};
         bool choreo;
         float choreoClock;
         int choreoPhase=-1;
@@ -630,7 +656,8 @@ namespace HollowCurrent
             if(cCamForward.sqrMagnitude<.01f)cCamForward=player.transform.forward;cCamForward.Normalize();
             float hold=holdDistance>0?holdDistance:count.CaptureHoldDistance;
             cGlideEnd=ground+cCamForward*5.5f+Vector3.up*1.5f;          // Glide clip's lowest point is 0.10 m over this
-            cHold=ground+cCamForward*hold+Vector3.up*.8f;                // Dive pose centre ~0.8 m up: at the investigator's eye line
+            // Round 4: hold high enough that his lowest point clears the 0.08-1.1 m ground-fog planes (the r3 "bust cut").
+            cHold=ground+cCamForward*hold+Vector3.up*count.CaptureHoldHeight;
             presentationRemaining=0;capturePresentation=false;fakeRush=false;staged=false;agent.enabled=false;route.Clear();contact=0;
             CanSeePlayer=false;Memory.Clear();perchIndex=i;flight=Flight.Perched;
             transform.SetPositionAndRotation(cPerch,Quaternion.Euler(0,yaw,0));silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeIdle);
@@ -653,7 +680,8 @@ namespace HollowCurrent
             {
                 mode=Profile.ModeReach;float k=(t-CaptureGlideEnd)/CaptureDiveArrive;
                 if(k<1){phase=2;return Vector3.Lerp(cGlideEnd,cHold,k*k);}
-                phase=3;return cHold+Vector3.up*.06f*Mathf.Sin((t-CaptureGlideEnd-CaptureDiveArrive)*5);
+                // Climax: front-facing wing-wrap (Mode 6 Grab) at the hold, face to the camera.
+                phase=3;mode=count.ModeGrab;return cHold+Vector3.up*.05f*Mathf.Sin((t-CaptureGlideEnd-CaptureDiveArrive)*4);
             }
             phase=4;mode=Profile.ModeMove;float f=Mathf.SmoothStep(0,1,(t-CaptureDiveEnd)/(CaptureFeintEnd-CaptureDiveEnd));
             return Bezier(cHold,cHold+Vector3.up*1.4f+cCamForward*1.2f,cPerch+cFacing*2.2f+Vector3.up*1.2f,cPerch,f);
@@ -665,10 +693,12 @@ namespace HollowCurrent
             var ahead=ChoreoPosition(choreoClock+.05f,out _,out _);
             var eye=Game.Player.View.transform.position;
             var toCamera=eye-position;toCamera.y=0;
-            var heading=phase==0||phase==3?toCamera:ahead-position;heading.y=0;
+            // The feint backs away still facing the camera, then turns (no snap to his back while he is close).
+            bool facing=phase==0||phase==3||phase==4&&(choreoClock%CaptureFeintEnd)-CaptureDiveEnd<count.CaptureFeintFacingSeconds;
+            var heading=facing?toCamera:ahead-position;heading.y=0;
             float speed=(ahead-position).magnitude/.05f;
             transform.position=position;
-            if(heading.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(heading),(phase==0?120:540)*dt);
+            if(heading.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(heading),(phase==0?120:phase==4?150:540)*dt);
             actor.Pose(mode,1.2f+speed*.35f);
             if(phase!=choreoPhase)
             {

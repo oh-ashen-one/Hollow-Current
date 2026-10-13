@@ -128,19 +128,20 @@ namespace HollowCurrent
             // perch 0 in Mode 0 (Presence.StageForCapture, hc/count2), framed by
             // Presence.CaptureFraming (fill 0.5 of frame height, eye 30 degrees below him).
             Torch(true);Floater.SetFlameTarget(game.Creature.transform);
-            bool staged=game.Creature.StageForCapture(0);
+            bool staged=game.Creature.StageForCapture(0,true); // true: hide floaters within 2 m of the eye-to-Count line
             yield return new WaitForSecondsRealtime(1.5f);
             if(!game.Creature.CaptureFraming(.5f,30,out e,out t)){e=new Vector3(3.6f,1.64f,15.2f);t=game.Creature.transform.position+Vector3.up*1.2f;}
             Place(e,t);
-            yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"StageForCapture(0)="+staged+" Count feet "+V(game.Creature.transform.position)+", CaptureFraming(0.5,30), investigator torch on");
+            yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"StageForCapture(0,true)="+staged+" Count feet "+V(game.Creature.transform.position)+", CaptureFraming(0.5,30), investigator torch on");
             game.Creature.Dismiss();
             // S6: Count Claude standing on the courtyard floor (Mode 2 Search) with a 1.80 m
             // mannequin (Presence.ScaleReference) beside him for scale.
-            // S6 in the gatehouse (hc/count3): the courtyard dead tree no longer stands behind him.
-            game.Creature.ManifestAt(new Vector3(-.9f,0,4.4f),180,9999,true);
-            var man=Presence.ScaleReference(new Vector3(.35f,0,4.4f),180);
-            e=new Vector3(-.3f,1.15f,1.0f);t=new Vector3(-.3f,1.1f,4.4f);Place(e,t);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse; Count feet (-0.9,0,4.4) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (0.35,0,4.4), investigator torch on");
+            // S6 in the gatehouse facing the gate (hc/count4): the gatehouse table and the
+            // courtyard doorway are behind the camera.
+            game.Creature.ManifestAt(new Vector3(-.2f,0,2.2f),0,9999,true);
+            var man=Presence.ScaleReference(new Vector3(1.05f,0,2.2f),0);
+            e=new Vector3(.4f,1.15f,5.6f);t=new Vector3(.4f,1.1f,2.2f);Place(e,t);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse facing the gate; Count feet (-0.2,0,2.2) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (1.05,0,2.2), investigator torch on");
             game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(man);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;

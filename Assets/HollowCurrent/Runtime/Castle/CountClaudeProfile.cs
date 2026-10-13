@@ -52,7 +52,10 @@ namespace HollowCurrent
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
         // then feints back to a perch, so the hunt sequence shows perch, glide and dive without a kill.
-        public float CaptureHoldDistance=2.5f, CaptureHoldSeconds=1.6f;
+        public float CaptureHoldDistance=2.8f, CaptureHoldSeconds=1.6f;
+        // Choreography climax (round 4): origin height at the hold (Grab clip lowest point +0.10 => 1.30 m, above the
+        // 1.1 m ground-fog planes) and how long the feint keeps facing the camera before it turns.
+        public float CaptureHoldHeight=1.2f, CaptureFeintFacingSeconds=1.3f;
 
         // Cold rim light parented behind his shoulders (Presence.CountRimLight): keeps the wings readable in the dark.
         public float RimLightRange=3.6f, RimLightIntensity=1.1f;
