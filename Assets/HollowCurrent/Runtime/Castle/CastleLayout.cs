@@ -284,22 +284,19 @@ namespace HollowCurrent
 
 
         // ---- dressing data (round 2) ---------------------------------------------------------------
-        // Great hall: the long table, its chairs and the giant skeleton arching over them at the far end.
-        // Round 4: the skeleton lies diagonally across the hall with its skull front-left in the gap between the west columns
-        // (x -3.9, z 18.6 and 21.6: seen from the S1 eye the skull sits between the two columns' screen footprints) and its tail
-        // ending at the back wall. Its head (+Y in the art) imports as local -Z, so yaw 53 puts the snout toward (-0.80, -0.60).
-        // The art is stretched 1.2x vertically (arch 3.4 m) and the long table lies parallel to the spine UNDER the arch: ribs
-        // bow out to |lateral| >= 1.0 m and the table is 1.4 m wide, so no bone touches it (>= 0.3 m clearance, >= 0.2 m above the top).
-        public static readonly Vector3 SkeletonPos = new Vector3(-0.34f, 0.1f, 23.52f);
-        public const float SkeletonYaw = 53.1f;
-        public const float SkeletonScale = 1.0f;
-        public const float SkeletonScaleY = 1.2f;
-        // Round 5: the numeric check (CastleWorld.SkeletonLift, mirrored offline) showed the end ribs and the hips reach down to
-        // 0.4-1.0 m inside a 4.95 x 1.4 m table. The table is now 3.5 x 1.0 m, centred on the spine 1.5 m toward the head, where
-        // the ribs are tall and bowed outward; any remaining shortfall below a 0.2 m clearance is lifted out at build time.
-        public static readonly Vector3 TablePos = new Vector3(-1.54f, 0, 22.62f);
-        public const float TableYaw = -36.9f;      // table length axis along the spine
-        public const float TableLengthScale = .53f, TableWidthScale = .714f;
+        // Great hall, round 6 (owner: the skeleton in the middle of the entrance looked stupid and uncentred): the centre axis from the
+        // great doors (x = 0) is clean: rune ring, banquet table, throne and rose window all sit on x = 0. The giant skeleton lies
+        // along the west colonnade against the wall, in the 1.35 m strip between the wall relief (x -5.57) and the columns' west
+        // faces (x -4.35): its head (+Y in the art imports as local -Z, so yaw 0 points it at the entrance) at z about 17.7,
+        // tail into the back wall. Squeezed to 0.30 x laterally (ribs +-0.62 m), 0.82 x in height (2.8 m, under the 3.0 m gallery
+        // slab) and 0.9 x in length (10.8 m). Its bounds never reach x -3.
+        public static readonly Vector3 SkeletonPos = new Vector3(-5.0f, 0.05f, 22.4f);
+        public const float SkeletonYaw = 0f;
+        public static readonly Vector3 SkeletonScaleVec = new Vector3(.30f, .82f, .90f);   // local x lateral, y height, z length
+        public const float SkeletonMaxX = -3.0f;
+        public static readonly Vector3 TablePos = new Vector3(0f, 0, 24.65f);
+        public const float TableYaw = 90f;         // length axis along the hall axis (z)
+        public const float TableLengthScale = .66f, TableWidthScale = 1f;
 
         // Camera lines the dressing must stay clear of (round 4): S5 looks from the hall floor up at the Count's perch,
         // S6 stands in the gatehouse. Nothing that floats may sit within 2 m of the eye-to-subject segment.
@@ -399,7 +396,7 @@ namespace HollowCurrent
             // great hall
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
-            new CastleCandleDef(new Vector3(-.9f, .95f, 23.1f), .8f), new CastleCandleDef(new Vector3(-2.18f, .95f, 22.14f), .8f),
+            new CastleCandleDef(new Vector3(0f, .95f, 23.6f), .8f), new CastleCandleDef(new Vector3(0f, .95f, 25.7f), .8f),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall
