@@ -23,9 +23,18 @@ for asset in sorted((ROOT/"Assets").rglob("*")):
     check(bool(match),"Valid GUID: "+asset.name)
     check(match[1] not in guids,"Unique GUID: "+asset.name)
     guids.add(match[1])
-scene=ROOT/"Assets/HollowCurrent/Scenes/Bellwether.unity"
-scene_guid=re.search(r"^guid: (.+)$",Path(str(scene)+".meta").read_text(),re.M)[1]
-check(scene_guid in (ROOT/"ProjectSettings/EditorBuildSettings.asset").read_text(),"Startup scene GUID registered")
+# Scene names come from the single C# map catalog (Core/MapId.cs), never a second list here.
+catalog=(ROOT/"Assets/HollowCurrent/Core/MapId.cs").read_text()
+maps=re.findall(r'new MapInfo\(MapId\.(\w+),"([^"]+)"',catalog)
+check(len(maps)>=1 and maps[0]==("Bellwether","Bellwether"),"Map catalog lists Bellwether first")
+settings=(ROOT/"ProjectSettings/EditorBuildSettings.asset").read_text()
+registered=re.findall(r"path: (Assets/\S+\.unity)\s+guid: ([0-9a-f]{32})",settings)
+check(bool(registered) and registered[0][0]=="Assets/HollowCurrent/Scenes/Bellwether.unity","Bellwether is the startup scene")
+for map_id,scene_name in maps:
+    scene=ROOT/"Assets/HollowCurrent/Scenes"/(scene_name+".unity")
+    check(scene.is_file(),"Scene present for map "+map_id)
+    scene_guid=re.search(r"^guid: (.+)$",Path(str(scene)+".meta").read_text(),re.M)[1]
+    check((scene.relative_to(ROOT).as_posix(),scene_guid) in registered,"Scene GUID registered for map "+map_id)
 axes=(ROOT/"ProjectSettings/InputManager.asset").read_text()
 for axis in ["Horizontal","Vertical","Mouse X","Mouse Y"]:check("m_Name: "+axis in axes,"Legacy input axis: "+axis)
 check("[Ll]ibrary/" in (ROOT/".gitignore").read_text(),"Regenerable Unity Library cache excluded from source control")

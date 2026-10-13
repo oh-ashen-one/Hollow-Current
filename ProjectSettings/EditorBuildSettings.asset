@@ -8,4 +8,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/HollowCurrent/Scenes/Bellwether.unity
     guid: 4cadcc5a3a365c16b777103f6f25f5e4
+  - enabled: 1
+    path: Assets/HollowCurrent/Scenes/Castle.unity
+    guid: b241c59e85e14895bf3e47f5879ef990
   m_configObjects: {}

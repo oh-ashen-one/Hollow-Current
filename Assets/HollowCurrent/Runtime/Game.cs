@@ -8,6 +8,10 @@ namespace HollowCurrent
 {
     public sealed class Game : MonoBehaviour
     {
+        // The active map, from the loaded scene's name (MapCatalog). Unknown scenes
+        // (editor test scenes, "Untitled") are Bellwether.
+        public MapId Map {get;private set;}
+        public MapInfo MapInfo=>MapCatalog.Get(Map);
         public Investigation Case {get;private set;}
         public World World {get;private set;}
         public Investigator Player {get;private set;}
@@ -50,6 +54,7 @@ namespace HollowCurrent
         void Awake()
         {
             Loading=true;
+            Map=MapCatalog.TryFromSceneName(SceneManager.GetActiveScene().name,out var sceneMap)?sceneMap:MapId.Bellwether;
             gameObject.AddComponent<PadInput>();
             uiProbe=Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-ui-probe")>=0;
             Application.targetFrameRate=90;QualitySettings.vSyncCount=0;QualitySettings.antiAliasing=4;QualitySettings.shadowResolution=ShadowResolution.Medium;QualitySettings.shadowDistance=16;
@@ -60,7 +65,7 @@ namespace HollowCurrent
             {RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.105f,.13f,.16f);RenderSettings.ambientEquatorColor=new Color(.055f,.06f,.07f);RenderSettings.ambientGroundColor=new Color(.025f,.028f,.03f);}
             RenderSettings.fog=true;RenderSettings.fogColor=new Color(.025f,.04f,.055f);RenderSettings.fogDensity=.012f;RenderSettings.fogMode=FogMode.Exponential;
             Case=new Investigation();Case.Message+=Say;Case.Changed+=PhaseChanged;
-            World=new World();World.LoadOrBuild();World.BuildNavigation();
+            World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
             if(!bakedHouse)
             {var moon=new GameObject("Cold overcast sky").AddComponent<Light>();moon.transform.SetParent(World.Root);moon.type=LightType.Directional;moon.color=new Color(.36f,.51f,.75f);moon.intensity=.16f;moon.transform.rotation=Quaternion.Euler(55,-30,0);moon.shadows=LightShadows.None;}
             Sound=gameObject.AddComponent<Soundscape>();Sound.Initialize(this);
