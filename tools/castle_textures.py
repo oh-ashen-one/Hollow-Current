@@ -192,7 +192,7 @@ def cloth(n, rng, base):
     height = norm01(0.7 * weave + 0.15 * yarn + 0.15 * fuzz)
     lum = 0.72 + 0.30 * (weave - .5) + 0.20 * (yarn - .5) + 0.08 * (fuzz - .5) - 0.38 * stain
     albedo = mean_to(np.clip(np.array(base)[None, None, :] * lum[..., None], 0, 1), base)
-    return dict(albedo=albedo, height=height, ns=3.0, smooth=0.06 + 0.06 * (1 - weave) + 0.1 * stain, metal=0.0, ao=0.75 + 0.25 * weave)
+    return dict(albedo=albedo, height=height, ns=1.8, smooth=0.06 + 0.06 * (1 - weave) + 0.1 * stain, metal=0.0, ao=0.85 + 0.15 * weave)
 
 def metal(n, rng, base, patina=0.0, brushed=True, metal_v=0.85, scratch_count=380):
     """Brushed metal with random scratches (bright, rough) and tarnish blotches (dark, rougher, less metallic)."""
@@ -688,18 +688,18 @@ Material:
 def save_png(path, arr, mode=None):
     Image.fromarray(arr, mode).save(path, optimize=True)
 
-def save_set(name, r, size, kind_albedo="color"):
+def save_set(name, r, size, kind_albedo="color", filter_mode=1, aniso=None):
     out = {}
     if r["albedo"] is not None:
         a = cc.TEX / (name + "_albedo.png")
         save_png(a, (np.clip(r["albedo"], 0, 1) * 255 + .5).astype(np.uint8))
-        out["albedo"] = cc.write_texture_meta(a, kind_albedo)
+        out["albedo"] = cc.write_texture_meta(a, kind_albedo, filter_mode, aniso)
     b = cc.TEX / (name + "_normal.png")
     save_png(b, (to_normal(r["height"], r["ns"]) * 255 + .5).astype(np.uint8))
-    out["normal"] = cc.write_texture_meta(b, "normal")
+    out["normal"] = cc.write_texture_meta(b, "normal", filter_mode, aniso)
     m = cc.TEX / (name + "_mask.png")
     save_png(m, pack_mask(r["smooth"], r["metal"], r["ao"]))
-    out["mask"] = cc.write_texture_meta(m, "mask")
+    out["mask"] = cc.write_texture_meta(m, "mask", filter_mode, aniso)
     return out
 
 def portrait(rng, w=512, h=704):
@@ -937,7 +937,8 @@ def main():
         rng = np.random.default_rng(1000 + i)
         base, smooth, metal_v, _ = cc.MATERIALS[name]
         r = fn(rng, base)
-        g = save_set(name, r, n)
+        # cloth: trilinear + 8x aniso so the 8 px weave cannot crawl or stripe at grazing angles (S5 banners, round 7)
+        g = save_set(name, r, n, filter_mode=2 if name == "Castle_Oxblood" else 1, aniso=8 if name == "Castle_Oxblood" else None)
         em = None
         bump = 1.0
         if name == "Castle_Blood":

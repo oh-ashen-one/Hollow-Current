@@ -22,8 +22,8 @@ namespace HollowCurrent
         public Transform Root;
 
         [Header("Candles (realtime point lights)")]
-        public Color CandleColor = new Color(1.0f, 0.74f, 0.50f);   // less saturated than r4 (S1 was 15% warm, ref 1.6%)
-        public float CandleIntensityScale = 0.9f;
+        public Color CandleColor = new Color(1.0f, 0.77f, 0.55f);   // less saturated than r4 (S1 was 15% warm, ref 1.6%)
+        public float CandleIntensityScale = 0.82f;
         public float CandleRangeScale = 1.3f;
         public float CandleMinRange = 6.5f;
         public float CandleMaxRange = 10f;
@@ -49,11 +49,11 @@ namespace HollowCurrent
         [Header("Extra fill lights (castle-local positions; realtime, no shadows)")]
         public bool AddFillLights = true;
         public Color VaultFillColor = new Color(.42f, .55f, .90f);
-        public float VaultFillIntensity = .42f;       // faint cold light under the great-hall vault so the ribs and ceiling read
+        public float VaultFillIntensity = .32f;       // faint cold light under the great-hall vault so the ribs and ceiling read
         public Vector3 VaultFillPosition = new Vector3(0f, 7.6f, 21f);
         public float VaultFillRange = 12f;
         public Color CryptCandleColor = new Color(1.0f, .66f, .38f);
-        public float CryptCandleIntensity = 1.1f;     // ONE warm pool on the west curb (r5: four pools at 1.6 = 4.2% near-black and 16% warm; r6: four at 0.65 = 41.9%)
+        public float CryptCandleIntensity = .85f;     // ONE warm pool on the west curb (r5: four pools at 1.6 = 4.2% near-black and 16% warm; r6: four at 0.65 = 41.9%)
         public float CryptCandleRange = 5f;
         public Color CryptColdColor = new Color(.34f, .44f, .80f);
         public float CryptColdIntensity = .55f;       // cold base so the room reads blue with one warm accent
@@ -65,7 +65,7 @@ namespace HollowCurrent
 
         [Header("Warm fills for the dark shots (round 5)")]
         public Color WarmFillColor = new Color(1.0f, .70f, .45f);
-        public float CourtyardFillIntensity = 2.2f;   // two candle pools by the courtyard/gatehouse where S6 stands the Count
+        public float CourtyardFillIntensity = 2.6f;   // two candle pools by the courtyard/gatehouse where S6 stands the Count
         public float CourtyardFillRange = 9f;
         public Vector3 CourtyardFillA = new Vector3(-4.6f, 2.0f, 9.5f);
         public Vector3 CourtyardFillB = new Vector3(-1.5f, 2.0f, 12.5f);
@@ -76,7 +76,7 @@ namespace HollowCurrent
 
         [Header("Exterior facade fill (on only while the camera is outside the gate)")]
         public Color FacadeColor = new Color(.40f, .55f, .88f);
-        public float FacadeIntensity = .8f;
+        public float FacadeIntensity = 1.05f;
         public float FacadeRange = 34f;
         public float FacadeAngle = 80f;
         public Vector3 FacadePosition = new Vector3(0f, 9f, -18f);

@@ -408,7 +408,7 @@ def tapestry_panel():
     """Hanging tapestry, 1.40 wide x 2.85 high x 0.06 deep: oxblood cloth with brass-braid border, bat-and-moon emblem,
     fringe, rod and finials. Origin: centre of the back face, base at the fringe."""
     b = Builder("TapestryPanel")
-    with b.xf(T(0, 0, -.14)):                                        # fringe bottom sits on z=0
+    with b.xf(T(0, 0, -.14) @ about((0, 0, 2.84), Rx(1))):          # fringe bottom sits on z=0; 1 deg tilt about the rod keeps the hem off the wall (anti z-fight)
         nx, ny = 6, 16
         def fn(i, j):
             u = i / nx - .5

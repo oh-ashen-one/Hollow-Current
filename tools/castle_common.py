@@ -84,7 +84,7 @@ TextureImporter:
   maxTextureSize: 2048
   textureSettings:
     serializedVersion: 2
-    filterMode: 1
+    filterMode: {filter}
     aniso: {aniso}
     mipBias: 0
     wrapU: {wrap}
@@ -154,7 +154,7 @@ TextureImporter:
   assetBundleVariant: 
 """
 
-def write_texture_meta(png, kind="color"):
+def write_texture_meta(png, kind="color", filter_mode=1, aniso=None):
     """kind: color (sRGB, repeat), normal (linear normal map, repeat), sky (sRGB, clamp, no mips)."""
     png = Path(png)
     g = guid(rel_to_project(png))
@@ -165,6 +165,8 @@ def write_texture_meta(png, kind="color"):
                decal=dict(srgb=1, ttype=0, wrap=1, mips=1, aniso=4, atr=1),
                sky=dict(srgb=1, ttype=0, wrap=1, mips=0, aniso=0))[kind]
     cfg.setdefault("atr", 0)
+    cfg["filter"] = filter_mode
+    if aniso is not None: cfg["aniso"] = aniso
     Path(str(png) + ".meta").write_text(_TEX_META.format(guid=g, **cfg))
     return g
 

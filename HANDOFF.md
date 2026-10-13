@@ -48,3 +48,23 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+## hc/look8 (round 8): half-steps, facade restored halfway, banner striping
+No Unity. `check_source.py` PASS (394 assertions, runtime + editor C#), `castle_verify.py` HC_VERIFY_PASS (72 assets).
+`python3 tools/exposure_report.py docs/haunted-castle/rounds/r7/captures --prev docs/haunted-castle/rounds/r6/captures` (before): S1 11.6 near-black (too bright, warm 9.0), S3 23.1 (in band, warm 9.5), S4 6.2 (too bright, wall luma 28.6 -> 15.1 after the r7 dimming), S5 15.1, S6 34.2 (too dark), S2 20.6, hunt 14.4-20.5.
+
+### Changes and predictions (each a half-step toward the 20% target or the warm band; predictions are fits, not simulations)
+| shot | before (dark%, warm%) | change | predicted |
+|---|---|---|---|
+| S1 | 11.6, 9.0 | vault fill 0.42 -> 0.32; candle intensity scale 0.90 -> 0.82; candle colour (1.0,0.74,0.50) -> (1.0,0.77,0.55) | dark ~14-16 (aim 15.8), warm ~7 |
+| S3 | 23.1, 9.5 | crypt warm pool 1.10 -> 0.85 (candle colour change also trims it) | dark ~25, warm ~7.5 |
+| S6 | 34.2, 1.7 | courtyard fills 2.2 -> 2.6 (range 9 unchanged); r6 -> r7 slope was about -17 points per unit of intensity, so +0.4 is the half-step | dark ~27-31 (aim 27.1) |
+| S4 | 6.2, 0.4 | facade spot 0.80 -> 1.05 (restored halfway between 0.80 and 1.35, as asked); keep 0.35 and bridge 0.30 unchanged | wall luma ~21-22 (r5/r6 28.6, r7 15.1); dark% stays ~5-6, i.e. still above the band's bright edge: brightness of the wall and the near-black share of the whole frame pull opposite ways here, the sky and foreground dominate the dark pixels, so do not chase it with the spot |
+| S2, S5, hunt | in band | unchanged (the S1 candle change nudges H01-H08 by about -1 to -2 points of near-black, they stay at 15-22) | same |
+
+### S5 banner striping (p90 row diff 5.4 -> 6.9, worse)
+Cause is the cloth, not a missing decal offset: the 8 px plain weave of `Castle_Oxblood` was sampled with bilinear filtering (`filterMode: 1`) and 4x aniso, so at grazing angles the weave aliases into 1-2 px row stripes (and the banner can also z-fight the wall it hangs on). Fixes:
+- `Castle_Oxblood_{albedo,normal,mask}.png.meta`: `filterMode: 2` (trilinear), `aniso: 8`, mips on (they already were). `castle_common.write_texture_meta` gained `filter_mode` / `aniso` arguments; every other texture keeps bilinear/4.
+- The weave normal strength is lower (`ns` 3.0 -> 1.8) and its occlusion variation 0.25 -> 0.15, so the residual aliasing has less contrast. `Castle_Oxblood_normal.png` and `_mask.png` regenerated (albedo unchanged).
+- `Banner.fbx` and `TapestryPanel.fbx` are tilted 1 deg about their rod (`Rx(1)` in `castle_props.py::banner` and `castle_architecture.py::tapestry_panel`): the hem stands about 5 cm off the wall (3 m x tan 1 deg), so the cloth is never coplanar with the wall at grazing angles; the 2 cm offset alone was not enough. Sizes: Banner 1.39 x 0.13 x 2.98, TapestryPanel 1.52 x 0.09 x 2.70 (depth was 0.07; manifests updated). The layout builder should keep the rod flush to the wall; the tilt is baked in the mesh.
+Expected: p90 row diff <= 3 on both banners; verify with the next capture.
