@@ -34,6 +34,8 @@ namespace HollowCurrent
         // Interactables.
         public string KitLabel, FinishLabel, AnchorLabel, BreakerLabel, FinishNoteTitle, FinishNoteSuffix, AnchorNotReady;
         // Interface.
+        // Resources path of the menu backdrop image.
+        public string Backdrop;
         public string CaseTag, PlaceTag, FooterName, TitleName, Tagline, LoadingTrack, ArchiveTrack, ContextTrack, JournalQuestion, CardStyle, UiArtFolder;
         public string JournalReady, JournalNotReady, WonHero, WonBody, LostBody, WonFooter, LostFooter;
         // Location labels: safe zone, outside, below ground, ground, upper, tower (tower used above TowerY).
@@ -111,7 +113,7 @@ namespace HollowCurrent
             KitLabel="Field kit · torch, induction, UV, recorder, radio",FinishLabel="Case terminal",AnchorLabel="The music box",BreakerLabel="Basement breaker",
             FinishNoteTitle="CASE 014",FinishNoteSuffix="\n\nThe van is safe. Equipment never runs out of charge. Take the time you need.",
             AnchorNotReady="A tiny tune circles inside the box. Reconstruct what holds the house in your journal before attempting a seal.",
-            CaseTag="CASE 014",PlaceTag="BELLWETHER LANE",FooterName="THE BELLWETHER HOUSE",TitleName="The Bellwether House",
+            Backdrop="UI/MenuBackdrop",CaseTag="CASE 014",PlaceTag="BELLWETHER LANE",FooterName="THE BELLWETHER HOUSE",TitleName="The Bellwether House",
             Tagline="An empty family home. A tune beneath the floor.\nSomeone is still keeping the house warm.",
             LoadingTrack="RETURNING TO BELLWETHER",ArchiveTrack="FAMILY ARCHIVE",ContextTrack="FAMILY CONTEXT",JournalQuestion="What holds the house?",
             CardStyle="MOURNING NOTE",UiArtFolder="UI/MourningNote",
@@ -185,7 +187,7 @@ namespace HollowCurrent
             KitLabel="Lantern cart · compass, grave-ash lantern, ear-trumpet, radio",FinishLabel="Drawbridge winch",AnchorLabel="The chapel bell",BreakerLabel="Chapel brazier",
             FinishNoteTitle="THE GATEHOUSE",FinishNoteSuffix="\n\nOutside the walls is safe. The lantern never gutters here. Take the time you need.",
             AnchorNotReady="The bell hums without being struck. Reconstruct what holds the castle in your journal before attempting a seal.",
-            CaseTag="LEDGER 015",PlaceTag="CASTLE GATE",FooterName="HAUNTED CASTLE",TitleName="Haunted Castle",
+            Backdrop="UI/CastleBackdrop",CaseTag="LEDGER 015",PlaceTag="CASTLE GATE",FooterName="HAUNTED CASTLE",TitleName="Haunted Castle",
             Tagline="A castle half out of the world. Two moons over a red moat.\nA bell no one rings keeps the bargain.",
             LoadingTrack="RETURNING TO THE CASTLE",ArchiveTrack="BLOOD LEDGER",ContextTrack="BLOOD LEDGER",JournalQuestion="What holds the castle?",
             CardStyle="BLOOD LEDGER",UiArtFolder="UI/BloodLedger",

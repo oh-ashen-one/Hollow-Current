@@ -103,10 +103,13 @@ namespace HollowCurrent
             if(!dialogueCard||!warningCard||!paperPanel)
             {
                 if(!MissingArt.Placeholders)throw new InvalidOperationException("Approved Mourning Note artwork is missing");
+                // A map without its own card art borrows the Mourning Note frames
+                // (never a magenta panel); only if those are gone too is it magenta.
                 MissingArt.Report("ui",cards);
+                if(!dialogueCard)dialogueCard=Resources.Load<Texture2D>("UI/MourningNote/Dialogue");if(!warningCard)warningCard=Resources.Load<Texture2D>("UI/MourningNote/Warning");if(!paperPanel)paperPanel=Resources.Load<Texture2D>("UI/MourningNote/Panel");
                 if(!dialogueCard)dialogueCard=MissingArt.MagentaTexture;if(!warningCard)warningCard=MissingArt.MagentaTexture;if(!paperPanel)paperPanel=MissingArt.MagentaTexture;
             }
-            backdrop=Resources.Load<Texture2D>("UI/MenuBackdrop");
+            backdrop=BackdropFor(Book);
             artworkMaterial=new Material(Resources.Load<Shader>("UIArtwork"));
             trackTexture=Solid(new Color(.21f,.24f,.24f));thumbTexture=Solid(copper);hoverTexture=Solid(ink);
             slider=new GUIStyle(GUI.skin.horizontalSlider){fixedHeight=4,margin=new RectOffset(0,0,9,0),border=new RectOffset(),normal={background=trackTexture}};
@@ -154,8 +157,16 @@ namespace HollowCurrent
             foreach(char c in text){string s=c<128?glyphs[c]:c.ToString();GUI.Label(new Rect(x,y,24,24),s,kicker);x+=c<128?glyphWidths[c]:kicker.CalcSize(new GUIContent(s)).x+2.4f;}
             kicker.normal.textColor=old;
         }
+        // Menu backdrop per map (title follows the selected map), cached per path.
+        readonly Dictionary<string,Texture2D> backdrops=new Dictionary<string,Texture2D>();
+        Texture2D BackdropFor(CaseBook book)
+        {
+            if(!backdrops.TryGetValue(book.Backdrop,out var texture)){texture=Resources.Load<Texture2D>(book.Backdrop);if(!texture)texture=Resources.Load<Texture2D>("UI/MenuBackdrop");backdrops[book.Backdrop]=texture;}
+            return texture;
+        }
         void Backdrop(bool cool=false,float shade=0)
         {
+            backdrop=BackdropFor(Book);
             var matrix=GUI.matrix;GUI.matrix=Matrix4x4.identity;var old=GUI.color;
             if(backdrop)Artwork(new Rect(0,0,Screen.width,Screen.height),backdrop,true,cool?new Color(.64f,.75f,.84f):Color.white);
             else Panel(new Rect(0,0,Screen.width,Screen.height),new Color(.015f,.02f,.025f));
@@ -218,7 +229,8 @@ namespace HollowCurrent
             for(int i=0;i<MapCatalog.All.Count;i++)
             {
                 var map=MapCatalog.All[i];GUI.enabled=Game.MapAvailable(map.Id);
-                if(Action(80+i*325,550,310,50,map.DisplayName,"",false,false,Game.SelectedMap==map.Id,"map/"+map.Id))Game.SelectMap(map.Id);
+                bool chosen=Game.SelectedMap==map.Id;
+                if(Action(80+i*325,550,310,50,chosen?"•  "+map.DisplayName:map.DisplayName,"",chosen,false,chosen,"map/"+map.Id))Game.SelectMap(map.Id);
                 GUI.enabled=true;
             }
             if(Action(80,700,270,46,"FIELD SETTINGS","S",false,true)){Game.Paused=true;Game.ApplyFocus();}

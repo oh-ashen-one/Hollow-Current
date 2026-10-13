@@ -59,6 +59,18 @@ namespace HollowCurrent
             Log(id+" "+texture.width+"x"+texture.height+" "+file);
             Destroy(texture);
         }
+        // A 1.80 m investigator stand-in (the player has no third-person body) for scale.
+        GameObject ScaleFigure(Vector3 feet)
+        {
+            var root=new GameObject("Capture scale figure (1.80 m investigator)");root.transform.position=feet;root.transform.rotation=Quaternion.Euler(0,180,0);
+            var cloth=new Material(Shader.Find("Standard")){name="Capture scale figure",color=new Color(.32f,.30f,.27f)};
+            GameObject Part(PrimitiveType type,Vector3 local,Vector3 scale)
+            {var g=GameObject.CreatePrimitive(type);g.transform.SetParent(root.transform,false);g.transform.localPosition=local;g.transform.localScale=scale;Destroy(g.GetComponent<Collider>());g.GetComponent<Renderer>().sharedMaterial=cloth;return g;}
+            Part(PrimitiveType.Capsule,new Vector3(0,.78f,0),new Vector3(.46f,.78f,.30f));   // legs and torso to 1.56 m
+            Part(PrimitiveType.Sphere,new Vector3(0,1.69f,0),new Vector3(.22f,.24f,.24f));    // head top at 1.81 m
+            foreach(int side in new[]{-1,1})Part(PrimitiveType.Capsule,new Vector3(side*.29f,1.08f,0),new Vector3(.11f,.34f,.11f));
+            return root;
+        }
         // The investigator's flashlight as in play (Investigator input is off in capture).
         void Torch(bool on){var l=game.Player.Torch;l.enabled=on;l.intensity=.85f*game.Player.Brightness;}
         static string V(Vector3 v)=>v.x.ToString("F2")+","+v.y.ToString("F2")+","+v.z.ToString("F2");
@@ -100,17 +112,34 @@ namespace HollowCurrent
             // S3: crypt from the stair foot looking at the sarcophagus.
             e=new Vector3(-5.2f,-3.2f+1.64f,25.0f);t=new Vector3(0,-2.6f,22.5f);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S3_crypt","refs/crypt.png",e,t);
-            // S4: from the far bank, back at the castle across the lowered drawbridge.
+            // S4: from the far bank, back at the gatehouse and towers across the lowered
+            // drawbridge. The eye walks back from the bank edge until both moons are in
+            // frame and unobstructed by the walls (raycast along each moon direction).
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(true);
-            e=new Vector3(0,1.64f,-9.5f);t=new Vector3(0,5,8);Place(e,t);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"drawbridge lowered (Snap)");
+            Physics.SyncTransforms();
+            string s4="fallback";
+            e=new Vector3(0,1.64f,-40);t=e+Quaternion.Euler(-10,4,0)*Vector3.forward*50;
+            for(float z=-6.5f;z>=-70&&s4=="fallback";z-=1.5f)foreach(float pitch in new[]{6f,9f,12f,15f})
+            {
+                var eye=new Vector3(0,1.64f,z);var aim=eye+Quaternion.Euler(-pitch,4,0)*Vector3.forward*50;Place(eye,aim);
+                var cam=game.Player.View;bool ok=true;
+                foreach(var dir in new[]{CastleArt.PaleMoonDirection,CastleArt.RedMoonDirection})
+                {
+                    var vp=cam.WorldToViewportPoint(eye+dir*500);
+                    if(vp.z<0||vp.x<.06f||vp.x>.94f||vp.y<.06f||vp.y>.94f||Physics.Raycast(eye,dir,600,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))ok=false;
+                }
+                var gate=cam.WorldToViewportPoint(new Vector3(0,1,0));if(gate.z<0||gate.y<.08f||gate.y>.6f)ok=false;
+                if(ok){e=eye;t=aim;s4="z="+z.ToString("F1")+" pitch="+pitch;break;}
+            }
+            Place(e,t);Log("S4 search "+s4);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"drawbridge lowered (Snap); moon-clear search "+s4);
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5: great hall floor looking up at the balcony; Count Claude on the balcony perch, Mode 0.
             // Staged on the balustrade top above the west balcony perch (the deck point
             // itself is hidden behind the rail from the hall floor).
             var deck=spots!=null&&spots.PerchPoints!=null&&spots.PerchPoints.Length>0?spots.PerchPoints[0]:new Vector3(-4.4f,3.2f,21);
             var perch=new Vector3(-3.15f,deck.y+1.12f,deck.z);
-            Torch(true);
+            Torch(true);Floater.SetFlameTarget(game.Creature.transform);
             e=new Vector3(2.5f,1.64f,15.5f);t=perch+Vector3.up*1.2f;Place(e,t);
             var toCamera=e-perch;
             game.Creature.ManifestAt(perch,Mathf.Atan2(toCamera.x,toCamera.z)*Mathf.Rad2Deg,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeIdle);
@@ -118,8 +147,9 @@ namespace HollowCurrent
             // S6: Count Claude 3 m in front of the camera on the courtyard, Mode 1 Glide.
             e=new Vector3(-3,1.64f,8);var stand=new Vector3(-3,0,11);t=stand+Vector3.up*1.3f;Place(e,t);
             game.Creature.ManifestAt(stand,180,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeMove,3);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count 3 m ahead, mode "+game.Creature.Profile.ModeMove+", investigator torch on");
-            game.Creature.Dismiss();Torch(false);
+            var figure=ScaleFigure(stand+new Vector3(2,0,0));
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count 3 m ahead, mode "+game.Creature.Profile.ModeMove+", investigator torch on, 1.80 m scale figure 2 m to his left (+x)");
+            game.Creature.Dismiss();Torch(false);Floater.SetFlameTarget(null);Destroy(figure);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;
             string body=book.NoteBodies[0];foreach(var item in game.World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Note&&item.Label==book.NoteTitles[0])body=item.Body;
