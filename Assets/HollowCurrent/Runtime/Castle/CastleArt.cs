@@ -34,6 +34,8 @@ namespace HollowCurrent
             public const string GreatDoor = "GreatDoor", ServiceDoor = "ServiceDoor", Door = "Door", BanquetTable = "BanquetTable";
             public const string StoneFont = "StoneFont", CoffinNiche = "CoffinNiche", StoneBridge = "StoneBridge";
             public const string GiantSkeleton = "GiantSkeleton", FloatingBook = "FloatingBook", Banner = "Banner", DrawbridgeChains = "DrawbridgeChains";
+            // round 5 detail kit (origin = centre of the back face on the wall, base at z 0, front +Z at yaw 0)
+            public const string StringCourse = "StringCourse", Corbel = "Corbel", GargoyleSpout = "GargoyleSpout", TapestryPanel = "TapestryPanel";
         }
 
         public static readonly string[] All =
@@ -47,7 +49,8 @@ namespace HollowCurrent
             Names.Portrait, Names.CanopyBed, Names.Orrery, Names.Telescope, Names.Sarcophagus, Names.CryptBridge, Names.ReliquaryBox,
             Names.Pedestal, Names.Wall2m, Names.Wall4m, Names.Wall2mWindow, Names.Wall4mWindow, Names.PointedArch, Names.VaultRib,
             Names.FloorTile, Names.StairFlight, Names.GreatDoor, Names.ServiceDoor, Names.Door, Names.BanquetTable, Names.StoneFont,
-            Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains
+            Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains,
+            Names.StringCourse, Names.Corbel, Names.GargoyleSpout, Names.TapestryPanel
         };
 
         // The Blender FBX -> Unity axis conversion could not be verified without launching Unity. Authoring assumes the standard
@@ -82,6 +85,9 @@ namespace HollowCurrent
         {
             { "Castle_Stone", new Spec(new Color(.50f, .52f, .57f), .20f, 0f) },
             { "Castle_BlackStone", new Spec(new Color(.20f, .20f, .25f), .62f, 0f) },
+            { "Castle_StoneWeathered", new Spec(new Color(.46f, .50f, .58f), .22f, 0f) },
+            { "Castle_StoneDark", new Spec(new Color(.17f, .18f, .22f), .20f, 0f) },
+            { "Castle_StoneMossy", new Spec(new Color(.36f, .40f, .36f), .30f, 0f) },
             { "Castle_FlagStone", new Spec(new Color(.30f, .32f, .38f), .58f, 0f) },
             { "Castle_Oak", new Spec(new Color(.30f, .19f, .11f), .28f, 0f) },
             { "Castle_Brass", new Spec(new Color(.62f, .48f, .22f), .50f, .85f) },
@@ -109,7 +115,7 @@ namespace HollowCurrent
         // Texture repeats per metre of world space (1 / tile size in tools/castle_textures.py).
         static readonly Dictionary<string, float> TilesPerMetre = new Dictionary<string, float>
         {
-            { "Castle_Stone", .5f }, { "Castle_FlagStone", .5f }, { "Castle_BlackStone", .667f }, { "Castle_Oak", 1f }, { "Castle_Brass", 2f },
+            { "Castle_Stone", .5f }, { "Castle_StoneWeathered", .5f }, { "Castle_StoneDark", .5f }, { "Castle_StoneMossy", .5f }, { "Castle_FlagStone", .5f }, { "Castle_BlackStone", .667f }, { "Castle_Oak", 1f }, { "Castle_Brass", 2f },
             { "Castle_Silver", 2f }, { "Castle_Iron", 2f }, { "Castle_Oxblood", 1f }, { "Castle_Bone", 1f }, { "Castle_Paper", 2f },
             { "Castle_Canvas", 2f }, { "Castle_Blood", .5f },
         };
@@ -130,6 +136,56 @@ namespace HollowCurrent
             if (s == null) Warn(shaderName, "shader unavailable, using Standard fallback");
             ShaderCache[shaderName] = s;
             return s;
+        }
+
+        // ---- decals (round 5) --------------------------------------------------------------------------------------------
+        // Alpha-blended lit decal material for Resources/Castle/Textures/<name>.png (Castle_DecalCracksA/B, Castle_DecalChips,
+        // Castle_DecalStain, Castle_SootBase, Castle_SootRadial). Put it on a 1x1 quad a couple of cm off the wall. Returns null
+        // only if the texture is missing; if the decal shader did not compile it falls back to Sprites/Default.
+        static readonly Dictionary<string, Material> Decals = new Dictionary<string, Material>();
+        public static Material Decal(string name) => Decal(name, Color.white);
+        public static Material Decal(string name, Color tint)
+        {
+            string key = name + "|" + tint.r.ToString("F2") + tint.g.ToString("F2") + tint.b.ToString("F2") + tint.a.ToString("F2");
+            if (Decals.TryGetValue(key, out var made) && made != null) return made;
+            Material m = null;
+            try
+            {
+                var tex = Resources.Load<Texture2D>("Castle/Textures/" + name);
+                if (tex == null) { Warn(name, "decal texture missing"); return null; }
+                var shader = LoadShader("CastleDecal");
+                if (shader != null)
+                {
+                    m = new Material(shader) { name = "Castle decal / " + name };
+                    m.SetTexture("_MainTex", tex); m.SetColor("_Color", tint);
+                }
+                else
+                {
+                    var sprite = Shader.Find("Sprites/Default");
+                    if (sprite == null) return null;
+                    m = new Material(sprite) { name = "Castle decal (fallback) / " + name };
+                    m.mainTexture = tex; m.color = tint;
+                }
+            }
+            catch (Exception e) { Warn(name + " decal", e.Message); }
+            if (m != null) Decals[key] = m;
+            return m;
+        }
+
+        // Castle_Flame renders through the unlit CastleEmissive shader; if that shader did not compile, a Standard material with
+        // the emission keyword set explicitly (never relying on a serialized keyword) takes its place.
+        static Material flameFallback;
+        public static bool FlameShaderOk => LoadShader("CastleEmissive") != null;
+        public static Material FlameFallback()
+        {
+            if (flameFallback != null) return flameFallback;
+            var shader = Shader.Find("Standard"); if (shader == null) return null;
+            flameFallback = new Material(shader) { name = "Castle_Flame (fallback)" };
+            flameFallback.color = new Color(.1f, .04f, .01f);
+            flameFallback.EnableKeyword("_EMISSION");
+            flameFallback.SetColor("_EmissionColor", new Color(1.15f, .42f, .07f));
+            flameFallback.globalIlluminationFlags = MaterialGlobalIlluminationFlags.RealtimeEmissive;
+            return flameFallback;
         }
 
         static Texture2D CastleTexture(string name, string suffix) => Resources.Load<Texture2D>("Castle/Textures/" + name + "_" + suffix);
@@ -275,6 +331,7 @@ namespace HollowCurrent
         {
             if (Materials.TryGetValue(name, out var m) && m != null) return m;
             m = Resources.Load<Material>("Castle/Materials/" + name);
+            if (m != null && name == "Castle_Flame" && !FlameShaderOk) m = FlameFallback();
             if (m == null && Specs.TryGetValue(name, out var s))
             {
                 var shader = Shader.Find("Standard");

@@ -22,7 +22,7 @@ namespace HollowCurrent
         public Transform Root;
 
         [Header("Candles (realtime point lights)")]
-        public Color CandleColor = new Color(1.0f, 0.70f, 0.42f);
+        public Color CandleColor = new Color(1.0f, 0.74f, 0.50f);   // less saturated than r4 (S1 was 15% warm, ref 1.6%)
         public float CandleIntensityScale = 1.0f;
         public float CandleRangeScale = 1.3f;
         public float CandleMinRange = 6.5f;
@@ -40,20 +40,30 @@ namespace HollowCurrent
         [Header("Extra fill lights (castle-local positions; realtime, no shadows)")]
         public bool AddFillLights = true;
         public Color VaultFillColor = new Color(.42f, .55f, .90f);
-        public float VaultFillIntensity = .35f;       // faint cold light under the great-hall vault so the ribs and ceiling read
-        public Vector3 VaultFillPosition = new Vector3(0f, 7.0f, 21f);
-        public float VaultFillRange = 10f;
+        public float VaultFillIntensity = .60f;       // faint cold light under the great-hall vault so the ribs and ceiling read
+        public Vector3 VaultFillPosition = new Vector3(0f, 7.6f, 21f);
+        public float VaultFillRange = 12f;
         public Color CryptCandleColor = new Color(1.0f, .66f, .38f);
-        public float CryptCandleIntensity = 1.3f;     // four warm candle pools on the channel curbs
+        public float CryptCandleIntensity = 1.6f;     // four warm candle pools on the channel curbs
         public float CryptCandleRange = 5f;
         public Color CryptRuneColor = new Color(.60f, .32f, .90f);
         public float CryptRuneIntensity = .9f;       // violet rune glow over the sarcophagus
         public Color CryptBloodColor = new Color(.95f, .12f, .10f);
-        public float CryptBloodIntensity = .9f;      // red glow just above the channel so the liquid blushes and spec highlights read
+        public float CryptBloodIntensity = 1.2f;      // red glow just above the channel so the liquid blushes and spec highlights read
+
+        [Header("Warm fills for the dark shots (round 5)")]
+        public Color WarmFillColor = new Color(1.0f, .70f, .45f);
+        public float CourtyardFillIntensity = 1.0f;   // two candle pools by the courtyard/gatehouse where S6 stands the Count
+        public float CourtyardFillRange = 6.5f;
+        public Vector3 CourtyardFillA = new Vector3(-4.6f, 2.0f, 9.5f);
+        public Vector3 CourtyardFillB = new Vector3(-1.5f, 2.0f, 12.5f);
+        public float BalconyFillIntensity = .8f;      // warm rim on the perch above the hall for S5 and the hunt's first frames
+        public float BalconyFillRange = 6f;
+        public Vector3 BalconyFillPosition = new Vector3(-3.5f, 4.9f, 19.5f);
 
         [Header("Exterior facade fill (on only while the camera is outside the gate)")]
         public Color FacadeColor = new Color(.40f, .55f, .88f);
-        public float FacadeIntensity = 1.2f;
+        public float FacadeIntensity = .95f;
         public float FacadeRange = 34f;
         public float FacadeAngle = 80f;
         public Vector3 FacadePosition = new Vector3(0f, 9f, -18f);
@@ -181,6 +191,9 @@ namespace HollowCurrent
                     Fill(group, "Crypt candle pool", new Vector3(x, cy, z), CryptCandleColor, CryptCandleIntensity, CryptCandleRange);
             Fill(group, "Crypt rune glow", new Vector3(0f, -3.2f + 1.7f, 22.5f), CryptRuneColor, CryptRuneIntensity, 5f);
             Fill(group, "Crypt blood glow", new Vector3(0f, -3.2f + .5f, 20.1f), CryptBloodColor, CryptBloodIntensity, 4f);
+            Fill(group, "Courtyard candle fill", CourtyardFillA, WarmFillColor, CourtyardFillIntensity, CourtyardFillRange);
+            Fill(group, "Courtyard candle fill", CourtyardFillB, WarmFillColor, CourtyardFillIntensity, CourtyardFillRange);
+            Fill(group, "Balcony warm fill", BalconyFillPosition, WarmFillColor, BalconyFillIntensity, BalconyFillRange);
             var go = new GameObject("Facade moon fill");
             go.transform.SetParent(group, false);
             go.transform.localPosition = FacadePosition;

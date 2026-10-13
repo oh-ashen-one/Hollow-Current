@@ -32,7 +32,7 @@ namespace HollowCurrent
         public float AmbientIntensity = 1f;
 
         [Header("Ambient fill for the castle surface shaders (linear). Kept low so shadows can reach real black.")]
-        public Color FillSky = new Color(.016f, .022f, .036f);
+        public Color FillSky = new Color(.013f, .018f, .030f);
         public Color FillGround = new Color(.010f, .012f, .022f);   // downward faces (vault undersides) pick this up, so ribs and ceilings read
 
         [Header("Materials")]
@@ -45,11 +45,20 @@ namespace HollowCurrent
 
         [Header("Ground fog (layered noise planes, castle-local)")]
         public bool GroundFog = true;
-        public Color GroundFogColor = new Color(.34f, .42f, .58f);
-        public int FogLayers = 8;
-        public float FogLayerAlpha = .26f;
+        // Per area (0 = great hall, 1 = crypt). The crypt fog is deliberately low, thin and neutral warm-grey: a blue haze there turned
+        // the blood channel mauve (R/B 2.6 -> 1.2 in round 4).
         public Vector3[] FogAreaCentres = { new Vector3(0f, 0f, 21f), new Vector3(0f, -3.2f, 21f) };   // floor centre of the great hall, crypt
         public Vector2[] FogAreaSizes = { new Vector2(12f, 14f), new Vector2(12f, 14f) };
+        public Color[] FogAreaColors = { new Color(.34f, .42f, .58f), new Color(.30f, .27f, .30f) };
+        public int[] FogAreaLayers = { 8, 3 };
+        public float[] FogAreaAlpha = { .26f, .09f };            // per-layer alpha at the floor (fades x0.35 towards the top layer)
+        public float[] FogAreaHeight = { 1.1f, .40f };           // top layer height above the floor, metres
+
+        [Header("Room fog profile (exponential fog while the camera is in the crypt, castle-local y below CryptBelowY)")]
+        public bool CryptFogProfile = true;
+        public float CryptBelowY = -1.5f;
+        public Color CryptFogColor = new Color(.20f, .18f, .22f);
+        public float CryptFogDensity = .030f;
 
         [Header("Painted-over sun window above the chapel altar")]
         public bool BuildSunWindow = true;
@@ -76,7 +85,7 @@ namespace HollowCurrent
         };
         static readonly HashSet<string> PropMaterials = new HashSet<string>
         {
-            "Castle_Stone", "Castle_BlackStone", "Castle_FlagStone", "Castle_Oak", "Castle_Brass", "Castle_Oxblood",
+            "Castle_Stone", "Castle_StoneWeathered", "Castle_StoneDark", "Castle_StoneMossy", "Castle_BlackStone", "Castle_FlagStone", "Castle_Oak", "Castle_Brass", "Castle_Oxblood",
             "Castle_Silver", "Castle_Iron", "Castle_Bone", "Castle_Paper", "Castle_Blood",
         };
 
@@ -84,6 +93,26 @@ namespace HollowCurrent
         Material glBlend;
         bool warnedGl;
         readonly HashSet<Renderer> done = new HashSet<Renderer>();
+
+        Camera view;
+        float cryptBlend;   // 0 = hall/exterior fog, 1 = crypt fog
+
+        // Smoothly swap the exponential fog between the room profiles as the camera goes down into the crypt.
+        void Update()
+        {
+            if (!CryptFogProfile || !EnableFog) return;
+            if (!view || !view.isActiveAndEnabled)
+            {
+                view = null;
+                foreach (var c in Camera.allCameras) if (c.enabled && c.clearFlags != CameraClearFlags.Depth && c.cameraType == CameraType.Game) { view = c; break; }
+            }
+            if (!view) return;
+            var root = Root ? Root : transform;
+            float y = root.InverseTransformPoint(view.transform.position).y;
+            cryptBlend = Mathf.MoveTowards(cryptBlend, y < CryptBelowY ? 1f : 0f, Time.unscaledDeltaTime * 2f);
+            RenderSettings.fogColor = Color.Lerp(FogColor, CryptFogColor, cryptBlend);
+            RenderSettings.fogDensity = Mathf.Lerp(FogDensity, CryptFogDensity, cryptBlend);
+        }
 
         void OnEnable() { Camera.onPostRender += PostRender; }
         void OnDisable() { Camera.onPostRender -= PostRender; }
@@ -151,6 +180,7 @@ namespace HollowCurrent
                     var m = shared[i]; if (!m) continue;
                     string n = m.name; int cut = n.IndexOf(" (Instance)", StringComparison.Ordinal); if (cut >= 0) n = n.Substring(0, cut);
                     Material replacement = null;
+                    if (n == "Castle_Flame" && !CastleArt.FlameShaderOk) { replacement = CastleArt.FlameFallback(); if (replacement && replacement != m) { shared[i] = replacement; changed = true; } continue; }
                     if (n.StartsWith("Castle surface / Castle_Blood", StringComparison.Ordinal)) RefreshLiquid(m);
                     if (n.StartsWith(WorldPrefix, StringComparison.Ordinal) && World.TryGetValue(n.Substring(WorldPrefix.Length), out var spec))
                     {
@@ -252,23 +282,26 @@ namespace HollowCurrent
             if (shader == null || !shader.isSupported || noise == null) { Debug.LogWarning("[CastleAtmosphere] CastleFogLayer unavailable; ground fog skipped (exponential fog still active)"); return; }
             var group = new GameObject("Ground fog").transform;
             group.SetParent(parent, false);
-            int layers = Mathf.Clamp(FogLayers, 1, 12);
             var quad = BuildQuad();
             for (int a = 0; a < FogAreaCentres.Length && a < FogAreaSizes.Length; a++)
             {
+                int layers = Mathf.Clamp(a < FogAreaLayers.Length ? FogAreaLayers[a] : 6, 1, 12);
+                float alpha = a < FogAreaAlpha.Length ? FogAreaAlpha[a] : .2f;
+                float height = a < FogAreaHeight.Length ? FogAreaHeight[a] : 1f;
+                Color colour = a < FogAreaColors.Length ? FogAreaColors[a] : new Color(.34f, .42f, .58f);
                 for (int i = 0; i < layers; i++)
                 {
                     float t = i / (float)Mathf.Max(1, layers - 1);
                     var m = new Material(shader) { name = "Castle ground fog " + a + "/" + i };
                     m.SetTexture("_MainTex", noise);
-                    m.SetColor("_Color", GroundFogColor);
-                    m.SetFloat("_Alpha", FogLayerAlpha * Mathf.Lerp(1.4f, .5f, t));            // denser near the floor
+                    m.SetColor("_Color", colour);
+                    m.SetFloat("_Alpha", alpha * Mathf.Lerp(1.4f, .5f, t));                      // denser near the floor
                     m.SetFloat("_Tile", .18f + .05f * i);
                     m.SetVector("_Scroll", new Vector4(.008f + .003f * i, (i % 2 == 0 ? .005f : -.006f) - .001f * i, 0f, 0f));
                     m.SetVector("_Fade", new Vector4(.9f, 2.8f, 0f, 0f));
                     var go = new GameObject("Fog layer " + a + "." + i);
                     go.transform.SetParent(group, false);
-                    go.transform.localPosition = FogAreaCentres[a] + new Vector3(0f, Mathf.Lerp(.08f, 1.1f, t), 0f);
+                    go.transform.localPosition = FogAreaCentres[a] + new Vector3(0f, Mathf.Lerp(.08f, height, t), 0f);
                     go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
                     go.transform.localScale = new Vector3(FogAreaSizes[a].x, FogAreaSizes[a].y, 1f);
                     go.AddComponent<MeshFilter>().sharedMesh = quad;

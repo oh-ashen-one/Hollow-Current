@@ -319,6 +319,51 @@
   ],
   "tris": 552
  },
+ "Corbel": {
+  "budget": 300,
+  "bytes": 16684,
+  "file": "Assets/HollowCurrent/Resources/Castle/Corbel.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   0.2,
+   0.45,
+   0.58
+  ],
+  "min": [
+   -0.2,
+   0.0,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "Corbel": {
+    "max": [
+     0.2,
+     0.45,
+     0.58
+    ],
+    "min": [
+     -0.2,
+     0.0,
+     0.0
+    ],
+    "size": [
+     0.4,
+     0.45,
+     0.58
+    ],
+    "tris": 76
+   }
+  },
+  "size": [
+   0.4,
+   0.45,
+   0.58
+  ],
+  "tris": 76
+ },
  "CryptBridge": {
   "budget": 200,
   "bytes": 16012,
@@ -713,6 +758,52 @@
    0.26
   ],
   "tris": 24
+ },
+ "GargoyleSpout": {
+  "budget": 1200,
+  "bytes": 29996,
+  "file": "Assets/HollowCurrent/Resources/Castle/GargoyleSpout.fbx",
+  "materials": [
+   "Castle_Stone",
+   "Castle_BlackStone"
+  ],
+  "max": [
+   0.25,
+   1.15,
+   0.62
+  ],
+  "min": [
+   -0.25,
+   0.0,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "GargoyleSpout": {
+    "max": [
+     0.25,
+     1.15,
+     0.62
+    ],
+    "min": [
+     -0.25,
+     0.0,
+     0.0
+    ],
+    "size": [
+     0.5,
+     1.15,
+     0.62
+    ],
+    "tris": 440
+   }
+  },
+  "size": [
+   0.5,
+   1.15,
+   0.62
+  ],
+  "tris": 440
  },
  "GateArch": {
   "budget": 400,
@@ -1516,6 +1607,51 @@
   ],
   "tris": 128
  },
+ "StringCourse": {
+  "budget": 400,
+  "bytes": 16092,
+  "file": "Assets/HollowCurrent/Resources/Castle/StringCourse.fbx",
+  "materials": [
+   "Castle_Stone"
+  ],
+  "max": [
+   2.0,
+   0.2,
+   0.24
+  ],
+  "min": [
+   -2.0,
+   0.0,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "StringCourse": {
+    "max": [
+     2.0,
+     0.2,
+     0.24
+    ],
+    "min": [
+     -2.0,
+     0.0,
+     0.0
+    ],
+    "size": [
+     4.0,
+     0.2,
+     0.24
+    ],
+    "tris": 40
+   }
+  },
+  "size": [
+   4.0,
+   0.2,
+   0.24
+  ],
+  "tris": 40
+ },
  "TallLancetWindow": {
   "budget": 600,
   "bytes": 23548,
@@ -1563,6 +1699,53 @@
    3.5
   ],
   "tris": 284
+ },
+ "TapestryPanel": {
+  "budget": 1500,
+  "bytes": 40172,
+  "file": "Assets/HollowCurrent/Resources/Castle/TapestryPanel.fbx",
+  "materials": [
+   "Castle_Oxblood",
+   "Castle_Brass",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.76,
+   0.0846,
+   2.7
+  ],
+  "min": [
+   -0.76,
+   0.0154,
+   -0.0001
+  ],
+  "notes": {},
+  "parts": {
+   "TapestryPanel": {
+    "max": [
+     0.76,
+     0.0846,
+     2.7
+    ],
+    "min": [
+     -0.76,
+     0.0154,
+     -0.0001
+    ],
+    "size": [
+     1.52,
+     0.0693,
+     2.7001
+    ],
+    "tris": 784
+   }
+  },
+  "size": [
+   1.52,
+   0.0693,
+   2.7001
+  ],
+  "tris": 784
  },
  "VaultRib": {
   "budget": 600,

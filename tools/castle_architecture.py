@@ -358,6 +358,78 @@ def stone_bridge():
     b.notes.update(span=2 * hw, length=8, width=2.6)
     return b
 
+# ---------------------------------------------------------------- round 5 detail kit (hc/look5)
+# Wall-mounted details. Origin: centre of the BACK face on the wall, base at z=0; front (away from the wall) is +Y in asset
+# space, which is the art contract's +Z at yaw 0 in Unity.
+def sphere_(b, c, r, mat, seg=8):
+    b.lathe(c, [(0, -r), (.72 * r, -.7 * r), (r, 0), (.72 * r, .7 * r), (0, r)], seg, mat)
+
+def string_course():
+    """Moulded stone band, 4.0 long (X) x 0.24 high x 0.20 deep: cavetto, fillet, ovolo, drip edge. Tiles end to end."""
+    b = Builder("StringCourse")
+    prof = [(0, 0), (.12, 0), (.12, .03), (.17, .05), (.18, .09), (.14, .12), (.14, .15), (.19, .17), (.20, .21), (.17, .24), (0, .24)]
+    b.poly(prof, -2.0, 2.0, S, 'YZ')
+    return b
+
+def corbel():
+    """Stepped stone bracket, 0.40 wide x 0.55 high x 0.45 deep, top flush with the wall plate. Tapering to a nose."""
+    b = Builder("Corbel")
+    prof = [(0, .55), (.45, .55), (.45, .45), (.37, .45), (.37, .33), (.27, .33), (.27, .21), (.17, .21), (.17, .09), (.07, 0), (0, 0)]
+    b.poly(prof, -.20, .20, S, 'YZ')
+    for sx in (-1, 1):                                            # chamfered side blocks
+        b.box((sx * .185, .17, .40), (.03, .30, .30), S)
+    b.box((0, .225, .565), (.40, .45, .03), S)                    # abacus lip
+    return b
+
+def gargoyle_spout():
+    """Stone gargoyle on a spout, 0.50 wide x 0.60 high x 1.10 projecting. Open mouth, horns, folded wings; dark throat
+    where the water would run. Origin: centre of the back plate."""
+    b = Builder("GargoyleSpout")
+    b.box((0, .06, .30), (.50, .12, .60), S)                      # back plate
+    b.tube([(0, .05, .28), (0, .35, .27), (0, .70, .22)], [.17, .15, .12], 8, S)       # neck / body spout
+    # head
+    sphere_(b, (0, .78, .26), .17, S, 8)
+    b.tube([(0, .88, .27), (0, 1.02, .24), (0, 1.10, .22)], [.12, .10, .08], 8, S)      # snout
+    b.box((0, 1.00, .15), (.16, .26, .05), S)                                         # lower jaw
+    b.lathe((0, 1.095, .20), [(0, 0), (.055, 0), (.055, -.01), (0, -.01)], 8, BS, cap=False)   # throat
+    for sx in (-1, 1):
+        sphere_(b, (sx * .105, .92, .33), .04, BS, 6)                                  # eyes
+        b.tube([(sx * .08, .88, .38), (sx * .14, .86, .52), (sx * .12, .84, .62)], [.045, .03, 0], 6, S)   # horns
+        b.tube([(sx * .12, .90, .36), (sx * .20, .90, .33)], [.035, .02], 5, S)       # brow
+        # folded wing: slab hugging the flank
+        b.poly([(.05, .0), (.42, .06), (.55, .26), (.30, .52), (.10, .46)], sx * .15 if sx > 0 else -.20, sx * .20 if sx > 0 else -.15, S, 'YZ')
+        for i in range(3):                                                             # fangs
+            b.tube([(sx * (.05 + .02 * i), 1.07 - .04 * i, .17), (sx * (.05 + .02 * i), 1.07 - .04 * i, .11)], [.014, 0], 4, S)
+    b.tube([(0, .60, .10), (0, .75, .08), (0, .82, .10)], [.07, .05, .04], 6, S)      # chest
+    return b
+
+def tapestry_panel():
+    """Hanging tapestry, 1.40 wide x 2.85 high x 0.06 deep: oxblood cloth with brass-braid border, bat-and-moon emblem,
+    fringe, rod and finials. Origin: centre of the back face, base at the fringe."""
+    b = Builder("TapestryPanel")
+    with b.xf(T(0, 0, -.14)):                                        # fringe bottom sits on z=0
+        nx, ny = 6, 16
+        def fn(i, j):
+            u = i / nx - .5
+            y = .028 + .012 * math.sin(j * .8 + i * .9) * (j / ny) + .012
+            return (u * 1.30, y, 2.72 - j / ny * 2.5)
+        b.grid_cloth(nx, ny, fn, OX)
+        for z in (.26, 2.70):                                            # horizontal braid bands
+            b.box((0, .05, z), (1.30, .012, .06), BRASS)
+        for sx in (-1, 1):
+            b.box((sx * .62, .05, 1.48), (.06, .012, 2.44), BRASS)       # vertical braid
+        b.poly([(0, 1.95), (.30, 1.55), (0, 1.15), (-.30, 1.55)], .045, .06, BRASS, 'XZ')      # diamond field
+        with b.xf(Rx(90)):
+            b.lathe((0, 1.55, -.052), [(0, 0), (.14, 0), (.14, -.012), (0, -.012)], 12, BRASS, cap=False)   # moon disc (in the XZ plane)
+        b.tube([(-.20, .06, 1.22), (-.08, .062, 1.40), (0, .062, 1.30), (.08, .062, 1.40), (.20, .06, 1.22)], .012, 4, IRON)   # bat wings
+        for k in range(-6, 7):                                           # fringe
+            b.tube([(k * .1, .05, .26), (k * .1, .052, .14)], [.012, .006], 4, BRASS)
+        with b.xf(Ry(90)):
+            b.lathe((-2.80, .05, -.72), [(.022, 0), (.022, 1.44)], 8, IRON)
+        for sx in (-1, 1):
+            sphere_(b, (sx * .72, .05, 2.80), .04, BRASS, 6)
+    return b
+
 
 BUILDERS = [
     ("Wall_2m", lambda: wall("Wall_2m", 2.0, False), 200), ("Wall_4m", lambda: wall("Wall_4m", 4.0, False), 200),
@@ -369,6 +441,7 @@ BUILDERS = [
     ("Balustrade", balustrade, 700), ("RafterBeam", rafter_beam, 300), ("CryptBridge", crypt_bridge, 200),
     ("Buttress", buttress, 300), ("Battlement", battlement, 200), ("GateArch", gate_arch, 400),
     ("Drawbridge", drawbridge, 3000), ("DrawbridgeChains", drawbridge_chains, 3000),
+    ("StringCourse", string_course, 400), ("Corbel", corbel, 300), ("GargoyleSpout", gargoyle_spout, 1200), ("TapestryPanel", tapestry_panel, 1500),
     ("DoorFrame", lambda: door_frame("DoorFrame", 1.5, 2.0, .2, .2, 2.6, .8), 400),
     ("GreatDoorFrame", lambda: door_frame("GreatDoorFrame", 3.0, 4.5, .3, .3, 5.2, .9), 400),
     ("ServiceDoorFrame", lambda: door_frame("ServiceDoorFrame", .9, 2.0, .15, .15, 2.3, .8), 400),

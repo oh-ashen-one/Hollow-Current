@@ -70,3 +70,29 @@ Names the layout builder (hc/arch5) can rely on. Everything below is generated b
 - `Corbel`: 0.40 x 0.55 x 0.45 m stepped bracket.
 - `GargoyleSpout`: 0.50 x 0.60 x 1.10 m gargoyle head on a spout, projects +Z 1.1 m.
 - `TapestryPanel`: 1.40 x 2.80 x 0.06 m hanging oxblood tapestry with border, pole and finials.
+
+### hc/look5 final (values, corrections to the list above)
+Verified without Unity: `castle_textures.py` PASS, `castle_architecture.py -- StringCourse Corbel GargoyleSpout TapestryPanel` (manifest merged), `castle_verify.py` HC_VERIFY_PASS (72 assets, 0 fails), `check_source.py` both PASS. Nothing rendered.
+
+**Measured sizes (W x H x D, Blender X x Z x Y; manifest `docs/haunted-castle/art/manifest_architecture.json`, `CastleLayout.ArtSizes`-style Vector3 = (W, H, D)):**
+- `StringCourse` (4.0, 0.24, 0.20), 40 tris; `Corbel` (0.40, 0.58, 0.45), 76 tris (0.58 high including the 3 cm abacus lip); `GargoyleSpout` (0.50, 0.62, 1.15), 440 tris; `TapestryPanel` (1.52, 2.70, 0.07), 784 tris (rod 1.44 + finials, base at the fringe, rod at 2.70). Origin: centre of the back face, base at z=0; front = asset +Y = art contract +Z. Added to `castle_common.NOMINAL` and to `CastleArt.Names` / `CastleArt.All`.
+- Materials used: stone parts `Castle_Stone`, gargoyle eyes/throat `Castle_BlackStone`, tapestry `Castle_Oxblood` + `Castle_Brass` + `Castle_Iron`.
+
+**Stone variants** (textures 1024 px, Standard .mat for UV props, `CastleArt.Surface(name, World, tint)` works for all three, `CastleAtmosphere` also upgrades them as props): `Castle_StoneWeathered` (6 courses, 7 px joints, 34 px worn edges, heavy chipping, rain streaks; mean (0.46,0.50,0.58)), `Castle_StoneDark` (10 courses, tight, pitted; mean (0.17,0.18,0.22)), `Castle_StoneMossy` (green (0.17,0.25,0.10) and brown (0.26,0.21,0.13) patches, wet slime sheen; mean (0.36,0.40,0.36)). Mossy has smoothness up to 0.9 in the wet patches.
+
+**Decals** (`CastleArt.Decal(name)` / `Decal(name, tint)`; shader `HollowCurrent/CastleDecal`, alpha-blended, `Offset -1,-1`, no ZWrite; falls back to `Sprites/Default` if it does not compile; PNG sizes): `Castle_DecalCracksA` / `B` 1024x1024 (2 x 2 m), `Castle_DecalChips` 1024x1024 (1.5 x 1.5 m), `Castle_DecalStain` 1024x1024 (1.5 x 2 m, streaks from the top edge), `Castle_SootBase` 1024x256 (alpha 1 at the bottom row), `Castle_SootRadial` 512x512 (centre slightly below the middle, drifts up). Not tiled; clamp-wrapped.
+
+### Black standing-candelabra flames: material-side, fixed here
+`Castle_Flame.mat` in the repo had been re-serialised by Unity with `m_ValidKeywords: []` (no `_EMISSION`) while its albedo is near black (0.10,0.04,0.01): the Standard shader ignores the emission colour without the keyword, so the flame meshes on the standing `Candelabra` FBX (parts `Flame_0..4`, material `Castle_Flame`) rendered black. Round 4 restored the "theirs" .mat and lost my keyword. Fix: `Castle_Flame.mat` now uses the new unlit `HollowCurrent/CastleEmissive` shader (HDR colour (1.15,0.42,0.07), no keyword, no lighting, immune to the bake's `EmissiveIsBlack` flag). `CastleArt.GetMaterial` and `CastleAtmosphere.Upgrade` swap in a keyword-explicit Standard fallback if that shader fails to compile. This is NOT CandleFlame logic: the floating candles use the dressing builder's `CastleFlame` sprite shader and were never black. Tell the dressing builder: nothing to change on their side for the standing candelabras. (Re-bake not required for this; the persisted scene references the same .mat asset.)
+
+### Exposure and atmosphere values (all unmeasured; check the next capture)
+- Fog colour in the crypt (camera local y < -1.5): exponential fog (0.20,0.18,0.22) density 0.030 instead of the blue (0.30,0.37,0.52) / 0.050, blended over 0.5 s. Crypt ground fog: 3 layers up to 0.40 m, alpha 0.09 x (1.4 .. 0.5) (was 8 layers to 1.1 m, alpha 0.26), colour (0.30,0.27,0.30). Hall ground fog unchanged: 8 layers to 1.1 m, alpha 0.26, colour (0.34,0.42,0.58). All per-area arrays are public fields (`FogAreaColors/Layers/Alpha/Height`).
+- `FillSky` (0.013,0.018,0.030) (was 0.016,0.022,0.036): S1 11.7%, S3 11.1%, S4 8.8% below 8 were slightly too bright.
+- Candle colour (1.0,0.74,0.50) (was 1.0,0.70,0.42) to pull S1's warm share (15.3%) down.
+- Vault fill: (0, 7.6, 21), colour (0.42,0.55,0.90), intensity 0.60 (was 0.35), range 12 (was 10). Raise `VaultFillPosition.y` / intensity if the layout's stone ceiling sits higher or lower.
+- Crypt candle pools intensity 1.6 (was 1.3); crypt blood glow intensity 1.2 (was 0.9), for the specular on the channel (max luma 189 vs the 200 target).
+- Exterior facade fill intensity 0.95 (was 1.2).
+- New warm fills (castle-local, realtime, not in `World.Lamps`): "Courtyard candle fill" at (-4.6,2.0,9.5) and (-1.5,2.0,12.5), colour (1.0,0.70,0.45), intensity 1.0, range 6.5 (S6 was 0.1% warm, 32% below 8); "Balcony warm fill" at (-3.5,4.9,19.5), same colour, intensity 0.8, range 6 (S5 30.1%, H01 30.0%, H04 32.8% below 8 and a cold perch).
+
+### For the layout builder (hc/arch5)
+Use `Castle_StoneWeathered` for upper walls and towers, `Castle_StoneDark` for plinths/undercroft/crypt, `Castle_StoneMossy` for wall bases near the moat and courtyard and the damp crypt; `Castle_SootBase` along the bottom 1.2 m of interior walls and `Castle_SootRadial` behind candelabras and sconces; `Castle_DecalCracksA/B`, `Castle_DecalChips`, `Castle_DecalStain` scattered, 2 cm off the wall (offset is handled by the shader's depth bias, 1 cm is enough). Meshes: `StringCourse` at floor-height seams (tile along X, 4.0 m), `Corbel` under balconies/arches (0.45 m spacing is dense, 1.0 m is typical), `GargoyleSpout` on the exterior walls above the moat, `TapestryPanel` on long hall and portrait-hall walls (hang ~0.3 m above the floor).
