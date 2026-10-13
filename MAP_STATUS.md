@@ -1,7 +1,7 @@
 # Bellwether House — complete
 
 Status: **complete for the agreed single-map implementation scope** (2026-10-13).
-Branch: `fix/cabinet-dread-immersion`. The owner has not authorized merging this feature branch into `main`.
+The owner approved merging this completed work into `main` on 2026-10-13. Development and validation were completed on `fix/cabinet-dread-immersion`.
 
 The owner's final playtest feedback is implemented:
 
