@@ -625,10 +625,10 @@
  },
  "Drawbridge": {
   "budget": 3000,
-  "bytes": 22716,
+  "bytes": 22732,
   "file": "Assets/HollowCurrent/Resources/Castle/Drawbridge.fbx",
   "materials": [
-   "Castle_Oak",
+   "Castle_OakPlank",
    "Castle_Iron"
   ],
   "max": [
