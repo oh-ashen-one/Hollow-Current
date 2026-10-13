@@ -59,6 +59,8 @@ namespace HollowCurrent
             Log(id+" "+texture.width+"x"+texture.height+" "+file);
             Destroy(texture);
         }
+        // The investigator's flashlight as in play (Investigator input is off in capture).
+        void Torch(bool on){var l=game.Player.Torch;l.enabled=on;l.intensity=.85f*game.Player.Brightness;}
         static string V(Vector3 v)=>v.x.ToString("F2")+","+v.y.ToString("F2")+","+v.z.ToString("F2");
         // Unscaled frame times for `seconds`: mean / p95 / max in milliseconds.
         IEnumerator Measure(string id,float seconds)
@@ -104,16 +106,20 @@ namespace HollowCurrent
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"drawbridge lowered (Snap)");
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5: great hall floor looking up at the balcony; Count Claude on the balcony perch, Mode 0.
-            var perch=spots!=null&&spots.PerchPoints!=null&&spots.PerchPoints.Length>0?spots.PerchPoints[0]:new Vector3(-4.4f,3.2f,21);
-            e=new Vector3(1.5f,1.64f,17.5f);t=perch+Vector3.up*1.2f;Place(e,t);
+            // Staged on the balustrade top above the west balcony perch (the deck point
+            // itself is hidden behind the rail from the hall floor).
+            var deck=spots!=null&&spots.PerchPoints!=null&&spots.PerchPoints.Length>0?spots.PerchPoints[0]:new Vector3(-4.4f,3.2f,21);
+            var perch=new Vector3(-3.15f,deck.y+1.12f,deck.z);
+            Torch(true);
+            e=new Vector3(2.5f,1.64f,15.5f);t=perch+Vector3.up*1.2f;Place(e,t);
             var toCamera=e-perch;
             game.Creature.ManifestAt(perch,Mathf.Atan2(toCamera.x,toCamera.z)*Mathf.Rad2Deg,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeIdle);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"Count at perch "+V(perch)+" mode "+game.Creature.Profile.ModeIdle);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"Count staged on the balustrade at "+V(perch)+" above perch "+V(deck)+", mode "+game.Creature.Profile.ModeIdle+", investigator torch on");
             // S6: Count Claude 3 m in front of the camera on the courtyard, Mode 1 Glide.
             e=new Vector3(-3,1.64f,8);var stand=new Vector3(-3,0,11);t=stand+Vector3.up*1.3f;Place(e,t);
             game.Creature.ManifestAt(stand,180,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeMove,3);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count 3 m ahead, mode "+game.Creature.Profile.ModeMove);
-            game.Creature.Dismiss();
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"Count 3 m ahead, mode "+game.Creature.Profile.ModeMove+", investigator torch on");
+            game.Creature.Dismiss();Torch(false);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;
             string body=book.NoteBodies[0];foreach(var item in game.World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Note&&item.Label==book.NoteTitles[0])body=item.Body;
@@ -121,7 +127,7 @@ namespace HollowCurrent
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S8_journal_ledger","(journal)",Vector3.zero,Vector3.zero,book.NoteTitles[0]);
             game.NoteBody=null;game.Journal=false;ui.enabled=false;game.ApplyFocus();yield return null;
             // Hunt: Count Claude dives at the investigator in the great hall; 10 frames, 1 s apart.
-            e=new Vector3(0,1.64f,15.6f);var origin=new Vector3(1.5f,0,24f);t=origin+Vector3.up*1.6f;Place(e,t);
+            e=new Vector3(0,1.64f,15.6f);var origin=new Vector3(4.6f,0,26.8f);t=new Vector3(1.5f,1.6f,24f);Place(e,t);Torch(true);
             game.Case.Equip();game.Case.EnterHouse();game.Case.Record(Evidence.Induction);game.Case.Record(Evidence.Handprint);
             game.Case.BeginWarning();game.Creature.SetHuntOrigin(origin);game.Case.Tick(9.05f,true);
             Log("hunt phase="+game.Case.Phase+" "+game.Creature.DiagnosticState);
