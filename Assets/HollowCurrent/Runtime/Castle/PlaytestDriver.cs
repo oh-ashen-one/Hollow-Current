@@ -53,7 +53,9 @@ namespace HollowCurrent
         IEnumerator Frames(int n){for(int i=0;i<n;i++)yield return null;}
         IEnumerator Wait(float seconds){float end=Time.realtimeSinceStartup+seconds;while(Time.realtimeSinceStartup<end)yield return null;}
         void Reset(){input.Use=input.UseHeld=input.Fire=input.FireHeld=input.Torch=input.Radio=input.Sprint=input.Crouch=false;input.SelectTool=0;input.Move=Vector2.zero;}
-        IEnumerator Press(Action<FieldInput> set){set(input);yield return null;yield return null;Reset();yield return null;}
+        // One frame only: a two-frame press re-uses the same E on the next frame (entering a
+        // cupboard and leaving it again).
+        IEnumerator Press(Action<FieldInput> set){set(input);yield return null;Reset();yield return null;}
         IEnumerator SelectTool(int tool){if(game.Player.Tool==tool)yield break;yield return Press(i=>i.SelectTool=tool);}
         IEnumerator Torch(bool on){if(game.Player.TorchOn!=on)yield return Press(i=>i.Torch=true);}
         // Stand on the nearest walkable spot ~distance from the target (same floor), facing it.
