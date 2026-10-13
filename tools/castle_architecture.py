@@ -55,10 +55,13 @@ def column(name="Column", height=3.0, foot=.7, bands=()):
     prof = [(0, pl), (.44 * k, pl), (.44 * k, pl + .08 * k), (r + .04, pl + .14), (r, pl + .18), (r, z1)]
     rc = foot * .47
     prof += [(r + .03 * k, z1 + .06 * k), (r + (rc - r) * .7, z1 + .2 * k), (rc, height - aba), (0, height - aba)]
-    b.lathe((0, 0, 0), prof, 12, S, cap=False)
+    b.lathe((0, 0, 0), prof, 16, S, cap=False)
+    # Colonettes are shallow relief: centred inside the shaft surface (0.9 r) so they overlap the shaft silhouette and
+    # protrude only ~0.05 m, with smooth shading. Round 2 fix: at 1.18 r they stood 0.14 m proud and read as separate halves.
     for kk in range(4):
         a_ = math.radians(45 + 90 * kk)
-        b.lathe((r * 1.18 * math.cos(a_), r * 1.18 * math.sin(a_), 0), [(.06 * k + .02, pl + .18), (.06 * k + .02, z1)], 6, S)
+        cr = .05 * k + .02
+        b.lathe((r * .9 * math.cos(a_), r * .9 * math.sin(a_), 0), [(cr, pl + .18), (cr, z1 - .02), (cr * .5, z1 + .02)], 8, S)
     for z in bands:
         b.lathe((0, 0, 0), [(r + .03, z - .06), (r + .06, z), (r + .03, z + .06)], 12, S, cap=False)
     b.box((0, 0, height - aba / 2), (foot, foot, aba), S)

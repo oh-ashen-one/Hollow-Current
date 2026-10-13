@@ -142,7 +142,9 @@ namespace HollowCurrent
             var deck=spots!=null&&spots.PerchPoints!=null&&spots.PerchPoints.Length>0?spots.PerchPoints[0]:new Vector3(-4.4f,3.2f,21);
             var perch=new Vector3(-3.15f,deck.y+1.12f,deck.z);
             Torch(true);Floater.SetFlameTarget(game.Creature.transform);
-            e=new Vector3(2.5f,1.64f,15.5f);t=perch+Vector3.up*1.2f;Place(e,t);
+            // Eye moved 1.1 m east of the r1 position so the lancet window is no longer
+            // directly behind his shoulder (r1 "light leak" was sky through that window).
+            e=new Vector3(3.6f,1.64f,15.2f);t=perch+Vector3.up*1.2f;Place(e,t);
             var toCamera=e-perch;
             game.Creature.ManifestAt(perch,Mathf.Atan2(toCamera.x,toCamera.z)*Mathf.Rad2Deg,9999,true);game.Creature.Actor.Pose(game.Creature.Profile.ModeIdle);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"Count staged on the balustrade at "+V(perch)+" above perch "+V(deck)+", mode "+game.Creature.Profile.ModeIdle+", investigator torch on");

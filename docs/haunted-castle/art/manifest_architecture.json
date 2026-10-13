@@ -231,7 +231,7 @@
  },
  "Column": {
   "budget": 800,
-  "bytes": 22972,
+  "bytes": 26860,
   "file": "Assets/HollowCurrent/Resources/Castle/Column.fbx",
   "materials": [
    "Castle_Stone"
@@ -264,7 +264,7 @@
      0.7,
      3.0
     ],
-    "tris": 296
+    "tris": 456
    }
   },
   "size": [
@@ -272,11 +272,11 @@
    0.7,
    3.0
   ],
-  "tris": 296
+  "tris": 456
  },
  "ColumnGreat": {
   "budget": 1000,
-  "bytes": 25628,
+  "bytes": 29596,
   "file": "Assets/HollowCurrent/Resources/Castle/ColumnGreat.fbx",
   "materials": [
    "Castle_Stone"
@@ -309,7 +309,7 @@
      0.9,
      8.8
     ],
-    "tris": 392
+    "tris": 552
    }
   },
   "size": [
@@ -317,7 +317,7 @@
    0.9,
    8.8
   ],
-  "tris": 392
+  "tris": 552
  },
  "CryptBridge": {
   "budget": 200,
