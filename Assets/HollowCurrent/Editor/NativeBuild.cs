@@ -12,7 +12,9 @@ namespace HollowCurrent.Editor
 {
     public static class NativeBuild
     {
-        const string ScenePath="Assets/HollowCurrent/Scenes/Bellwether.unity";
+        // Scene/receipt names come from MapCatalog. Bellwether keeps the original
+        // method names; Castle has explicit *Castle entry points for -executeMethod.
+        static string ScenePath=>MapCatalog.Get(MapId.Bellwether).ScenePath;
         // One bounded first invocation: no native player build, screenshot, GI bake or Play Mode.
         public static void HeadlessValidate()
         {
@@ -22,29 +24,31 @@ namespace HollowCurrent.Editor
             TripoImport.Prepare();AuthoredImport.Prepare();CharacterImport.Prepare();SplitGrinImport.Prepare();Prepare();ValidateGeometry();Debug.Log("HC_HEADLESS_VALIDATION_PASS");
         }
         [MenuItem("Hollow Current/Prepare scene")]
-        public static void Prepare()
+        public static void Prepare()=>Prepare(MapId.Bellwether);
+        [MenuItem("Hollow Current/Prepare castle scene")]
+        public static void PrepareCastle()=>Prepare(MapId.Castle);
+        public static void Prepare(MapId map)
         {
-            Directory.CreateDirectory("Assets/HollowCurrent/Scenes");
+            var info=MapCatalog.Get(map);string scenePath=info.ScenePath;
+            Directory.CreateDirectory(MapCatalog.SceneFolder);
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-            var authored=new World();authored.Build();
-            var snapshot=authored.Root.gameObject.AddComponent<WorldLayout>();
-            snapshot.Trace=authored.Trace;snapshot.Anchor=authored.Anchor;snapshot.Induction=authored.Induction;snapshot.Voice=authored.Voice;snapshot.Print=authored.Print;
-            snapshot.Lamps=authored.Lamps.ToArray();snapshot.WindowLights=authored.WindowLights.ToArray();snapshot.Dolls=authored.Dolls.ToArray();snapshot.Doors=authored.Doors.ToArray();snapshot.SearchPoints=authored.SearchPoints.ToArray();
-            snapshot.MaterialNames=new List<string>(authored.Materials.Keys).ToArray();snapshot.Materials=new List<Material>(authored.Materials.Values).ToArray();
-            PersistLayoutAssets(authored.Root);
+            var authored=new World();authored.Build(map);
+            authored.Snapshot();
+            PersistLayoutAssets(authored.Root,info.LayoutFolder);
             AssetDatabase.SaveAssets();
             foreach(var component in authored.Root.GetComponentsInChildren<MonoBehaviour>(true))
             {
                 var script=MonoScript.FromMonoBehaviour(component);
                 if(!script||string.IsNullOrEmpty(AssetDatabase.GetAssetPath(script)))throw new Exception("Scene component requires its own persistent script asset: "+component.GetType().Name);
             }
-            EditorSceneManager.SaveScene(scene,ScenePath);
-            EditorSceneManager.OpenScene(ScenePath,OpenSceneMode.Single);
+            EditorSceneManager.SaveScene(scene,scenePath);
+            EditorSceneManager.OpenScene(scenePath,OpenSceneMode.Single);
             var reloaded=UnityEngine.Object.FindFirstObjectByType<WorldLayout>();
-            if(!reloaded||!reloaded.Trace||reloaded.Doors.Length!=4||reloaded.Materials.Length<18)throw new Exception("Authored scene reload failed");
+            if(map==MapId.Bellwether&&(!reloaded||!reloaded.Trace||reloaded.Doors.Length!=4||reloaded.Materials.Length<18))throw new Exception("Authored scene reload failed");
+            if(map!=MapId.Bellwether&&(!reloaded||!reloaded.Trace||reloaded.Map!=map))throw new Exception("Authored "+map+" scene reload failed");
             foreach(var door in reloaded.Doors)if(!door)throw new Exception("Door did not survive scene serialization");
-            Debug.Log("HC_SAVED_SCENE_PASS stable component scripts; scene reopened from disk");
-            EditorBuildSettings.scenes=new[]{new EditorBuildSettingsScene(ScenePath,true)};
+            Debug.Log("HC_SAVED_SCENE_PASS map="+map+" stable component scripts; scene reopened from disk");
+            RegisterScenes();
             PlayerSettings.companyName="Bellwether Field Office";PlayerSettings.productName="Hollow Current";
             PlayerSettings.colorSpace=ColorSpace.Linear;
             PlayerSettings.bundleVersion="0.2.0";PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Standalone,"com.bellwether.hollowcurrent");
@@ -57,11 +61,18 @@ namespace HollowCurrent.Editor
             var shaders=graphics.FindProperty("m_AlwaysIncludedShaders");var standard=Shader.Find("Standard");bool found=false;
             for(int i=0;i<shaders.arraySize;i++)if(shaders.GetArrayElementAtIndex(i).objectReferenceValue==standard)found=true;
             if(!found){int slot=shaders.arraySize;shaders.InsertArrayElementAtIndex(slot);shaders.GetArrayElementAtIndex(slot).objectReferenceValue=standard;graphics.ApplyModifiedPropertiesWithoutUndo();}
-            AssetDatabase.SaveAssets();Debug.Log("HC_SCENE_PREPARED");
+            AssetDatabase.SaveAssets();Debug.Log("HC_SCENE_PREPARED map="+map);
         }
-        static void PersistLayoutAssets(Transform root)
+        // Every catalog scene present on disk, Bellwether first (the startup scene).
+        public static void RegisterScenes()
         {
-            const string folder="Assets/HollowCurrent/Art/LayoutData";Directory.CreateDirectory(folder);AssetDatabase.Refresh();
+            var scenes=new List<EditorBuildSettingsScene>();
+            foreach(var map in MapCatalog.All)if(File.Exists(map.ScenePath))scenes.Add(new EditorBuildSettingsScene(map.ScenePath,true));
+            EditorBuildSettings.scenes=scenes.ToArray();
+        }
+        static void PersistLayoutAssets(Transform root,string folder)
+        {
+            Directory.CreateDirectory(folder);AssetDatabase.Refresh();
             int materialIndex=0,meshIndex=0;
             var remap=new Dictionary<Material,Material>();var data=root.GetComponent<WorldLayout>();
             Material Persist(Material material)
@@ -91,6 +102,17 @@ namespace HollowCurrent.Editor
                 if(old){EditorUtility.CopySerialized(mesh,old);f.sharedMesh=old;}else AssetDatabase.CreateAsset(mesh,path);
             }
         }
+        // Unbaked castle iteration build: regenerate the castle scene, check the
+        // probe/reflection setup without rendering, then build Castle alone.
+        [MenuItem("Hollow Current/Build castle macOS (unbaked)")]
+        public static void BuildMacCastle()
+        {
+            if(Application.isBatchMode&&SystemInfo.graphicsDeviceType!=UnityEngine.Rendering.GraphicsDeviceType.Null)
+                throw new Exception("CLI builds must use the Null graphics device");
+            Debug.Log("HC_BUILD_DEVICE "+SystemInfo.graphicsDeviceType);
+            PrepareCastle();ValidateCastleGeometry();HouseLighting.ValidateSetup(MapId.Castle);
+            BuildScenes(new[]{MapId.Castle},CastleOutput);
+        }
         [MenuItem("Hollow Current/Build macOS")]
         public static void BuildMac()
         {
@@ -119,10 +141,54 @@ namespace HollowCurrent.Editor
             HouseLighting.ValidatePreparedScene();BuildOpenScene();
             Debug.Log("HC_PREPARED_BUILD_PASS preserved authored lighting");
         }
+        const string HouseOutput="Builds/macOS/Hollow Current.app",CastleOutput="Builds/macOS-Castle/Hollow Current Castle.app";
+        // Castle alone, from its own prepared and baked scene. Bellwether's bake
+        // receipt is not consulted, so castle iteration never waits on a house re-bake.
+        [MenuItem("Hollow Current/Build prepared castle macOS release")]
+        public static void BuildPreparedMacCastle()
+        {
+            if(Application.isBatchMode&&SystemInfo.graphicsDeviceType!=UnityEngine.Rendering.GraphicsDeviceType.Null)
+                throw new Exception("CLI builds must use the Null graphics device");
+            Debug.Log("HC_BUILD_DEVICE "+SystemInfo.graphicsDeviceType);
+            ValidatePrepared(MapId.Castle);
+            BuildScenes(new[]{MapId.Castle},CastleOutput);
+            Debug.Log("HC_PREPARED_BUILD_PASS map=Castle preserved authored lighting");
+        }
+        // Both maps in one player (title-screen picker shows both). Each map must
+        // pass its own receipt; Bellwether is the startup scene.
+        [MenuItem("Hollow Current/Build prepared macOS release (all maps)")]
+        public static void BuildPreparedMacAll()
+        {
+            if(Application.isBatchMode&&SystemInfo.graphicsDeviceType!=UnityEngine.Rendering.GraphicsDeviceType.Null)
+                throw new Exception("CLI builds must use the Null graphics device");
+            Debug.Log("HC_BUILD_DEVICE "+SystemInfo.graphicsDeviceType);
+            ValidatePrepared(MapId.Bellwether);ValidatePrepared(MapId.Castle);
+            BuildScenes(new[]{MapId.Bellwether,MapId.Castle},HouseOutput);
+            Debug.Log("HC_PREPARED_BUILD_PASS maps=Bellwether,Castle preserved authored lighting");
+        }
+        static void ValidatePrepared(MapId map)
+        {
+            string path=MapCatalog.Get(map).ScenePath;
+            EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
+            HouseLighting.ValidatePreparedScene(map);
+            var world=new World();world.LoadOrBuild(map);
+            try{Physics.SyncTransforms();world.BuildNavigation();if(map==MapId.Bellwether)ValidateWorld(world);else ValidateCastleWorld(world);}
+            finally{world.Dispose();}
+            EditorSceneManager.OpenScene(path,OpenSceneMode.Single);
+            HouseLighting.ValidatePreparedScene(map);
+        }
+        static void BuildScenes(MapId[] maps,string output)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(output));
+            var scenes=new string[maps.Length];for(int i=0;i<maps.Length;i++)scenes[i]=MapCatalog.Get(maps[i]).ScenePath;
+            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=scenes,locationPathName=output,target=BuildTarget.StandaloneOSX,options=BuildOptions.CleanBuildCache});
+            Debug.Log("HC_BUILD_RESULT "+string.Join(",",maps)+" "+report.summary.result+" "+report.summary.totalSize);
+            if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Native build failed: "+report.summary.result);
+        }
         static void BuildOpenScene()
         {
             Directory.CreateDirectory("Builds/macOS");
-            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName="Builds/macOS/Hollow Current.app",target=BuildTarget.StandaloneOSX,options=BuildOptions.CleanBuildCache});
+            var report=BuildPipeline.BuildPlayer(new BuildPlayerOptions{scenes=new[]{ScenePath},locationPathName=HouseOutput,target=BuildTarget.StandaloneOSX,options=BuildOptions.CleanBuildCache});
             Debug.Log("HC_BUILD_RESULT "+report.summary.result+" "+report.summary.totalSize);
             if(report.summary.result!=BuildResult.Succeeded)throw new Exception("Native build failed: "+report.summary.result);
         }
@@ -133,6 +199,32 @@ namespace HollowCurrent.Editor
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             var world=new World();world.Build();Physics.SyncTransforms();world.BuildNavigation();
             try{ValidateWorld(world);}finally{world.Dispose();}
+        }
+        // Castle geometry check (engine, -nographics): every contract point must be
+        // reachable on foot from the gatehouse spawn, and the case items must exist.
+        public static void ValidateCastleGeometry()
+        {
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+            var world=new World();world.Build(MapId.Castle);Physics.SyncTransforms();world.BuildNavigation();
+            try{ValidateCastleWorld(world);}finally{world.Dispose();}
+        }
+        static void ValidateCastleWorld(World world)
+        {
+            if(world.Map!=MapId.Castle)throw new Exception("Not a castle world");
+            if(!NavMesh.SamplePosition(world.Spawn,out var origin,1,NavMesh.AllAreas))throw new Exception("Gatehouse spawn has no navigation surface");
+            int routes=0;
+            foreach(var point in world.CastleRoutePoints())
+            {
+                if(!NavMesh.SamplePosition(point,out var sample,1.2f,NavMesh.AllAreas))throw new Exception("No walkable surface near castle point: "+point);
+                var path=new NavMeshPath();if(!NavMesh.CalculatePath(origin.position,sample.position,NavMesh.AllAreas,path)||path.status!=NavMeshPathStatus.PathComplete)throw new Exception("Disconnected castle route: "+point);
+                routes++;
+            }
+            foreach(InteractKind kind in new[]{InteractKind.Kit,InteractKind.Van,InteractKind.Anchor,InteractKind.Breaker})
+            {
+                bool found=false;foreach(var item in world.Root.GetComponentsInChildren<Interactable>())if(item.Kind==kind)found=true;
+                if(!found)throw new Exception("Castle is missing a "+kind+" interactable");
+            }
+            Debug.Log("HC_CASTLE_GEOMETRY_PASS "+routes+" routes from the gatehouse; case interactables present");
         }
         static void ValidateWorld(World world)
         {
@@ -174,8 +266,8 @@ namespace HollowCurrent.Editor
                 if(!found)throw new Exception("Missing integrated fixture "+name);
             }
             Debug.Log("HC_DETAIL_PASS "+DetailArt.Required.Length+" optimized original room fixture types");
-            var destinations=new[]{World.Spawn,new Vector3(0,0,3),new Vector3(-5,0,8),new Vector3(5,0,10),new Vector3(-5,3.2f,5),new Vector3(5,3.2f,10),new Vector3(0,-3.2f,3),new Vector3(5,-3.2f,10),new Vector3(0,0,-7.3f),new Vector3(-6.7f,3.2f,8.55f),new Vector3(-5.1f,-3.2f,4.6f),new Vector3(5.5f,0,-5.8f)};
-            if(!NavMesh.SamplePosition(World.Spawn,out var origin,1,NavMesh.AllAreas))throw new Exception("Van has no navigation surface");
+            var destinations=new[]{world.Spawn,new Vector3(0,0,3),new Vector3(-5,0,8),new Vector3(5,0,10),new Vector3(-5,3.2f,5),new Vector3(5,3.2f,10),new Vector3(0,-3.2f,3),new Vector3(5,-3.2f,10),new Vector3(0,0,-7.3f),new Vector3(-6.7f,3.2f,8.55f),new Vector3(-5.1f,-3.2f,4.6f),new Vector3(5.5f,0,-5.8f)};
+            if(!NavMesh.SamplePosition(world.Spawn,out var origin,1,NavMesh.AllAreas))throw new Exception("Van has no navigation surface");
             foreach(var point in destinations)
             {
                 if(!NavMesh.SamplePosition(point,out var sample,.65f,NavMesh.AllAreas))throw new Exception("No walkable surface: "+point);

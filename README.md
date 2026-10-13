@@ -33,7 +33,23 @@ UNITY='/Applications/Unity/Hub/Editor/6000.3.20f1/Unity.app/Contents/MacOS/Unity
 "$UNITY" -batchmode -nographics -quit -projectPath "$PWD" -executeMethod HollowCurrent.Editor.NativeBuild.BuildPreparedMac -logFile build.log
 ```
 
-Output: `Builds/macOS/Hollow Current.app`. The lighting step needs a working graphics session; do not add `-nographics` to that step. The prepared build validates its bake receipt and rejects stale scene/source dependencies. A Unity license and platform toolchain are independently required.
+Output: `Builds/macOS/Hollow Current.app`.
+
+### Maps (Bellwether and the Haunted Castle)
+
+Scene names, bake receipts and display names live only in `Assets/HollowCurrent/Core/MapId.cs` (`MapId`, `MapCatalog`). Each map has explicit editor entry points for `-executeMethod`, rather than a command-line map argument:
+
+| Step | Bellwether (unchanged names) | Castle |
+| --- | --- | --- |
+| Regenerate scene | `HollowCurrent.Editor.NativeBuild.Prepare` | `HollowCurrent.Editor.NativeBuild.PrepareCastle` |
+| Prepare + bake (graphics session) | `HollowCurrent.Editor.HouseLighting.PrepareAndBake` | `HollowCurrent.Editor.HouseLighting.PrepareAndBakeCastle` |
+| Prepared build (`-nographics`) | `HollowCurrent.Editor.NativeBuild.BuildPreparedMac` | `HollowCurrent.Editor.NativeBuild.BuildPreparedMacCastle` |
+| Unbaked iteration build | `HollowCurrent.Editor.NativeBuild.BuildMac` | `HollowCurrent.Editor.NativeBuild.BuildMacCastle` |
+| Engine geometry check | `HollowCurrent.Editor.NativeBuild.HeadlessValidate` | `HollowCurrent.Editor.NativeBuild.ValidateCastleGeometry` |
+
+`HollowCurrent.Editor.NativeBuild.BuildPreparedMacAll` validates both receipts and builds one player with both scenes (title-screen map picker). Castle builds go to `Builds/macOS-Castle/Hollow Current Castle.app`.
+
+Each map has its own receipt (`Art/LayoutData/BellwetherBake.json`, `Art/LayoutData/CastleBake.json`). The Castle receipt hashes every `.cs`/`.shader` under `Assets/HollowCurrent` (except `NativeVerification.cs`). The Bellwether receipt hashes the same set minus castle-only sources (`Runtime/Castle/`, `Core/Forge.cs`, `Editor/CountClaudeImport.cs`, `Resources/Castle*/`, `Resources/Characters/CountClaude/`, `Art/LayoutData/Castle/`), so castle-only work does not stale the house bake. Changes to shared sources (for example `Game.cs`) still stale both receipts: the prepared build then refuses with a message naming the bake method to re-run. The lighting step needs a working graphics session; do not add `-nographics` to that step. The prepared build validates its bake receipt and rejects stale scene/source dependencies. A Unity license and platform toolchain are independently required.
 
 ## Controls
 

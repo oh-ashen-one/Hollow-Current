@@ -22,10 +22,10 @@ namespace HollowCurrent.Editor
             var proof=JsonUtility.FromJson<Proof>(File.ReadAllText("evidence/controller-build-proof.json"));
             if(proof.baseline!="680c29caff7db7eda4f8993df4483c65d565ca92"||proof.files==null||proof.files.Length<100)throw new Exception("Missing verified controller-only change proof");
             foreach(var item in proof.files)if(!File.Exists(item.path)||Hash(item.path)!=item.sha256)throw new Exception("Source changed after the controller-only proof: "+item.path);
-            const string receiptPath="Assets/HollowCurrent/Art/LayoutData/BellwetherBake.json";
+            string receiptPath=MapCatalog.Get(MapId.Bellwether).BakeReceiptPath;
             if(Hash(receiptPath)!=proof.original_receipt_sha256)throw new Exception("Original bake receipt changed; refusing runtime-only build");
             var receipt=JsonUtility.FromJson<Receipt>(File.ReadAllText(receiptPath));
-            const string scene="Assets/HollowCurrent/Scenes/Bellwether.unity";
+            string scene=MapCatalog.Get(MapId.Bellwether).ScenePath;
             EditorSceneManager.OpenScene(scene,OpenSceneMode.Single);
             if(LightmapSettings.lightmaps.Length!=receipt.lightmaps||receipt.lightmaps<1||!LightmapSettings.lightProbes||LightmapSettings.lightProbes.count!=receipt.lightProbes)throw new Exception("Saved baked lighting missing after import");
             foreach(var map in LightmapSettings.lightmaps)if(!map.lightmapColor)throw new Exception("A saved lightmap did not import");

@@ -359,7 +359,7 @@ namespace HollowCurrent
                 yield return RecordWithTool(Evidence.Voice,3,game.World.Anchor);
                 Require(game.Case.Evidence.Contains(Evidence.Voice),"New recorder captures an EVP response while still");
                 yield return Capture("tool-08-recorder-evidence",game.World.Anchor);
-                yield return Walk(World.Spawn);Require(game.Player.InVan,"Field-kit route returns through stairs and door to the van");
+                yield return Walk(game.World.Spawn);Require(game.Player.InVan,"Field-kit route returns through stairs and door to the van");
                 yield break;
             }
             yield return Walk(new Vector3(5.5f,0,-5.8f));yield return Capture("detail-field-van",new Vector3(0,1.35f,-11.4f));
@@ -424,7 +424,7 @@ namespace HollowCurrent
             yield return Walk(new Vector3(6.7f,-3.2f,7.9f));yield return Use(Item(InteractKind.Breaker));Require(game.Case.BreakerOn,"Breaker restored through interaction");
             yield return Walk(new Vector3(5.7f,-3.2f,10));yield return Look(game.World.Anchor);game.Player.TestInput.UseHeld=true;yield return new WaitForSeconds(12.5f);game.Player.TestInput.UseHeld=false;
             Require(game.Case.Phase==Phase.Return,"Anchor sealed through aimed hold");
-            yield return Walk(World.Spawn);yield return Use(Item(InteractKind.Van));Require(game.Case.Phase==Phase.Won,"Return terminal closes case");
+            yield return Walk(game.World.Spawn);yield return Use(Item(InteractKind.Van));Require(game.Case.Phase==Phase.Won,"Return terminal closes case");
             yield return Capture("07-ending",game.Player.View.transform.position+Vector3.forward);
             yield return RestartAndBind();Require(game.Case.Evidence.Count==0&&!game.Case.Equipped,"Retry resets evidence and kit");
             yield return Use(Item(InteractKind.Kit));

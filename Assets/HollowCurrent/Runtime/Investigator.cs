@@ -175,7 +175,7 @@ namespace HollowCurrent
             bool sealing=Focus!=null&&Focus.Kind==InteractKind.Anchor&&input.UseHeld;
             Game.Case.Seal(dt,sealing,Vector3.Distance(transform.position,Game.World.Anchor)<3);
             if(Inside)Game.Case.EnterHouse();
-            if(transform.position.y < -8)Teleport(World.Spawn);
+            if(transform.position.y < -8)Teleport(Game.World.Spawn);
         }
         void Move(float dt)
         {

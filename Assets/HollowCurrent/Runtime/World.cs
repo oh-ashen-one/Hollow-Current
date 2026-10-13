@@ -22,20 +22,45 @@ namespace HollowCurrent
         public Vector3 Print = new Vector3(-7.84f, 4.65f, 4.6f); // Clear wall beyond the curtain folds.
         public NavMeshData NavData;
         NavMeshDataInstance navInstance;
-        public static readonly Vector3 Spawn = new Vector3(0, .1f, -11.4f);
+        // Which map this world holds. Every map-specific coordinate that Game,
+        // Investigator and Presence read lives on this instance.
+        public MapId Map {get;private set;}=MapId.Bellwether;
+        public static readonly Vector3 HouseSpawn = new Vector3(0, .1f, -11.4f);
+        public Vector3 Spawn = HouseSpawn;
 
-        public void LoadOrBuild()
+        public void LoadOrBuild()=>LoadOrBuild(MapId.Bellwether);
+        // A saved authored layout in the open scene wins; it records its own map.
+        public void LoadOrBuild(MapId map)
         {
             var saved=Object.FindFirstObjectByType<WorldLayout>();
-            if(!saved){Build();return;}
+            if(!saved){Build(map);return;}
+            if(saved.Map!=map)Debug.LogWarning("HC_MAP_MISMATCH scene layout is "+saved.Map+", requested "+map);
+            Map=saved.Map;
             ownsMaterials=false;Root=saved.transform;Trace=saved.Trace;
             Anchor=saved.Anchor;Induction=saved.Induction;Voice=saved.Voice;Print=saved.Print;
             foreach(var item in Root.GetComponentsInChildren<Interactable>())if(item.Kind==InteractKind.Hide)HidingPlaces.Add(item);
             Lamps.AddRange(saved.Lamps);WindowLights.AddRange(saved.WindowLights);Dolls.AddRange(saved.Dolls);Doors.AddRange(saved.Doors);SearchPoints.AddRange(saved.SearchPoints);
             for(int i=0;i<saved.MaterialNames.Length;i++)Materials[saved.MaterialNames[i]]=saved.Materials[i];
         }
+        public void Build(MapId map)
+        {
+            if(map!=MapId.Bellwether)throw new System.NotSupportedException("Castle layout is not wired yet");
+            Build();
+        }
+        // Adds the serialized snapshot that a prepared scene loads back at runtime.
+        public WorldLayout Snapshot()
+        {
+            var snapshot=Root.gameObject.AddComponent<WorldLayout>();snapshot.Map=Map;
+            snapshot.Trace=Trace;snapshot.Anchor=Anchor;snapshot.Induction=Induction;snapshot.Voice=Voice;snapshot.Print=Print;
+            snapshot.Lamps=Lamps.ToArray();snapshot.WindowLights=WindowLights.ToArray();snapshot.Dolls=Dolls.ToArray();snapshot.Doors=Doors.ToArray();snapshot.SearchPoints=SearchPoints.ToArray();
+            snapshot.MaterialNames=new List<string>(Materials.Keys).ToArray();snapshot.Materials=new List<Material>(Materials.Values).ToArray();
+            return snapshot;
+        }
+        // Points the castle validator walks to from the gatehouse (empty for Bellwether).
+        public List<Vector3> CastleRoutePoints()=>new List<Vector3>();
         public void Build()
         {
+            Map=MapId.Bellwether;Spawn=HouseSpawn;
             Root = new GameObject("Bellwether House / authored layout").transform;
             Palette();
             Box("Front garden", new Vector3(0,-.38f,-16.2f), new Vector3(65,.5f,32.4f), "earth");
