@@ -209,12 +209,13 @@ namespace HollowCurrent
                 if(GUI.enabled&&(primary||selected||hover||focus))Panel(new Rect(x+w*.16f,y+h-7,w*.66f,1),copper);
             }
             if(selected)Panel(new Rect(x,y,3,h),copper);
+            // Label padding: right 80 keeps the label >=12 px clear of the key cap (cap spans w-66..w-18).
             GUI.SetNextControlName(id);bool clicked=GUI.Button(rect,GUIContent.none,GUIStyle.none);
             if(PadInput.Active)clicked=false;
             if(ConsumeControllerAction(id,GUI.enabled,Event.current.type==EventType.Layout))clicked=true;
             if(PadInput.Active)key=padFocus?PadInput.Prompt("ENTER"):"";
             var old=button.normal.textColor;button.normal.textColor=GUI.enabled?(plain&&!hover&&!focus&&OnPaper(rect.center)?paperInk:ink):new Color(.47f,.43f,.38f);
-            button.padding.left=Mathf.Clamp(Mathf.RoundToInt(w*.14f),22,68);button.padding.right=key.Length>0?80:22; // >=12 px clear of the key cap (cap spans w-66..w-18)GUI.Label(rect,text,button);button.normal.textColor=old;
+            button.padding.left=Mathf.Clamp(Mathf.RoundToInt(w*.14f),22,68);button.padding.right=key.Length>0?80:22;GUI.Label(rect,text,button);button.normal.textColor=old;
             if(key.Length>0){var keyRect=new Rect(x+w-66,y+(h-24)/2,48,24);Border(keyRect,GUI.enabled?line:new Color(.16f,.18f,.17f));var oldKey=keyStyle.normal.textColor;keyStyle.normal.textColor=plain&&!hover&&!focus&&OnPaper(rect.center)?paperInk:ink;GUI.Label(keyRect,key,keyStyle);keyStyle.normal.textColor=oldKey;}
             if(clicked)Game.Sound.UI();
             return clicked;
