@@ -158,6 +158,10 @@ namespace HollowCurrent
             Log("hunt phase="+game.Case.Phase+" "+game.Creature.DiagnosticState);
             // The warning-phase scare mist (ScareDirector.Pulse, 2.8 s lifetime) spawns 3 m ahead.
             yield return new WaitForSecondsRealtime(3f);
+            // The warning's ScareDirector.Pulse(…, 9) also starts 9 s of interference, which
+            // strobes every candle to 8% (LightMultiplier): wait it out so H frames share S1's light.
+            float interference=Time.realtimeSinceStartup;while(game.Scares&&game.Scares.Interference)yield return null;
+            Log("hunt interference waited "+(Time.realtimeSinceStartup-interference).ToString("F1")+" s");
             bool choreo=game.Creature.BeginCaptureChoreography(1);Log("choreography begin="+choreo);
             var samples=new List<float>();
             for(int i=0;i<10;i++)
