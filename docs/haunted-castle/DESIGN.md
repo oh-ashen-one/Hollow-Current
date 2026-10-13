@@ -4,7 +4,7 @@ Second map for Hollow Current, separate from the Bellwether house. Same investig
 
 Owner decisions (2026-10-13):
 - Majority of the Bellwether loop carries over; add an optional weapon craft that lets you defeat the hunter.
-- Hunter: winged vampire lord. Working name **the Hollow Count** (owner may rename).
+- Hunter: winged vampire lord. Name: **Count Claude** (owner decision 2026-10-13).
 - Surrealism: heavy. You are not on a human planet.
 - Castle: medium, hand-authored, ~10–14 rooms.
 - Weapon: hidden recipe, three relics, one fight. Escape via the drawbridge still wins.
@@ -12,7 +12,7 @@ Owner decisions (2026-10-13):
 
 ## Fiction
 
-The Count was a margrave who bargained with something under the castle for a night that never ends. The castle slipped half out of the world: two moons, a red moat, candles that float, a doorway that sometimes returns you to the room you left. The family story (Bellwether's "Mourning Note" idea) becomes the **Blood Ledger**: the household's last ledger entries, written as the bargain took them one by one. Reading the ledger reveals where the three relics were hidden by the last steward who tried to kill him.
+Count Claude was a margrave who bargained with something under the castle for a night that never ends. The castle slipped half out of the world: two moons, a red moat, candles that float, a doorway that sometimes returns you to the room you left. The family story (Bellwether's "Mourning Note" idea) becomes the **Blood Ledger**: the household's last ledger entries, written as the bargain took them one by one. Reading the ledger reveals where the three relics were hidden by the last steward who tried to kill him.
 
 ## The loop (mapped from Bellwether)
 
@@ -69,7 +69,7 @@ Floating candelabras and books (slow bob, flames bend toward the Count), rune ri
 | 1 | `CastleWorld` layout: rooms, doors, nav, spawn/anchor points, lighting rig | sonnet-builder | new `CastleWorld.cs`, `CastleLayout.cs` |
 | 2 | Castle art: architecture meshes (Blender script, same pipeline as `Resources/Architecture`), materials, skybox with two moons | sonnet-builder | `tools/castle_*.py`, `Resources/Castle/` |
 | 3 | Surreal props + scripts (floaters, rune ring, candle-tell, portrait eyes, stair loop) | sonnet-builder | `Runtime/Castle/*.cs` |
-| 4 | The Hollow Count: model from the sheet (Higgsfield 3D), rig/animations, `HunterProfile`, perch/glide/dive, stagger/death | opus-builder | `Presence.cs` profile split, `Resources/Characters/HollowCount` |
+| 4 | The Hollow Count: model from the sheet (Higgsfield 3D), rig/animations, `HunterProfile`, perch/glide/dive, stagger/death | opus-builder | `Presence.cs` profile split, `Resources/Characters/CountClaude` |
 | 5 | Tools reskin + Blood Ledger + relic/craft/fight rules | sonnet-builder (rules) + main (Investigation.cs) | `Core/Investigation.cs`, `Interface.cs`, new `Core/Forge.cs` |
 | 6 | Audio: Count whispers via `generate_open_voice`, wing/dive/stagger SFX (Higgsfield Seed Audio), chapel bell | sonnet-builder | `tools/voice-lines.json`, `Resources/CastleAudio/` |
 | 7 | Captures + critic rounds against `docs/haunted-castle/refs/` | opus-critic | `docs/haunted-castle/rounds/` |
