@@ -28,3 +28,7 @@ Except for the Higgsfield recordings and third-party software described below, t
 - Provider account exports, access tokens, billing ledgers, signed download URLs, local operational history, unused HD masters, runtime logs and local paths: excluded.
 
 No assertion is made that provider terms are an infringement warranty. The review establishes recorded provenance and permission bases for these specific project assets, not rights to unrelated third-party content or provider services.
+
+## Higgsfield 3D: Count Claude (added 2026-10-13)
+
+`Assets/HollowCurrent/Resources/Characters/CountClaude/` and `tools/count_source/` hold the Haunted Castle hunter: a Higgsfield `multi_image_to_3d` mesh and texture (job `0599a54a-d8de-42fe-a9cb-b3a3ec94d655`) from original GPT Image 2.5 concept views, rigged by Higgsfield `3d_rigging` (job `325ca2e8-31f1-4706-9063-ae103a0b714d`), then re-skinned, scaled and animated locally with `tools/count_prepare.py`. The generated mesh and texture fall under the same Higgsfield asset permission and restrictions as the recordings above (copying, modification, redistribution and commercial use allowed with credit to “Hollow Current by Ashen — 3D generated with Higgsfield”; no AI/ML training use). The six animation clips are original project work (CC BY 4.0). Provenance and costs: `docs/haunted-castle/ASSET_LOG_count.md`.
