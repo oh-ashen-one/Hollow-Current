@@ -13,12 +13,14 @@ namespace HollowCurrent
         // Animator "Mode" ints (HearthboundActor.Pose). 0-5 are the shared contract; 6 Grab is the wing-wrap.
         public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCrawlId=7,ModeCount=8;
         public int ModeGrab=ModeGrabId;
-        // Round 6: Mode 7 Crawl, a stooped four-limbed walk (top < 1.9 m) under 2.0 m lintels. Used on foot at service
-        // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.12 m + margin).
+        // Mode 7 Crawl, a stooped four-limbed knuckle-walk (top 1.75 m) under 2.0 m lintels. Used on foot at service
+        // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.33 m + margin).
         public int ModeCrawl=ModeCrawlId;
-        public float CrawlCeiling=2.3f;
+        public float CrawlCeiling=2.45f;
+        // Round 7: CastleArt.Gore materials on the demon (submesh 0 body/coat = Skin, 1 wing membrane = Membrane).
+        public bool GoreMaterials=true; public float GoreSkinWet=.55f, GoreMembraneWet=.35f;
 
-        public float ModelHeight=2.15f;                        // head top, metres (tools/count_prepare.py HEAD_TOP); the 2.5 m demon mesh is blocked (HANDOFF r6)
+        public float ModelHeight=2.5f;                         // head top, metres (tools/count_prepare.py HEAD_TOP): the nine-foot demon
 
         // Movement. Glide is faster than a sprint (3.9) on straights and slower in tight rooms (wings clip columns).
         public float GlideStraightSpeed=4.6f;
@@ -32,7 +34,7 @@ namespace HollowCurrent
         // Flight height: clearance under his lowest point (the clips are exported with the lowest point 0.10 m above
         // the origin, so hover 0 skims the floor). Capped by the ceiling above the route.
         public float HoverMax=1.1f;
-        public float BodyClearance=2.25f;                      // ceiling - this = highest hover (Glide clip top is 2.12 m)
+        public float BodyClearance=2.45f;                      // ceiling - this = highest hover (Glide clip top is 2.33 m)
         public float HoverNearPlayer=.15f;                     // last leg of a chase: drop to grab height
         public float HoverTierScale=.25f;                      // each completed retreat: comes back lower (1 - tier * this)
         public float FlightClearRadius=.28f;                   // sphere for "can he fly straight there"
@@ -41,7 +43,7 @@ namespace HollowCurrent
         public float PerchMinSeconds=6f, PerchMaxSeconds=14f;  // between hunts (scripted appearances)
         public float HuntPerchMinSeconds=2.5f, HuntPerchMaxSeconds=5f;
         public float PerchTellSeconds=.9f;                     // watches you this long from a perch before the dive
-        public float PerchEyeHeight=1.05f, FlightEyeHeight=1.55f, PerchLookDown=25f;
+        public float PerchEyeHeight=1.3f, FlightEyeHeight=1.85f, PerchLookDown=25f;
         public float LedgeProbe=2.2f;                          // balustrade search distance in front of a perch point
         public float SearchLandSeconds=2.6f;                   // lands at a heard/last-seen spot and prowls (Mode 2)
 
@@ -49,9 +51,9 @@ namespace HollowCurrent
         public int HitsToKill=3;
         public float StaggerRetreatSeconds=20f;                // retreat to a perch for 20 s, return lower and angrier (Fight.RetreatSeconds)
 
-        // Grab presentation: the Grab clip reaches 1.70 m ahead of his origin (receipt grab_reach_m);
+        // Grab presentation: the Grab clip reaches 1.56 m ahead of his origin (receipt grab_reach_m);
         // keep the camera at least CameraClearance outside it.
-        public float GrabReach=1.70f, CameraClearance=.6f;   // r6 forward wing-wrap: the wing tips lead
+        public float GrabReach=1.56f, CameraClearance=.6f;   // r7 forward wing-wrap (receipt grab_reach_m): the wing tips lead
         public float GrabStandOff=>GrabReach+CameraClearance+.05f;
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
@@ -77,7 +79,7 @@ namespace HollowCurrent
             SightRange=14f;SightAngle=80f;EyeHeight=FlightEyeHeight;
             // The nav agent is never enabled for the Count (he flies kinematically along NavMesh corners); these keep
             // the agent component sane if anything inspects it.
-            Speed=GlideTightSpeed;AgentRadius=.30f;AgentHeight=2.2f;Acceleration=10f;AngularSpeed=250f;
+            Speed=GlideTightSpeed;AgentRadius=.30f;AgentHeight=2.6f;Acceleration=10f;AngularSpeed=250f;
             GrabDistance=1.05f;
             Search=SearchRoute.PerchPoints;
             HuntSpawn=null;                                    // CastleWorld.Points.HunterSpawn; the hunt starts on the nearest perch
