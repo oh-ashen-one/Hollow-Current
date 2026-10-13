@@ -107,15 +107,15 @@ def ashlar_layout(n, rng, rows, cols_choice, offset_rows=True):
             tone[ys, xs] = rng.random(); hue[ys, xs] = rng.random()
     return dxy, tone, hue
 
-def stone(n, rng, base, rows=8, mortar_px=5, bevel=22, polish=0.0, wet=0.0):
-    d, tone, hue = ashlar_layout(n, rng, rows, [2, 3, 3, 4])
+def stone(n, rng, base, rows=8, mortar_px=5, bevel=22, polish=0.0, wet=0.0, cols=(2, 3, 3, 4), chip_t=0.66, crack_k=120):
+    d, tone, hue = ashlar_layout(n, rng, rows, list(cols))
     grain = fbm(n, rng, (1.0, 1.6, 2.2), (1, .7, .5)); fine = noise(n, 0.3, rng); pits = noise(n, 0.6, rng)
     chipn = fbm(n, rng, (1.3, 1.9, 2.6), (1, .6, .4))
     mortar = (d < mortar_px).astype(np.float32); mortar = blur(mortar, 1)
     edge_w = bevel * (0.5 + chipn)                                   # uneven bevel width = chipped, worn edges
     bev = smoothstep(mortar_px, mortar_px + edge_w, d)                 # 0 at the joint -> 1 on the block face
-    chip = np.clip((chipn - 0.66) * 5.0, 0, 1) * (1 - smoothstep(mortar_px, mortar_px + 46, d))
-    cracks = np.clip(1 - np.abs(noise(n, 1.7, rng) - 0.5) * 120, 0, 1) * smoothstep(8, 40, d)
+    chip = np.clip((chipn - chip_t) * 5.0, 0, 1) * (1 - smoothstep(mortar_px, mortar_px + 46, d))
+    cracks = np.clip(1 - np.abs(noise(n, 1.7, rng) - 0.5) * crack_k, 0, 1) * smoothstep(8, 40, d)
     streak = noise(n, 2.4, rng, sx=5.0, sy=0.6)                       # vertical damp streaks
     damp = np.clip((streak - 0.52) * 3.2, 0, 1) * np.linspace(1.0, 0.35, n)[:, None]
     height = 0.34 * bev + 0.34 * grain + 0.10 * fine + 0.08 * tone - 0.30 * chip - 0.22 * cracks - 0.55 * mortar
@@ -297,6 +297,252 @@ def sun_window(rng):
     height = norm01(0.6 * paint * (0.5 + 0.5 * drips) + 0.3 * nz(0.7) - 0.5 * flakes - 0.3 * (1 - paint_edge))
     smooth = 0.30 + 0.55 * (1 - paint) + 0.1 * paint * drips
     return albedo, emission, height, smooth
+
+
+def stone_weathered(n, rng, base):
+    """Weathered grey-blue ashlar: larger blocks, worn rounded edges, heavy chipping and cracks, rain streaks."""
+    r = stone(n, rng, base, rows=6, mortar_px=7, bevel=34, cols=(2, 2, 3), chip_t=0.58, crack_k=70)
+    streak = noise(n, 2.6, rng, sx=6.0, sy=0.5)
+    rain = np.clip((streak - 0.55) * 3.0, 0, 1)
+    r["albedo"] = np.clip(r["albedo"] * (1 - 0.25 * rain[..., None]) , 0, 1)
+    r["smooth"] = r["smooth"] + 0.18 * rain
+    return r
+
+def stone_dark(n, rng, base):
+    """Dark rough-dressed stone: tight coursing, deep joints, pitted faces, almost no polish."""
+    r = stone(n, rng, base, rows=10, mortar_px=6, bevel=14, cols=(3, 4, 4, 5), chip_t=0.70, crack_k=90)
+    pit = np.clip(noise(n, 0.5, rng) - 0.68, 0, 1) * 3.0
+    r["albedo"] = np.clip(r["albedo"] * (1 - 0.5 * pit[..., None]), 0, 1)
+    r["height"] = norm01(r["height"] - 0.25 * pit)
+    r["ns"] = 11.0
+    r["smooth"] = np.clip(r["smooth"] * 0.9 - 0.08 * pit, 0.05, 0.6)
+    return r
+
+def stone_mossy(n, rng, base):
+    """Damp stone with green-brown moss and algae patches in the joints and low areas; wet sheen in the dark patches."""
+    r = stone(n, rng, base, rows=8, mortar_px=6, bevel=26, wet=1.0, chip_t=0.64)
+    patch = smoothstep(0.50, 0.70, fbm(n, rng, (1.5, 2.1, 2.8), (1, .7, .4)))
+    patch2 = smoothstep(0.55, 0.80, fbm(n, rng, (1.3, 2.0), (1, .6)))
+    moss = np.array([0.17, 0.25, 0.10]); mud = np.array([0.26, 0.21, 0.13]); slime = np.array([0.12, 0.22, 0.18])
+    col = r["albedo"] * (1 - 0.55 * patch[..., None]) + (moss[None, None, :] * (0.65 + 0.7 * noise(n, 0.5, rng)[..., None])) * 0.55 * patch[..., None]
+    col = col * (1 - 0.5 * patch2[..., None]) + mud[None, None, :] * 0.5 * patch2[..., None]
+    wetp = smoothstep(0.55, 0.75, fbm(n, rng, (1.6, 2.4), (1, .5)))
+    col = col * (1 - 0.35 * wetp[..., None]) + slime[None, None, :] * 0.12 * wetp[..., None]
+    r["albedo"] = np.clip(col, 0, 1)
+    r["height"] = norm01(r["height"] + 0.12 * patch)                  # moss stands proud
+    r["smooth"] = np.clip(r["smooth"] * (1 - 0.6 * patch) + 0.55 * wetp, 0.08, 0.9)
+    r["ao"] = r["ao"] * (1 - 0.15 * patch)
+    return r
+
+# ---------------------------------------------------------------------------------------------------------------------
+# decals: RGBA, alpha = coverage. Cracks, chips and stains sit on top of any wall; soot gradients darken wall bases and
+# surround candelabras. Clamp-wrapped, not tiled.
+# ---------------------------------------------------------------------------------------------------------------------
+def draw_crack(d, rng, n, x, y, ang, length, width, depth=0, branch_p=0.18):
+    pts = [(x, y)]
+    step = max(6.0, n / 60)
+    for i in range(int(length / step)):
+        ang += rng.normal(0, 0.28)
+        x += np.cos(ang) * step; y += np.sin(ang) * step
+        pts.append((x, y))
+        if depth < 3 and rng.random() < branch_p:
+            draw_crack(d, rng, n, x, y, ang + rng.choice([-1, 1]) * rng.uniform(.5, 1.1), length * rng.uniform(.25, .5) - i * step * .2, max(1, width - 1), depth + 1, branch_p * .6)
+    d.line(pts, fill=255, width=int(width), joint="curve")
+
+def decal_cracks(n, rng, count):
+    img = Image.new("L", (n, n), 0); d = ImageDraw.Draw(img)
+    for _ in range(count):
+        edge = rng.integers(0, 4)
+        x, y = (rng.uniform(.2, .8) * n, rng.uniform(.0, .15) * n) if edge == 0 else (rng.uniform(.2, .8) * n, rng.uniform(.85, 1) * n) if edge == 1 else (rng.uniform(.0, .15) * n, rng.uniform(.2, .8) * n)
+        ang = rng.uniform(0.3, 2.8) if edge == 0 else rng.uniform(-2.8, -0.3) if edge == 1 else rng.uniform(-1.0, 1.0)
+        draw_crack(d, rng, n, x, y, ang, n * rng.uniform(.5, .9), rng.integers(3, 6))
+    a = np.asarray(img, np.float32) / 255.0
+    core = blur(a, 1)
+    halo = blur(a, 6)
+    alpha = np.clip(core * 1.3 + halo * 0.55, 0, 1)
+    alpha *= np.clip(1 - np.maximum(np.abs(np.linspace(-1, 1, n))[None, :], np.abs(np.linspace(-1, 1, n))[:, None]) ** 6, 0, 1)   # fade to nothing at the edge
+    out = np.zeros((n, n, 4), np.uint8)
+    out[..., :3] = (np.array([0.035, 0.037, 0.045]) * 255).astype(np.uint8)
+    out[..., 3] = (alpha * 255 + .5).astype(np.uint8)
+    return out
+
+def decal_chips(n, rng):
+    """Spalled patches: jagged polygons with a bright exposed core and a dark fractured rim."""
+    mask = Image.new("L", (n, n), 0); core = Image.new("L", (n, n), 0)
+    dm, dc = ImageDraw.Draw(mask), ImageDraw.Draw(core)
+    for _ in range(int(rng.integers(8, 13))):
+        cx, cy = rng.uniform(.18, .82) * n, rng.uniform(.18, .82) * n
+        r = rng.uniform(.035, .10) * n; k = int(rng.integers(7, 12))
+        a0 = rng.uniform(0, 6.28)
+        pts = [(cx + np.cos(a0 + i * 6.283 / k) * r * rng.uniform(.55, 1.15) * (1.35 if i % 3 == 0 else 1.0),
+                cy + np.sin(a0 + i * 6.283 / k) * r * rng.uniform(.55, 1.15) * .8) for i in range(k)]
+        dm.polygon(pts, fill=255)
+        dc.polygon([(cx + (x - cx) * .55, cy + (y - cy) * .55) for x, y in pts], fill=255)
+    alpha = blur(np.asarray(mask, np.float32) / 255.0, 1)
+    light = blur(np.asarray(core, np.float32) / 255.0, 2)
+    col = np.array([0.05, 0.05, 0.06])[None, None, :] * (1 - light[..., None]) + np.array([0.40, 0.42, 0.47])[None, None, :] * light[..., None]
+    out = np.zeros((n, n, 4), np.uint8)
+    out[..., :3] = (np.clip(col, 0, 1) * 255).astype(np.uint8)
+    out[..., 3] = (np.clip(alpha * 0.92, 0, 1) * 255 + .5).astype(np.uint8)
+    return out
+
+def decal_stain(n, rng):
+    """Water stain streaks running down from a top edge."""
+    streak = noise(n, 2.2, rng, sx=8.0, sy=0.4)
+    s2 = noise(n, 1.6, rng, sx=5.0, sy=0.5)
+    y = np.linspace(0, 1, n)[:, None]
+    x = np.linspace(-1, 1, n)[None, :]
+    env = np.clip(1 - y * 0.9, 0, 1) ** 1.2 * np.clip(1 - np.abs(x) ** 3, 0, 1)
+    a = np.clip((streak * .6 + s2 * .4 - 0.45) * 2.6, 0, 1) * env
+    out = np.zeros((n, n, 4), np.uint8)
+    out[..., :3] = (np.array([0.03, 0.05, 0.05]) * 255).astype(np.uint8)
+    out[..., 3] = (np.clip(a * 0.75, 0, 1) * 255 + .5).astype(np.uint8)
+    return out
+
+def soot_base(w, h, rng):
+    """Dirt gradient: opaque-ish at the bottom edge, soft noisy fade to 0 by the top; stretch to the wall width."""
+    nz = noise(max(w, h), 1.8, rng)[:h, :w]
+    nz2 = noise(max(w, h), 0.8, rng)[:h, :w]
+    y = (np.linspace(1, 0, h)[:, None])                     # 1 at the bottom row
+    a = np.clip(y ** 1.7 * (0.75 + 0.5 * (nz - .5)) + 0.18 * (nz2 - .5) * y, 0, 1) * 0.85
+    out = np.zeros((h, w, 4), np.uint8)
+    out[..., :3] = (np.array([0.012, 0.011, 0.012]) * 255).astype(np.uint8)
+    out[..., 3] = (a * 255 + .5).astype(np.uint8)
+    return out
+
+def soot_radial(n, rng):
+    """Soot bloom for around a candelabrum or sconce: dense in the centre, drifting upward, ragged edge."""
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float32)
+    cx = n / 2; cy = n * .55
+    dx = (xx - cx) / (n * .42); dy = (yy - cy) / (n * .42)
+    dy = np.where(dy < 0, dy * .7, dy * 1.15)               # extends further up than down
+    r = np.sqrt(dx * dx + dy * dy)
+    nz = noise(n, 1.7, rng)
+    a = np.clip((1 - r + (nz - .5) * .6), 0, 1) ** 1.4 * 0.8
+    out = np.zeros((n, n, 4), np.uint8)
+    out[..., :3] = (np.array([0.012, 0.011, 0.012]) * 255).astype(np.uint8)
+    out[..., 3] = (a * 255 + .5).astype(np.uint8)
+    return out
+
+DECALS = {}
+
+def write_decals():
+    specs = {
+        "Castle_DecalCracksA": decal_cracks(1024, np.random.default_rng(2001), 4),
+        "Castle_DecalCracksB": decal_cracks(1024, np.random.default_rng(2002), 6),
+        "Castle_DecalChips": decal_chips(1024, np.random.default_rng(2003)),
+        "Castle_DecalStain": decal_stain(1024, np.random.default_rng(2004)),
+        "Castle_SootBase": soot_base(1024, 256, np.random.default_rng(2005)),
+        "Castle_SootRadial": soot_radial(512, np.random.default_rng(2006)),
+    }
+    for name, arr in specs.items():
+        p = cc.TEX / (name + ".png")
+        save_png(p, arr)
+        cc.write_texture_meta(p, "decal")
+        print("decal", name, arr.shape[1], "x", arr.shape[0])
+
+DECAL_SHADER = r'''// Generated by tools/castle_textures.py. Do not edit by hand.
+// Alpha-blended lit decal for the built-in pipeline: draw on a 1x1 quad a couple of centimetres off the wall.
+Shader "HollowCurrent/CastleDecal"
+{
+    Properties
+    {
+        _MainTex ("Decal (RGBA)", 2D) = "white" {}
+        _Color ("Tint", Color) = (1,1,1,1)
+        _Smooth ("Smoothness", Range(0,1)) = 0.12
+    }
+    SubShader
+    {
+        Tags { "Queue"="Transparent-100" "RenderType"="Transparent" "IgnoreProjector"="True" }
+        Offset -1, -1
+        ZWrite Off
+        CGPROGRAM
+        #pragma surface surf Standard alpha:blend
+        #pragma target 3.0
+        sampler2D _MainTex; fixed4 _Color; half _Smooth;
+        float4 _CastleFillSky, _CastleFillGround;
+        struct Input { float2 uv_MainTex; float3 worldNormal; };
+        void surf (Input IN, inout SurfaceOutputStandard o)
+        {
+            fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * _Color;
+            o.Albedo = c.rgb; o.Alpha = c.a; o.Smoothness = _Smooth; o.Metallic = 0;
+            o.Emission = c.rgb * lerp(_CastleFillGround.rgb, _CastleFillSky.rgb, IN.worldNormal.y * 0.5 + 0.5);
+        }
+        ENDCG
+    }
+    FallBack "Diffuse"
+}
+'''
+
+EMISSIVE_SHADER = r'''// Generated by tools/castle_textures.py. Do not edit by hand.
+// Plain unlit HDR colour. Used by Castle_Flame so the flame meshes on standing candelabras glow without relying on the
+// Standard shader's _EMISSION keyword (which was missing from the re-serialised .mat and rendered the flames black).
+Shader "HollowCurrent/CastleEmissive"
+{
+    Properties { _Color ("Colour (HDR)", Color) = (1.15,0.42,0.07,1) }
+    SubShader
+    {
+        Tags { "RenderType"="Opaque" }
+        Pass
+        {
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #include "UnityCG.cginc"
+            fixed4 _Color;
+            struct v2f { float4 pos : SV_POSITION; };
+            v2f vert (float4 v : POSITION) { v2f o; o.pos = UnityObjectToClipPos(v); return o; }
+            fixed4 frag (v2f i) : SV_Target { return _Color; }
+            ENDCG
+        }
+    }
+}
+'''
+
+def write_custom_shader(name, source):
+    p = SHADERS / (name + ".shader")
+    p.write_text(source)
+    Path(str(p) + ".meta").write_text(
+        "fileFormatVersion: 2\nguid: %s\nShaderImporter:\n  externalObjects: {}\n  defaultTextures: []\n  nonModifiableTextures: []\n  preprocessorOverride: 0\n  userData: \n  assetBundleName: \n  assetBundleVariant: \n"
+        % cc.guid(cc.rel_to_project(p)))
+    return cc.guid(cc.rel_to_project(p))
+
+def write_flame_mat():
+    """Castle_Flame: HDR orange through the unlit CastleEmissive shader (guid derived from its path)."""
+    g = cc.guid(cc.rel_to_project(SHADERS / "CastleEmissive.shader"))
+    path = cc.MATS / "Castle_Flame.mat"
+    path.write_text(f"""%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {{fileID: 0}}
+  m_PrefabInstance: {{fileID: 0}}
+  m_PrefabAsset: {{fileID: 0}}
+  m_Name: Castle_Flame
+  m_Shader: {{fileID: 4800000, guid: {g}, type: 3}}
+  m_Parent: {{fileID: 0}}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {{}}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats: []
+    m_Colors:
+    - _Color: {{r: 1.15, g: 0.42, b: 0.07, a: 1}}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
+""")
 
 # ---------------------------------------------------------------------------------------------------------------------
 def save_png(path, arr, mode=None):
@@ -539,6 +785,9 @@ def main():
         "Castle_Bone": lambda r, b: bone(n, r, b),
         "Castle_Paper": lambda r, b: paper(n, r, b),
         "Castle_Blood": lambda r, b: blood(n, r, b),
+        "Castle_StoneWeathered": lambda r, b: stone_weathered(n, r, b),
+        "Castle_StoneDark": lambda r, b: stone_dark(n, r, b),
+        "Castle_StoneMossy": lambda r, b: stone_mossy(n, r, b),
     }
     for i, (name, fn) in enumerate(gens.items()):
         rng = np.random.default_rng(1000 + i)
@@ -572,7 +821,10 @@ def main():
                           emission=(1.7, 1.7, 1.7), mask_guid=gm, emission_guid=ge)
     print("texture Castle_SunWindow", albedo.shape)
     # flat-colour materials
-    cc.write_standard_mat(cc.MATS / "Castle_Flame.mat", "Castle_Flame", (0.10, 0.04, 0.01), 0.0, 0.0, emission=(1.15, 0.42, 0.07))   # orange, not clipped to white
+    write_custom_shader("CastleDecal", DECAL_SHADER)
+    write_custom_shader("CastleEmissive", EMISSIVE_SHADER)
+    write_flame_mat()
+    write_decals()
     fog_noise(512, np.random.default_rng(80))
     (SHADERS / "CastleFogLayer.shader").write_text(FOG_SHADER)
     Path(str(SHADERS / "CastleFogLayer.shader") + ".meta").write_text(

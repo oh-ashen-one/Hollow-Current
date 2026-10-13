@@ -19,6 +19,10 @@ MATERIALS = {
     # Round 2 (hc/look): albedo lifted so mid-tones exist under moonlight (stone reads grey-blue, not black).
     "Castle_Stone":      ((0.50, 0.52, 0.57), 0.20, 0.0, True),   # weathered grey-blue ashlar
     "Castle_BlackStone": ((0.20, 0.20, 0.25), 0.62, 0.0, True),   # altar / crypt: polished, veined
+    # Round 5 stone variants (world-space or UV; 2 m tile)
+    "Castle_StoneWeathered": ((0.46, 0.50, 0.58), 0.22, 0.0, True),  # grey-blue, heavy chipped edges, bigger blocks
+    "Castle_StoneDark":  ((0.17, 0.18, 0.22), 0.20, 0.0, True),   # dark rough-dressed stone: undercroft, crypt, lower walls
+    "Castle_StoneMossy": ((0.36, 0.40, 0.36), 0.30, 0.0, True),   # damp stone with moss patches
     "Castle_FlagStone":  ((0.30, 0.32, 0.38), 0.58, 0.0, True),   # wet floor slabs (rune-reflecting)
     "Castle_Oak":        ((0.30, 0.19, 0.11), 0.28, 0.0, True),   # dark oak
     "Castle_Brass":      ((0.62, 0.48, 0.22), 0.50, 0.85, True),  # scratched, tarnished brass
@@ -93,7 +97,7 @@ TextureImporter:
   spriteBorder: {{x: 0, y: 0, z: 0, w: 0}}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
-  alphaIsTransparency: 0
+  alphaIsTransparency: {atr}
   spriteTessellationDetail: -1
   textureType: {ttype}
   textureShape: 1
@@ -153,7 +157,9 @@ def write_texture_meta(png, kind="color"):
                normal=dict(srgb=0, ttype=1, wrap=0, mips=1, aniso=4),
                mask=dict(srgb=0, ttype=0, wrap=0, mips=1, aniso=4),
                emission=dict(srgb=1, ttype=0, wrap=1, mips=1, aniso=4),
+               decal=dict(srgb=1, ttype=0, wrap=1, mips=1, aniso=4, atr=1),
                sky=dict(srgb=1, ttype=0, wrap=1, mips=0, aniso=0))[kind]
+    cfg.setdefault("atr", 0)
     Path(str(png) + ".meta").write_text(_TEX_META.format(guid=g, **cfg))
     return g
 
@@ -254,6 +260,6 @@ NOMINAL = {
     "LongTable": (6.6, .95, 1.4), "DiningTable": (5.6, .9, 1.6), "HighBackChair": (.6, 1.3, .6), "Throne": (1.0, 1.9, .9),
     "Fireplace": (2.6, 2.6, .9), "Sideboard": (2.6, 1.1, .6), "KitchenHearth": (2.8, 2.4, 1.0), "ButcherBlock": (1.5, .9, 1.0),
     "Cauldron": (1.0, .9, 1.0), "Bookshelf": (2.0, 3.0, .5), "ReadingTable": (2.0, .85, 1.0), "Lectern": (.7, 1.2, .6),
-    "Portrait": (.9, 1.3, .1), "CanopyBed": (2.4, 2.8, 2.6), "Orrery": (3.0, 2.8, 3.0), "Telescope": (1.0, 2.2, 2.4),
+    "Portrait": (.9, 1.3, .1), "StringCourse": (4.0, .24, .2), "Corbel": (.4, .58, .45), "GargoyleSpout": (.5, .62, 1.15), "TapestryPanel": (1.52, 2.7, .07), "CanopyBed": (2.4, 2.8, 2.6), "Orrery": (3.0, 2.8, 3.0), "Telescope": (1.0, 2.2, 2.4),
     "Sarcophagus": (2.2, 1.2, 1.0), "CryptBridge": (1.4, .3, 1.2), "ReliquaryBox": (1.0, 1.0, .7), "Pedestal": (.6, 1.0, .6),
 }
