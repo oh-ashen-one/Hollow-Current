@@ -15,7 +15,7 @@ namespace HollowCurrent
         }
         static void ResetMoreAssets()
         {
-            candleMesh=crownMesh=null;glowTexture=null;glowMaterial=null;handRootMeshes=null;candleMaterials=handRootMaterials=null;rootCrownMaterials=null;
+            candleMesh=crownMesh=chandelierMesh=null;chandelierMaterials=null;glowTexture=null;glowMaterial=null;handRootMeshes=null;candleMaterials=handRootMaterials=null;rootCrownMaterials=null;
             paleMoonTexture=redMoonTexture=sunWindowTexture=null;paleMoonMaterial=redMoonMaterial=sunWindowMaterial=violetRuneMaterial=null;
             runeAtlas=null;runeGlyphMeshes=null;portraitTexture=null;pupilTexture=null;batTexture=null;batMaterial=null;knifeMesh=null;knifeMaterials=null;frameMesh=null;frameMaterial=null;portraitMaterial=null;pupilMaterial=null;
         }
@@ -506,5 +506,70 @@ namespace HollowCurrent
         // ---- violet glowing runes (sarcophagus) ----
         static Material violetRuneMaterial;
         public static Material VioletRuneMaterial=>violetRuneMaterial?violetRuneMaterial:violetRuneMaterial=Unlit("Violet runes",RuneAtlas,new Color(.62f,.32f,1f,1));
+
+        // ---- iron chandelier (great hall focal piece): 12 candle cups on an outer ring, an inner ring, four spokes, a hub, a pendant
+        // finial and three chains to a ring at `ChandelierChain` metres above the hub. Origin: the hub centre. Submesh 0 iron, 1 wax. ----
+        public const int ChandelierCandles=12;
+        public const float ChandelierRadius=.85f;
+        public static float ChandelierChain=4.6f;
+        static Mesh chandelierMesh;
+        static Material[] chandelierMaterials;
+        public static Vector3 ChandelierFlameBase(int i)
+        {
+            float a=i*Mathf.PI*2/ChandelierCandles;
+            return new Vector3(Mathf.Cos(a)*ChandelierRadius,.08f+.24f,Mathf.Sin(a)*ChandelierRadius);
+        }
+        static Mesh ChandelierMesh
+        {
+            get
+            {
+                if(chandelierMesh)return chandelierMesh;
+                var b=new MeshBuilder(2);
+                const int outer=24,inner=12;
+                float R=ChandelierRadius;
+                for(int i=0;i<outer;i++)
+                {
+                    float a=(i+.5f)*Mathf.PI*2/outer;
+                    float len=2*R*Mathf.Sin(Mathf.PI/outer)*1.06f;
+                    b.Box(new Vector3(Mathf.Cos(a)*R,0,Mathf.Sin(a)*R),new Vector3(len,.06f,.07f),Quaternion.Euler(0,-(a*Mathf.Rad2Deg+90),0),0);
+                }
+                for(int i=0;i<inner;i++)
+                {
+                    float a=(i+.5f)*Mathf.PI*2/inner,r=R*.45f;
+                    float len=2*r*Mathf.Sin(Mathf.PI/inner)*1.08f;
+                    b.Box(new Vector3(Mathf.Cos(a)*r,0,Mathf.Sin(a)*r),new Vector3(len,.05f,.05f),Quaternion.Euler(0,-(a*Mathf.Rad2Deg+90),0),0);
+                }
+                for(int i=0;i<4;i++)
+                {
+                    float a=i*Mathf.PI*.5f;
+                    b.Box(new Vector3(Mathf.Cos(a)*R*.5f,0,Mathf.Sin(a)*R*.5f),new Vector3(R,.05f,.05f),Quaternion.Euler(0,-a*Mathf.Rad2Deg,0),0);
+                }
+                b.Prism(new Vector3(0,-.06f,0),.13f,.09f,.16f,10,0);            // hub
+                b.Prism(new Vector3(0,-.55f,0),.02f,.1f,.5f,8,0);               // pendant finial (points down)
+                for(int i=0;i<ChandelierCandles;i++)
+                {
+                    float a=i*Mathf.PI*2/ChandelierCandles;
+                    var c=new Vector3(Mathf.Cos(a)*R,0,Mathf.Sin(a)*R);
+                    b.Prism(c+new Vector3(0,.03f,0),.06f,.045f,.06f,8,0);        // cup
+                    b.Prism(c+new Vector3(0,.09f,0),.032f,.028f,.23f,7,1);       // candle
+                }
+                float top=ChandelierChain;
+                var apex=new Vector3(0,top,0);
+                for(int i=0;i<3;i++)
+                {
+                    float a=(i*120+90)*Mathf.Deg2Rad;
+                    var attach=new Vector3(Mathf.Cos(a)*R,.02f,Mathf.Sin(a)*R);
+                    var d=apex-attach;
+                    b.Box((attach+apex)*.5f,new Vector3(.035f,d.magnitude,.035f),Quaternion.FromToRotation(Vector3.up,d.normalized),0);
+                }
+                b.Prism(apex-new Vector3(0,.06f,0),.09f,.05f,.12f,8,0);          // canopy ring at the ceiling
+                return chandelierMesh=b.Build("Surreal chandelier");
+            }
+        }
+        static Material[] ChandelierMaterials=>chandelierMaterials!=null?chandelierMaterials:chandelierMaterials=new[]
+        {
+            Lit("Chandelier iron",new Color(.11f,.1f,.1f),.8f,.4f),
+            Lit("Chandelier wax",new Color(.8f,.74f,.6f),0,.25f)
+        };
     }
 }

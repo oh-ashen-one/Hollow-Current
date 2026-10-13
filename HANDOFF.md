@@ -48,3 +48,26 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Round 7 (hc/arch7): lean moved into the shader, dressing readable, pier overlap, chandelier
+
+Not seen in an engine; `check_source.py` PASS. Shader changes are not compile-checked here (no Unity): `Resources/Castle/Shaders/CastleFlame.shader` was rewritten with GPU instancing and per-instance properties; if it fails to compile, `UnlitAdditive` falls back to the sprite shader and the log line `HC_FLAME_CHECK ... lean shader property _LeanAmount MISSING` says so.
+
+## 1. Candle lean in the flame shader
+- `CastleFlame.shader` has `_LeanDir` (world direction to the Count, w = side hint) and `_LeanAmount` (degrees) as instanced per-renderer properties. In the vertex stage each vertex moves along the camera-right of the view plane, toward the Count's side of the screen, by `tan(amount) * flame height * v.y` (the base-pivot quad has y 0..1), so the tip tilts exactly `_LeanAmount` degrees from the candle's own on-screen axis whatever the billboard transform does. The halo uses the same shader without a property block (amount 0), and follows the tip by half the shift.
+- `CandleFlame` now only faces the viewer (`LookRotation(to, up)`), and each frame writes `_LeanDir/_LeanAmount` through a static `MaterialPropertyBlock` (`maxBendDegrees * Bend01`, 55 deg max, 33 at 6 m, ease toward 0 at 60 deg/s when there is no target, `Floater.relaxSpeed` eases the bend itself). The transform-based lean code from rounds 5-6 is deleted.
+- Self-test (`HC_LEAN_CHECK`, `CandleFlame.LogLeanReport(tag)`, also automatic 3x once a flame leans >= 20 deg): for the three leaning flames nearest the camera it takes the flame's base and its tip with the shader's offset applied (`LeanTipOffset` mirrors the vertex code), projects both to screen with the camera and logs the angle against the candle's projected axis, plus the property block read back from the renderer (`_LeanAmount`, `_LeanDir`) and the material's shader name and `isSupported`. Integrator: call `CandleFlame.LogLeanReport("S5")` and `("H05")` after those shots in CaptureMode. A pixel-level read-back needs a render target; the projection uses the same arithmetic as the vertex stage, so a mismatch between this log and the critic's pixels would point at the shader failing to compile or at the property block not reaching the draw (read `shader ... isSupported` and `_LeanAmount` in the same line).
+
+## 2. Dressing readable
+- **Altar sockets (S2):** now on a thin slab tilted 8 degrees toward the nave (the plane faces the eye at about 10 degrees instead of 2) with 4 cm raised silver rims and dark inset faces: blade slot, cross (bar + guard), round moonstone seat. The altar front decals are cracks + stain (no chips).
+- **S3 eye I designed for (integrator, please use):** eye **(0.0, -1.56, 15.4)**, target **(0.0, -2.3, 24.0)**, vertical FOV 72 (eye height 1.64 above the crypt floor, 0.8 m above the vault ribs' spring... the CryptRibs at z 16.5 and 26.5 read as two arch rings). From there the north wall's 5 niches (x -4.6..4.6, each with a lit candle on its coffin lid) face the camera across 12.6 m, the south arm's bridge (0,-3.5,20.1, 4 candle posts) sits in the lower third (about -18 degrees against a -6 degree pitch), the sarcophagus is centre. The old eye (-5.2,-1.56,25.0) -> (0,-2.6,22.5) sees only about 3 niches (north x 2.3-4.6 and east z 27).
+- **Planks (S4):** `Castle_OakPlank` is already on the re-exported leaf; round 6's override replaced it with brightened plain oak (any slot whose name started with Castle_Oak, including OakPlank). Fixed: only a slot named exactly `Castle_Oak` is swapped, for the world-space `Castle_OakPlank` surface (1 tile per metre = 0.25 m boards).
+
+## 3. S1 piers and decals
+- Piers: 0.92 m (1 cm proud of the arch piers, so their coplanar faces cannot show through: that was the lighter inner box); the two x-facing panels are 0.25 m narrower than the z-facing ones, so no two modules overlap; one material (Weathered, world-space) for every pier band, arch and rib, so the course grid is continuous across them.
+- Chip decal: at most one per room (hall, chapel, crypt, gatehouse, exterior); the pick list is mostly cracks A/B and stains; the altar front no longer has chips.
+
+## 4. S1 focal subject
+- Throne on the axis at (0,0,27.05) facing the doors (unchanged), plus an iron chandelier on x = 0 over the table: hub (0,3.9,24.0), 1.7 m ring, 12 candles each with billboard flame and halo (no lights), 4.7 m of chain to the vault, slow sway. It sits behind the S5 camera (eye z 25.3), so it is not in that frame.

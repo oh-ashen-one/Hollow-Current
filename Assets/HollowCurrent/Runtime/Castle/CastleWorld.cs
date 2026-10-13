@@ -354,7 +354,9 @@ namespace HollowCurrent
         {
             ("Castle_StoneWeathered", new Color(.80f, .80f, .82f)), ("Castle_StoneDark", new Color(1.9f, 1.9f, 1.85f)), ("Castle_StoneMossy", new Color(1.05f, 1.05f, 1.05f)),
         };
-        static readonly string[] DecalNames = { "Castle_DecalCracksA", "Castle_DecalCracksB", "Castle_DecalChips", "Castle_DecalStain", "Castle_SootBase" };
+        // Cracks and stains dominate; the black-outlined chip decal read as holes when repeated, so it appears at most once per room.
+        static readonly string[] DecalNames = { "Castle_DecalCracksA", "Castle_DecalCracksB", "Castle_DecalStain", "Castle_DecalCracksA", "Castle_DecalCracksB", "Castle_DecalStain", "Castle_SootBase", "Castle_DecalChips" };
+        readonly HashSet<int> chipRooms = new HashSet<int>();
         Material StoneVariant(int pick)
         {
             var v = StoneFamily[((pick % 3) + 3) % 3];
@@ -394,7 +396,7 @@ namespace HollowCurrent
                     Paint(tile, StoneVariant(PickFamily(rnd, y < v0 + 1.5f && v0 < 1f)));
                     MakeStatic(tile);
                     tileCount++;
-                    if (rnd.NextDouble() < .30) WallDecal(rnd, alongX, line, r.Side, t, along, y, w, bh);
+                    if (rnd.NextDouble() < .30) WallDecal(rnd, RoomOf(r), alongX, line, r.Side, t, along, y, w, bh);
                 }
         }
 
@@ -407,9 +409,19 @@ namespace HollowCurrent
         }
 
         // Crack / chip / stain / soot decal on a module, 1.5 cm off the relief face (the decal shader carries its own depth bias).
-        void WallDecal(System.Random rnd, bool alongX, float line, int side, float t, float along, float y, float w, float bh)
+        static int RoomOf(VeneerRule r)
+        {
+            for (int i = 0; i < VeneerRules.Length; i++)
+            {
+                var q = VeneerRules[i];
+                if (q.AlongX == r.AlongX && q.Line == r.Line && q.Side == r.Side && q.A0 == r.A0 && q.A1 == r.A1 && q.Y0 == r.Y0) return i / 4;   // hall, chapel, crypt, gatehouse, exterior
+            }
+            return 99;
+        }
+        void WallDecal(System.Random rnd, int room, bool alongX, float line, int side, float t, float along, float y, float w, float bh)
         {
             string name = DecalNames[rnd.Next(DecalNames.Length)];
+            if (name == "Castle_DecalChips" && !chipRooms.Add(room)) name = "Castle_DecalCracksB";
             if (name == "Castle_SootBase" && y > 1f) name = "Castle_DecalStain";   // soot only at the foot of a wall
             var m = CastleArt.Decal(name);
             if (!m) return;
@@ -586,13 +598,14 @@ namespace HollowCurrent
             var leafArt = CastleArt.Place(Art.Drawbridge, hinge.transform, Vector3.zero, Quaternion.identity);
             float artYaw = 0;
             if (ArtLocalCentre(leafArt, hinge.transform).z > 0) { artYaw = 180; leafArt.transform.localRotation = Quaternion.Euler(0, 180, 0); }
-            // planks: the oak slots of the leaf get a world-space plank surface (brighter than the prop upgrade, which read as a flat
-            // dark plane from the far bank); Castle_Planks is used when the look builder provides it.
-            var plank = CastleArt.Surface("Castle_Planks", CastleArt.SurfaceKind.World, Color.white) ?? CastleArt.Surface("Castle_Oak", CastleArt.SurfaceKind.World, new Color(1.5f, 1.4f, 1.3f));
+            // planks: look6 re-exported the leaf with Castle_OakPlank (4 boards per metre, UV mapped); leave that material alone (round 6
+            // replaced it with brightened Castle_Oak by mistake, which is why no planks showed). Only an old plain-oak leaf gets the
+            // world-space plank surface (0.25 m boards at 1 tile per metre).
+            var plank = CastleArt.Surface("Castle_OakPlank", CastleArt.SurfaceKind.World, Color.white);
             if (plank) foreach (var pr in leafArt.transform.GetComponentsInChildren<Renderer>())
             {
                 var slots = pr.sharedMaterials; bool any = false;
-                for (int pi = 0; pi < slots.Length; pi++) if (slots[pi] && slots[pi].name.StartsWith("Castle_Oak", System.StringComparison.Ordinal)) { slots[pi] = plank; any = true; }
+                for (int pi = 0; pi < slots.Length; pi++) if (slots[pi] && slots[pi].name.Equals("Castle_Oak", System.StringComparison.Ordinal)) { slots[pi] = plank; any = true; }
                 if (any) pr.sharedMaterials = slots;
             }
             var chains = CastleArt.Place(Art.DrawbridgeChains, root, new Vector3(0, 0, -.45f), Quaternion.Euler(0, artYaw, 0));
@@ -801,6 +814,9 @@ namespace HollowCurrent
             skeleton.localScale = CastleLayout.SkeletonScaleVec;
             CheckHallAxis(skeleton);
             foreach (var b in CastleLayout.HallBanners) ArtAt(CastleArt.Names.TapestryPanel, b.Pos, b.Yaw);
+            // focal piece on the hall axis: the iron chandelier hangs over the table (hub y 3.9, 4.7 m of chain to the vault) behind
+            // the S5 camera (eye z 25.3), with the throne at the far end of the table
+            SurrealProps.MakeChandelier(root, new Vector3(0f, 3.9f, 24.0f), 7, 4.7f);
             int seed = 100;
             foreach (var p in CastleLayout.HallCandelabras)
             {
@@ -831,13 +847,13 @@ namespace HollowCurrent
                 {
                     var arch = ArtAt(Art.PointedArch, new Vector3(side * 3.9f, 0, zc), 90);
                     arch.localScale = new Vector3(Mathf.Approximately(zc, 23.0f) ? .93f : 1f, 1, 1);
-                    Paint(arch, StoneVariant(k)); MakeStatic(arch); k++;
+                    Paint(arch, StoneVariant(0)); MakeStatic(arch); k++;
                 }
             foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
             {
                 var rib = ArtAt(Art.VaultRib, new Vector3(0, 6.0f, z), 0);
                 rib.localScale = new Vector3(1.95f, 1, 1);   // 4 m span -> 7.8 m, apex 8.84 under the 9.0 roof
-                Paint(rib, StoneVariant(k)); MakeStatic(rib); k++;
+                Paint(rib, StoneVariant(0)); MakeStatic(rib); k++;
             }
         }
 
@@ -900,20 +916,21 @@ namespace HollowCurrent
         // pier of the old footprint (0.9 m, 8.8 m); the arch piers and cross ribs spring from it.
         void Pier(Vector3 foot)
         {
-            const float size = .9f, height = 8.8f;
-            Proxy("ColumnGreat collision", foot + new Vector3(0, height * .5f, 0), new Vector3(size, height, size));
+            const float size = .92f, height = 8.8f;   // 1 cm proud of the arch piers (0.9 m footprint), so their coplanar faces cannot show through
+            Proxy("ColumnGreat collision", foot + new Vector3(0, height * .5f, 0), new Vector3(.9f, height, .9f));
             int bands = Mathf.RoundToInt(height / 3.2f); float bh = height / bands;
-            var rnd = new System.Random(Mathf.RoundToInt(foot.x * 10) * 31 + Mathf.RoundToInt(foot.z * 10));
             for (int face = 0; face < 4; face++)
             {
                 bool alongX = face < 2; int sign = face % 2 == 0 ? 1 : -1;
+                // the two z-facing panels run the full width; the x-facing ones stop 0.125 m short at each end, so no two modules overlap
+                float width = alongX ? size : size - .25f;
                 for (int j = 0; j < bands; j++)
                 {
-                    float off = size * .5f - .0625f;    // outer face flush with the old column footprint
-                    var pos = foot + (alongX ? new Vector3(0, j * bh + (face == 1 ? .004f : 0), sign * off) : new Vector3(sign * off, j * bh + (face == 3 ? .004f : 0), 0));
+                    float off = size * .5f - .0625f;
+                    var pos = foot + (alongX ? new Vector3(0, j * bh, sign * off) : new Vector3(sign * off, j * bh, 0));
                     var tile = ArtAt(Art.Wall2m, pos, alongX ? 0 : 90);
-                    tile.localScale = new Vector3(size / 2f, bh / 3.2f, .25f);
-                    Paint(tile, StoneVariant(PickFamily(rnd, j == 0)));
+                    tile.localScale = new Vector3(width / 2f, bh / 3.2f, .25f);
+                    Paint(tile, StoneVariant(0));    // one material for the whole pier and its arches: one continuous world-space course grid
                     MakeStatic(tile);
                     tileCount++;
                 }
@@ -983,30 +1000,38 @@ namespace HollowCurrent
             ChapelCandles();
         }
 
-        // The three relic sockets on the altar top (round 6): a blade slot, a cross for the hilt and a round seat for the moonstone,
-        // each a dark inset inside a silver rim, laid along the altar's length (world z) at the art's recess positions.
+        // The three relic sockets (rounds 6-7): the altar top is seen edge-on from the nave (eye 0.2 m above it, 6 m away), so the
+        // sockets sit on a thin slab tilted 8 degrees toward the nave (back edge up): the plane then faces the S2 eye at about 10
+        // degrees instead of 2, five times the visible area. Each socket is a dark inset in a silver rim raised 4 cm, laid along the
+        // altar's length (world z): a blade slot, a cross for the hilt, a round seat for the moonstone.
         void AltarInlay()
         {
-            const float x = 13.0f, top = 1.422f;
-            void Pair(string name, Vector3 centre, Vector3 rim, Vector3 inset, bool round = false)
+            var inlay = new GameObject("Altar inlay slab").transform;
+            inlay.SetParent(root, false); inlay.localPosition = new Vector3(13.0f, 1.42f, 6.5f); inlay.localRotation = Quaternion.Euler(0, 0, 8f);
+            GameObject Part(string name, PrimitiveType type, Vector3 local, Vector3 scale, string mat)
             {
-                if (round)
-                {
-                    Cyl(name + " rim", centre + new Vector3(0, top, 0), rim.x, .006f, "silver");
-                    Cyl(name + " socket", centre + new Vector3(0, top + .004f, 0), inset.x, .006f, "socket");
-                }
-                else
-                {
-                    Box(name + " rim", centre + new Vector3(0, top, 0), rim, "silver", false);
-                    Box(name + " socket", centre + new Vector3(0, top + .004f, 0), inset, "socket", false);
-                }
+                var g = GameObject.CreatePrimitive(type);
+                g.name = name; g.transform.SetParent(inlay, false); g.transform.localPosition = local; g.transform.localScale = scale;
+                Release(g.GetComponent<Collider>());
+                g.GetComponent<Renderer>().sharedMaterial = mats[mat];
+                return g;
             }
-            Pair("Blade", new Vector3(x, 0, 5.85f), new Vector3(.2f, .006f, .66f), new Vector3(.12f, .006f, .56f));
-            Pair("Hilt bar", new Vector3(x, 0, 6.5f), new Vector3(.17f, .006f, .5f), new Vector3(.09f, .006f, .42f));
-            Pair("Hilt guard", new Vector3(x, 0, 6.5f), new Vector3(.42f, .006f, .15f), new Vector3(.34f, .006f, .09f));
-            Pair("Moonstone", new Vector3(x, 0, 7.15f), new Vector3(.38f, 0, 0), new Vector3(.3f, 0, 0), true);
-            // carved front: chips and a damp stain so the black box has relief and wear (decals 2 cm off the altar front)
-            foreach (var d in new[] { ("Castle_DecalChips", 5.75f, 1.2f), ("Castle_DecalStain", 7.0f, 1.5f) })
+            Part("Slab", PrimitiveType.Cube, new Vector3(0, .025f, 0), new Vector3(.95f, .05f, 2.1f), "black");
+            // slab top at .05: each socket is a silver block standing 4 cm proud (top .09) with a dark inset face on top (.092, smaller footprint), so a silver edge frames it
+            const float rimTop = .09f, insetTop = .092f, bottom = .04f;
+            void Socket(string name, Vector3 centre, Vector3 rimSize, Vector3 insetSize, bool round = false)
+            {
+                var type = round ? PrimitiveType.Cylinder : PrimitiveType.Cube;
+                float rimH = rimTop - bottom, insetH = insetTop - bottom;
+                Part(name + " rim", type, centre + new Vector3(0, (rimTop + bottom) * .5f, 0), round ? new Vector3(rimSize.x, rimH * .5f, rimSize.x) : new Vector3(rimSize.x, rimH, rimSize.z), "silver");
+                Part(name + " socket", type, centre + new Vector3(0, (insetTop + bottom) * .5f + .001f, 0), round ? new Vector3(insetSize.x, insetH * .5f, insetSize.x) : new Vector3(insetSize.x, insetH, insetSize.z), "socket");
+            }
+            Socket("Blade", new Vector3(0, 0, -.65f), new Vector3(.2f, 0, .66f), new Vector3(.12f, 0, .56f));
+            Socket("Hilt bar", new Vector3(0, 0, 0), new Vector3(.17f, 0, .5f), new Vector3(.09f, 0, .42f));
+            Socket("Hilt guard", new Vector3(0, 0, 0), new Vector3(.42f, 0, .15f), new Vector3(.34f, 0, .09f));
+            Socket("Moonstone", new Vector3(0, 0, .65f), new Vector3(.38f, 0, 0), new Vector3(.3f, 0, 0), true);
+            // carved front: cracks and a damp stain (no chip decal: it reads as holes) 2 cm off the altar front
+            foreach (var d in new[] { ("Castle_DecalCracksA", 5.8f, 1.5f), ("Castle_DecalStain", 7.0f, 1.5f) })
             {
                 var m = CastleArt.Decal(d.Item1); if (!m) continue;
                 var r = SurrealProps.NewRenderer("Altar decal", root, new Vector3(12.43f, .86f, d.Item2), Quaternion.LookRotation(Vector3.right), SurrealProps.CentreQuad, new[] { m }, false);
