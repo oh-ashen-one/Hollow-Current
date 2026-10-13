@@ -48,3 +48,21 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+## hc/look3 (round 3): contrast, fog, warm candles, higher moons
+No Unity; `check_source.py` PASS (394 assertions, runtime + editor C#). Not measured visually: the critic's targets (10-25% of pixels below luma 8 in S1/S3/S5, min luma <=4, warm share >=5%) are what to check in the next capture.
+
+### Changes
+- **Black lift removed** (code and fields deleted from CastleAtmosphere). Vignette kept, `VignetteStrength` 0.22.
+- **Lower fill/ambient so shadows can reach black.** AmbientSky (0.16,0.20,0.30), AmbientEquator (0.095,0.12,0.185), AmbientGround (0.04,0.04,0.06) gamma; shader fill (linear) Sky (0.016,0.022,0.036), Ground (0.004,0.004,0.008) (was 0.050/0.068/0.110 and 0.014/0.014/0.024). Stone world tint 0.78/0.78/0.82, wall 0.64/0.64/0.70 (less flat brightness), cobble 0.70, earth 0.40.
+- **Fog:** exponential squared, colour (0.30,0.37,0.52) (lighter than the walls so distance dissolves into mist), density 0.050 (12 m keeps 70%, 25 m 21%, 28 m 12%).
+- **Ground fog** (`GroundFog`): 6 alpha-blended noise layers per area at y = 0.08 ... 1.1 m above the great-hall floor (centre (0,0,21), 12x14 m) and the crypt floor (centre (0,-3.2,21), 12x14 m), colour (0.34,0.42,0.58), layer alpha 0.16 x (1.25 at the floor to 0.6 at 1.1 m), each layer scrolling at its own speed, faded out within 0.9-2.8 m of the camera, soft plane edges. New `CastleFogLayer.shader` + `Castle_FogNoise.png`; if the shader fails to compile the layers are skipped with a warning and exponential fog remains.
+- **Floors:** cube "Slab / x" objects (floors and ceilings) now use flagstone instead of the wall coursing (the S1 floor read as brick). Flagstone smoothness raised: dry slab 0.42, puddled patches up to ~0.92 (was 0.30 / 0.80), more wet area.
+- **Candle flames** (`Castle_Flame.mat`): albedo (0.10,0.04,0.01), emission (1.15,0.42,0.07); was (1,0.62,0.22)/(2.4,1.2,0.35) which clipped to the white cards in the critic's S1/S5. Flame shape/bend is still piece 3.
+- **`CastleLightTuning.cs`** (new MonoBehaviour; add next to CastleAtmosphere): by name. "Candle light": colour (1.0,0.62,0.30), intensity x2.4 (0.6-1.1 becomes 1.4-2.6), range x1.3 clamped 6.5-10 m. "Window moonlight": colour (0.36,0.51,0.75), intensity crypt 0.17 -> 0.43, floor windows 0.36 -> 0.80, rose 0.50 -> 1.10. "Castle moonlight" 0.22 -> 0.16, "Castle second moon" colour (0.62,0.24,0.34) 0.06 -> 0.05. Lights are not renamed (World.cs looks up "Castle second moon").
+- **Sky:** pale moon elevation 27 -> **55 deg** (azimuth -34), blood moon 24 -> **42 deg** (azimuth +42); six 2048 faces regenerated; `CastleArt.PaleMoonDirection` = Direction(-34,55), `RedMoonDirection` = Direction(42,42) (World.cs and CaptureMode already read these, so the directional moons and the S4 check follow). Unit directions: pale (-0.4623,0.8192,0.3433)... computed from azimuth from +Z towards +X: (sin az cos el, sin el, cos az cos el). The window moon sprites hc/dressing placed should be re-aimed along these (pale moon now high above-left of the gate, red high right), or removed if the sky shows through the windows.
+
+### Requests for the integrator
+1. Add `CastleLightTuning` to the castle scene next to `CastleAtmosphere`. Candle changes are realtime and need no re-bake. The window spots and both directional moons are Baked, so their new intensities only appear after a re-bake: call `CastleLightTuning.Tune(layoutRoot)` in `HouseLighting.Bake` (MapId.Castle) before baking, and the moon directions change with the new `CastleArt` constants.
+2. **Bake ambient for MapId.Castle** (replaces (0.08,0.105,0.14) / (0.035,0.045,0.055) / (0.018,0.02,0.023)): sky **(0.050,0.065,0.100)**, equator **(0.022,0.028,0.040)**, ground **(0.010,0.012,0.016)**.
+3. Re-bake the castle (sky faces, `.cs`/`.shader` files and light values changed).

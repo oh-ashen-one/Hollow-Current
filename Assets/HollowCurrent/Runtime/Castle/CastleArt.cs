@@ -68,8 +68,8 @@ namespace HollowCurrent
         }
 
         // Moon directions baked into SkyCastle (azimuth from +Z towards +X). Use for the directional moonlight rig.
-        public static readonly Vector3 PaleMoonDirection = Direction(-34f, 27f);
-        public static readonly Vector3 RedMoonDirection = Direction(42f, 24f);
+        public static readonly Vector3 PaleMoonDirection = Direction(-34f, 55f);
+        public static readonly Vector3 RedMoonDirection = Direction(42f, 42f);
         public static Vector3 Direction(float azimuthDeg, float elevationDeg)
         {
             float a = azimuthDeg * Mathf.Deg2Rad, e = elevationDeg * Mathf.Deg2Rad;
