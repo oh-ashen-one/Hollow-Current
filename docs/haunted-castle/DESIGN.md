@@ -2,7 +2,7 @@
 
 Second map for Hollow Current, separate from the Bellwether house. Same investigation loop, a new place, a new hunter, and one new beat: craft a weapon and fight him.
 
-Owner decisions (2026-10-13):
+Owner decisions (2026-10-13; Count redesigned the same day: see "Count Claude — redesign" below):
 - Majority of the Bellwether loop carries over; add an optional weapon craft that lets you defeat the hunter.
 - Hunter: winged vampire lord. Name: **Count Claude** (owner decision 2026-10-13).
 - Surrealism: heavy. You are not on a human planet.
@@ -87,3 +87,7 @@ Player: standing 1.8 m, crouch 1.15, walk 2.35, sprint 3.9, camera 1.64, reach 2
 ## Performance
 
 Mac Studio M3 Ultra, 2560×1440 native, 60 fps budget (16.67 ms). Floaters and runes are instanced static meshes; the giant skeleton is one mesh. Measure the great hall from the entrance (heaviest view) in a real build before and after the surreal dressing.
+
+## Count Claude — redesign (owner decision 2026-10-13, after round 5)
+
+The aristocrat vampire was rejected as "not scary". The hunter is now a distorted demon: nine feet tall, emaciated with over-long limbs, skinless skull face with the jaw split vertically and rows of needle teeth, black-hole eye sockets with embers deep inside, flayed raw chest and forearms with exposed sinew, black veins under translucent grey-white skin, fresh blood from mouth and claws, six-fingered claws, wings of stretched human skin on bone with hooks. Only the collar, buckles and shredded hem of the old coat remain so he is still "the Count". Canonical sheet: `refs/count_demon_sheet.png` (crops `demon_front/side/back.png`). Behaviour, animator modes and choreography are unchanged; the mesh, skin weights and clips are regenerated on `hc/count6`. The bar is Split Grin's flayed, bloody look, not "spooky Dracula".
