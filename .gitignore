@@ -22,3 +22,4 @@ __pycache__/
 *.jks
 docs/haunted-castle/refs/*.png
 docs/haunted-castle/refs/*.err
+.wt/
