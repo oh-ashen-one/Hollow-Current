@@ -9,7 +9,7 @@ Branch `hc/dressing` (worktree `/Users/midir/hollow-current-haunted-castle/.wt/d
 - Moons: 6 sprite moons (pale + red) placed on the rays from the capture eyes (0,1.64,14.7) and (7,1.64,6.5) through the rose window and the two chapel east windows (the skybox moon azimuths -34/+42 cannot be framed by those windows).
 
 ## Lights
-No new `Light` components. Point lights are exactly the CastleLayout.Candles list (51 defs; two table candles now follow `HallTableZ`, one crypt candle moved from (-4.6,20) to (-4.5,19) to clear the niche coffins) plus the window spot lights and the two directional moons.
+No new `Light` components. Point lights are exactly the CastleLayout.Candles list (43 defs; two table candles now follow `HallTableZ`, one crypt candle moved from (-4.6,20) to (-4.5,19) to clear the niche coffins) plus the window spot lights and the two directional moons.
 
 ## Fixed
 - Floater.UpdateFlames threw a NullReferenceException every frame after `Floater.SetFlameTarget(null)` while flames were still bent. It now remembers the last target position, flames ease upright at relaxSpeed 1/s (about 1 s from full lean), no target dereference.
