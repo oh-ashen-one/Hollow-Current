@@ -580,13 +580,22 @@ namespace HollowCurrent
                 if(flat.sqrMagnitude>.0004f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(flat),count.TurnDegreesPerSecond*dt);
                 foreach(var door in Game.World.Doors)if(Vector3.Distance(door.transform.position,transform.position)<Profile.DoorOpenDistance)door.Open=true;
             }
+            // Under a low lintel or at a service door he drops to the stooped crawl (Mode 7) on the floor.
+            if(MustCrawl(transform.position)){actor.Pose(count.ModeCrawl,speedNow*.85f);return;}
             // Wing-beat rate follows speed but stays slow enough to read as a giant (LocomotionRate = speed / 2.05).
             actor.Pose(mode,1.2f+speedNow*.35f);
+        }
+        bool MustCrawl(Vector3 p)
+        {
+            if(NearServiceDoor(p))return true;
+            // Clear height over the floor under him (not over his flight position), so 3 m rooms stay flyable.
+            var floor=Physics.Raycast(p+Vector3.up*.3f,Vector3.down,out var down,6,FlightMask,QueryTriggerInteraction.Ignore)?down.point:p;
+            return Physics.Raycast(floor+Vector3.up*.2f,Vector3.up,out var up,count.CrawlCeiling,FlightMask,QueryTriggerInteraction.Ignore)&&up.distance+.2f<count.CrawlCeiling;
         }
         float CruiseSpeed(Vector3 to)
         {
             var p=transform.position;
-            if(NearServiceDoor(p)||routeAt<route.Count&&NearServiceDoor(route[routeAt]))return count.LandedWalkSpeed*SpeedScale;
+            if(NearServiceDoor(p)||routeAt<route.Count&&NearServiceDoor(route[routeAt])||MustCrawl(p))return count.LandedWalkSpeed*SpeedScale;
             var forward=new Vector3(to.x,0,to.z);var side=forward.sqrMagnitude>.0001f?Vector3.Cross(Vector3.up,forward.normalized):transform.right;
             var chest=p+Vector3.up*1.1f;
             float width=Reach(chest,side,6)+Reach(chest,-side,6);
@@ -753,7 +762,7 @@ namespace HollowCurrent
             bool facing=phase==0||phase==3||phase==4&&(choreoClock%CaptureFeintEnd)-CaptureDiveEnd<count.CaptureFeintFacingSeconds;
             var heading=facing?toCamera:ahead-position;heading.y=0;
             // Glide and dive keep his chest and face turned to the camera (blend of travel and camera direction).
-            if(phase==1||phase==2){var travel=heading.normalized;heading=Vector3.Slerp(travel,toCamera.normalized,.6f);}
+            if(phase==1||phase==2){var travel=heading.normalized;heading=Vector3.Slerp(travel,toCamera.normalized,.8f);}
             float speed=(ahead-position).magnitude/.05f;
             transform.position=position;
             if(heading.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(heading),(phase==0?120:phase==4?150:540)*dt);
@@ -768,7 +777,8 @@ namespace HollowCurrent
             }
             // The investigator's view follows him from the investigator's own eye height (the body stays put).
             // Close in, aim between the bounds centre and his head so the face stays in frame.
-            var bounds=actor.PoseBounds(0);var aim=phase==3&&actor.Head?Vector3.Lerp(bounds.center,actor.Head.position,.55f):bounds.center;
+            // Round 6: aim at the bounds centre at the climax too (r5 H10 cut his feet); the lunge stops at 2.4 m so he fits.
+            var bounds=actor.PoseBounds(0);var aim=bounds.center;
             cLook=Vector3.Lerp(cLook,aim,1-Mathf.Exp(-10*dt));
             var player=Game.Player;var look=cLook-eye;var flat=new Vector2(look.x,look.z).magnitude;
             if(look.sqrMagnitude>.0001f)

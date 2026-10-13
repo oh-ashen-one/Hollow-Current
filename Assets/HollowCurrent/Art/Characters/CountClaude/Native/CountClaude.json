@@ -9,7 +9,7 @@
   "wing_coat_seam_edges": 0,
   "rest_span_m": 1.401,
   "shoulder_width_m": 0.428,
-  "grab_reach_m": 0.882,
+  "grab_reach_m": 1.704,
   "clips": {
     "Perch": {
       "seconds": 3.2,
@@ -80,13 +80,24 @@
     "Grab": {
       "seconds": 0.9,
       "loop": false,
-      "hip_shift_m": 0.079,
-      "span_m_min": 2.721,
-      "span_m_max": 3.636,
-      "top_m_max": 2.371,
+      "hip_shift_m": 0.307,
+      "span_m_min": 2.781,
+      "span_m_max": 3.548,
+      "top_m_max": 2.572,
       "lowest_z_min": 0.1,
-      "forward_reach_m_max": 0.921,
-      "forward_reach_m_last": 0.882
+      "forward_reach_m_max": 1.704,
+      "forward_reach_m_last": 1.704
+    },
+    "Crawl": {
+      "seconds": 1.4,
+      "loop": true,
+      "hip_shift_m": 0.041,
+      "span_m_min": 1.279,
+      "span_m_max": 1.279,
+      "top_m_max": 1.828,
+      "lowest_z_min": 0.0,
+      "forward_reach_m_max": 0.789,
+      "forward_reach_m_last": 0.789
     }
   }
 }
