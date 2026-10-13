@@ -47,5 +47,5 @@ GateArch, Drawbridge (origin at hinge line, extends -Z), Winch, LanternCart, But
 5. Drawbridge: call `Points.Drawbridge.Lower()` when the win condition is met; walk-through collider is the leaf, parapets move with it. Nav is baked with the bridge raised.
 6. Piece 0 may want to use `Points.HunterSpawn` (crypt island) or `PerchPoints[2]`; Presence must accept spawn y of -3.2.
 7. `Door.cs` measures swing arc with a 1.5 m box; the 3.0 m great doors are split into two 1.5 m leaves and 0.9 m service leaves get a larger probe than their width. Check `Door.Measure` behaviour in a build.
-8. Lights: 45 candelabra points (4 shadowed) + 14 window spots (3 shadowed) + 2 directional. Measure; reduce `Candles`/`Windows` flags if needed.
+8. Lights: 43 candelabra points (2 shadowed) + 16 window spots (3 shadowed) + 2 directional (one shadowed). Measure; reduce `Candles`/`Windows` flags if needed.
 9. Open issues: no collision walls beyond the far bank (player can wander the bank); outer buttress/battlement art placements are decorative and unverified against real art; Voice/Compass/Print spots are guesses pending the tool reskin.
