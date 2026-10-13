@@ -20,3 +20,5 @@ __pycache__/
 *.p12
 *.keystore
 *.jks
+docs/haunted-castle/refs/*.png
+docs/haunted-castle/refs/*.err

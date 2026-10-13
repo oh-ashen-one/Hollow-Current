@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-13T17:23:15.273723Z",
+    "display_name": "GPT Image 2.5",
+    "id": "eae7cefc-9552-43f4-8df3-a27e71f02276",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172315_eae7cefc-9552-43f4-8df3-a27e71f02276_min.webp",
+    "params": {
+      "aspect_ratio": "16:9",
+      "height": 1520,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Interior concept art of a desecrated castle chapel, centered on a black stone altar. The altar top has three empty carved recesses shaped for a long blade, a sword hilt, and a round gem, each outlined with faint silver inlay. Above it a cracked stained-glass window of a sun that has been painted over with black. Pews are overturned, a stone font is filled with still dark red liquid, and dozens of candles float in the air around the altar at different heights, all unlit except one. Dust, cobwebs, cold blue moonlight leaking around the blackened window, warm glow from the single flame. Realistic painterly horror style, no people, no creatures, no text, no watermark.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172315_eae7cefc-9552-43f4-8df3-a27e71f02276.png",
+    "status": "completed"
+  }
+]

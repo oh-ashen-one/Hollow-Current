@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-13T17:21:18.665073Z",
+    "display_name": "GPT Image 2.5",
+    "id": "ac0a449e-7a60-40db-b39e-3b79098e39d6",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172118_ac0a449e-7a60-40db-b39e-3b79098e39d6_min.webp",
+    "params": {
+      "aspect_ratio": "16:9",
+      "height": 1520,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Cinematic horror concept art. A winged vampire lord crouches on a stone balcony railing inside a vast gothic great hall, wings spread wide, head tilted unnaturally, ember-red eyes fixed on the viewer far below. Gaunt grey aristocrat in a long black and oxblood coat with a high collar, tattered bat wings like torn funeral silk with hooked wing bones, bare clawed feet gripping the railing. Below him, candelabras float in the air at different heights, their flames bending toward him. Two moons, one pale and one blood-red, shine through a shattered rose window behind him. Cold blue moonlight against warm candlelight, deep shadows, dust in the air, extreme low angle from the floor. Realistic painterly style, no text, no watermark.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172118_ac0a449e-7a60-40db-b39e-3b79098e39d6.png",
+    "status": "completed"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-13T17:22:01.981495Z",
+    "display_name": "GPT Image 2.5",
+    "id": "d37b4913-7d8b-483e-baaf-734efe6a3697",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172201_d37b4913-7d8b-483e-baaf-734efe6a3697_min.webp",
+    "params": {
+      "aspect_ratio": "16:9",
+      "height": 1520,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Interior concept art of the great hall of a vampire lord's gothic castle, wide establishing shot from the entrance doors at eye level. Soaring vaulted ceiling, two rows of stone columns, a long banquet table with the feast rotted to black. Surreal details: candelabras and open books float motionless in the air, pale runes glow faintly on the flagstones in a ring, and the complete skeleton of something enormous and many-ribbed lies draped over the far end of the hall as if it died there. Tall windows show two moons, one pale, one blood-red. Cold blue moonlight through the windows, warm embers in a dead fireplace, long shadows, mist on the floor. Realistic painterly horror style, no people, no creatures, no text, no watermark.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172201_d37b4913-7d8b-483e-baaf-734efe6a3697.png",
+    "status": "completed"
+  }
+]

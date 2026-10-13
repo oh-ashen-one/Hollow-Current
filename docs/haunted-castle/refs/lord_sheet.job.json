@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-13T17:20:22.655708Z",
+    "display_name": "GPT Image 2.5",
+    "id": "b956890f-5b1a-4d2b-9fc4-260adaac5ee8",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172022_b956890f-5b1a-4d2b-9fc4-260adaac5ee8_min.webp",
+    "params": {
+      "aspect_ratio": "16:9",
+      "height": 1520,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Character reference sheet of a winged vampire lord, three full-body views side by side on one plain dark grey background: front, side profile, and back. Neutral standing pose, arms slightly away from the body, wings half-folded so the silhouette is readable. Gaunt 7-foot aristocrat, ashen grey skin, sunken eyes glowing ember red, slicked black hair, long clawed fingers. Huge tattered bat wings with a membrane that looks like torn funeral silk, wing bones ending in hooks. Floor-length black and oxblood coat with a high collar, tarnished silver buckles, bare clawed feet. Bioluminescent veins faintly visible under the skin at the throat and hands. Consistent proportions across all three views, even flat studio lighting, no background scenery, no text, no watermark. Realistic painterly horror concept art.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172022_b956890f-5b1a-4d2b-9fc4-260adaac5ee8.png",
+    "status": "completed"
+  }
+]
