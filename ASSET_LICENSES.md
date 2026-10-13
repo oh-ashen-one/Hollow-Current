@@ -62,3 +62,4 @@ Original project work, CC BY 4.0 like the rest of the project media. Produced he
 
 Shared helpers: `tools/castle_common.py`, `tools/castle_lib.py`; verification `tools/castle_verify.py`; previews `tools/castle_preview.py`; all in order: `tools/castle_build_all.sh`.
 - `Resources/UI/BloodLedger/{Panel,Dialogue,Warning}.png` and `Resources/UI/CastleBackdrop.png` (castle card art and title key art): derived from the project's Mourning Note cards and the castle sky by `tools/ui_blood_ledger.py`; original project work, CC BY 4.0.
+- Surreal prop textures in `Resources/Castle/Textures/` (candle flame, halo, rune, window moon): `tools/castle_surreal_textures.py`; original project work, CC BY 4.0.

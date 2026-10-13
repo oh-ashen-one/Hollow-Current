@@ -117,15 +117,24 @@ namespace HollowCurrent
             var texture=new Texture2D(width,height,TextureFormat.RGBA32,true){name=name,wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Bilinear};
             var pixels=new Color32[width*height];
             for(int y=0;y<height;y++)for(int x=0;x<width;x++)pixels[y*width+x]=shade((x+.5f)/width,(y+.5f)/height);
-            texture.SetPixels32(pixels);texture.Apply(true,true);
+            // Stays readable: a non-readable procedural texture could not be serialized into the prepared scene (CastleWorld's
+            // output is saved with it) and arrived in the player as a blank white texture.
+            texture.SetPixels32(pixels);texture.Apply(true,false);
             return texture;
+        }
+        // Sprite textures baked by tools/castle_surreal_textures.py (saved by reference, so they survive scene serialization).
+        // The procedural versions remain as fallbacks only.
+        internal static Texture2D LoadSprite(string file)
+        {
+            try{return Resources.Load<Texture2D>("Castle/Textures/"+file);}
+            catch(Exception){return null;}
         }
         static float Smooth(float edge0,float edge1,float x){float k=Mathf.Clamp01((x-edge0)/(edge1-edge0));return k*k*(3-2*k);}
 
         // ---- candle flame ----
         static Texture2D flameTexture;
         static Material flameMaterial;
-        static Texture2D FlameTexture=>flameTexture?flameTexture:flameTexture=MakeTexture("Surreal flame",32,64,(u,v)=>
+        static Texture2D FlameTexture=>flameTexture?flameTexture:flameTexture=LoadSprite("Surreal_Flame")??MakeTexture("Surreal flame",32,64,(u,v)=>
         {
             float width=.5f*Mathf.Pow(Mathf.Sin(Mathf.PI*Mathf.Pow(v,.6f)),.8f)*(1-.25f*v);
             float d=Mathf.Abs(u-.5f);
@@ -138,13 +147,17 @@ namespace HollowCurrent
         static Material FlameMaterial=>flameMaterial?flameMaterial:flameMaterial=UnlitAdditive("Surreal flame",FlameTexture,Color.white);
         static Texture2D glowTexture;
         static Material glowMaterial;
-        static Texture2D GlowTexture=>glowTexture?glowTexture:glowTexture=MakeTexture("Surreal flame glow",32,32,(u,v)=>
+        static Texture2D GlowTexture=>glowTexture?glowTexture:glowTexture=LoadSprite("Surreal_FlameGlow")??MakeTexture("Surreal flame glow",32,32,(u,v)=>
         {
             float r=Mathf.Sqrt((u-.5f)*(u-.5f)+(v-.5f)*(v-.5f))*2;
             float a=Mathf.Pow(Mathf.Clamp01(1-r),2.2f)*.55f;
             return new Color(1,.55f,.2f,a);
         });
         static Material GlowMaterial=>glowMaterial?glowMaterial:glowMaterial=UnlitAdditive("Surreal flame glow",GlowTexture,Color.white);
+        // Runtime-built shared materials. Props saved into the prepared scene re-assign these in Start (see CandleFlame), so
+        // what is drawn never depends on what the scene serialized.
+        internal static Material SharedFlameMaterial=>FlameMaterial;
+        internal static Material SharedGlowMaterial=>GlowMaterial;
 
         // glowRadius > 0 adds a soft additive halo (a billboard, not a light) around the flame.
         public static CandleFlame MakeCandleFlame(Transform parent,Vector3 localPosition,float height=.11f,bool withLight=false,string name="Candle flame",float glowRadius=0)
@@ -346,7 +359,7 @@ namespace HollowCurrent
             var r=NewRenderer("Disc",t,Vector3.zero,Quaternion.identity,CentreQuad,new[]{red?RedMoonMaterial:PaleMoonMaterial},false);
             float size=radius/.78f*2;
             r.transform.localScale=new Vector3(size,size,1);
-            var window=t.gameObject.AddComponent<WindowMoon>();window.disc=r;window.castleRoot=parent;
+            var window=t.gameObject.AddComponent<WindowMoon>();window.disc=r;window.red=red;window.castleRoot=parent;
             return t;
         }
 

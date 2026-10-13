@@ -17,7 +17,7 @@ namespace HollowCurrent
         // S4 eye: on the lowered drawbridge (hinge z -0.45, leaf to z -6.45), 2.0 m above
         // the planks, facing the gate (+z). Sprite moons for S4 can be placed on rays from here.
         public static readonly Vector3 S4Eye=new Vector3(0,2.0f,-6.0f);
-        public const float S4Pitch=12,S4Fov=90;
+        public const float S4Pitch=18,S4Fov=90; // r3: pitch 12 left the pale moon centre above the frame top
         public static string Directory {get;private set;}
         public static bool Requested
         {
