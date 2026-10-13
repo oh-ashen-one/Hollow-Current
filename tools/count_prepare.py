@@ -6,7 +6,7 @@ Input : tools/count_source/CountClaude_rigged.glb  (Higgsfield multi_image_to_3d
         see docs/haunted-castle/ASSET_LOG.md for job ids). The auto-rig has 24 humanoid bones, no wing bones, and
         wing vertices weighted to the leg bones, so this script re-skins the wings onto four new bones
         (WingL/WingTipL/WingR/WingTipR) and authors six clips itself.
-Output: Assets/HollowCurrent/Resources/Characters/CountClaude/{Native/*.fbx,Maps/Albedo.png,Native/CountClaude.json}
+Output: Assets/HollowCurrent/Art/Characters/CountClaude/{Native/*.fbx,Maps/Albedo.png,Native/CountClaude.json}
 
 Idempotent: always starts from the pristine source GLB. Metres, Z up in Blender, character faces -Y in Blender
 (glTF +Z) and exports with axis_forward=-Z / axis_up=Y exactly like tools/prepare_splitgrin.py, so he faces +Z
@@ -18,7 +18,7 @@ from mathutils import Vector, Matrix
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'tools/count_source/CountClaude_rigged.glb'
-OUT = ROOT / 'Assets/HollowCurrent/Resources/Characters/CountClaude'
+OUT = ROOT / 'Assets/HollowCurrent/Art/Characters/CountClaude'
 HEAD_TOP = 2.15
 FPS = 30
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []

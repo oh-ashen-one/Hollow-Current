@@ -235,6 +235,19 @@ namespace HollowCurrent.Editor
                 bool found=false;foreach(var item in world.Root.GetComponentsInChildren<Interactable>())if(item.Kind==kind)found=true;
                 if(!found)throw new Exception("Castle is missing a "+kind+" interactable");
             }
+            // Every castle door (service 0.9 m, standard 1.5 m, great 2 x 1.5 m leaves,
+            // portrait door) must swing at least 75 degrees clear of walls and furniture
+            // (the gatehouse guard door parks at 80 against the corner wall; Bellwether keeps 85).
+            var stuck=new List<string>();
+            foreach(var door in world.Doors)
+            {
+                if(!door)continue;door.Toggle();
+                bool service=door.name.StartsWith(CastleLayout.ServiceDoorPrefix,StringComparison.Ordinal);
+                Debug.Log("HC_CASTLE_DOOR "+door.name+" service="+service+" angle="+door.OpenAngle+" clear="+door.HasClearOpenPose+" probe="+door.ProbeCenter+"/"+door.ProbeExtents+" blocker+="+door.BlockerAt(Mathf.Sign(door.OpenAngle==0?1:door.OpenAngle)*(Mathf.Abs(door.OpenAngle)+5))+" blocker-="+door.BlockerAt(-Mathf.Sign(door.OpenAngle==0?1:door.OpenAngle)*5));
+                if(Mathf.Abs(door.OpenAngle)<75||!door.HasClearOpenPose)stuck.Add(door.name);
+                door.Toggle();
+            }
+            if(stuck.Count>0)throw new Exception("Castle doors without a clear 75-degree swing ("+stuck.Count+"): "+string.Join(", ",stuck));
             // The castle hunter must load exactly as Presence loads it (no placeholder in a release).
             var profile=HunterProfile.For(MapId.Castle);var model=Resources.Load<GameObject>(profile.ModelResource);
             var actor=model?model.GetComponent<HearthboundActor>():null;

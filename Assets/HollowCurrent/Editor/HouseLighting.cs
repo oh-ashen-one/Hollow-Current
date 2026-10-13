@@ -23,7 +23,7 @@ namespace HollowCurrent.Editor
         // Source files that only the castle depends on. They are excluded from
         // Bellwether's receipt so parallel castle work never stales the house bake.
         static readonly string[] CastleOnly={"Assets/HollowCurrent/Runtime/Castle/","Assets/HollowCurrent/Core/Forge.cs","Assets/HollowCurrent/Editor/CountClaudeImport.cs",
-            "Assets/HollowCurrent/Resources/Castle/","Assets/HollowCurrent/Resources/CastleAudio/","Assets/HollowCurrent/Resources/Characters/CountClaude/","Assets/HollowCurrent/Art/LayoutData/Castle/"};
+            "Assets/HollowCurrent/Resources/Castle/","Assets/HollowCurrent/Resources/CastleAudio/","Assets/HollowCurrent/Resources/Characters/CountClaude/","Assets/HollowCurrent/Art/Characters/CountClaude/","Assets/HollowCurrent/Art/LayoutData/Castle/"};
         // Refresh authored placement without rebuilding imported meshes and
         // discarding their already-generated secondary UVs.
         public static void PrepareAndBake(){NativeBuild.Prepare();Bake(MapId.Bellwether);}

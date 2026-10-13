@@ -129,6 +129,28 @@ namespace HollowCurrent
             foreach(var id in new[]{"paper","wood","metal","brass","black"})if(!Materials.ContainsKey(id))Mat(id,new Color(.3f,.27f,.22f));
             ApplyCastlePoints(CastleSpots.From(points));
             if(points.Doors!=null)Doors.AddRange(points.Doors);else foreach(var door in Root.GetComponentsInChildren<Door>(true))Doors.Add(door);
+            // Castle leaves are 0.9 / 1.5 m wide and 2.0 / 4.5 m tall: fit each door's
+            // swing probe to its own leaf (Bellwether's default probe is 1.64 x 2.2 m).
+            // CastleWorld hinges sit on the wall centre line, so a leaf meets the jamb's
+            // thickness after ~55 degrees. As in Bellwether, move each hinge to one wall
+            // face (both leaves of a pair to the same world side) so the leaf can park
+            // flat against the wall.
+            // Each face is tried and the one with the wider clear swing kept (furniture
+            // stands close to some doors on one side). Both leaves of a great door are
+            // probed with their own leaf size.
+            Physics.SyncTransforms();
+            foreach(var door in Doors)
+            {
+                if(!door)continue;
+                foreach(var item in door.GetComponentsInChildren<Interactable>(true))
+                    if(item.Kind==InteractKind.Door){var size=item.transform.localScale;door.FitProbe(size.x,size.y);break;}
+                var t=door.transform;var centre=t.position;var n=t.forward;if(n.z< -.5f||n.x< -.5f)n=-n;
+                float half=0;
+                if(Physics.Raycast(centre-t.right*.3f+Vector3.up+n*3,-n,out var face,3,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))half=Mathf.Clamp(3-face.distance,0,.6f);
+                t.position=centre+n*(half+.02f);Physics.SyncTransforms();float front=door.MeasureSwing();
+                t.position=centre-n*(half+.02f);Physics.SyncTransforms();float back=door.MeasureSwing();
+                if(front>=back){t.position=centre+n*(half+.02f);Physics.SyncTransforms();door.MeasureSwing();}
+            }
             if(points.HidingPlaces!=null)HidingPlaces.AddRange(points.HidingPlaces);else foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Hide)HidingPlaces.Add(item);
             if(points.Lamps!=null)Lamps.AddRange(points.Lamps);
             if(points.WindowLights!=null)WindowLights.AddRange(points.WindowLights);

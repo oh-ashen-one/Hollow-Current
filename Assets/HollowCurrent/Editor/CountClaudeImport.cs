@@ -13,8 +13,11 @@ namespace HollowCurrent.Editor
     // Entry point for batch mode: -executeMethod HollowCurrent.Editor.CountClaudeImport.Prepare
     public static class CountClaudeImport
     {
+        // Generated, shipped assets (prefab beside this folder, controller, clips, material, avatar).
         const string Folder="Assets/HollowCurrent/Resources/Characters/CountClaude/";
-        const string Native=Folder+"Native/";
+        // Sources (FBX, albedo, receipt) live outside Resources so they do not ship in the player.
+        const string Source="Assets/HollowCurrent/Art/Characters/CountClaude/";
+        const string Native=Source+"Native/";
         // Animator state names, index == Mode int: 0 Perch, 1 Glide, 2 SearchGlide, 3 Dive, 4 Stagger, 5 Death.
         static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death"};
         // Perch, Glide and Search loop; Dive, Stagger and Death hold their last frame (Mode stays set until the next Pose call).
@@ -35,7 +38,7 @@ namespace HollowCurrent.Editor
             var skins=body.GetComponentsInChildren<SkinnedMeshRenderer>();
             if(skins.Length!=1||skins[0].bones.Length<24||skins[0].sharedMesh.vertexCount<10000)throw new Exception("Count Claude requires one skinned humanoid mesh with wing bones");
             var material=new Material(Shader.Find("Standard")){name="CountClaude / albedo",color=Color.white};
-            material.mainTexture=Texture(Folder+"Maps/Albedo.png",true);
+            material.mainTexture=Texture(Source+"Maps/Albedo.png",true);
             material.SetFloat("_Metallic",0f);material.SetFloat("_Glossiness",.22f);
             material=Save(material,Folder+"CountClaude.mat");
             foreach(var skin in skins)
