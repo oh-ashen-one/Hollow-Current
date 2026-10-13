@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from castle_lib import *
 
 S, BS, OAK, BRASS, IRON, OX = "Castle_Stone", "Castle_BlackStone", "Castle_Oak", "Castle_Brass", "Castle_Iron", "Castle_Oxblood"
+PLANK = "Castle_OakPlank"   # wide weathered boards with nails (round 6: the lowered leaf read as a featureless plane)
 H = 3.2  # storey height
 
 def only():
@@ -209,9 +210,9 @@ def drawbridge():
     b = Builder("Drawbridge")
     n = 20; pl = 6.0 / n
     for i in range(n):
-        b.box((0, -(i + .5) * pl, -.125), (3.2, pl - .02, .25), OAK)
+        b.box((0, -(i + .5) * pl, -.125), (3.2, pl - .02, .25), PLANK)
     for sx in (-1, 1):
-        b.box((sx * 1.5, -3.0, -.125), (.2, 6.0, .25), OAK)
+        b.box((sx * 1.5, -3.0, -.125), (.2, 6.0, .25), PLANK)
     for y in (-.5, -2.0, -4.0, -5.6):
         b.box((0, y, -.005), (3.2, .14, .01), IRON)
     for sx in (-1, 1):

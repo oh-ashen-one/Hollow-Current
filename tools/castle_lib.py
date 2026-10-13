@@ -12,7 +12,7 @@ from mathutils import Vector, Matrix
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import castle_common as cc
 
-UV_TILE = {"Castle_Stone": 2.0, "Castle_BlackStone": 1.5, "Castle_Oak": 1.0, "Castle_Brass": 0.5,
+UV_TILE = {"Castle_OakPlank": 1.0, "Castle_Stone": 2.0, "Castle_BlackStone": 1.5, "Castle_Oak": 1.0, "Castle_Brass": 0.5,
            "Castle_Oxblood": 1.0, "Castle_Silver": 0.5, "Castle_Iron": 0.5, "Castle_Bone": 1.0}
 MANIFEST = {}
 

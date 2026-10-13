@@ -152,15 +152,15 @@ def blackstone(n, rng, base):
     smooth = 0.62 + 0.18 * veins - 0.25 * mortar - 0.1 * (1 - grain)
     return dict(albedo=albedo, height=height, ns=4.0, smooth=smooth, metal=0.0, ao=1 - 0.6 * mortar)
 
-def planks(n, rng, base):
+def planks(n, rng, base, count=8, gap_px=4):
     """8 planks across the tile, long grain with rings, knots, nail heads, dark gaps."""
-    count = 8; w = n // count
+    w = n // count
     plank_tone = np.zeros((n, n)); gap = np.zeros((n, n)); shift = np.zeros((n, n))
     for i in range(count):
         xs = np.arange(i * w, (i + 1) * w)
         plank_tone[:, xs] = rng.random()
         shift[:, xs] = rng.random() * 40
-        gap[:, np.arange(i * w, i * w + 4) % n] = 1
+        gap[:, np.arange(i * w, i * w + gap_px) % n] = 1
     grain_n = noise(n, 2.0, rng, sx=0.35, sy=7.0)                  # stretched along y
     warp = noise(n, 2.2, rng, sx=1, sy=5.0)
     x = np.arange(n)[None, :].astype(np.float32)
@@ -302,7 +302,7 @@ def sun_window(rng):
 def stone_weathered(n, rng, base):
     """Weathered grey-blue ashlar: larger blocks, worn rounded edges, heavy chipping and cracks, rain streaks."""
     r = stone(n, rng, base, rows=6, mortar_px=7, bevel=34, cols=(2, 2, 3), chip_t=0.58, crack_k=70)
-    streak = noise(n, 2.6, rng, sx=6.0, sy=0.5)
+    streak = noise(n, 2.6, rng, sx=0.5, sy=6.0)
     rain = np.clip((streak - 0.55) * 3.0, 0, 1)
     r["albedo"] = np.clip(r["albedo"] * (1 - 0.25 * rain[..., None]) , 0, 1)
     r["smooth"] = r["smooth"] + 0.18 * rain
@@ -319,20 +319,91 @@ def stone_dark(n, rng, base):
     return r
 
 def stone_mossy(n, rng, base):
-    """Damp stone with green-brown moss and algae patches in the joints and low areas; wet sheen in the dark patches."""
-    r = stone(n, rng, base, rows=8, mortar_px=6, bevel=26, wet=1.0, chip_t=0.64)
-    patch = smoothstep(0.50, 0.70, fbm(n, rng, (1.5, 2.1, 2.8), (1, .7, .4)))
-    patch2 = smoothstep(0.55, 0.80, fbm(n, rng, (1.3, 2.0), (1, .6)))
-    moss = np.array([0.17, 0.25, 0.10]); mud = np.array([0.26, 0.21, 0.13]); slime = np.array([0.12, 0.22, 0.18])
-    col = r["albedo"] * (1 - 0.55 * patch[..., None]) + (moss[None, None, :] * (0.65 + 0.7 * noise(n, 0.5, rng)[..., None])) * 0.55 * patch[..., None]
-    col = col * (1 - 0.5 * patch2[..., None]) + mud[None, None, :] * 0.5 * patch2[..., None]
-    wetp = smoothstep(0.55, 0.75, fbm(n, rng, (1.6, 2.4), (1, .5)))
-    col = col * (1 - 0.35 * wetp[..., None]) + slime[None, None, :] * 0.12 * wetp[..., None]
+    """Weathered stone with moss and algae ONLY where moisture collects: joints, chipped edges, cracks and the lower part of
+    each course, gated by sparse noise. The block faces stay stone (round 5 read the old version as flat green panels)."""
+    r = stone(n, rng, base, rows=8, mortar_px=6, bevel=26, wet=0.6, chip_t=0.64)
+    crev = np.clip(1.0 - r["ao"], 0, 1)                                  # joints, bevels, cracks (0 on block faces)
+    gate = smoothstep(0.38, 0.62, fbm(n, rng, (1.5, 2.2, 3.0), (1, .7, .4)))   # sparse patches along the crevices
+    yy = (np.arange(n)[:, None] % (n // 8)) / (n // 8)                   # 0 at the top of a course, 1 at its bottom edge
+    low = smoothstep(0.78, 1.0, yy) * smoothstep(0.45, 0.70, fbm(n, rng, (1.4, 2.0), (1, .6)))   # a little growth at the foot of some courses
+    moss = np.clip(crev * 1.5 * (0.25 + 0.75 * gate) + 0.5 * low * gate, 0, 1)
+    moss = blur(moss, 2)
+    tex = 0.65 + 0.7 * noise(n, 0.5, rng)
+    mcol = np.array([0.17, 0.25, 0.10])[None, None, :] * tex[..., None]
+    dcol = np.array([0.24, 0.20, 0.12])[None, None, :]
+    col = r["albedo"] * (1 - 0.8 * moss[..., None]) + mcol * 0.85 * moss[..., None]
+    streak = noise(n, 2.5, rng, sx=0.5, sy=6.0)
+    damp = np.clip((streak - 0.55) * 3.0, 0, 1) * 0.5
+    col = col * (1 - 0.18 * damp[..., None]) + dcol * 0.10 * damp[..., None]
     r["albedo"] = np.clip(col, 0, 1)
-    r["height"] = norm01(r["height"] + 0.12 * patch)                  # moss stands proud
-    r["smooth"] = np.clip(r["smooth"] * (1 - 0.6 * patch) + 0.55 * wetp, 0.08, 0.9)
-    r["ao"] = r["ao"] * (1 - 0.15 * patch)
+    r["height"] = norm01(r["height"] + 0.10 * moss)
+    r["smooth"] = np.clip(r["smooth"] * (1 - 0.5 * moss) + 0.45 * moss + 0.2 * damp, 0.08, 0.85)
+    r["ao"] = np.clip(r["ao"] - 0.1 * moss, 0, 1)
     return r
+
+def oak_plank(n, rng, base):
+    """Four wide boards per metre with deep gaps, long grain, knots, weathering and a row of nails at each board edge."""
+    r = planks(n, rng, base, count=4, gap_px=9)
+    yy, xx = np.mgrid[0:n, 0:n].astype(np.float32)
+    nails = np.zeros((n, n), np.float32)
+    for pi in range(4):
+        for ny_ in range(4):
+            for off in (-.5, .5):
+                cx = pi * (n // 4) + (n // 8) + off * (n // 4 - 70) ; cy = ny_ * (n // 4) + n // 8 + 20 * ((pi + ny_) % 2)
+                nails = np.maximum(nails, np.clip(1 - np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2) / 8.0, 0, 1))
+    wear = smoothstep(0.5, 0.75, fbm(n, rng, (1.6, 2.4), (1, .6)))
+    r["albedo"] = np.clip(r["albedo"] * (1 - 0.18 * wear[..., None]) * (1 - 0.5 * nails[..., None]) + nails[..., None] * np.array([.10, .10, .11]) * 0.5, 0, 1)
+    r["height"] = norm01(r["height"] + 0.35 * nails - 0.12 * wear)
+    r["metal"] = np.clip(nails * 0.8, 0, 1); r["smooth"] = np.clip(r["smooth"] + 0.25 * nails - 0.1 * wear, 0.1, 0.9)
+    return r
+
+# ---------------------------------------------------------------------------------------------------------------------
+# gore set for the flayed-demon Count (round 6): pallid skin, wet striated muscle, vein-webbed wing membrane, blood overlay
+# ---------------------------------------------------------------------------------------------------------------------
+def veins(n, rng, k1=26, k2=40):
+    a = np.clip(1 - np.abs(noise(n, 1.9, rng) - 0.5) * k1, 0, 1) ** 1.5
+    b = np.clip(1 - np.abs(noise(n, 1.5, rng) - 0.5) * k2, 0, 1) ** 1.5
+    return np.clip(a + 0.7 * b, 0, 1)
+
+def gore_skin(n, rng, base):
+    v = veins(n, rng); pores = noise(n, 0.35, rng); mott = fbm(n, rng, (1.4, 2.0), (1, .6))
+    crack = np.clip(1 - np.abs(noise(n, 1.8, rng) - 0.5) * 70, 0, 1) * smoothstep(0.4, 0.6, noise(n, 1.2, rng))
+    col = np.array(base)[None, None, :] * (0.85 + 0.3 * (mott - .5))[..., None] * (0.95 + 0.1 * pores)[..., None]
+    col = col * (1 - 0.35 * v[..., None]) + np.array([0.36, 0.38, 0.52])[None, None, :] * 0.35 * v[..., None]       # blue-grey veins
+    col = col * (1 - crack[..., None]) + np.array([0.30, 0.04, 0.04])[None, None, :] * crack[..., None]          # split skin, red beneath
+    h = norm01(0.4 * pores + 0.25 * v + 0.2 * mott - 0.6 * crack)
+    return dict(albedo=mean_to(np.clip(col, 0, 1), base), height=h, ns=3.0, smooth=0.38 + 0.2 * smoothstep(0.5, 0.8, mott) - 0.1 * pores + 0.4 * crack, metal=0.0, ao=1 - 0.5 * crack)
+
+def gore_flesh(n, rng, base):
+    fib = noise(n, 1.7, rng, sx=0.25, sy=9.0); fib2 = noise(n, 1.0, rng, sx=0.3, sy=6.0)
+    fascia = np.clip(1 - np.abs(noise(n, 2.0, rng, sx=0.4, sy=5.0) - 0.5) * 18, 0, 1)
+    dark = smoothstep(0.45, 0.7, fbm(n, rng, (1.6, 2.4), (1, .6)))
+    lum = 0.75 + 0.55 * (fib - .5) + 0.25 * (fib2 - .5) - 0.35 * dark
+    col = np.array(base)[None, None, :] * lum[..., None]
+    col = col * (1 - 0.7 * fascia[..., None]) + np.array([0.70, 0.45, 0.40])[None, None, :] * 0.7 * fascia[..., None]
+    h = norm01(0.6 * fib + 0.3 * fib2 + 0.3 * fascia)
+    return dict(albedo=mean_to(np.clip(col, 0, 1), base), height=h, ns=5.0, smooth=0.86 + 0.1 * (fib2 - .5) - 0.2 * fascia, metal=0.0, ao=1 - 0.3 * dark)
+
+def gore_membrane(n, rng, base):
+    v = veins(n, rng, 20, 34); fine = noise(n, 1.1, rng); blot = fbm(n, rng, (1.5, 2.2), (1, .6))
+    col = np.array(base)[None, None, :] * (0.8 + 0.4 * (fine - .5))[..., None]
+    col = col * (1 - 0.5 * blot[..., None] * np.array([0.0, 0.6, 0.6])[None, None, :]) * (1 - 0.3 * v[..., None]) + np.array([0.45, 0.10, 0.10])[None, None, :] * 0.4 * v[..., None]
+    return dict(albedo=mean_to(np.clip(col, 0, 1), base), height=norm01(0.5 * v + 0.3 * fine), ns=3.5, smooth=0.32 + 0.2 * v, metal=0.0, ao=1 - 0.15 * v)
+
+def gore_wet(n, rng):
+    """Blood overlay: RGB dark red, alpha = coverage with vertical drip runs. Tileable."""
+    streak = noise(n, 2.3, rng, sx=0.35, sy=9.0)
+    blot = fbm(n, rng, (1.5, 2.2), (1, .6))
+    cover = np.clip((streak * 0.65 + blot * 0.35 - 0.50) * 3.2, 0, 1)
+    tone = 0.7 + 0.6 * noise(n, 1.0, rng)
+    out = np.zeros((n, n, 4), np.uint8)
+    out[..., 0] = (np.clip(0.30 * tone, 0, 1) * 255).astype(np.uint8)
+    out[..., 1] = (np.clip(0.012 * tone, 0, 1) * 255).astype(np.uint8)
+    out[..., 2] = (np.clip(0.02 * tone, 0, 1) * 255).astype(np.uint8)
+    out[..., 3] = (np.clip(cover, 0, 1) * 255 + .5).astype(np.uint8)
+    p = cc.TEX / "Castle_GoreWet.png"
+    save_png(p, out)
+    return cc.write_texture_meta(p, "emission")   # repeat wrap, mips, sRGB; alpha is data
 
 # ---------------------------------------------------------------------------------------------------------------------
 # decals: RGBA, alpha = coverage. Cracks, chips and stains sit on top of any wall; soot gradients darken wall bases and
@@ -388,8 +459,8 @@ def decal_chips(n, rng):
 
 def decal_stain(n, rng):
     """Water stain streaks running down from a top edge."""
-    streak = noise(n, 2.2, rng, sx=8.0, sy=0.4)
-    s2 = noise(n, 1.6, rng, sx=5.0, sy=0.5)
+    streak = noise(n, 2.2, rng, sx=0.4, sy=8.0)
+    s2 = noise(n, 1.6, rng, sx=0.5, sy=5.0)
     y = np.linspace(0, 1, n)[:, None]
     x = np.linspace(-1, 1, n)[None, :]
     env = np.clip(1 - y * 0.9, 0, 1) ** 1.2 * np.clip(1 - np.abs(x) ** 3, 0, 1)
@@ -496,6 +567,64 @@ Shader "HollowCurrent/CastleEmissive"
             ENDCG
         }
     }
+}
+'''
+
+GORE_SHADER = r'''// Generated by tools/castle_textures.py. Do not edit by hand.
+// Skin/flesh shader for the flayed-demon Count: UV-mapped albedo (the generated character texture), tileable blood overlay with
+// a wet specular, pale skin tint and a cheap translucency glow at grazing angles. Falls back via CastleArt.Gore().
+Shader "HollowCurrent/CastleGore"
+{
+    Properties
+    {
+        _MainTex ("Albedo", 2D) = "white" {}
+        _Color ("Tint", Color) = (1,1,1,1)
+        _BumpMap ("Normal", 2D) = "bump" {}
+        _BumpScale ("Normal strength", Range(0,2)) = 1
+        _MaskTex ("Mask (R metal, G occlusion, A smoothness)", 2D) = "black" {}
+        _Smooth ("Base smoothness", Range(0,1)) = 0.4
+        _WetTex ("Blood overlay (RGBA)", 2D) = "black" {}
+        _WetTile ("Blood tiles per UV", Float) = 3
+        _Wet ("Blood amount", Range(0,1)) = 0.6
+        _WetSmooth ("Wet smoothness", Range(0,1)) = 0.92
+        _Trans ("Translucency colour", Color) = (0.55,0.12,0.10,1)
+        _TransAmt ("Translucency amount", Range(0,1)) = 0.35
+        _TransPow ("Translucency rim power", Range(0.5,8)) = 2.5
+        _EmissionColor ("Emission", Color) = (0,0,0,1)
+    }
+    SubShader
+    {
+        Tags { "RenderType"="Opaque" }
+        LOD 300
+        CGPROGRAM
+        #pragma surface surf Standard fullforwardshadows
+        #pragma target 3.0
+        sampler2D _MainTex, _BumpMap, _MaskTex, _WetTex;
+        fixed4 _Color, _Trans, _EmissionColor;
+        half _BumpScale, _Smooth, _WetTile, _Wet, _WetSmooth, _TransAmt, _TransPow;
+        float4 _CastleFillSky, _CastleFillGround;
+        struct Input { float2 uv_MainTex; float3 viewDir; float3 worldNormal; INTERNAL_DATA };
+        void surf (Input IN, inout SurfaceOutputStandard o)
+        {
+            fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * _Color;
+            half3 n = UnpackNormal(tex2D(_BumpMap, IN.uv_MainTex));
+            n.xy *= _BumpScale;
+            fixed4 wet = tex2D(_WetTex, IN.uv_MainTex * _WetTile);
+            half w = saturate(wet.a * _Wet);
+            fixed4 mk = tex2D(_MaskTex, IN.uv_MainTex);
+            half3 albedo = lerp(c.rgb, wet.rgb, w * 0.9);
+            o.Normal = normalize(n);
+            o.Albedo = albedo;
+            o.Metallic = mk.r * (1 - w);
+            o.Smoothness = lerp(max(mk.a, _Smooth), _WetSmooth, w);
+            o.Occlusion = lerp(1, mk.g, 0.85);
+            half rim = pow(1 - saturate(dot(normalize(IN.viewDir), o.Normal)), _TransPow);
+            half hemi = IN.worldNormal.y * 0.5 + 0.5;
+            o.Emission = _EmissionColor.rgb + _Trans.rgb * rim * _TransAmt * (1 - w) + albedo * lerp(_CastleFillGround.rgb, _CastleFillSky.rgb, hemi);
+        }
+        ENDCG
+    }
+    FallBack "Standard"
 }
 '''
 
@@ -788,6 +917,10 @@ def main():
         "Castle_StoneWeathered": lambda r, b: stone_weathered(n, r, b),
         "Castle_StoneDark": lambda r, b: stone_dark(n, r, b),
         "Castle_StoneMossy": lambda r, b: stone_mossy(n, r, b),
+        "Castle_OakPlank": lambda r, b: oak_plank(n, r, b),
+        "Castle_GoreSkin": lambda r, b: gore_skin(n, r, b),
+        "Castle_GoreFlesh": lambda r, b: gore_flesh(n, r, b),
+        "Castle_GoreMembrane": lambda r, b: gore_membrane(n, r, b),
     }
     for i, (name, fn) in enumerate(gens.items()):
         rng = np.random.default_rng(1000 + i)
@@ -821,7 +954,9 @@ def main():
                           emission=(1.7, 1.7, 1.7), mask_guid=gm, emission_guid=ge)
     print("texture Castle_SunWindow", albedo.shape)
     # flat-colour materials
+    gore_wet(512, np.random.default_rng(3001))
     write_custom_shader("CastleDecal", DECAL_SHADER)
+    write_custom_shader("CastleGore", GORE_SHADER)
     write_custom_shader("CastleEmissive", EMISSIVE_SHADER)
     write_flame_mat()
     write_decals()

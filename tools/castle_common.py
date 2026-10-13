@@ -22,7 +22,12 @@ MATERIALS = {
     # Round 5 stone variants (world-space or UV; 2 m tile)
     "Castle_StoneWeathered": ((0.46, 0.50, 0.58), 0.22, 0.0, True),  # grey-blue, heavy chipped edges, bigger blocks
     "Castle_StoneDark":  ((0.17, 0.18, 0.22), 0.20, 0.0, True),   # dark rough-dressed stone: undercroft, crypt, lower walls
-    "Castle_StoneMossy": ((0.36, 0.40, 0.36), 0.30, 0.0, True),   # damp stone with moss patches
+    "Castle_StoneMossy": ((0.42, 0.45, 0.48), 0.28, 0.0, True),   # stone base, moss only in the joints/crevices (mask-driven)
+    "Castle_OakPlank":   ((0.40, 0.28, 0.17), 0.30, 0.0, True),   # wide weathered boards with nails: drawbridge leaf, scaffolds
+    # Count Claude (flayed demon) gore set, round 6
+    "Castle_GoreSkin":   ((0.60, 0.56, 0.55), 0.40, 0.0, True),   # pallid grey-white skin, faint veins
+    "Castle_GoreFlesh":  ((0.42, 0.06, 0.06), 0.88, 0.0, True),   # exposed striated muscle, wet
+    "Castle_GoreMembrane": ((0.62, 0.50, 0.50), 0.30, 0.0, True), # translucent wing membrane with veins
     "Castle_FlagStone":  ((0.30, 0.32, 0.38), 0.58, 0.0, True),   # wet floor slabs (rune-reflecting)
     "Castle_Oak":        ((0.30, 0.19, 0.11), 0.28, 0.0, True),   # dark oak
     "Castle_Brass":      ((0.62, 0.48, 0.22), 0.50, 0.85, True),  # scratched, tarnished brass

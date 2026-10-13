@@ -90,6 +90,10 @@ namespace HollowCurrent
             { "Castle_StoneMossy", new Spec(new Color(.36f, .40f, .36f), .30f, 0f) },
             { "Castle_FlagStone", new Spec(new Color(.30f, .32f, .38f), .58f, 0f) },
             { "Castle_Oak", new Spec(new Color(.30f, .19f, .11f), .28f, 0f) },
+            { "Castle_OakPlank", new Spec(new Color(.40f, .28f, .17f), .30f, 0f) },
+            { "Castle_GoreSkin", new Spec(new Color(.60f, .56f, .55f), .40f, 0f) },
+            { "Castle_GoreFlesh", new Spec(new Color(.42f, .06f, .06f), .88f, 0f) },
+            { "Castle_GoreMembrane", new Spec(new Color(.62f, .50f, .50f), .30f, 0f) },
             { "Castle_Brass", new Spec(new Color(.62f, .48f, .22f), .50f, .85f) },
             { "Castle_Oxblood", new Spec(new Color(.42f, .07f, .09f), .10f, 0f) },
             { "Castle_Silver", new Spec(new Color(.70f, .71f, .75f), .45f, .90f) },
@@ -115,7 +119,7 @@ namespace HollowCurrent
         // Texture repeats per metre of world space (1 / tile size in tools/castle_textures.py).
         static readonly Dictionary<string, float> TilesPerMetre = new Dictionary<string, float>
         {
-            { "Castle_Stone", .5f }, { "Castle_StoneWeathered", .5f }, { "Castle_StoneDark", .5f }, { "Castle_StoneMossy", .5f }, { "Castle_FlagStone", .5f }, { "Castle_BlackStone", .667f }, { "Castle_Oak", 1f }, { "Castle_Brass", 2f },
+            { "Castle_Stone", .5f }, { "Castle_StoneWeathered", .5f }, { "Castle_StoneDark", .5f }, { "Castle_StoneMossy", .5f }, { "Castle_FlagStone", .5f }, { "Castle_BlackStone", .667f }, { "Castle_Oak", 1f }, { "Castle_OakPlank", 1f }, { "Castle_GoreSkin", 1f }, { "Castle_GoreFlesh", 1f }, { "Castle_GoreMembrane", 1f }, { "Castle_Brass", 2f },
             { "Castle_Silver", 2f }, { "Castle_Iron", 2f }, { "Castle_Oxblood", 1f }, { "Castle_Bone", 1f }, { "Castle_Paper", 2f },
             { "Castle_Canvas", 2f }, { "Castle_Blood", .5f },
         };
@@ -136,6 +140,55 @@ namespace HollowCurrent
             if (s == null) Warn(shaderName, "shader unavailable, using Standard fallback");
             ShaderCache[shaderName] = s;
             return s;
+        }
+
+        // ---- gore set for the flayed-demon Count (round 6) ---------------------------------------------------------------------
+        // Gore(kind) is a ready UV-mapped material from the tileable skin / flesh / membrane sets. Gore(kind, source) keeps the
+        // source material's own albedo and normal (e.g. the generated character texture) and adds the pale skin tint, a wet blood
+        // overlay with specular and a cheap translucency glow. wet 0..1 = blood coverage. Falls back to plain Standard if the
+        // CastleGore shader did not compile.
+        public enum GoreKind { Skin, Flesh, Membrane }
+        static readonly Dictionary<string, Material> GoreMats = new Dictionary<string, Material>();
+        public static Material Gore(GoreKind kind, Material source = null, float wet = .6f)
+        {
+            string name = kind == GoreKind.Skin ? "Castle_GoreSkin" : kind == GoreKind.Flesh ? "Castle_GoreFlesh" : "Castle_GoreMembrane";
+            string key = name + "|" + (source ? source.GetInstanceID().ToString() : "-") + "|" + wet.ToString("F2");
+            if (GoreMats.TryGetValue(key, out var made) && made != null) return made;
+            Material m = null;
+            try
+            {
+                var shader = LoadShader("CastleGore");
+                Texture albedo = source && source.HasProperty("_MainTex") ? source.GetTexture("_MainTex") : null;
+                Texture normal = source && source.HasProperty("_BumpMap") ? source.GetTexture("_BumpMap") : null;
+                Color baseColor = source && source.HasProperty("_Color") ? source.GetColor("_Color") : Color.white;
+                if (albedo == null) albedo = CastleTexture(name, "albedo");
+                if (normal == null) normal = CastleTexture(name, "normal");
+                var mask = CastleTexture(name, "mask");
+                var blood = Resources.Load<Texture2D>("Castle/Textures/Castle_GoreWet");
+                if (shader != null && albedo != null)
+                {
+                    m = new Material(shader) { name = "Castle gore / " + kind };
+                    m.SetTexture("_MainTex", albedo); if (normal) m.SetTexture("_BumpMap", normal); if (mask) m.SetTexture("_MaskTex", mask);
+                    if (blood) m.SetTexture("_WetTex", blood);
+                    m.SetColor("_Color", source ? baseColor : Color.white);
+                    m.SetFloat("_Wet", wet);
+                    // pallid skin: cool grey-white; flesh: wet and deeply red; membrane: strongly translucent pink
+                    m.SetFloat("_Smooth", kind == GoreKind.Flesh ? .85f : kind == GoreKind.Skin ? .38f : .3f);
+                    m.SetColor("_Trans", kind == GoreKind.Membrane ? new Color(.75f, .22f, .20f) : new Color(.55f, .12f, .10f));
+                    m.SetFloat("_TransAmt", kind == GoreKind.Membrane ? .7f : kind == GoreKind.Skin ? .35f : .15f);
+                }
+                else
+                {
+                    var basis = GetMaterial(name);
+                    if (basis == null) return source;
+                    m = new Material(basis) { name = "Castle gore (fallback) / " + kind };
+                    if (source && source.mainTexture) m.mainTexture = source.mainTexture;
+                    m.SetFloat("_Glossiness", kind == GoreKind.Flesh ? .85f : .4f);
+                }
+            }
+            catch (Exception e) { Warn(name + " gore", e.Message); m = source; }
+            if (m != null) GoreMats[key] = m;
+            return m;
         }
 
         // ---- decals (round 5) --------------------------------------------------------------------------------------------

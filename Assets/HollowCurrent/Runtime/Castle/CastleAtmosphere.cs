@@ -32,8 +32,8 @@ namespace HollowCurrent
         public float AmbientIntensity = 1f;
 
         [Header("Ambient fill for the castle surface shaders (linear). Kept low so shadows can reach real black.")]
-        public Color FillSky = new Color(.013f, .018f, .030f);
-        public Color FillGround = new Color(.010f, .012f, .022f);   // downward faces (vault undersides) pick this up, so ribs and ceilings read
+        public Color FillSky = new Color(.010f, .014f, .024f);
+        public Color FillGround = new Color(.008f, .010f, .018f);   // downward faces (vault undersides) pick this up, so ribs and ceilings read
 
         [Header("Materials")]
         public bool UpgradeMaterials = true;
@@ -85,7 +85,7 @@ namespace HollowCurrent
         };
         static readonly HashSet<string> PropMaterials = new HashSet<string>
         {
-            "Castle_Stone", "Castle_StoneWeathered", "Castle_StoneDark", "Castle_StoneMossy", "Castle_BlackStone", "Castle_FlagStone", "Castle_Oak", "Castle_Brass", "Castle_Oxblood",
+            "Castle_Stone", "Castle_OakPlank", "Castle_StoneWeathered", "Castle_StoneDark", "Castle_StoneMossy", "Castle_BlackStone", "Castle_FlagStone", "Castle_Oak", "Castle_Brass", "Castle_Oxblood",
             "Castle_Silver", "Castle_Iron", "Castle_Bone", "Castle_Paper", "Castle_Blood",
         };
 
@@ -112,6 +112,7 @@ namespace HollowCurrent
             cryptBlend = Mathf.MoveTowards(cryptBlend, y < CryptBelowY ? 1f : 0f, Time.unscaledDeltaTime * 2f);
             RenderSettings.fogColor = Color.Lerp(FogColor, CryptFogColor, cryptBlend);
             RenderSettings.fogDensity = Mathf.Lerp(FogDensity, CryptFogDensity, cryptBlend);
+            SetFill();
         }
 
         void OnEnable() { Camera.onPostRender += PostRender; }
@@ -149,6 +150,15 @@ namespace HollowCurrent
             catch (Exception e) { Debug.LogWarning("[CastleAtmosphere] " + what + " skipped: " + e.Message); }
         }
 
+        // The crypt keeps only CryptFillScale of the shader fill so it has real shadow (round 5: 4% near-black, evenly lit and orange).
+        public float CryptFillScale = .45f;
+        void SetFill()
+        {
+            float k = Mathf.Lerp(1f, CryptFillScale, cryptBlend);
+            Shader.SetGlobalColor("_CastleFillSky", FillSky * k);
+            Shader.SetGlobalColor("_CastleFillGround", FillGround * k);
+        }
+
         // ---- environment ------------------------------------------------------------------------------------------
         public void ApplyEnvironment()
         {
@@ -161,8 +171,7 @@ namespace HollowCurrent
             RenderSettings.ambientEquatorColor = AmbientEquator;
             RenderSettings.ambientGroundColor = AmbientGround;
             RenderSettings.ambientIntensity = AmbientIntensity;
-            Shader.SetGlobalColor("_CastleFillSky", FillSky);
-            Shader.SetGlobalColor("_CastleFillGround", FillGround);
+            SetFill();
         }
 
         // ---- materials ----------------------------------------------------------------------------------------------
