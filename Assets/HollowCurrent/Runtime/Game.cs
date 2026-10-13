@@ -12,6 +12,13 @@ namespace HollowCurrent
         // (editor test scenes, "Untitled") are Bellwether.
         public MapId Map {get;private set;}
         public MapInfo MapInfo=>MapCatalog.Get(Map);
+        // Title-screen choice (PlayerPrefs "hc.map"). BEGIN INVESTIGATION loads it
+        // when it differs from the scene that is open.
+        public MapId SelectedMap {get;private set;}
+        // The map a loading screen is loading (equals Map for a retry).
+        public MapId LoadingTarget {get;private set;}
+        static bool startOnLoad;
+        public static bool MapAvailable(MapId map)=>Application.CanStreamedLevelBeLoaded(MapCatalog.Get(map).SceneName);
         public Investigation Case {get;private set;}
         public World World {get;private set;}
         public Investigator Player {get;private set;}
@@ -56,7 +63,8 @@ namespace HollowCurrent
         void Awake()
         {
             Loading=true;
-            Map=MapCatalog.TryFromSceneName(SceneManager.GetActiveScene().name,out var sceneMap)?sceneMap:MapId.Bellwether;
+            Map=MapCatalog.TryFromSceneName(SceneManager.GetActiveScene().name,out var sceneMap)?sceneMap:MapId.Bellwether;LoadingTarget=Map;
+            SelectedMap=MapCatalog.FromPreference(PlayerPrefs.GetInt(MapCatalog.PreferenceKey,(int)Map));if(SelectedMap!=Map&&!MapAvailable(SelectedMap))SelectedMap=Map;
             gameObject.AddComponent<PadInput>();
             uiProbe=Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-ui-probe")>=0;
             Application.targetFrameRate=90;QualitySettings.vSyncCount=0;QualitySettings.antiAliasing=4;QualitySettings.shadowResolution=ShadowResolution.Medium;QualitySettings.shadowDistance=16;
@@ -93,6 +101,7 @@ namespace HollowCurrent
             Loading=false;
             if(restoreCheckpoint&&checkpoints.TryGetValue(Map,out var checkpoint))
             {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);Player.Teleport(checkpointPositions[Map]);Started=true;Scares.RetryGrace();Say("Checkpoint restored / Your records are intact. Find cover before the signal rises.");}
+            if(startOnLoad){startOnLoad=false;StartCase();}
             ApplyFocus();Debug.Log("HC_STARTUP_READY");
         }
         void Update()
@@ -106,7 +115,9 @@ namespace HollowCurrent
                 SavePreferences();ApplyFocus();
             }
             if(uiProbe&&Input.anyKeyDown)Debug.Log("HC_UI_INPUT focused="+Application.isFocused+" mouse="+Input.mousePosition+" screen="+Screen.width+"x"+Screen.height);
-            if(!Started&&!Paused&&(Input.GetKeyDown(KeyCode.Return)||Input.GetKeyDown(KeyCode.KeypadEnter)))StartCase();
+            if(!Started&&!Paused&&(Input.GetKeyDown(KeyCode.Return)||Input.GetKeyDown(KeyCode.KeypadEnter)))BeginInvestigation();
+            if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.Alpha1))SelectMap(MapId.Bellwether);
+            if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.Alpha2))SelectMap(MapId.Castle);
             if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.S)){Paused=true;ApplyFocus();}
             if(!Started&&Input.GetKeyDown(KeyCode.Q)){Quit();return;}
             if(Paused||Case.Terminal)
@@ -177,6 +188,18 @@ namespace HollowCurrent
                 Debug.Log("HC_UI_EVENT "+Event.current.type+" mouse="+Event.current.mousePosition+" key="+Event.current.keyCode+" focused="+Application.isFocused);
         }
         void OnApplicationFocus(bool focus){if(uiProbe)Debug.Log("HC_UI_FOCUS "+focus);if(!focus&&Started&&!Case.Terminal&&!NativeVerification.Requested){Paused=true;ApplyFocus();}}
+        public void SelectMap(MapId map)
+        {
+            if(Loading||Started||map==SelectedMap||!MapAvailable(map))return;
+            SelectedMap=map;PlayerPrefs.SetInt(MapCatalog.PreferenceKey,(int)map);PlayerPrefs.Save();Sound?.UI();
+        }
+        // Title BEGIN: start here, or load the chosen map's scene and start there.
+        public void BeginInvestigation()
+        {
+            if(Loading||Paused)return;
+            if(SelectedMap==Map||!MapAvailable(SelectedMap)){StartCase();return;}
+            restoreCheckpoint=false;startOnLoad=true;BeginReload(SelectedMap);
+        }
         public void StartCase(){if(Loading||Paused)return;SavePreferences();Started=true;ApplyFocus();if(uiProbe)Debug.Log("HC_UI_STARTED cursor="+Cursor.lockState);}
         public void Resume(){SavePreferences();Paused=false;Journal=false;NoteBody=null;ApplyFocus();}
         public void ApplyFocus(){bool modal=Modal;Time.timeScale=modal?0:1;AudioListener.pause=Loading||!Started||Paused||Journal||NoteBody!=null;Cursor.lockState=modal||NativeVerification.Requested?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=(modal&&!PadInput.Active)||NativeVerification.Requested;if(uiProbe)Debug.Log("HC_UI_STATE started="+Started+" paused="+Paused+" journal="+Journal+" cursor="+Cursor.lockState+" visible="+Cursor.visible+" timeScale="+Time.timeScale);}
@@ -240,7 +263,7 @@ namespace HollowCurrent
         public void Quit(){SavePreferences();Application.Quit();}
         public void RetryCheckpoint(){if(Loading||!HasCheckpoint)return;restoreCheckpoint=true;BeginReload(Map);}
         public void Retry(){if(Loading)return;checkpoints.Remove(Map);checkpointPositions.Remove(Map);restoreCheckpoint=false;BeginReload(Map);}
-        void BeginReload(MapId target){SavePreferences();Loading=true;LoadingProgress=0;ApplyFocus();StartCoroutine(ReloadCase(target));}
+        void BeginReload(MapId target){LoadingTarget=target;SavePreferences();Loading=true;LoadingProgress=0;ApplyFocus();StartCoroutine(ReloadCase(target));}
         IEnumerator ReloadCase(MapId target)
         {
             // Present a real transition frame before starting asynchronous I/O.

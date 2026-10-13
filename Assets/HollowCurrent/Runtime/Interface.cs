@@ -35,6 +35,9 @@ namespace HollowCurrent
             if(!layout||pendingConfirm!=id)return false;
             pendingConfirm=null;return enabled;
         }
+        // Words and art for the screen being drawn: the chosen map on the title,
+        // the destination while loading, otherwise the open map.
+        CaseBook Book=>CaseBook.For(Game.Loading?Game.LoadingTarget:!Game.Started?Game.SelectedMap:Game.Map);
         string ScreenKey()=>Game.Loading?"loading":!Game.Started?(Game.Paused?"settings-title":"title"):Game.Case.Terminal?(Game.Case.Phase==Phase.Dead&&Game.Creature.PresentationRemaining>0?"capture":"ending"):Game.NoteBody!=null?"note":Game.Journal?"journal":Game.Paused?"settings":"play";
         void RefreshMenu()
         {
@@ -202,12 +205,19 @@ namespace HollowCurrent
         void Title()
         {
             Backdrop();Brand();Card(new Rect(45,145,705,650));Track(80,176,"AN ORIGINAL INVESTIGATION");
-            Label(74,213,650,200,"Hollow\nCurrent",hero);Label(82,424,580,52,"The Bellwether House",heading);
-            Label(82,500,500,84,"An empty family home. A tune beneath the floor.\nSomeone is still keeping the house warm.");
-            if(Action(80,617,440,62,"BEGIN INVESTIGATION","ENTER",true))Game.StartCase();
+            Label(74,213,650,200,"Hollow\nCurrent",hero);Label(82,424,640,52,Book.TitleName,heading);
+            Label(82,476,640,64,Book.Tagline);
+            // BEGIN is registered first so a controller lands on it; the picker sits above.
+            if(Action(80,617,440,62,"BEGIN INVESTIGATION","ENTER",true))Game.BeginInvestigation();
+            for(int i=0;i<MapCatalog.All.Count;i++)
+            {
+                var map=MapCatalog.All[i];GUI.enabled=Game.MapAvailable(map.Id);
+                if(Action(80+i*325,550,310,50,map.DisplayName,"",false,false,Game.SelectedMap==map.Id,"map/"+map.Id))Game.SelectMap(map.Id);
+                GUI.enabled=true;
+            }
             if(Action(80,700,270,46,"FIELD SETTINGS","S",false,true)){Game.Paused=true;Game.ApplyFocus();}
             if(Action(355,700,260,46,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
-            Footer("WASD move   ·   Mouse look   ·   E interact   ·   Headphones suggested   ·   No microphone required");
+            Footer("1 / 2 choose map   ·   WASD move   ·   Mouse look   ·   E interact   ·   Headphones suggested");
         }
         void Loading()
         {
