@@ -321,7 +321,7 @@ def search(p, ph, f):
     p.r('Hips', x=6); p.l('Hips', z=-.04 + .008 * math.sin(2 * a))
     p.spine(8, head=4, yaw=58 * look, tilt=5 * look); p.legs(-10, 18, -8, spread=2)
     p.arms(4, out=-10, forearm=-12 + 3 * math.sin(2 * a + .5), hand=8, inward=2)
-    p.wings(.03 + .03 * math.sin(2 * a), yaw=-4, beat=3 + 2 * math.sin(2 * a - .4), pitch=2, curl=-12 + 3 * math.sin(2 * a - .9), stretch=1.16)
+    p.wings(.03 + .03 * math.sin(2 * a), yaw=-4, beat=3 + 2 * math.sin(2 * a - .4), pitch=2, curl=-16 + 3 * math.sin(2 * a - .9), stretch=1.26)
 def search_ik(f, ph):
     for side, sg in (('Left', 1), ('Right', -1)):
         two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * .24, .12 if sg > 0 else -.08, .172), (sg * .3, -1.0, .6)); plant(side + 'Foot', sg * 10)
@@ -332,11 +332,14 @@ def dive(p, ph, f):
     p.arms(-70 + 4 * fl, out=14, forearm=-6, hand=-14, inward=6)
     p.wings(.58 + .05 * fl, yaw=-38, beat=6 + 7 * fl, pitch=26, curl=-4 * math.sin(a - .8), lag=6 * math.sin(a - 1.2), stretch=1.35)
 def grab(p, ph, f):
-    a = ease(min(1, f / .45)); b = ease(max(0, min(1, (f - .25) / .55)))
-    p.r('Hips', x=lerp(48, 16, a)); p.spine(lerp(10, 16, a), neck=lerp(-36, -10, a), head=lerp(-44, -12, a))
-    p.legs(lerp(18, 6, a), lerp(26, 18, a), lerp(42, 20, a))
-    p.arms(lerp(-72, -58, a), out=lerp(14, 4, a), forearm=lerp(-6, -48, b), hand=lerp(-14, -20, b), inward=lerp(6, 34, b))
-    p.wings(lerp(.6, .5, b), yaw=lerp(-30, 64, a), beat=lerp(6, 22, a), pitch=lerp(26, -8, a), curl=lerp(0, -10, b), stretch=1.35)
+    # Round 5 climax, seen from below and in front: he rears up, looks down at the lens with his face clear, both arms
+    # reach forward-down at shoulder width (claws framing the camera, never crossing the face) and the wings sweep
+    # forward around the frame edges.
+    a = ease(min(1, f / .45)); b = ease(max(0, min(1, (f - .2) / .6)))
+    p.r('Hips', x=lerp(48, 10, a)); p.spine(lerp(10, 6, a), neck=lerp(-36, 8, a), head=lerp(-44, 14, a))
+    p.legs(lerp(18, 8, a), lerp(26, 22, a), lerp(42, 30, a))
+    p.arms(lerp(-70, -80, b), out=lerp(14, 8, b), forearm=lerp(-6, -2, b), hand=lerp(-14, -24, b), inward=lerp(6, -6, b))
+    p.wings(lerp(.6, .92, b), yaw=lerp(-30, 22, a), beat=lerp(6, 16, a), pitch=lerp(26, 38, a), curl=lerp(0, -10, b), stretch=1.4)
 def stagger(p, ph, f):
     a = ease(min(1, f / .14)); rec = ease(max(0, min(1, (f - .32) / .68))); sh = math.sin(f * 38) * (1 - f) ** 2
     p.r('Hips', x=lerp(-14, 10, rec) * a); p.l('Hips', y=.14 * a * (1 - rec), z=-.06 * a)
