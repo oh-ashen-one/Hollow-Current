@@ -168,6 +168,12 @@ namespace HollowCurrent
             // camera sat close below him. Here the same target is shot from a flatter, farther eye:
             // pitch 4 deg up, FOV narrowed so his posed height still fills 58% of the frame.
             float s5Fov=game.Player.View.fieldOfView;var hidden=new List<Renderer>();
+            // r8 first pass: Presence.HideFloatersOnViewLine (RoseLedgeFraming) deactivated the six
+            // neverHide ledge candelabras too (HC_S5_CANDLES 0). Re-show them for the shot.
+            int reshown=0;
+            foreach(var floater in FindObjectsByType<Floater>(FindObjectsInactive.Include,FindObjectsSortMode.None))
+                if(floater&&floater.neverHide&&!floater.gameObject.activeSelf){floater.gameObject.SetActive(true);reshown++;}
+            Log("S5 neverHide floaters re-shown "+reshown);
             if(s5.StartsWith("rose ledge",StringComparison.Ordinal))
             {
                 // Round 7: fill by the body (feet to head top), not the pose bounds incl. wings
