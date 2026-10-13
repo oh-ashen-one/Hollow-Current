@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Surface-17
+  m_Name: Castle latent claw-scores
   m_Shader: {fileID: 4800000, guid: e3e0983a73bfc472dab61de629f3f401, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
