@@ -17,8 +17,8 @@ namespace HollowCurrent
         // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.33 m + margin).
         public int ModeCrawl=ModeCrawlId;
         public float CrawlCeiling=2.45f;
-        // Round 7: CastleArt.Gore materials on the demon (submesh 0 body/coat = Skin, 1 wing membrane = Membrane).
-        public bool GoreMaterials=true; public float GoreSkinWet=.55f, GoreMembraneWet=.35f;
+        // CastleArt.Gore on the demon: submesh 1 wing membrane = Membrane, 2 flayed flesh = Flesh; body/coat plain unless GoreSkinOnBody.
+        public bool GoreMaterials=true, GoreSkinOnBody=false; public float GoreSkinWet=.55f, GoreMembraneWet=.2f, GoreFleshWet=.6f;   // r8: Skin gore off (red cast)
 
         public float ModelHeight=2.5f;                         // head top, metres (tools/count_prepare.py HEAD_TOP): the nine-foot demon
 
@@ -51,9 +51,9 @@ namespace HollowCurrent
         public int HitsToKill=3;
         public float StaggerRetreatSeconds=20f;                // retreat to a perch for 20 s, return lower and angrier (Fight.RetreatSeconds)
 
-        // Grab presentation: the Grab clip reaches 1.56 m ahead of his origin (receipt grab_reach_m);
+        // Grab presentation: the Grab clip reaches 1.39 m ahead of his origin (receipt grab_reach_m);
         // keep the camera at least CameraClearance outside it.
-        public float GrabReach=1.56f, CameraClearance=.6f;   // r7 forward wing-wrap (receipt grab_reach_m): the wing tips lead
+        public float GrabReach=1.39f, CameraClearance=.6f;   // r8 forward wing-wrap (receipt grab_reach_m)
         public float GrabStandOff=>GrabReach+CameraClearance+.05f;
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
