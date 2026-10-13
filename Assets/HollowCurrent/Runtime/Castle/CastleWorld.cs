@@ -729,13 +729,17 @@ namespace HollowCurrent
             foreach (int side in new[] { -1, 1 })
                 foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
                     Prop(Art.ColumnGreat, new Vector3(side * 3.9f, 0, z), 0);
-            // The giant skeleton lies diagonally behind the long table; the table is clear of every bone.
-            // the long table lies under the skeleton's arch, parallel to its spine
+            // The banquet table lies on the hall axis (x = 0), its throne at the far end, chairs down both sides.
             var table = ArtAt(Art.LongTable, CastleLayout.TablePos, CastleLayout.TableYaw);
             table.localScale = new Vector3(CastleLayout.TableLengthScale, 1, CastleLayout.TableWidthScale);
             var tableSize = CastleLayout.ArtSize(Art.LongTable);
             Proxy("LongTable collision", CastleLayout.TablePos + new Vector3(0, tableSize.y * .5f, 0), new Vector3(tableSize.x * CastleLayout.TableLengthScale, tableSize.y, tableSize.z * CastleLayout.TableWidthScale), CastleLayout.TableYaw);
-            Prop(Art.Throne, new Vector3(-5.1f, 0, 18.2f), 90);
+            Prop(Art.Throne, new Vector3(0f, 0, 27.05f), 180);
+            foreach (float z in new[] { 23.3f, 24.65f, 26.0f })
+            {
+                Prop(Art.HighBackChair, new Vector3(1.15f, 0, z), -90, false);
+                Prop(Art.HighBackChair, new Vector3(-1.15f, 0, z), 90, false);
+            }
             runeAnchor = new GameObject("RuneRing anchor").transform; runeAnchor.SetParent(root, false); runeAnchor.localPosition = RuneLocal;
             Hide("Hall armoire", new Vector3(5.7f, 0, 21.0f), 90);
             HallDressing();
@@ -748,10 +752,9 @@ namespace HollowCurrent
             FloorTiles(-6, 6, 14, 28, 0, null);
             HallArcade();
             VaultCeiling();
-            var skelPos = CastleLayout.SkeletonPos;
-            skelPos.y += SkeletonLift();
-            var skeleton = ArtAt(Art.GiantSkeleton, skelPos, CastleLayout.SkeletonYaw);
-            skeleton.localScale = new Vector3(CastleLayout.SkeletonScale, CastleLayout.SkeletonScaleY, CastleLayout.SkeletonScale);
+            var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
+            skeleton.localScale = CastleLayout.SkeletonScaleVec;
+            CheckHallAxis(skeleton);
             foreach (var b in CastleLayout.HallBanners) ArtAt(Art.Banner, b.Pos, b.Yaw);
             int seed = 100;
             foreach (var p in CastleLayout.HallCandelabras)
@@ -829,62 +832,22 @@ namespace HollowCurrent
             g.AddComponent<VaultCeiling>();
         }
 
-        // Numeric check: the skeleton's ribs, spine and legs against the table. Returns the lift (metres) that makes every bone
-        // point inside the table footprint at least 0.2 m above the table top; logs the measured numbers.
-        float SkeletonLift()
+        // Numeric checks for the owner's layout rule: the table and the rune ring sit on the hall axis (x = 0, within 0.05 m) and the
+        // skeleton stays on the west side (its bounds never cross x = -3). Logged as HC_HALL_AXIS; a violation also logs an error.
+        void CheckHallAxis(Transform skeleton)
         {
-            var ctrl = new[] { new Vector2(-6f, .12f), new Vector2(-4.5f, .32f), new Vector2(-3f, .8f), new Vector2(-1.5f, 1.75f), new Vector2(0f, 2.55f), new Vector2(1.2f, 2.8f), new Vector2(2.5f, 2.55f), new Vector2(3.6f, 1.95f), new Vector2(4.4f, 1.3f), new Vector2(4.9f, .95f) };
-            float Spine(float y)
+            float tableX = CastleLayout.TablePos.x, ringX = RuneLocal.x;
+            // analytic bounds of the art (Blender x +-2.06 lateral) after the squeeze, and the measured renderer bounds
+            float analyticMax = CastleLayout.SkeletonPos.x + 2.06f * CastleLayout.SkeletonScaleVec.x;
+            float measuredMax = float.NegativeInfinity; bool any = false;
+            foreach (var r in skeleton.GetComponentsInChildren<Renderer>())
             {
-                if (y <= ctrl[0].x) return ctrl[0].y; if (y >= ctrl[ctrl.Length - 1].x) return ctrl[ctrl.Length - 1].y;
-                int i = 0; for (int k = 0; k < ctrl.Length - 1; k++) if (ctrl[k].x <= y) i = k;
-                float t = (y - ctrl[i].x) / (ctrl[i + 1].x - ctrl[i].x);
-                float p0 = ctrl[Mathf.Max(i - 1, 0)].y, p1 = ctrl[i].y, p2 = ctrl[i + 1].y, p3 = ctrl[Mathf.Min(i + 2, ctrl.Length - 1)].y;
-                return .5f * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+                var b = r.bounds; var local = root.InverseTransformPoint(b.max);
+                measuredMax = Mathf.Max(measuredMax, local.x); any = true;
             }
-            var yaw = Quaternion.Euler(0, CastleLayout.SkeletonYaw, 0);
-            var scale = new Vector3(CastleLayout.SkeletonScale, CastleLayout.SkeletonScaleY, CastleLayout.SkeletonScale);
-            float tableYaw = CastleLayout.TableYaw * Mathf.Deg2Rad;
-            var axis = new Vector2(Mathf.Cos(tableYaw), -Mathf.Sin(tableYaw)); var across = new Vector2(Mathf.Sin(tableYaw), Mathf.Cos(tableYaw));
-            float halfLen = CastleLayout.ArtSize(Art.LongTable).x * CastleLayout.TableLengthScale * .5f + .05f, halfWid = CastleLayout.ArtSize(Art.LongTable).z * CastleLayout.TableWidthScale * .5f + .1f;
-            float top = CastleLayout.ArtSize(Art.LongTable).y;
-            float minY = 99f; int inside = 0;
-            void Sample(float bx, float by, float bz, float radius)
-            {
-                var w = CastleLayout.SkeletonPos + yaw * Vector3.Scale(new Vector3(bx, bz, -by), scale);   // art +Y (head) imports as local -Z
-                var rel = new Vector2(w.x - CastleLayout.TablePos.x, w.z - CastleLayout.TablePos.z);
-                if (Mathf.Abs(Vector2.Dot(rel, axis)) > halfLen || Mathf.Abs(Vector2.Dot(rel, across)) > halfWid) return;
-                inside++; minY = Mathf.Min(minY, w.y - radius * scale.y);
-            }
-            for (float y = -5.9f; y <= 4.6f; y += .22f)
-                Sample(.9f * Mathf.Sin((y + 6) * .55f) * Mathf.Max(0, (-1.6f - y) / 4.4f), y, Spine(y), .17f);
-            for (int k = 0; k < 15; k++)
-            {
-                float yk = -1.2f + k * .3f, env = Mathf.Sin(Mathf.PI * (k + 1.6f) / 17f), z0 = Spine(yk) - .03f;
-                float rz = Mathf.Min(1.45f * env, (z0 - .06f) / 1.84f), rx = 1.85f * env;
-                foreach (int side in new[] { -1, 1 })
-                    for (int i = 0; i < 12; i++)
-                    {
-                        float phi = .12f + (2.55f - .12f) * i / 11f;
-                        Sample(side * (.14f + rx * Mathf.Sin(phi)), yk + .14f * i / 11f, z0 - rz * (1 - Mathf.Cos(phi)), .1f);
-                    }
-            }
-            foreach (var leg in new[] { (2.2f, 1.9f, true), (-2.0f, 1.75f, false) })
-                foreach (int side in new[] { -1, 1 })
-                {
-                    var hip = new Vector3(side * .55f, leg.Item1, leg.Item2);
-                    var knee = new Vector3(side * 1.15f, leg.Item1 + (leg.Item3 ? .5f : -.35f), .95f);
-                    var paw = new Vector3(side * 1.3f, leg.Item1 + (leg.Item3 ? 1.05f : .5f), .09f);
-                    for (int i = 0; i <= 8; i++)
-                    {
-                        var p = Vector3.Lerp(hip, knee, i / 8f); Sample(p.x, p.y, p.z, .12f);
-                        p = Vector3.Lerp(knee, paw, i / 8f); Sample(p.x, p.y, p.z, .08f);
-                    }
-                }
-            float clearance = inside > 0 ? minY - top : 99f;
-            float lift = clearance < .2f ? .2f - clearance + .03f : 0f;
-            Debug.Log("HC_SKELETON_TABLE bone samples over the table footprint=" + inside + " min bone y=" + (inside > 0 ? minY.ToString("F2") : "n/a") + " table top=" + top.ToString("F2") + " clearance=" + (clearance > 90 ? "n/a" : clearance.ToString("F2")) + " m, lift applied=" + lift.ToString("F2"));
-            return lift;
+            bool ok = Mathf.Abs(tableX) <= .05f && Mathf.Abs(ringX) <= .05f && analyticMax <= CastleLayout.SkeletonMaxX && (!any || measuredMax <= CastleLayout.SkeletonMaxX);
+            string line = "HC_HALL_AXIS table centre x=" + tableX.ToString("F3") + " rune ring centre x=" + ringX.ToString("F3") + " skeleton max x analytic=" + analyticMax.ToString("F2") + " measured=" + (any ? measuredMax.ToString("F2") : "n/a") + " (limit " + CastleLayout.SkeletonMaxX.ToString("F1") + ") " + (ok ? "PASS" : "FAIL");
+            if (ok) Debug.Log(line); else Debug.LogError(line);
         }
 
         // The two moons are painted into the openings of the rose window and the chapel windows as distant sprites, placed

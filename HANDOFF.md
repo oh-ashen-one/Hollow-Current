@@ -48,3 +48,13 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Round 6 (hc/hall6): clear the hall axis (owner request)
+
+Not seen in an engine; `check_source.py` PASS.
+- **Skeleton moved off the entrance axis:** now at (-5.0,0.05,22.4), yaw 0 (head toward the doors), lying along the west colonnade in the strip between the wall relief and the column faces. Scale (0.30 lateral, 0.82 height, 0.90 length): ribs +-0.62 m (x -5.61..-4.39, clear of the columns' west faces at -4.35), 2.8 m tall (under the 3.0 m gallery slab), 10.8 m long (head z about 17.7 to tail into the back wall). It sits across the stair door's approach only with low tail bones. The throne left the west wall for the head of the table.
+- **Table and ring on the axis:** banquet table centred at x = 0, long axis along z (yaw 90, 4.4 m x 1.4 m, z 22.4-26.9), throne at (0,0,27.05) facing the doors, 3 chairs a side, two table candles on x = 0; the rune ring was already at x = 0 (z 18.5). The SkeletonLift/table-clearance code is gone (no table under the skeleton any more).
+- **Code check:** `CastleWorld.CheckHallAxis` logs `HC_HALL_AXIS table centre x=... rune ring centre x=... skeleton max x analytic=-4.38 measured=<renderer bounds> (limit -3.0) PASS` and logs an error if either centre is off by more than 0.05 m or the bounds cross x -3.
+- Re-bake needed. The critic's earlier S1 skeleton-width check (>= 35%) can no longer be met from the doors: the owner's layout rule overrides it.
