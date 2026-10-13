@@ -35,16 +35,38 @@ namespace HollowCurrent
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatics()
         {
-            Viewer=null;GlowShader=null;viewerFrame=-1;viewerFound=false;
+            Viewer=null;GlowShader=null;spriteShader=flameShader=null;viewerFrame=-1;viewerFound=false;
             ResetAssets();
         }
         static partial void ResetAssets();
 
         // ---- materials ----
+        // The sprite shaders live in Resources/Castle/Shaders so they are always in a player build. Sprites/Default is not in
+        // Always Included Shaders: Shader.Find returned null there and the Standard fallback drew every sprite as an opaque
+        // white card (the round-2 flames, moons and the chapel window).
+        static Shader spriteShader,flameShader;
+        static Shader FindCastleShader(string name)
+        {
+            var s=Resources.Load<Shader>("Castle/Shaders/"+name);
+            if(!s)s=Shader.Find("HollowCurrent/"+name);
+            return s;
+        }
+        static Shader SpriteShader=>spriteShader?spriteShader:spriteShader=FindCastleShader("CastleSprite");
+        static Shader FlameShader=>flameShader?flameShader:flameShader=FindCastleShader("CastleFlame");
         public static Material Unlit(string name,Texture texture,Color tint)
         {
-            var shader=GlowShader?GlowShader:Shader.Find("Sprites/Default");
+            var shader=GlowShader?GlowShader:SpriteShader;
+            if(!shader)shader=Shader.Find("Sprites/Default");
             if(!shader)shader=Shader.Find("Standard");
+            var material=new Material(shader){name=name,mainTexture=texture,color=tint};
+            material.enableInstancing=true;
+            return material;
+        }
+        // Additive (premultiplied) variant for flames and glows.
+        public static Material UnlitAdditive(string name,Texture texture,Color tint)
+        {
+            var shader=FlameShader;
+            if(!shader)return Unlit(name,texture,tint);
             var material=new Material(shader){name=name,mainTexture=texture,color=tint};
             material.enableInstancing=true;
             return material;
@@ -113,9 +135,19 @@ namespace HollowCurrent
             c.a=edge*(.55f+.45f*core);
             return c;
         });
-        static Material FlameMaterial=>flameMaterial?flameMaterial:flameMaterial=Unlit("Surreal flame",FlameTexture,Color.white);
+        static Material FlameMaterial=>flameMaterial?flameMaterial:flameMaterial=UnlitAdditive("Surreal flame",FlameTexture,Color.white);
+        static Texture2D glowTexture;
+        static Material glowMaterial;
+        static Texture2D GlowTexture=>glowTexture?glowTexture:glowTexture=MakeTexture("Surreal flame glow",32,32,(u,v)=>
+        {
+            float r=Mathf.Sqrt((u-.5f)*(u-.5f)+(v-.5f)*(v-.5f))*2;
+            float a=Mathf.Pow(Mathf.Clamp01(1-r),2.2f)*.55f;
+            return new Color(1,.55f,.2f,a);
+        });
+        static Material GlowMaterial=>glowMaterial?glowMaterial:glowMaterial=UnlitAdditive("Surreal flame glow",GlowTexture,Color.white);
 
-        public static CandleFlame MakeCandleFlame(Transform parent,Vector3 localPosition,float height=.11f,bool withLight=false,string name="Candle flame")
+        // glowRadius > 0 adds a soft additive halo (a billboard, not a light) around the flame.
+        public static CandleFlame MakeCandleFlame(Transform parent,Vector3 localPosition,float height=.11f,bool withLight=false,string name="Candle flame",float glowRadius=0)
         {
             var t=NewChild(name,parent,localPosition,Quaternion.identity);
             var flame=t.gameObject.AddComponent<CandleFlame>();
@@ -123,6 +155,12 @@ namespace HollowCurrent
             var renderer=NewRenderer("Billboard",t,Vector3.zero,Quaternion.identity,BaseQuad,new[]{FlameMaterial},false);
             renderer.transform.localScale=new Vector3(height*flame.widthRatio,height,1);
             flame.billboard=renderer.transform;
+            if(glowRadius>0)
+            {
+                var halo=NewRenderer("Glow",t,Vector3.up*height*.45f,Quaternion.identity,CentreQuad,new[]{GlowMaterial},false);
+                halo.transform.localScale=new Vector3(glowRadius*2,glowRadius*2,1);
+                flame.glow=halo.transform;flame.glowSize=glowRadius*2;
+            }
             if(withLight)
             {
                 var lightObject=NewChild("Flame light",t,Vector3.up*height*.7f,Quaternion.identity).gameObject;
@@ -153,7 +191,7 @@ namespace HollowCurrent
                     var flames=new Transform[CandlePositions.Length];
                     for(int i=0;i<flames.Length;i++)
                     {
-                        var flame=MakeCandleFlame(t,CandlePositions[i],.11f,i<lightedFlames,"Flame "+i);
+                        var flame=MakeCandleFlame(t,CandlePositions[i],.15f,i<lightedFlames,"Flame "+i,.12f);
                         flames[i]=flame.transform;
                     }
                     floater.flames=flames;
@@ -265,7 +303,7 @@ namespace HollowCurrent
         // ---- floating candle ----
         // A long wax taper hanging in the air (instanced: one mesh, two shared materials). Only a `lit` candle gets a
         // flame billboard; none gets a point light.
-        public static Floater MakeFloatingCandle(Transform parent,Vector3 localPosition,int seed,bool lit,float scale=1)
+        public static Floater MakeFloatingCandle(Transform parent,Vector3 localPosition,int seed,bool lit,float scale=1,bool hero=false)
         {
             var t=NewChild(lit?"Floating candle (lit)":"Floating candle",parent,localPosition,Quaternion.Euler(0,(seed*57)%360,0));
             t.localScale=Vector3.one*scale;
@@ -277,7 +315,8 @@ namespace HollowCurrent
             NewRenderer("Candle",t,Vector3.zero,Quaternion.identity,CandleMesh,CandleMaterials,false);
             if(lit)
             {
-                var flame=MakeCandleFlame(t,Vector3.up*.23f,.2f,false,"Flame");
+                // ~0.11 x 0.22 m teardrop plus a soft warm halo; the hero candle burns bigger and brighter. No point lights.
+                var flame=MakeCandleFlame(t,Vector3.up*.23f,hero?.34f:.22f,false,"Flame",hero?.55f:.24f);
                 floater.flames=new[]{flame.transform};
             }
             return floater;
@@ -307,6 +346,7 @@ namespace HollowCurrent
             var r=NewRenderer("Disc",t,Vector3.zero,Quaternion.identity,CentreQuad,new[]{red?RedMoonMaterial:PaleMoonMaterial},false);
             float size=radius/.78f*2;
             r.transform.localScale=new Vector3(size,size,1);
+            var window=t.gameObject.AddComponent<WindowMoon>();window.disc=r;window.castleRoot=parent;
             return t;
         }
 

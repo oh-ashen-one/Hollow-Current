@@ -39,9 +39,9 @@ namespace HollowCurrent
         [Tooltip("Flame transforms (usually CandleFlame objects) that lean. Their local rotation at start is the rest pose.")]
         public Transform[] flames;
         [Tooltip("Target distance in metres at which flames start to bend. Bend grows as the target closes in.")]
-        public float bendRange=12;
+        public float bendRange=14;
         [Tooltip("Lean at full bend, degrees from vertical.")]
-        [Range(0,80)] public float maxBendDegrees=38;
+        [Range(0,80)] public float maxBendDegrees=55;
         [Tooltip("Bend per second while the target approaches (fraction of full lean).")] public float bendSpeed=2.5f;
         [Tooltip("Bend per second while the flames relax (1 = about one second from full lean to upright).")] public float relaxSpeed=1f;
 
