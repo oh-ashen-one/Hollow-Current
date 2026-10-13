@@ -48,3 +48,26 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+## hc/look7 (round 7): measured exposure, half-step corrections, chip decal
+No Unity. `check_source.py` PASS (394 assertions, runtime + editor C#).
+
+### tools/exposure_report.py (run it after every capture)
+`python3 tools/exposure_report.py docs/haunted-castle/rounds/rN/captures [--prev docs/haunted-castle/rounds/rM/captures] [--json out.json]` prints per PNG: mean luma, % pixels with luma < 8, % warm (R > G+20, G > B, luma > 40: the critic's formula), p1, a verdict against the 12-30% band (target 20%), and the HALF-STEP suggestion (half the distance to 20%, never a full swing); `--prev` adds the previous round and the change (the oscillation check). numpy + Pillow only. S7/S8 are listed but not judged.
+
+### Measured r6 (before) and predicted after this round
+| shot | r5 | r6 measured | verdict | half-step aim | change made | predicted next |
+|---|---|---|---|---|---|---|
+| S3 crypt | 4.2 | **41.9** | too dark | 31 (20 stated by coordinator) | four 0.65 pools -> ONE warm pool 1.1 at (-3.45,-2.3,19.9) + new cold base "Crypt cold fill" (0,-1.3,22.5) (0.34,0.44,0.80) 0.55 range 8; `CryptFillScale` 0.45 -> 0.62 | ~25-31 near-black, warm ~4-7% (one pool) |
+| S6 sheet | 33.5 | **44.8** | too dark | 32.4 | courtyard fills 1.6 -> 2.2, range 8 -> 9 | ~32-36 |
+| S4 exterior | 10.3 | **3.1** | too BRIGHT (not in band, contrary to the brief) | 11.6 | facade spot 1.35 -> 0.80, keep spot 1.2 -> 0.35, bridge fill 0.9 -> 0.30 | ~9-12 (linear fit through r5/r6 says total 1.45 -> ~9) |
+| S1 | 7.3 | 14.9 | ok | - | unchanged | 14.9 |
+| S2 | 35.3 | 22.8 | ok | - | unchanged | 22.8 |
+| S5 | 36.1 | 23.5 | ok | - | unchanged | 23.5 |
+| H01-H10 | 8.2-14.9 | 17.9-23.6 | ok | - | unchanged | same |
+In band after the report: 13 of 16 judged; S3, S4, S6 were the three outside it. Warm share r6: S1 6.3, S2 15.1, S3 1.0, S4 0.4, S5 1.1, S6 2.0, H 4.7-7.7.
+
+Honest notes: the oscillation came from changing several fills at once by large factors (S3 went four 1.6 pools -> four 0.65 pools plus a 0.45x fill scale in one step). The dark% reacts non-linearly to light intensity, so the predictions above are fits through the last two rounds, not simulations; if S3 lands at 31 or 25, do not chase it, run the report and take another half-step. S4 only has three measurements (r4 8.8, r5 10.3, r6 3.1 with facade+keep+bridge at 3.45 total intensity).
+
+### Castle_DecalChips retinted
+Was a near-black rim around a bright core, reading as holes. Now a recess lit from the upper left: freshly broken stone face (0.44,0.47,0.54) with grain and slight variation (a touch lighter than the weathered wall), a dark inner shadow along the upper-left edge and a light (0.66,0.68,0.74) lit edge along the lower-right, alpha 0.93 with a 1 px blur. Same file/name/size (1024 RGBA, 1.5 x 1.5 m).

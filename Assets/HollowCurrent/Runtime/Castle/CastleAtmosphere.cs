@@ -151,7 +151,7 @@ namespace HollowCurrent
         }
 
         // The crypt keeps only CryptFillScale of the shader fill so it has real shadow (round 5: 4% near-black, evenly lit and orange).
-        public float CryptFillScale = .45f;
+        public float CryptFillScale = .62f;
         void SetFill()
         {
             float k = Mathf.Lerp(1f, CryptFillScale, cryptBlend);

@@ -449,12 +449,23 @@ def decal_chips(n, rng):
                 cy + np.sin(a0 + i * 6.283 / k) * r * rng.uniform(.55, 1.15) * .8) for i in range(k)]
         dm.polygon(pts, fill=255)
         dc.polygon([(cx + (x - cx) * .55, cy + (y - cy) * .55) for x, y in pts], fill=255)
-    alpha = blur(np.asarray(mask, np.float32) / 255.0, 1)
-    light = blur(np.asarray(core, np.float32) / 255.0, 2)
-    col = np.array([0.05, 0.05, 0.06])[None, None, :] * (1 - light[..., None]) + np.array([0.40, 0.42, 0.47])[None, None, :] * light[..., None]
+    m = np.asarray(mask, np.float32) / 255.0
+    alpha = blur(m, 1)
+    # Round 7: a chip, not a hole. Mid-tone stone inside (close to the wall's own value), a lighter bevelled rim on the upper-left
+    # edge catching the light, a thin dark undercut on the lower-right, and a soft fade so the patch blends into the wall.
+    # light from the upper left: the upper-left inner wall of the recess is in shadow, the lower-right inner wall catches light
+    sh = 8
+    ul = np.clip(m - np.roll(np.roll(m, sh, 0), sh, 1), 0, 1)          # sliver inside the chip along its upper-left edge
+    lr = np.clip(m - np.roll(np.roll(m, -sh, 0), -sh, 1), 0, 1)        # sliver along its lower-right edge
+    ul, lr = blur(ul, 2), blur(lr, 2)
+    grain = 0.8 + 0.4 * noise(n, 0.7, rng)
+    fresh = 0.85 + 0.3 * fbm(n, rng, (1.4, 2.0), (1, .6))
+    face = np.array([0.44, 0.47, 0.54])[None, None, :] * (grain * fresh)[..., None]            # freshly broken stone: a little lighter than the weathered face
+    col = face * (1 - 0.65 * ul[..., None]) + np.array([0.05, 0.05, 0.07])[None, None, :] * 0.65 * ul[..., None]
+    col = col * (1 - lr[..., None]) + np.array([0.66, 0.68, 0.74])[None, None, :] * lr[..., None]
     out = np.zeros((n, n, 4), np.uint8)
     out[..., :3] = (np.clip(col, 0, 1) * 255).astype(np.uint8)
-    out[..., 3] = (np.clip(alpha * 0.92, 0, 1) * 255 + .5).astype(np.uint8)
+    out[..., 3] = (np.clip(blur(m, 1) * 0.93, 0, 1) * 255 + .5).astype(np.uint8)
     return out
 
 def decal_stain(n, rng):
