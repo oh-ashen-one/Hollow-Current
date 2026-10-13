@@ -332,14 +332,25 @@ def dive(p, ph, f):
     p.arms(-70 + 4 * fl, out=14, forearm=-6, hand=-14, inward=6)
     p.wings(.58 + .05 * fl, yaw=-38, beat=6 + 7 * fl, pitch=26, curl=-4 * math.sin(a - .8), lag=6 * math.sin(a - 1.2), stretch=1.35)
 def grab(p, ph, f):
-    # Round 5 climax, seen from below and in front: he rears up, looks down at the lens with his face clear, both arms
-    # reach forward-down at shoulder width (claws framing the camera, never crossing the face) and the wings sweep
-    # forward around the frame edges.
-    a = ease(min(1, f / .45)); b = ease(max(0, min(1, (f - .2) / .6)))
-    p.r('Hips', x=lerp(48, 10, a)); p.spine(lerp(10, 6, a), neck=lerp(-36, 8, a), head=lerp(-44, 14, a))
+    # Round 6 climax: a forward wing-wrap. He rears up, looks down at the lens, both arms reach straight at it at
+    # shoulder width, and the wings sweep forward on both sides (yaw ~52 deg, membranes' inner faces toward the camera)
+    # so their tips reach the frame edges at the 2.8 m capture hold.
+    a = ease(min(1, f / .45)); b = ease(max(0, min(1, (f - .15) / .6)))
+    p.r('Hips', x=lerp(48, 6, a)); p.spine(lerp(10, 4, a), neck=lerp(-36, 14, a), head=lerp(-44, 22, a))
     p.legs(lerp(18, 8, a), lerp(26, 22, a), lerp(42, 30, a))
-    p.arms(lerp(-70, -80, b), out=lerp(14, 8, b), forearm=lerp(-6, -2, b), hand=lerp(-14, -24, b), inward=lerp(6, -6, b))
-    p.wings(lerp(.6, .92, b), yaw=lerp(-30, 22, a), beat=lerp(6, 16, a), pitch=lerp(26, 38, a), curl=lerp(0, -10, b), stretch=1.4)
+    p.arms(lerp(-70, -62, b), out=lerp(14, 6, b), forearm=lerp(-6, 0, b), hand=lerp(-14, -18, b), inward=lerp(6, -2, b))
+    p.wings(lerp(.6, 1.0, b), yaw=lerp(-30, 80, a), beat=lerp(6, 18, a), pitch=lerp(26, 6, a), curl=lerp(0, -22, b), stretch=1.8)
+def crawl(p, ph, f):
+    # Mode 7: stooped four-limbed crawl under 2.0 m lintels (service doors). Torso near horizontal, head up, long arms
+    # knuckle-walking, wings folded flat along the back. Navigation moves him; the clip walks in place.
+    a = ph * 2 * math.pi; s1 = math.sin(a); c1 = math.cos(a)
+    p.r('Hips', x=58); p.l('Hips', z=-.30 + .03 * abs(c1))
+    p.spine(24, neck=-34, head=-30, yaw=6 * s1)
+    for side, sg, ph0 in (('Left', 1, 0.0), ('Right', -1, math.pi)):
+        sw = math.sin(a + ph0); lift = max(0.0, math.cos(a + ph0))
+        p.r(side + 'UpLeg', x=-52 + 22 * sw, y=-sg * 8); p.r(side + 'Leg', x=70 + 30 * lift); p.r(side + 'Foot', x=-14)
+        p.r(side + 'Arm', x=-46 - 24 * math.sin(a + ph0 + math.pi), y=-sg * -6); p.r(side + 'ForeArm', x=-8 - 22 * max(0.0, math.cos(a + ph0 + math.pi))); p.r(side + 'Hand', x=-30)
+    p.wings(0.0, yaw=-8, beat=-6, pitch=-18, curl=-4)
 def stagger(p, ph, f):
     a = ease(min(1, f / .14)); rec = ease(max(0, min(1, (f - .32) / .68))); sh = math.sin(f * 38) * (1 - f) ** 2
     p.r('Hips', x=lerp(-14, 10, rec) * a); p.l('Hips', y=.14 * a * (1 - rec), z=-.06 * a)
@@ -364,7 +375,7 @@ SKIM = .10
 CLIPS = [('Perch', perch, 3.2, True, perch_ik, None), ('Glide', glide, 2.0, True, None, 'skim'),
          ('Search', search, 2.6, True, search_ik, None), ('Dive', dive, 1.0, True, None, 'skim'),
          ('Stagger', stagger, 1.3, False, None, 'plant'), ('Death', death, 2.4, False, None, 'plant'),
-         ('Grab', grab, 0.9, False, None, 'skim')]
+         ('Grab', grab, 0.9, False, None, 'skim'), ('Crawl', crawl, 1.4, True, None, 'ground')]
 DEFORM = [b.name for b in arm.bones]
 actions = {}; metrics = {}
 def lowest_over(fn, end, loop, ik):
@@ -377,7 +388,7 @@ def lowest_over(fn, end, loop, ik):
     return low
 for name, fn, seconds, loop, ik, floor in CLIPS:
     end = round(seconds * FPS)
-    shift = SKIM - lowest_over(fn, end, loop, ik) if floor == 'skim' else 0.0
+    shift = (SKIM if floor == 'skim' else 0.0) - lowest_over(fn, end, loop, ik) if floor in ('skim', 'ground') else 0.0
     action = bpy.data.actions.new(name); action.use_fake_user = True; rig.animation_data.action = action
     if action.slots: rig.animation_data.action_slot = action.slots[0]
     prev = {}; spans = []; tops = []; lows = []; reach = []

@@ -7,8 +7,8 @@ namespace HollowCurrent
         public Transform Head,LeftFoot;
         public int BoneCount;
         public int AnimatedFrames {get;private set;}
-        // Modes 0-3 (Split Grin), 4 Stagger, 5 Death and 6 Grab (Count Claude).
-        public readonly int[] ModeFrames=new int[7];
+        // Modes 0-3 (Split Grin), 4 Stagger, 5 Death, 6 Grab and 7 Crawl (Count Claude).
+        public readonly int[] ModeFrames=new int[8];
         public int Mode=>mode;
         Quaternion previousFoot;
         int mode;

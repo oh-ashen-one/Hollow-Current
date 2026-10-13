@@ -11,15 +11,19 @@ namespace HollowCurrent
         public static readonly CountClaudeProfile Default=new CountClaudeProfile();
 
         // Animator "Mode" ints (HearthboundActor.Pose). 0-5 are the shared contract; 6 Grab is the wing-wrap.
-        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCount=7;
+        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCrawlId=7,ModeCount=8;
         public int ModeGrab=ModeGrabId;
+        // Round 6: Mode 7 Crawl, a stooped four-limbed walk (top < 1.9 m) under 2.0 m lintels. Used on foot at service
+        // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.12 m + margin).
+        public int ModeCrawl=ModeCrawlId;
+        public float CrawlCeiling=2.3f;
 
-        public float ModelHeight=2.15f;                        // head top, metres (tools/count_prepare.py HEAD_TOP); wing hooks reach 2.18 m
+        public float ModelHeight=2.15f;                        // head top, metres (tools/count_prepare.py HEAD_TOP); the 2.5 m demon mesh is blocked (HANDOFF r6)
 
         // Movement. Glide is faster than a sprint (3.9) on straights and slower in tight rooms (wings clip columns).
         public float GlideStraightSpeed=4.6f;
         public float GlideTightSpeed=3.0f;
-        public float LandedWalkSpeed=2.4f;                     // he lands and walks (Mode 1) through 0.9 m service doors
+        public float LandedWalkSpeed=2.4f;                     // he lands and crawls (Mode 7) through 0.9 m service doors
         public float TightRoomWidth=4.0f;                      // open width (left + right) below which GlideTightSpeed applies
         public float StraightLookahead=3.0f;                   // a leg shorter than this before a turn is not a straight
         public float TurnDegreesPerSecond=420f;
@@ -45,9 +49,9 @@ namespace HollowCurrent
         public int HitsToKill=3;
         public float StaggerRetreatSeconds=20f;                // retreat to a perch for 20 s, return lower and angrier (Fight.RetreatSeconds)
 
-        // Grab presentation: the Grab clip reaches 0.88 m ahead of his origin (receipt grab_reach_m);
+        // Grab presentation: the Grab clip reaches 1.70 m ahead of his origin (receipt grab_reach_m);
         // keep the camera at least CameraClearance outside it.
-        public float GrabReach=.88f, CameraClearance=.6f;
+        public float GrabReach=1.70f, CameraClearance=.6f;   // r6 forward wing-wrap: the wing tips lead
         public float GrabStandOff=>GrabReach+CameraClearance+.05f;
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
@@ -55,10 +59,10 @@ namespace HollowCurrent
         public float CaptureHoldDistance=2.8f, CaptureHoldSeconds=1.6f;
         // Choreography climax (round 4): origin height at the hold (Grab clip lowest point +0.10 => 1.30 m, above the
         // 1.1 m ground-fog planes) and how long the feint keeps facing the camera before it turns.
-        public float CaptureHoldHeight=1.6f, CaptureFeintFacingSeconds=1.3f;
+        public float CaptureHoldHeight=1.25f, CaptureFeintFacingSeconds=1.3f;
         // Round 5: glide end height (approach stays above the fog), climax lunge distance, and the whole-figure lean back
         // (degrees, negative = back) while gliding/diving toward the camera so it sees chest and face, not soles.
-        public float CaptureGlideEndHeight=2.2f, CaptureLungeDistance=2.0f, CaptureGlideLean=-24f, CaptureDiveLean=-16f;
+        public float CaptureGlideEndHeight=2.2f, CaptureLungeDistance=2.5f, CaptureGlideLean=-34f, CaptureDiveLean=-16f;
 
         // Cold rim light parented behind his shoulders (Presence.CountRimLight): keeps the wings readable in the dark.
         public float RimLightRange=3.6f, RimLightIntensity=1.1f;

@@ -19,9 +19,9 @@ namespace HollowCurrent.Editor
         const string Source="Assets/HollowCurrent/Art/Characters/CountClaude/";
         const string Native=Source+"Native/";
         // Animator state names, index == Mode int: 0 Perch, 1 Glide, 2 SearchGlide, 3 Dive, 4 Stagger, 5 Death, 6 Grab (wing-wrap).
-        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death","Grab"};
+        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl"};
         // Perch, Glide, Search and Dive loop; Stagger, Death and Grab hold their last frame (Mode stays set until the next Pose call).
-        static readonly bool[] Loops={true,true,true,true,false,false,false};
+        static readonly bool[] Loops={true,true,true,true,false,false,false,true};
         // Round 2 wing rig (tools/count_prepare.py): a root at each shoulder blade, a five-bone fan sharing that pivot, and
         // zero-weight end markers the runtime reads for the posed silhouette (HearthboundActor.PoseBounds). Round 3: each fan
         // bone has an Ext child that stretches its finger (translation only) and the single-sheet membrane is doubled.
@@ -115,7 +115,7 @@ namespace HollowCurrent.Editor
             for(int i=0;i<Modes.Length;i++)
             {
                 var state=machine.AddState(Modes[i]);state.motion=clips[i];if(i==0)machine.defaultState=state;
-                if(i==1){state.speedParameter="LocomotionRate";state.speedParameterActive=true;} // wing-beat rate follows glide speed
+                if(i==1||i==7){state.speedParameter="LocomotionRate";state.speedParameterActive=true;} // wing-beat rate follows glide speed
                 var transition=machine.AddAnyStateTransition(state);transition.hasExitTime=false;transition.duration=i==3?.08f:i==6?.06f:.2f;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.Equals,i,"Mode");
             }
             animator.runtimeAnimatorController=controller;

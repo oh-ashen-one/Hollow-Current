@@ -34,3 +34,15 @@ Total: 35 credits, 2 jobs (second mesh job not needed: wings, hooked tips, coat 
 Animation clips: the Higgsfield animation library (678 humanoid actions, `animation_action_id`) was **not** used. It is biped-only (the wings would not move), one action per paid job, and none of the six modes exist in it. All six clips are authored locally by `tools/count_prepare.py` (free, regenerable).
 
 Local processing: `tools/count_prepare.py` re-skins the wings onto four new bones (`WingL`, `WingTipL`, `WingR`, `WingTipR`; the auto-rig had weighted 10k wing vertices to the leg bones), rescales to a 2.15 m head, grounds the feet, and writes `Assets/HollowCurrent/Resources/Characters/CountClaude/Native/*.fbx`, `Maps/Albedo.png` and `Native/CountClaude.json`.
+
+## Count Claude demon redesign (piece 4, round 6, `hc/count6`)
+
+Higgsfield CLI 1.1.23, 2026-10-13, one job at a time. Credits from `higgsfield account transactions`.
+
+| Asset | Model | Credits (net) | Job id | Inputs | Result |
+|---|---|---|---|---|---|
+| Demon mesh, attempt 1 | `multi_image_to_3d` | 30 spent, 30 refunded = **0** | `ae97187c-4128-4440-b0d5-edec63f27a8c` | `refs/demon_front.png`, `demon_side.png` (trimmed to 690 px wide to drop the back-view sliver), `demon_back.png`; `--should_texture true --enable_rigging false --enable_animation false` | **Refused: status `nsfw`** (provider moderation). No asset. |
+| Demon mesh, attempt 2 (front + back only) | `multi_image_to_3d` | 30 spent, 30 refunded = **0** | `d9c5eafa-b063-4a0c-b20b-69c5f8021871` | `demon_front.png`, `demon_back.png`, same flags | **Refused: status `nsfw`**. No asset. Stopped per the one-retry rule; the `3d_rigging` job was not run. |
+
+Account note: the first 30-credit spend triggered an **Auto Top-Up grant of 400 credits** (2026-10-13T21:47:26Z) on the owner's account; the balance went from 147.64 to 547.64 after both refunds.
+No `ASSET_LICENSES.md` line was added because no asset was produced.
