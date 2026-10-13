@@ -91,7 +91,7 @@ namespace HollowCurrent
             Player.InvertY=PlayerPrefs.GetInt("hc.invert-y",0)!=0;Volume=Mathf.Clamp01(PlayerPrefs.GetFloat("hc.volume",.65f));Subtitles=PlayerPrefs.GetInt("hc.subtitles",1)!=0;HelpHints=PlayerPrefs.GetInt("hc.help",0)!=0;
             var entity=new GameObject("Presence senses and navigation");Creature=entity.AddComponent<Presence>();Creature.Initialize(this);
             Scares=gameObject.AddComponent<ScareDirector>();Scares.Initialize(this);
-            if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);gameObject.AddComponent<CastleAtmosphere>();}
+            if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);gameObject.AddComponent<CastleAtmosphere>();gameObject.AddComponent<CastleLightTuning>();}
             foreach(var lamp in World.Lamps)lampLevels[lamp]=lamp.intensity;
             foreach(var doll in World.Dolls)dollHomes[doll]=doll.position;
             gameObject.AddComponent<Interface>().Game=this;

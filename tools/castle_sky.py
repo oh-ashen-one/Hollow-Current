@@ -7,8 +7,8 @@ Writes Assets/HollowCurrent/Resources/Castle/Sky/Sky_{Front,Back,Left,Right,Up,D
 Resources/Castle/SkyCastle.mat (Skybox/6 Sided) and docs/haunted-castle/art/sky_preview.jpg (equirect preview).
 
 World layout (Unity axes, azimuth measured from +Z towards +X; the player enters looking down +Z):
-  large pale moon  az -34 deg, el +27 deg, angular radius 11 deg   (upper left)
-  small blood moon az +42 deg, el +24 deg, angular radius 4.2 deg   (right)
+  large pale moon  az -34 deg, el +55 deg, angular radius 11 deg   (upper left)
+  small blood moon az +42 deg, el +42 deg, angular radius 4.2 deg   (right)
   faint green aurora band between them, el ~30 deg
   oversized stars (angular radius 0.25-1.1 deg, a few with soft glow and cross flare)
 Face convention (Unity Skybox/6 Sided): Front=+Z, Back=-Z, Left=+X, Right=-X, Up=+Y, Down=-Y.
@@ -68,8 +68,8 @@ def fbm(p, octs=5, seed=0):
 def smoothstep(a, b, x):
     t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
 
-PALE = dict(c=dir_from(-34, 27), R=math.radians(11.0), col=np.array([.86, .91, 1.0], np.float32))
-RED = dict(c=dir_from(42, 24), R=math.radians(4.2), col=np.array([.78, .13, .09], np.float32))
+PALE = dict(c=dir_from(-34, 55), R=math.radians(11.0), col=np.array([.86, .91, 1.0], np.float32))
+RED = dict(c=dir_from(42, 42), R=math.radians(4.2), col=np.array([.78, .13, .09], np.float32))
 
 def basis(c):
     up = np.array([0, 1, 0], np.float32)
