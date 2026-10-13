@@ -43,7 +43,7 @@ namespace HollowCurrent
         [Tooltip("Lean at full bend, degrees from vertical.")]
         [Range(0,80)] public float maxBendDegrees=38;
         [Tooltip("Bend per second while the target approaches (fraction of full lean).")] public float bendSpeed=2.5f;
-        [Tooltip("Bend per second while the flames relax.")] public float relaxSpeed=1.2f;
+        [Tooltip("Bend per second while the flames relax (1 = about one second from full lean to upright).")] public float relaxSpeed=1f;
 
         // 0 = upright, 1 = fully leaning. Readable for audio or debug.
         public float Bend01 {get;private set;}
@@ -52,7 +52,8 @@ namespace HollowCurrent
         Vector3 basePosition;
         Quaternion baseRotation;
         Quaternion[] flameRest;
-        bool ready,flamesDirty;
+        bool ready,flamesDirty,haveLastTarget;
+        Vector3 lastTargetPosition;
         void OnEnable()
         {
             if(!All.Contains(this))All.Add(this);
@@ -91,7 +92,10 @@ namespace HollowCurrent
         {
             if(flames==null||flames.Length==0)return;
             float want=0;
-            bool hasTarget=flameTarget;
+            bool hasTarget=flameTarget; // false for null and for a destroyed target
+            // Remember where the target was: flames that are still leaning when it is cleared ease back up while
+            // still pointing at that spot, so there is never a dereference of a missing target.
+            if(hasTarget){lastTargetPosition=flameTarget.position;haveLastTarget=true;}
             if(hasTarget&&bendRange>.01f)
             {
                 float d=Vector3.Distance(flameTarget.position,transform.position);
@@ -108,6 +112,7 @@ namespace HollowCurrent
                 }
                 return;
             }
+            if(!haveLastTarget)Bend01=0;
             flamesDirty=true;
             float degrees=maxBendDegrees*Bend01;
             for(int i=0;i<flames.Length;i++)
@@ -115,7 +120,7 @@ namespace HollowCurrent
                 var flame=flames[i];if(!flame||i>=flameRest.Length)continue;
                 var parent=flame.parent;
                 var rest=parent?parent.rotation*flameRest[i]:flameRest[i];
-                var to=flameTarget.position-flame.position;to.y=0;
+                var to=lastTargetPosition-flame.position;to.y=0;
                 if(to.sqrMagnitude<1e-4f){flame.rotation=rest;continue;}
                 // Rotating up about cross(up, direction) tips the flame toward the direction.
                 flame.rotation=Quaternion.AngleAxis(degrees,Vector3.Cross(Vector3.up,to.normalized))*rest;
