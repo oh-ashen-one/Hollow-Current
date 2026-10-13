@@ -15,7 +15,7 @@ namespace HollowCurrent
         }
         static void ResetMoreAssets()
         {
-            runeAtlas=null;runeGlyphMeshes=null;portraitTexture=null;pupilTexture=null;frameMesh=null;frameMaterial=null;portraitMaterial=null;pupilMaterial=null;
+            runeAtlas=null;runeGlyphMeshes=null;portraitTexture=null;pupilTexture=null;batTexture=null;batMaterial=null;knifeMesh=null;knifeMaterials=null;frameMesh=null;frameMaterial=null;portraitMaterial=null;pupilMaterial=null;
         }
 
         // Small flat-shaded mesh builder (build-time only; allocation is fine here).
@@ -267,5 +267,58 @@ namespace HollowCurrent
         static Material PortraitMaterial=>portraitMaterial?portraitMaterial:portraitMaterial=NewPortraitMaterial();
         static Material NewPortraitMaterial(){var m=Lit("Portrait painting",Color.white,0,.15f);m.mainTexture=PortraitTexture;return m;}
         static Material PupilMaterial=>pupilMaterial?pupilMaterial:pupilMaterial=Unlit("Portrait pupil",PupilTexture,new Color(.02f,.01f,.01f,1));
+
+        // ---- bat silhouette (billboard, 2:1) ----
+        static Texture2D batTexture;
+        static Material batMaterial;
+        static Texture2D BatTexture=>batTexture?batTexture:batTexture=MakeTexture("Surreal bat",128,64,(u,v)=>
+        {
+            float x=Mathf.Abs(u-.5f)*2;
+            float alpha=0;
+            // Body and head.
+            float body=Smooth(.1f,.07f,x)*Smooth(.14f,.2f,v)*Smooth(.8f,.7f,v);
+            float head=Smooth(1f,.8f,Mathf.Sqrt(Mathf.Pow(x/.075f,2)+Mathf.Pow((v-.78f)/.13f,2)));
+            float ears=Smooth(.03f,.0f,Mathf.Abs(x-.05f-(v-.86f)*.25f))*Smooth(.84f,.88f,v)*Smooth(.97f,.93f,v);
+            alpha=Mathf.Max(body,Mathf.Max(head,ears));
+            // Wings: from the shoulder out to a tip, with a scalloped trailing edge.
+            if(x>=.05f)
+            {
+                float a=(x-.05f)/.95f;
+                float top=a<.5f?Mathf.Lerp(.6f,.92f,a/.5f):Mathf.Lerp(.92f,.4f,(a-.5f)/.5f);
+                float bottom=Mathf.Lerp(.42f,.3f,a)+.13f*Mathf.Pow(Mathf.Abs(Mathf.Sin(a*Mathf.PI*3.2f)),.7f);
+                float wing=Smooth(top+.03f,top-.02f,v)*Smooth(bottom-.02f,bottom+.03f,v)*Smooth(1f,.95f,a);
+                alpha=Mathf.Max(alpha,wing);
+            }
+            return new Color(1,1,1,alpha);
+        });
+        // Bat billboard material; the tint is deliberately not pure black so the
+        // flock reads against dark stone.
+        public static Material BatMaterial=>batMaterial?batMaterial:batMaterial=Unlit("Giant bat",BatTexture,new Color(.1f,.075f,.13f,1));
+
+        // ---- knife (tip along +Z, origin at the guard): steel blade, wooden handle ----
+        static Mesh knifeMesh;
+        static Material[] knifeMaterials;
+        public static Mesh KnifeMesh
+        {
+            get
+            {
+                if(knifeMesh)return knifeMesh;
+                var b=new MeshBuilder(2);
+                const float hw=.017f,ht=.003f,straight=.14f,tip=.23f;
+                b.Box(new Vector3(0,0,straight*.5f),new Vector3(hw*2,ht*2,straight),Quaternion.identity,0);
+                var a=new Vector3(-hw,-ht,straight);var bb=new Vector3(hw,-ht,straight);var c=new Vector3(hw,ht,straight);var d=new Vector3(-hw,ht,straight);
+                var point=new Vector3(0,0,tip);
+                b.Tri(d,c,point,Vector3.up,0);b.Tri(a,bb,point,Vector3.down,0);
+                b.Tri(bb,c,point,Vector3.right,0);b.Tri(a,d,point,Vector3.left,0);
+                b.Box(Vector3.zero,new Vector3(.06f,.012f,.014f),Quaternion.identity,0);          // guard
+                b.Box(new Vector3(0,0,-.055f),new Vector3(.02f,.022f,.11f),Quaternion.identity,1); // handle
+                return knifeMesh=b.Build("Surreal knife");
+            }
+        }
+        public static Material[] KnifeMaterials=>knifeMaterials!=null?knifeMaterials:knifeMaterials=new[]
+        {
+            Lit("Orbiting knife steel",new Color(.62f,.64f,.68f),.9f,.7f),
+            Lit("Orbiting knife handle",new Color(.14f,.08f,.05f),0,.3f)
+        };
     }
 }

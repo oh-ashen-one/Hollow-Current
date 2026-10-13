@@ -220,5 +220,44 @@ namespace HollowCurrent
             loop.destination=destination;loop.Armed=armed;
             return loop;
         }
+
+        // ---- orbiting knives ----
+        // `knives` steel knives circling localPosition (the middle of the orbit
+        // plane). knifeScale 1 makes ~0.33 m blades; 1.5 reads as "too big".
+        public static KnifeOrbit MakeKnifeOrbit(Transform parent,Vector3 localPosition,int knives=7,float radius=.9f,float knifeScale=1.4f)
+        {
+            var t=NewChild("Knife orbit",parent,localPosition,Quaternion.identity);
+            var orbit=t.gameObject.AddComponent<KnifeOrbit>();
+            orbit.radius=radius;
+            var list=new Transform[knives];
+            for(int i=0;i<knives;i++)
+            {
+                var r=NewRenderer("Knife "+i,t,Vector3.zero,Quaternion.identity,KnifeMesh,KnifeMaterials,true);
+                r.transform.localScale=Vector3.one*knifeScale;
+                list[i]=r.transform;
+            }
+            orbit.knives=list;
+            return orbit;
+        }
+
+        // ---- giant bats ----
+        // A flock of `bats` (clamped to 5-8) circling `localPosition` at `height`
+        // metres above it. Keep the parent chain at scale 1.
+        public static GiantBat MakeGiantBat(Transform parent,Vector3 localPosition,int bats=6,float radius=6,float height=3.5f,float wingspan=1.6f)
+        {
+            bats=Mathf.Clamp(bats,5,8);
+            var t=NewChild("Giant bats",parent,localPosition,Quaternion.identity);
+            var flock=t.gameObject.AddComponent<GiantBat>();
+            flock.radius=radius;flock.height=height;flock.wingspan=wingspan;
+            var list=new Transform[bats];
+            for(int i=0;i<bats;i++)
+            {
+                var r=NewRenderer("Bat "+i,t,Vector3.zero,Quaternion.identity,CentreQuad,new[]{BatMaterial},false);
+                r.transform.localScale=new Vector3(wingspan,wingspan*.5f,1);
+                list[i]=r.transform;
+            }
+            flock.bats=list;
+            return flock;
+        }
     }
 }
