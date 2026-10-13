@@ -48,3 +48,7 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+## hc/look2 follow-up (column + S5 sliver)
+- `tools/castle_architecture.py::column`: the four colonettes sat at 1.18 r and stood about 0.14 m proud of the shaft, so one-sided light split the column into two halves. They are now shallow smooth-shaded relief centred at 0.9 r (about 0.05 m proud, 8 segments, tapering into the capital), shaft 16 segments. Re-exported only `Column.fbx` and `ColumnGreat.fbx` (manifest merged, other entries unchanged). `castle_verify.py`: HC_VERIFY_PASS, assets=68, fails=0; sizes unchanged (0.7x3.0, 0.9x8.8), tris 456 / 552 within budget. Needs the castle re-bake only if the integrator wants lightmaps matched to the new column mesh.
+- S5 white sliver (x about 1350, y 720-780): it is bright sky/moon seen through the lancet opening behind the Count's right shoulder, between the mullion and the frame, not a gap between a wall segment and the balcony mesh. It is camera/window placement (window moonlit sky at that angle), so I stopped there.
