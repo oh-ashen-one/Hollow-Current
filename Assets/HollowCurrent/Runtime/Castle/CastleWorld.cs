@@ -157,6 +157,7 @@ namespace HollowCurrent
             Moonlight();
             SearchPoints();
             BuildNavigation();
+            Debug.Log("HC_ARCH_KIT wall and floor tiles placed=" + tileCount + " (stone variants, art-backed veneer; colliders unchanged)");
         }
 
         // ---- materials and primitives -----------------------------------------------------------------
@@ -315,6 +316,92 @@ namespace HollowCurrent
             float along = (a0 + a1) * .5f, len = a1 - a0, cy = (y0 + y1) * .5f, h = y1 - y0;
             if (alongX) Box("Wall", new Vector3(along, cy, line), new Vector3(len, h, t), mat);
             else Box("Wall", new Vector3(line, cy, along), new Vector3(t, h, len), mat);
+            foreach (var r in VeneerRules)
+                if (r.AlongX == alongX && Mathf.Abs(r.Line - line) < .01f) FaceTiles(r, alongX, line, a0, a1, y0, y1, t);
+        }
+
+        // ---- architectural veneer (round 5) --------------------------------------------------------------------------
+        // The room shells stay cube colliders (nav, doors and Points are unchanged). Their visible faces in the rooms the capture
+        // cameras see are dressed with the real wall art: 2 m / 4 m Wall modules (plinth, cornice, 3.2 m bands) squeezed to 0.125 m
+        // so they read as coursed relief without moving any collision, with the stone varied per module.
+        readonly struct VeneerRule
+        {
+            public readonly bool AlongX; public readonly float Line, A0, A1, Y0, Y1; public readonly int Side;
+            public VeneerRule(bool alongX, float line, float a0, float a1, float y0, float y1, int side) { AlongX = alongX; Line = line; A0 = a0; A1 = a1; Y0 = y0; Y1 = y1; Side = side; }
+        }
+        static readonly VeneerRule[] VeneerRules =
+        {
+            // great hall (room side of the spine walls and of the front and back walls)
+            new VeneerRule(false, -6, 14, 28, 0, 9.2f, 1), new VeneerRule(false, 6, 14, 28, 0, 9.2f, -1),
+            new VeneerRule(true, 14, -6, 6, 0, 9.2f, 1), new VeneerRule(true, 28, -6, 6, 0, 9.2f, -1),
+            // chapel
+            new VeneerRule(false, 6, 0, 13, 0, 6.4f, 1), new VeneerRule(false, 14, 0, 13, 0, 6.4f, -1),
+            new VeneerRule(true, 0, 6, 14, 0, 6.4f, 1), new VeneerRule(true, 13, 6, 14, 0, 6.4f, -1),
+            // crypt
+            new VeneerRule(false, -6, 14, 28, -3.2f, -.2f, 1), new VeneerRule(false, 6, 14, 28, -3.2f, -.2f, -1),
+            new VeneerRule(true, 14, -6, 6, -3.2f, -.2f, 1), new VeneerRule(true, 28, -6, 6, -3.2f, -.2f, -1),
+            // exterior front, outer face (seen from the far bank)
+            new VeneerRule(true, 0, -14.45f, 14.45f, -.3f, 7.5f, -1),
+        };
+        // Stone variants in weighted order: mostly weathered grey, some cold, mossy and warm, one black stone in twelve.
+        static readonly int[] StoneOrder = { 0, 1, 2, 5, 4, 0, 1, 2, 5, 3, 4, 0 };
+        // hc/look5 provides Castle_StoneWeathered / Castle_StoneDark / Castle_StoneMossy; until they are merged Surface() returns null for
+        // them and the module falls back to the tinted Castle_Stone of the same slot.
+        static readonly (string material, string fallback, Color tint)[] StoneVariants =
+        {
+            ("Castle_StoneWeathered", "Castle_Stone", new Color(.8f, .8f, .84f)), ("Castle_StoneDark", "Castle_Stone", new Color(.62f, .65f, .74f)),
+            ("Castle_StoneMossy", "Castle_Stone", new Color(.66f, .78f, .62f)), ("Castle_BlackStone", "Castle_BlackStone", Color.white),
+            ("Castle_FlagStone", "Castle_FlagStone", new Color(.74f, .74f, .8f)), ("Castle_Stone", "Castle_Stone", new Color(.88f, .80f, .70f)),
+        };
+        int tileCount;
+        Material StoneVariant(int hash)
+        {
+            var v = StoneVariants[StoneOrder[((hash % StoneOrder.Length) + StoneOrder.Length) % StoneOrder.Length]];
+            return CastleArt.Surface(v.material, CastleArt.SurfaceKind.World, v.tint) ?? CastleArt.Surface(v.fallback, CastleArt.SurfaceKind.World, v.tint);
+        }
+        static void Paint(Transform tile, Material m)
+        {
+            if (!m) return;
+            foreach (var r in tile.GetComponentsInChildren<Renderer>())
+            {
+                var slots = new Material[r.sharedMaterials.Length]; for (int i = 0; i < slots.Length; i++) slots[i] = m;
+                r.sharedMaterials = slots; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+        }
+        void FaceTiles(VeneerRule r, bool alongX, float line, float a0, float a1, float y0, float y1, float t)
+        {
+            float s0 = Mathf.Max(a0, r.A0), s1 = Mathf.Min(a1, r.A1), v0 = Mathf.Max(y0, r.Y0), v1 = Mathf.Min(y1, r.Y1);
+            float len = s1 - s0, h = v1 - v0;
+            if (len < .8f || h < 1.0f) return;
+            int n = Mathf.Max(1, Mathf.RoundToInt(len / 4f)); float w = len / n;
+            int bands = Mathf.Max(1, Mathf.RoundToInt(h / 3.2f)); float bh = h / bands;
+            bool wide = w >= 3f; string art = wide ? Art.Wall4m : Art.Wall2m; float baseW = wide ? 4f : 2f;
+            float centre = line + r.Side * (t * .5f + .0625f);   // module body is 0.125 m thick after the squeeze; its back face sits on the cube face
+            for (int i = 0; i < n; i++)
+                for (int j = 0; j < bands; j++)
+                {
+                    float along = s0 + (i + .5f) * w, y = v0 + j * bh;
+                    var pos = alongX ? new Vector3(along, y, centre) : new Vector3(centre, y, along);
+                    var tile = ArtAt(art, pos, alongX ? 0 : 90);
+                    tile.localScale = new Vector3(w / baseW, bh / 3.2f, .25f);
+                    Paint(tile, StoneVariant(Mathf.RoundToInt(s0 * 7) + 13 * i + 31 * j + Mathf.RoundToInt(line * 3) + Mathf.RoundToInt(v0 * 5)));
+                    tileCount++;
+                }
+        }
+
+        // 2 m flagstones over a cube floor (collision unchanged). `skip` returns true for tiles that must stay open.
+        void FloorTiles(float x0, float x1, float z0, float z1, float y, System.Func<float, float, bool> skip)
+        {
+            int k = 0;
+            for (float cx = x0 + 1; cx < x1 - .01f; cx += 2)
+                for (float cz = z0 + 1; cz < z1 - .01f; cz += 2, k++)
+                {
+                    if (skip != null && skip(cx, cz)) continue;
+                    var tile = ArtAt(Art.FloorTile, new Vector3(cx, y, cz), 90 * (k % 4));
+                    var v = CastleArt.Surface("Castle_FlagStone", CastleArt.SurfaceKind.World, Color.Lerp(new Color(.66f, .66f, .72f), new Color(.92f, .9f, .94f), Mathf.Repeat(k * .6180339f, 1)));
+                    Paint(tile, v);
+                    tileCount++;
+                }
         }
 
         // dir: 0 +x, 1 -x, 2 +z, 3 -z. `from` is the coordinate of the foot along the run; steps are solid blocks
@@ -513,7 +600,7 @@ namespace HollowCurrent
         {
             var g = new GameObject("Candelabra");
             g.transform.SetParent(root, false); g.transform.localPosition = c.Pos;
-            if (c.Art) CastleArt.Place(Art.Candelabra, g.transform, Vector3.zero, Quaternion.identity);
+            if (c.Art) UnifyFlames(CastleArt.Place(Art.Candelabra, g.transform, Vector3.zero, Quaternion.identity), g.transform);
             var lg = new GameObject("Candle light");
             lg.transform.SetParent(g.transform, false); lg.transform.localPosition = Vector3.up * c.LightHeight;
             var l = lg.AddComponent<Light>();
@@ -521,6 +608,26 @@ namespace HollowCurrent
             l.shadows = c.Shadows ? LightShadows.Soft : LightShadows.None; l.shadowBias = .025f; l.shadowNormalBias = .15f;
             l.shadowResolution = UnityEngine.Rendering.LightShadowResolution.Low;
             lamps.Add(l);
+        }
+
+        // The art candelabra carries mesh flames in Castle_Flame, whose emission the castle bake forces to black (every material in
+        // the layout is set EmissiveIsBlack so the breaker can switch lights off): standing candelabras burned black. Replace
+        // each mesh flame with the same CandleFlame billboard the floating candles use (warm additive sprite plus halo) and give
+        // the stand a motionless Floater so the flames lean toward the Count like every other flame.
+        void UnifyFlames(Transform art, Transform stand)
+        {
+            var spots = new List<Vector3>();
+            foreach (var r in art.GetComponentsInChildren<Renderer>())
+                if (r.name.StartsWith("Flame", System.StringComparison.Ordinal))
+                {
+                    var b = r.bounds; spots.Add(stand.InverseTransformPoint(new Vector3(b.center.x, b.min.y, b.center.z)));
+                    r.enabled = false;
+                }
+            if (spots.Count == 0) return;
+            var flames = new Transform[spots.Count];
+            for (int i = 0; i < spots.Count; i++) flames[i] = SurrealProps.MakeCandleFlame(stand, spots[i], .17f, false, "Flame " + i, .14f).transform;
+            var f = stand.gameObject.AddComponent<Floater>();
+            f.phase = 0; f.bobAmplitude = 0; f.driftRadius = 0; f.yawDegreesPerSecond = 0; f.tiltDegrees = 0; f.flames = flames;
         }
 
         void Moonlight()
@@ -625,9 +732,9 @@ namespace HollowCurrent
             // The giant skeleton lies diagonally behind the long table; the table is clear of every bone.
             // the long table lies under the skeleton's arch, parallel to its spine
             var table = ArtAt(Art.LongTable, CastleLayout.TablePos, CastleLayout.TableYaw);
-            table.localScale = new Vector3(CastleLayout.TableLengthScale, 1, 1);
+            table.localScale = new Vector3(CastleLayout.TableLengthScale, 1, CastleLayout.TableWidthScale);
             var tableSize = CastleLayout.ArtSize(Art.LongTable);
-            Proxy("LongTable collision", CastleLayout.TablePos + new Vector3(0, tableSize.y * .5f, 0), new Vector3(tableSize.x * CastleLayout.TableLengthScale, tableSize.y, tableSize.z), CastleLayout.TableYaw);
+            Proxy("LongTable collision", CastleLayout.TablePos + new Vector3(0, tableSize.y * .5f, 0), new Vector3(tableSize.x * CastleLayout.TableLengthScale, tableSize.y, tableSize.z * CastleLayout.TableWidthScale), CastleLayout.TableYaw);
             Prop(Art.Throne, new Vector3(-5.1f, 0, 18.2f), 90);
             runeAnchor = new GameObject("RuneRing anchor").transform; runeAnchor.SetParent(root, false); runeAnchor.localPosition = RuneLocal;
             Hide("Hall armoire", new Vector3(5.7f, 0, 21.0f), 90);
@@ -638,7 +745,12 @@ namespace HollowCurrent
         // the hall keeps exactly the point lights CastleLayout.Candles gives it.
         void HallDressing()
         {
-            var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
+            FloorTiles(-6, 6, 14, 28, 0, null);
+            HallArcade();
+            VaultCeiling();
+            var skelPos = CastleLayout.SkeletonPos;
+            skelPos.y += SkeletonLift();
+            var skeleton = ArtAt(Art.GiantSkeleton, skelPos, CastleLayout.SkeletonYaw);
             skeleton.localScale = new Vector3(CastleLayout.SkeletonScale, CastleLayout.SkeletonScaleY, CastleLayout.SkeletonScale);
             foreach (var b in CastleLayout.HallBanners) ArtAt(Art.Banner, b.Pos, b.Yaw);
             int seed = 100;
@@ -659,6 +771,120 @@ namespace HollowCurrent
                 f.phase = Mathf.Repeat((i + 1) * .6180339f, 1);
                 f.bobAmplitude = .16f; f.bobHertz = .13f + .02f * (i % 3); f.tiltDegrees = 6; f.yawDegreesPerSecond = 5;
             }
+        }
+
+        // Pointed arches between the colonnade columns (their piers sit inside the column footprints) and cross ribs springing
+        // from the columns at 6 m across the hall. Pure visuals: no colliders.
+        void HallArcade()
+        {
+            int k = 0;
+            foreach (int side in new[] { -1, 1 })
+                foreach (float zc in new[] { 17.1f, 20.1f, 23.0f })
+                {
+                    var arch = ArtAt(Art.PointedArch, new Vector3(side * 3.9f, 0, zc), 90);
+                    arch.localScale = new Vector3(Mathf.Approximately(zc, 23.0f) ? .93f : 1f, 1, 1);
+                    Paint(arch, StoneVariant(100 + k++));
+                }
+            foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
+            {
+                var rib = ArtAt(Art.VaultRib, new Vector3(0, 6.0f, z), 0);
+                rib.localScale = new Vector3(1.95f, 1, 1);   // 4 m span -> 7.8 m, apex 8.84 under the 9.0 roof
+                Paint(rib, StoneVariant(200 + k++));
+            }
+        }
+
+        // A lit, slightly vaulted stone ceiling under the flat roof slab (which rendered as a black void): an elliptic cove from
+        // y 8.4 at the side walls to 8.95 on the axis. A VaultCeiling component keeps it out of static GI (lit by probes, the
+        // realtime lights and a faint cold emission so it can never fall to pure black).
+        void VaultCeiling()
+        {
+            const int cols = 16, rows = 5; const float x0 = -5.7f, x1 = 5.7f, z0 = 14.3f, z1 = 27.55f;
+            var verts = new Vector3[(cols + 1) * (rows + 1)]; var uv = new Vector2[verts.Length];
+            for (int j = 0; j <= rows; j++)
+                for (int i = 0; i <= cols; i++)
+                {
+                    float x = Mathf.Lerp(x0, x1, i / (float)cols), z = Mathf.Lerp(z0, z1, j / (float)rows);
+                    float y = 8.4f + .55f * Mathf.Sqrt(Mathf.Max(0, 1 - (x / 5.7f) * (x / 5.7f)));
+                    verts[j * (cols + 1) + i] = new Vector3(x, y, z); uv[j * (cols + 1) + i] = new Vector2(x * .5f, z * .5f);
+                }
+            var tris = new List<int>();
+            for (int j = 0; j < rows; j++)
+                for (int i = 0; i < cols; i++)
+                {
+                    int a = j * (cols + 1) + i, b = a + 1, c = a + cols + 1, d = c + 1;
+                    tris.Add(a); tris.Add(b); tris.Add(c); tris.Add(b); tris.Add(d); tris.Add(c);   // faces down
+                }
+            var mesh = new Mesh { name = "Hall vault" };
+            mesh.vertices = verts; mesh.uv = uv; mesh.triangles = tris.ToArray(); mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            var g = new GameObject("Hall vault"); g.transform.SetParent(root, false);
+            g.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var mr = g.AddComponent<MeshRenderer>(); mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            var m = new Material(Shader.Find("Standard")) { name = "HC castle / vault", color = new Color(.30f, .32f, .38f) };
+            var tex = Resources.Load<Texture2D>("Castle/Textures/Castle_Stone_albedo");
+            if (tex) { m.mainTexture = tex; m.mainTextureScale = Vector2.one; }
+            m.SetFloat("_Glossiness", .1f); m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(.035f, .045f, .075f));
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+            mr.sharedMaterial = m;
+            mats["vault"] = m;
+            g.AddComponent<VaultCeiling>();
+        }
+
+        // Numeric check: the skeleton's ribs, spine and legs against the table. Returns the lift (metres) that makes every bone
+        // point inside the table footprint at least 0.2 m above the table top; logs the measured numbers.
+        float SkeletonLift()
+        {
+            var ctrl = new[] { new Vector2(-6f, .12f), new Vector2(-4.5f, .32f), new Vector2(-3f, .8f), new Vector2(-1.5f, 1.75f), new Vector2(0f, 2.55f), new Vector2(1.2f, 2.8f), new Vector2(2.5f, 2.55f), new Vector2(3.6f, 1.95f), new Vector2(4.4f, 1.3f), new Vector2(4.9f, .95f) };
+            float Spine(float y)
+            {
+                if (y <= ctrl[0].x) return ctrl[0].y; if (y >= ctrl[ctrl.Length - 1].x) return ctrl[ctrl.Length - 1].y;
+                int i = 0; for (int k = 0; k < ctrl.Length - 1; k++) if (ctrl[k].x <= y) i = k;
+                float t = (y - ctrl[i].x) / (ctrl[i + 1].x - ctrl[i].x);
+                float p0 = ctrl[Mathf.Max(i - 1, 0)].y, p1 = ctrl[i].y, p2 = ctrl[i + 1].y, p3 = ctrl[Mathf.Min(i + 2, ctrl.Length - 1)].y;
+                return .5f * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+            }
+            var yaw = Quaternion.Euler(0, CastleLayout.SkeletonYaw, 0);
+            var scale = new Vector3(CastleLayout.SkeletonScale, CastleLayout.SkeletonScaleY, CastleLayout.SkeletonScale);
+            float tableYaw = CastleLayout.TableYaw * Mathf.Deg2Rad;
+            var axis = new Vector2(Mathf.Cos(tableYaw), -Mathf.Sin(tableYaw)); var across = new Vector2(Mathf.Sin(tableYaw), Mathf.Cos(tableYaw));
+            float halfLen = CastleLayout.ArtSize(Art.LongTable).x * CastleLayout.TableLengthScale * .5f + .05f, halfWid = CastleLayout.ArtSize(Art.LongTable).z * CastleLayout.TableWidthScale * .5f + .1f;
+            float top = CastleLayout.ArtSize(Art.LongTable).y;
+            float minY = 99f; int inside = 0;
+            void Sample(float bx, float by, float bz, float radius)
+            {
+                var w = CastleLayout.SkeletonPos + yaw * Vector3.Scale(new Vector3(bx, bz, -by), scale);   // art +Y (head) imports as local -Z
+                var rel = new Vector2(w.x - CastleLayout.TablePos.x, w.z - CastleLayout.TablePos.z);
+                if (Mathf.Abs(Vector2.Dot(rel, axis)) > halfLen || Mathf.Abs(Vector2.Dot(rel, across)) > halfWid) return;
+                inside++; minY = Mathf.Min(minY, w.y - radius * scale.y);
+            }
+            for (float y = -5.9f; y <= 4.6f; y += .22f)
+                Sample(.9f * Mathf.Sin((y + 6) * .55f) * Mathf.Max(0, (-1.6f - y) / 4.4f), y, Spine(y), .17f);
+            for (int k = 0; k < 15; k++)
+            {
+                float yk = -1.2f + k * .3f, env = Mathf.Sin(Mathf.PI * (k + 1.6f) / 17f), z0 = Spine(yk) - .03f;
+                float rz = Mathf.Min(1.45f * env, (z0 - .06f) / 1.84f), rx = 1.85f * env;
+                foreach (int side in new[] { -1, 1 })
+                    for (int i = 0; i < 12; i++)
+                    {
+                        float phi = .12f + (2.55f - .12f) * i / 11f;
+                        Sample(side * (.14f + rx * Mathf.Sin(phi)), yk + .14f * i / 11f, z0 - rz * (1 - Mathf.Cos(phi)), .1f);
+                    }
+            }
+            foreach (var leg in new[] { (2.2f, 1.9f, true), (-2.0f, 1.75f, false) })
+                foreach (int side in new[] { -1, 1 })
+                {
+                    var hip = new Vector3(side * .55f, leg.Item1, leg.Item2);
+                    var knee = new Vector3(side * 1.15f, leg.Item1 + (leg.Item3 ? .5f : -.35f), .95f);
+                    var paw = new Vector3(side * 1.3f, leg.Item1 + (leg.Item3 ? 1.05f : .5f), .09f);
+                    for (int i = 0; i <= 8; i++)
+                    {
+                        var p = Vector3.Lerp(hip, knee, i / 8f); Sample(p.x, p.y, p.z, .12f);
+                        p = Vector3.Lerp(knee, paw, i / 8f); Sample(p.x, p.y, p.z, .08f);
+                    }
+                }
+            float clearance = inside > 0 ? minY - top : 99f;
+            float lift = clearance < .2f ? .2f - clearance + .03f : 0f;
+            Debug.Log("HC_SKELETON_TABLE bone samples over the table footprint=" + inside + " min bone y=" + (inside > 0 ? minY.ToString("F2") : "n/a") + " table top=" + top.ToString("F2") + " clearance=" + (clearance > 90 ? "n/a" : clearance.ToString("F2")) + " m, lift applied=" + lift.ToString("F2"));
+            return lift;
         }
 
         // The two moons are painted into the openings of the rose window and the chapel windows as distant sprites, placed
@@ -719,6 +945,7 @@ namespace HollowCurrent
             Hide("Confessional", new Vector3(7.3f, 0, 12.7f), 0);
             Note("Chapel inscription", new Vector3(12.75f, 1.44f, 5.7f), "Chapel inscription",
                 "Cut into the altar slab:\n\nWHAT WAS BARGAINED FOR NIGHT IS PAID IN BLOOD. WHAT WAS HIDDEN FROM HIM IS HIDDEN IN THREE: THE BLADE UNDER THE CRYPT, THE HILT AMONG THE STARS, THE STONE BEHIND A FACE.\n\nBring them here and the altar remembers its trade.");
+            FloorTiles(6, 14, 0, 14, 0, null);
             ChapelFont();
             ChapelBrazier();
             ChapelCandles();
@@ -753,25 +980,30 @@ namespace HollowCurrent
             Interact("Chapel brazier", p + new Vector3(0, .5f, 0), new Vector3(.7f, 1.0f, .7f), "metal", InteractKind.Breaker, "Chapel brazier", "", false);
         }
 
-        // 44 candles hang in the chapel at 1.5 to 5 m: 34 burn (billboard flame plus halo, no point light) and 10 stay dark; the
-        // hero candle above the altar burns brightest.
+        // 56 candles hang in the chapel, ALL burning (billboard flame plus halo, no point light; the point-light count is unchanged).
+        // 40 sit inside the S2 view cone (eye (7,1.64,6.5) looking +x) so the frame holds well over 30 flames; the hero candle above
+        // the altar burns brightest.
         void ChapelCandles()
         {
             var rnd = new System.Random(2026);
             var placed = new List<Vector3> { new Vector3(12.2f, 2.4f, 5.0f) };
             SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.5f, true);
             int guard = 0;
-            while (placed.Count < 44 && guard++ < 4000)
+            while (placed.Count < 56 && guard++ < 8000)
             {
-                var p = new Vector3(Mathf.Lerp(7.4f, 13.2f, (float)rnd.NextDouble()), Mathf.Lerp(1.5f, 5.0f, (float)rnd.NextDouble()), Mathf.Lerp(.9f, 12.1f, (float)rnd.NextDouble()));
+                bool inCone = placed.Count < 41;
+                float x = inCone ? Mathf.Lerp(8.6f, 13.2f, (float)rnd.NextDouble()) : Mathf.Lerp(7.4f, 13.2f, (float)rnd.NextDouble());
+                float half = (x - 7f) * 1.0f;   // the S2 cone is about +-52 degrees wide: stay inside +-45
+                float z = inCone ? Mathf.Clamp(6.5f + ((float)rnd.NextDouble() * 2 - 1) * half, .9f, 12.1f) : Mathf.Lerp(.9f, 12.1f, (float)rnd.NextDouble());
+                float top = inCone ? Mathf.Min(5.2f, 1.64f + .65f * (x - 7f)) : 5.0f;
+                var p = new Vector3(x, Mathf.Lerp(1.5f, Mathf.Max(1.9f, top), (float)rnd.NextDouble()), z);
                 if (p.x > 11.3f && Mathf.Abs(p.z - 6.5f) < 1.5f && p.y < 2.2f) continue;                                    // the altar block
                 if (Mathf.Abs(p.x - CastleLayout.FontPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.FontPos.z) < .8f && p.y < 2.2f) continue;
                 if (Mathf.Abs(p.x - CastleLayout.BrazierPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.BrazierPos.z) < .8f && p.y < 2.2f) continue;
                 bool crowded = false;
-                foreach (var q in placed) if ((q - p).sqrMagnitude < .45f) { crowded = true; break; }
+                foreach (var q in placed) if ((q - p).sqrMagnitude < .4f) { crowded = true; break; }
                 if (crowded) continue;
-                int n = placed.Count;
-                SurrealProps.MakeFloatingCandle(root, p, n, n % 4 != 3, .9f + .4f * (float)rnd.NextDouble());
+                SurrealProps.MakeFloatingCandle(root, p, placed.Count, true, .9f + .4f * (float)rnd.NextDouble());
                 placed.Add(p);
             }
         }
@@ -852,6 +1084,7 @@ namespace HollowCurrent
                 ArtAt(Art.CryptRib, new Vector3(0, -3.2f + 3.0f - .6f, z), 0);
             }
             Hide("Ossuary niche", new Vector3(5.7f, -3.2f, 17.6f), 90);
+            FloorTiles(-6, 6, 14, 28, -3.2f, (cx, cz) => cx + 1 > -3.1f && cx - 1 < 3.1f && cz + 1 > 19.4f && cz - 1 < 25.6f);
             CoffinNiches();
             HandRoots();
         }

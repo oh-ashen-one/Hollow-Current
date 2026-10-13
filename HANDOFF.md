@@ -48,3 +48,29 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Round 5 (hc/arch5): architecture from the art kit
+
+Not seen in an engine; `check_source.py` PASS. Frame time not measured (no Unity): the hall adds about 42 floor tiles (24 tris), about 25 wall modules (36 tris), 6 arches (116), 4 ribs (180) and one 17x6 vault grid, no real-time lights, no colliders.
+
+## What was rebuilt
+- **Wall veneer** (`CastleWorld.FaceTiles`, rules table `VeneerRules`): the cube shells stay (colliders, nav, doors, Points unchanged). Every wall piece on the room side of the great hall (both spine walls, front, back), the chapel (4 walls), the crypt (4 walls) and the outer face of the front wall is tiled with `Wall_4m`/`Wall_2m` art modules (plinth, cornice, 3.2 m bands), squeezed to 0.125 m thickness (so they read as coursed relief, 0.13 m proud of the cube face, no collision change), stretched to fit each piece, skipped around doors/windows/niches. Stone varies per module through `CastleArt.Surface(World)`: Castle_StoneWeathered / StoneDark / StoneMossy (look5 names; fall back to tinted Castle_Stone until hc/look5 is merged), Castle_BlackStone one in twelve, FlagStone, warm Stone. Banners moved 0.17 m off the wall so the relief does not swallow them.
+- **Floors:** `FloorTile` art over the hall (42), chapel (28) and crypt (outside the channel, about 24) floors, world-space flagstone with per-tile tint and rotation; tops 0.01 m over the cube floors.
+- **Great hall:** 6 pointed arches between the colonnade columns (piers inside the column footprints), 4 cross vault ribs springing from the columns at 6 m (apex 8.84), a lit elliptic vault ceiling under the roof slab (`Hall vault`, y 8.4 at the walls to 8.95, stone albedo plus a faint cold emission, a `VaultCeiling` marker so it stays out of the bake and is lit by probes and realtime lights, instead of the black baked cube).
+- **Crypt:** the 13 niches, column/rib kit and new floor tiles; **chapel:** pews, font, brazier, candles as before plus tiles; **exterior:** towers/spires as dressing4, plus the outer-face veneer on the front wall. Stair flights are NOT swapped (the box steps are the collision; the art flight's rise/run differ by 0.02/0.02 m and none of S1-S5 sees a stair).
+- `HC_ARCH_KIT` logs the number of tiles placed.
+
+## Regressions
+- **Black standing flames:** cause found in `HouseLighting.Bake`: `foreach(var material in materials)material.globalIlluminationFlags=EmissiveIsBlack` runs over every material in the layout, including `Castle_Flame`, so the art candelabra's mesh flames render black. `CastleWorld.UnifyFlames` hides those flame meshes and adds the same `CandleFlame` billboard (additive teardrop plus halo) used by the floating candles, plus a motionless `Floater` so the standing candelabras lean toward the Count too. The 40-odd standing candelabras are now non-static (they carry a script; lit by their own candle light and probes).
+- **S2 flames:** all candles burn now: 56 floating candles (40 placed inside the S2 view cone from (7,1.64,6.5), x 8.6-13.2, within +-45 degrees, y 1.5-5.2) plus the 6 standing candelabra candles that were black: well over 30 flame billboards in frame. No new Light components.
+- **Lean:** the r4 screen-space tilt rotated toward the Count's on-screen position, which is straight up when he perches above the candles (zero visible lean). It now leans along the horizontal part of the offset projected on the camera plane, and when that runs along the sight line (S5 stands beside the candles looking at him) toward the screen side he is on, by `Floater.maxBendDegrees * Bend01` (55 deg max, about 33 at 6 m, about 50 at 3 m) relative to the candle's own (vertical) axis. `HC_LEAN_CHECK flame leans N deg off its candle ...` logs the first flame at or over 20 degrees.
+- **Ribs and the table (numeric check):** `CastleWorld.SkeletonLift` samples the spine, 30 rib curves and the legs (formulas copied from `tools/castle_props.py`), keeps the points inside the table footprint, and logs `HC_SKELETON_TABLE ... min bone y ... clearance`. It showed the r4 layout (4.95 x 1.4 m table) really did intersect (end ribs and hips down to y 0.46 against a 0.95 m top): the first/last ribs bow only 0.4-0.6 m out and end near the floor. The table is now 3.5 x 1.0 m, centred on the spine 1.5 m toward the head, where the ribs bow out: computed clearance 0.58 m, no lift needed (the code lifts the skeleton automatically if a future change drops it under 0.2 m).
+- **Ceiling:** see Great hall above. The look builder's vault fill light should aim at `Hall vault` (non-static, so realtime lights light it).
+
+## Not done / risks
+- The tiles are 0.125 m deep reliefs, not 0.5 m masonry: the walls still have box silhouettes; true thick walls would need collision proxies and a route re-validation.
+- Tower/spire "art" does not exist in Resources/Castle; the towers stay primitives with the stone and blackstone materials.
+- Static batching is not flagged by the bake (only ContributeGI): the veneer relies on dynamic batching of equal-material modules.
+- Re-bake required; `ValidateCastleGeometry` and a frame-time capture of S1 (budget 14 ms) are still to run.

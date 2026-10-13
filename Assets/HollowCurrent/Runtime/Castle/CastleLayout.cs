@@ -139,6 +139,10 @@ namespace HollowCurrent
             public const string FloatingBook = "FloatingBook";       // open book, pages up
             public const string Banner = "Banner";                   // oxblood hanging banner, origin floor centre
             public const string StoneFont = "StoneFont";
+            public const string Wall2m = "Wall_2m", Wall4m = "Wall_4m";   // 0.5 m thick stone wall modules with plinth and cornice, 3.2 m tall, symmetric front/back
+            public const string PointedArch = "PointedArch";             // free-standing arch on two piers, 3.9 x 5.1 m, 3.0 m clear span
+            public const string VaultRib = "VaultRib";                   // pointed rib, springs at x +-2, rise 2.84, origin on the spring line
+            public const string FloorTile = "FloorTile";                 // 2 x 2 m flagstone, origin centre of the top face
             public const string DrawbridgeChains = "DrawbridgeChains"; // static pair of chains from the lowered leaf's far corners up to the gate
             public const string CoffinNiche = "CoffinNiche";         // origin at the front face; recess runs back 1.2 m, the coffin projects 1.15 m
         }
@@ -290,9 +294,12 @@ namespace HollowCurrent
         public const float SkeletonYaw = 53.1f;
         public const float SkeletonScale = 1.0f;
         public const float SkeletonScaleY = 1.2f;
-        public static readonly Vector3 TablePos = new Vector3(-0.7f, 0, 23.05f);
+        // Round 5: the numeric check (CastleWorld.SkeletonLift, mirrored offline) showed the end ribs and the hips reach down to
+        // 0.4-1.0 m inside a 4.95 x 1.4 m table. The table is now 3.5 x 1.0 m, centred on the spine 1.5 m toward the head, where
+        // the ribs are tall and bowed outward; any remaining shortfall below a 0.2 m clearance is lifted out at build time.
+        public static readonly Vector3 TablePos = new Vector3(-1.54f, 0, 22.62f);
         public const float TableYaw = -36.9f;      // table length axis along the spine
-        public const float TableLengthScale = .75f;
+        public const float TableLengthScale = .53f, TableWidthScale = .714f;
 
         // Camera lines the dressing must stay clear of (round 4): S5 looks from the hall floor up at the Count's perch,
         // S6 stands in the gatehouse. Nothing that floats may sit within 2 m of the eye-to-subject segment.
@@ -332,9 +339,9 @@ namespace HollowCurrent
         // Hung on the wall faces between the clerestory windows (west/east) and flanking the rose window (north).
         public static readonly CastleBannerDef[] HallBanners =
         {
-            new CastleBannerDef(-5.62f, 3.9f, 19.5f, 90), new CastleBannerDef(-5.62f, 3.9f, 23.3f, 90),
-            new CastleBannerDef(5.62f, 3.9f, 19.5f, -90), new CastleBannerDef(5.62f, 3.9f, 23.3f, -90),
-            new CastleBannerDef(-2.4f, 3.9f, 27.52f, 180), new CastleBannerDef(2.4f, 3.9f, 27.52f, 180),
+            new CastleBannerDef(-5.45f, 3.9f, 19.5f, 90), new CastleBannerDef(-5.45f, 3.9f, 23.3f, 90),
+            new CastleBannerDef(5.45f, 3.9f, 19.5f, -90), new CastleBannerDef(5.45f, 3.9f, 23.3f, -90),
+            new CastleBannerDef(-2.4f, 3.9f, 27.35f, 180), new CastleBannerDef(2.4f, 3.9f, 27.35f, 180),
         };
 
         // Chapel: knocked-over pews. Roll is about the pew's own length axis; the top leans toward +x for positive roll.
@@ -392,7 +399,7 @@ namespace HollowCurrent
             // great hall
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
-            new CastleCandleDef(new Vector3(.1f, .95f, 23.65f), .8f), new CastleCandleDef(new Vector3(-1.5f, .95f, 22.45f), .8f),
+            new CastleCandleDef(new Vector3(-.9f, .95f, 23.1f), .8f), new CastleCandleDef(new Vector3(-2.18f, .95f, 22.14f), .8f),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall
