@@ -45,6 +45,7 @@ namespace HollowCurrent
         [Tooltip("Tilt wobble in degrees (books like this larger, candelabras smaller).")] public float tiltDegrees=2.5f;
         [Tooltip("Phase offset in cycles. Negative derives one from the start position, so floaters never bob in unison.")]
         public float phase=-1;
+        [Tooltip("Capture code must not hide this floater (the S5 ledge candelabras).")] public bool neverHide;
 
         [Header("Candle tell")]
         [Tooltip("Flames lean toward this transform. Set for all floaters with Floater.SetFlameTarget.")]

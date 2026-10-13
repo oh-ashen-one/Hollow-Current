@@ -57,18 +57,22 @@ namespace HollowCurrent
 
         // ---- the lean lives in the flame shader (HollowCurrent/CastleFlame) ----
         // The billboard only faces the viewer. Its material reads _LeanDir (world direction to the Count, w = side hint) and
-        // _LeanAmount (degrees) from a per-renderer MaterialPropertyBlock, and the vertex stage shifts the quad's tip sideways along
-        // the camera-right of the view plane by tan(amount) * height * (y along the quad). Nothing done to the transform afterwards
-        // (facing code, batching, the saved scene) can cancel it. LeanTipOffset mirrors the shader exactly, for the self-test.
-        public static Vector3 LeanTipOffset(Vector3 basePosition,Vector3 viewerPosition,Vector3 leanDirection,float sideHint,float degrees,float height)
+        // _LeanAmount (degrees, clamped to MaxLean) from a per-renderer MaterialPropertyBlock, and the vertex stage ROTATES the quad
+        // about its base: a vertex at fraction f along the quad (0 at the wick, 1 at the tip) moves by
+        //   right*sign*sin(a)*height*f - quadUp*(1-cos(a))*height*f.
+        // LeanVertexOffset mirrors the shader exactly, for the self-test. f = 0 gives exactly zero: the wick never moves.
+        public const float MaxLean=45f;
+        public static Vector3 LeanVertexOffset(Vector3 vertexWorld,Vector3 viewerPosition,Vector3 quadUp,Vector3 leanDirection,float sideHint,float degrees,float height,float f)
         {
-            var view=(basePosition-viewerPosition).normalized;
+            if(degrees<=.01f)return Vector3.zero;
+            var view=(vertexWorld-viewerPosition).normalized;
             var right=Vector3.Cross(Vector3.up,view);
             if(right.sqrMagnitude<1e-6f)right=SurrealProps.ViewerRight;
             right.Normalize();
             float side=Vector3.Dot(leanDirection,right);
             float sign=Mathf.Abs(side)>.05f?Mathf.Sign(side):(sideHint>=0?1f:-1f);
-            return right*(sign*Mathf.Tan(Mathf.Min(degrees,80f)*Mathf.Deg2Rad)*height);
+            float a=Mathf.Min(degrees,MaxLean)*Mathf.Deg2Rad;
+            return (right*(sign*Mathf.Sin(a))-quadUp.normalized*(1f-Mathf.Cos(a)))*(height*f);
         }
 
         // Self-test (HC_LEAN_CHECK). For the three leaning flames nearest the camera it projects the flame's base and its tip, with
@@ -93,13 +97,36 @@ namespace HollowCurrent
             for(int i=0;i<n;i++)
             {
                 var f=pick[i];var b=f.billboard;float h=Mathf.Max(.01f,b.lossyScale.y);
-                var baseWorld=b.position;var dir=f.lastLeanDir;
-                var tipWorld=baseWorld+b.up*h+LeanTipOffset(baseWorld,cam.transform.position,dir,f.seed>50?1f:-1f,f.leanNow,h);
-                Vector2 p0=cam.WorldToScreenPoint(baseWorld),tip=(Vector2)cam.WorldToScreenPoint(tipWorld)-p0,candle=(Vector2)cam.WorldToScreenPoint(baseWorld+Vector3.up*h)-p0;
+                var baseWorld=b.position;var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;var cp=cam.transform.position;
+                var tipWorld=baseWorld+b.up*h+LeanVertexOffset(baseWorld+b.up*h,cp,b.up,dir,hint,f.leanNow,h,1f);
+                // the wick (base vertices, f = 0): where the vertex stage puts it with the lean applied against where it sits with none
+                var baseAfter=baseWorld+LeanVertexOffset(baseWorld,cp,b.up,dir,hint,f.leanNow,h,0f);
+                Vector2 p0=cam.WorldToScreenPoint(baseWorld),p0After=cam.WorldToScreenPoint(baseAfter);
+                Vector2 tip=(Vector2)cam.WorldToScreenPoint(tipWorld)-p0,candle=(Vector2)cam.WorldToScreenPoint(baseWorld+Vector3.up*h)-p0;
                 float amount=-1;Vector4 sent=Vector4.zero;string shader="<no renderer>";
                 if(f.flameRenderer){f.flameRenderer.GetPropertyBlock(block);amount=block.GetFloat(LeanAmountId);sent=block.GetVector(LeanDirId);var m=f.flameRenderer.sharedMaterial;shader=m&&m.shader?m.shader.name+(m.shader.isSupported?"":" (NOT SUPPORTED)"):"<none>";}
-                Debug.Log("HC_LEAN_CHECK "+tag+" candle "+(i+1)+" at "+dist[i].ToString("F1")+" m: rendered flame tip is tilted "+Mathf.Abs(Vector2.SignedAngle(candle,tip)).ToString("F0")+" deg on screen from its candle axis (tip "+Vector2.SignedAngle(Vector2.up,tip).ToString("F0")+" deg, candle "+Vector2.SignedAngle(Vector2.up,candle).ToString("F0")+" deg from screen vertical); shader "+shader+", property block _LeanAmount="+amount.ToString("F1")+" _LeanDir=("+sent.x.ToString("F2")+","+sent.y.ToString("F2")+","+sent.z.ToString("F2")+")");
+                Debug.Log("HC_LEAN_CHECK "+tag+" candle "+(i+1)+" at "+dist[i].ToString("F1")+" m: wick screen position before lean ("+p0.x.ToString("F1")+","+p0.y.ToString("F1")+") after ("+p0After.x.ToString("F1")+","+p0After.y.ToString("F1")+") moved "+Vector2.Distance(p0,p0After).ToString("F2")+" px; rendered flame tip is tilted "+Mathf.Abs(Vector2.SignedAngle(candle,tip)).ToString("F0")+" deg on screen from its candle axis, tip distance from wick "+tip.magnitude.ToString("F0")+" px (unleaned "+candle.magnitude.ToString("F0")+" px); shader "+shader+", property block _LeanAmount="+amount.ToString("F1")+" _LeanDir=("+sent.x.ToString("F2")+","+sent.y.ToString("F2")+","+sent.z.ToString("F2")+")");
             }
+            if(tag.StartsWith("S5",System.StringComparison.Ordinal))LogLedgeCandles(cam);
+        }
+        // HC_S5_CANDLES: how many ledge candelabras (Floater.neverHide) exist, are still enabled after the capture's hide-for-shot
+        // pass, and have a flame inside the camera frame.
+        static void LogLedgeCandles(Camera cam)
+        {
+            int total=0,visible=0,inFrame=0;
+            foreach(var fl in Floater.All)
+            {
+                if(!fl||!fl.neverHide)continue;
+                total++;
+                var rend=fl.GetComponentInChildren<Renderer>();
+                if(rend&&rend.enabled)visible++;
+                foreach(var fc in fl.GetComponentsInChildren<CandleFlame>())
+                {
+                    var vp=cam.WorldToViewportPoint(fc.transform.position);
+                    if(vp.z>0&&vp.x>0&&vp.x<1&&vp.y>0&&vp.y<1){inFrame++;break;}
+                }
+            }
+            Debug.Log("HC_S5_CANDLES "+total+" (enabled "+visible+", with a flame in frame "+inFrame+")");
         }
         static void MaybeReport()
         {
@@ -164,7 +191,7 @@ namespace HollowCurrent
                 float want=0;
                 if(floater&&floater.flameTarget&&floater.Bend01>.01f)
                 {
-                    want=floater.maxBendDegrees*floater.Bend01;
+                    want=Mathf.Min(MaxLean,floater.maxBendDegrees*floater.Bend01);
                     var toTarget=floater.flameTarget.position+Vector3.up*1.2f-billboard.position;
                     if(toTarget.sqrMagnitude>1e-4f)lastLeanDir=toTarget.normalized;
                 }
@@ -182,7 +209,7 @@ namespace HollowCurrent
                 {
                     float h=billboard.lossyScale.y;
                     var pos=billboard.position+billboard.up*(h*.45f);
-                    if(leanNow>0&&haveViewer)pos+=LeanTipOffset(billboard.position,viewer,lastLeanDir,seed>50?1f:-1f,leanNow,h)*.45f;
+                    if(leanNow>0&&haveViewer)pos+=LeanVertexOffset(pos,viewer,billboard.up,lastLeanDir,seed>50?1f:-1f,leanNow,h,.45f);
                     glow.position=pos;
                 }
             }

@@ -48,3 +48,31 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Round 8 (hc/arch8): flames stay on their wicks, S5 candles, set pieces sized
+
+Not seen in an engine; `check_source.py` PASS. The shader was edited without a compiler: if it fails to compile, `HC_FLAME_CHECK` / `HC_LEAN_CHECK` print `shader ... (NOT SUPPORTED)`.
+
+## 1. Detached / streaking flames
+- **Cause (by arithmetic):** the r7 vertex shader sheared the quad: tip offset `tan(a) * height`. At the 55 degree cap on a 0.17 m flame seen from 0.7 m that is a 0.24 m (about 340 px) sideways step for the tip, and the length grew by 1/cos(a): the bright upper body detached from the faint base (petals) or stretched (streaks). The base vertices were already exactly 0; the quad itself was fine.
+- **Fix:** the flame is now rotated about its wick: offset = `right*sign*sin(a)*height*f - quadUp*(1-cos(a))*height*f` (f = local y, 0 at the base vertices). Length is preserved, f = 0 is exactly zero, and `a` is clamped to 45 degrees in the shader, in `CandleFlame` (`MaxLean`) and in the C# mirror `LeanVertexOffset`.
+- **Verification log:** `HC_LEAN_CHECK` now prints, for the 3 nearest leaning candles, the wick's screen position before and after the lean (`moved N px`, must be 0.00), the tip's angle against the candle axis, the tip's distance from the wick in px against the unleaned flame length (these two should be close, no streak), and the property block read back from the renderer. S5 and H05 call `CandleFlame.LogLeanReport` already.
+
+## 2. S5 candles
+- The r7 ledge candelabras hung at y 3.9-4.8, below the S5 frame: the capture eye is at about (0,6.33,24.2) looking at (0,6.52,26.9), FOV 50, pitch 4 up (frame at z 26.5: y 5.4-7.6). Cause was placement, not the hide filter. `CastleLayout.S5LedgeCandelabras`: hubs (+-1.6,5.4,26.8), (+-2.0,5.2,27.0), (+-2.3,5.6,27.3), scale 1.6, billboard flames and halos, `Floater.neverHide = true`; `CaptureMode` skips `neverHide` floaters in its hide-for-shot pass (one-line edit in that file). Offline projection with that camera puts all six flames at viewport x 0.05-0.95, y 0.21-0.37 (lower third), 1.6-2.3 m off the eye-to-Count line.
+- `HC_S5_CANDLES n (enabled m, with a flame in frame k)` is logged right after the S5 lean report.
+- `CastleLayout.S5Eye/S5Subject` follow the new eye for the floater filter.
+
+## 3. Set pieces from the capture eyes (`SetPiece` component, `HC_SETPIECE <shot> <name> <h>%` logged after S1-S4 shots)
+Offline estimates with a plain pinhole model (bounds, no occlusion):
+- **S2 altar sockets: 7.1%** of frame height from (7,1.64,6.5) pitched 10 down, FOV 72. The sockets are now three silver relic plinths 0.30 m tall (blade, cross, round) on the 8 degree slab, each with a dark inset face and a lit ember (billboard flame).
+- **S3 vault: 41.5%** (three pointed VaultRib arches over the crypt at z 18, 21, 24, springing at x +-5.6, y -1.7, apex -0.28) and **niche band 10.6%** (the 5 north-wall niches with lit candles) from (0,-1.56,15.4) to (0,-2.3,24).
+- **S4 keep: 21.6%** whole block, about 11% above the wall line: a crenellated 8 x 14.4 x 8 m keep block on the hall roof (z 14-22, top y 23.6, coursed faces, Battlement art, spire to y 35.6) replaces the cylinder keep; the front walls hide everything under about 19.6 degrees from the S4 eye. **Plank deck: 14.3%** (the leaf; it was already in frame, rows about 1226-1387, but dark): planks now a brightened world-space Castle_OakPlank with 0.3 m boards (tile 0.83/m), plus four lit candle posts on the parapets.
+- **S1 dais + throne: 17.5%** (two 0.2 m steps, z 25.5-27.55, throne on top, facing the doors) and **chandelier: 40.8%** (scaled 1.4: ring 2.4 m, hub (0,3.9,22.9)). The table shrank to 3.3 m (z 22.05-25.35) to make room.
+- Tag objects carry only explicit bounds (separate empty objects), so the keep, dais and arches stay in the bakeable statics except the altar slab, chandelier and deck (already scripted).
+
+## Needs the integrator
+- Re-bake (new geometry in hall, crypt, exterior, chapel).
+- The keep block and its tiles are lit only by the baked moons and the exterior fills; if the next S4 shows it as a flat silhouette, that is a lighting question for look.
