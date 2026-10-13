@@ -1,0 +1,312 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace HollowCurrent
+{
+    // Data for the Haunted Castle: rooms, doors, windows, candelabra and the art-name contract.
+    // Coordinates are castle-local (the root passed to CastleWorld.Build). Footprint x +-14, z 0..28,
+    // the gate wall is z = 0 and the outside world lies at z < 0.
+    public enum CastleDoorKind { Standard, Great, Service, Gate }
+
+    public enum CastleRoom
+    {
+        Outside, Gatehouse, Courtyard, GreatHall, DiningHall, Kitchen, Chapel, Vestibule,
+        Library, PortraitHall, Bedchamber, Balcony, Observatory, Crypt, Reliquary, ServiceStair, PortraitCloset
+    }
+
+    public readonly struct CastleRoomDef
+    {
+        public readonly CastleRoom Id;
+        public readonly string Name;
+        public readonly float Floor, Ceiling, X0, X1, Z0, Z1;
+        public CastleRoomDef(CastleRoom id, string name, float floor, float ceiling, float x0, float x1, float z0, float z1)
+        { Id = id; Name = name; Floor = floor; Ceiling = ceiling; X0 = x0; X1 = x1; Z0 = z0; Z1 = z1; }
+        public bool Contains(Vector3 p) => p.x >= X0 && p.x <= X1 && p.z >= Z0 && p.z <= Z1 && p.y >= Floor - 0.3f && p.y <= Ceiling;
+        public Vector3 Center => new Vector3((X0 + X1) * .5f, Floor + .1f, (Z0 + Z1) * .5f);
+    }
+
+    public readonly struct CastleDoorDef
+    {
+        public readonly string Name;
+        public readonly bool RunsAlongX;   // true: wall runs along X at z = Line; false: wall runs along Z at x = Line
+        public readonly float Line, Center, FloorY;
+        public readonly CastleDoorKind Kind;
+        public readonly CastleRoom From, To;
+        public CastleDoorDef(string name, bool runsAlongX, float line, float center, float floorY, CastleDoorKind kind, CastleRoom from, CastleRoom to)
+        { Name = name; RunsAlongX = runsAlongX; Line = line; Center = center; FloorY = floorY; Kind = kind; From = from; To = to; }
+        public float Width => CastleLayout.DoorWidth(Kind);
+        public float Height => CastleLayout.DoorHeight(Kind);
+        public bool IsService => Kind == CastleDoorKind.Service;
+        public Vector3 Position => RunsAlongX ? new Vector3(Center, FloorY, Line) : new Vector3(Line, FloorY, Center);
+    }
+
+    public readonly struct CastleWindowDef
+    {
+        public readonly bool RunsAlongX;
+        public readonly float Line, Center, FloorY, Width, Sill, Top;
+        public readonly int Inward;        // +1 / -1: direction of the room along the wall normal
+        public readonly string Art;
+        public readonly bool Light, Shadows;
+        public CastleWindowDef(bool runsAlongX, float line, float center, float floorY, float width, float sill, float top, int inward, string art, bool light, bool shadows = false)
+        { RunsAlongX = runsAlongX; Line = line; Center = center; FloorY = floorY; Width = width; Sill = sill; Top = top; Inward = inward; Art = art; Light = light; Shadows = shadows; }
+    }
+
+    public readonly struct CastleCandleDef
+    {
+        public readonly Vector3 Pos;       // base of the stand (floor or table top)
+        public readonly float Intensity, Range, LightHeight;
+        public readonly bool Art, Shadows;
+        public CastleCandleDef(Vector3 pos, float intensity, float range = 5.5f, bool shadows = false, bool art = true, float lightHeight = 1.8f)
+        { Pos = pos; Intensity = intensity; Range = range; Shadows = shadows; Art = art; LightHeight = lightHeight; }
+    }
+
+    public static class CastleLayout
+    {
+        // ---- constants -------------------------------------------------------------------------
+        public const float FloorCrypt = -3.2f, FloorGround = 0f, FloorUpper = 3.2f, FloorTower = 6.4f;
+        public const float HalfWidth = 14f, Depth = 28f;
+        public const float HallCeiling = 9f;
+        public const float StandardDoorW = 1.5f, StandardDoorH = 2.0f;
+        public const float GreatDoorW = 3.0f, GreatDoorH = 4.5f;
+        public const float ServiceDoorW = 0.9f, ServiceDoorH = 2.0f;
+        public const string ServiceDoorPrefix = "Service door / ";
+        public const string StandardDoorPrefix = "Door / ";
+        public const string GreatDoorPrefix = "Great door / ";
+
+        public static float DoorWidth(CastleDoorKind k) => k == CastleDoorKind.Great || k == CastleDoorKind.Gate ? GreatDoorW : k == CastleDoorKind.Service ? ServiceDoorW : StandardDoorW;
+        public static float DoorHeight(CastleDoorKind k) => k == CastleDoorKind.Great || k == CastleDoorKind.Gate ? GreatDoorH : k == CastleDoorKind.Service ? ServiceDoorH : StandardDoorH;
+
+        // ---- art contract with piece 2 (hc/art) -------------------------------------------------
+        // CastleArt.Place(name, parent, localPos, rot): origin at the BASE CENTRE of the object, front faces +Z
+        // at yaw 0. Nominal sizes are in ArtSizes (x = width, y = height, z = depth) and are what the layout reserves.
+        public static class ArtNames
+        {
+            // gate and exterior
+            public const string GateArch = "GateArch";               // frames the 3.0 x 4.5 gate opening, centred on the wall line
+            public const string Drawbridge = "Drawbridge";           // origin = hinge line on the top surface, extends toward -Z (lowered pose)
+            public const string Winch = "Winch";
+            public const string LanternCart = "LanternCart";
+            public const string Buttress = "Buttress";
+            public const string Battlement = "Battlement";
+            // openings
+            public const string DoorFrame = "DoorFrame";             // around a 1.5 x 2.0 opening, centred on the wall
+            public const string GreatDoorFrame = "GreatDoorFrame";   // around a 3.0 x 4.5 opening
+            public const string ServiceDoorFrame = "ServiceDoorFrame"; // around a 0.9 x 2.0 opening
+            public const string DoorLeaf = "DoorLeaf";               // origin at hinge end centre of the leaf: leaf extends +X from the hinge
+            public const string GreatDoorLeaf = "GreatDoorLeaf";     // one half (1.5 x 4.5) of the double door
+            public const string ServiceDoorLeaf = "ServiceDoorLeaf";
+            public const string PortraitDoorLeaf = "PortraitDoorLeaf"; // 0.9 x 2.0 leaf painted as a portrait, hinge at origin
+            public const string LancetWindow = "LancetWindow";       // base at the sill
+            public const string TallLancetWindow = "TallLancetWindow";
+            public const string ClerestoryWindow = "ClerestoryWindow";
+            public const string ObservatoryWindow = "ObservatoryWindow";
+            public const string RoseWindow = "RoseWindow";           // base at the opening bottom
+            // structure
+            public const string ColumnGreat = "ColumnGreat";         // great hall column, floor to ceiling
+            public const string Column = "Column";                   // 3.0 m column (crypt)
+            public const string CryptRib = "CryptRib";               // vaulting rib spanning the crypt between a column pair
+            public const string RafterBeam = "RafterBeam";
+            public const string Balustrade = "Balustrade";           // 2.0 m rail section
+            public const string Fountain = "Fountain";
+            public const string DeadTree = "DeadTree";
+            public const string Candelabra = "Candelabra";
+            // furniture and set-dressing
+            public const string Pew = "Pew";
+            public const string Altar = "Altar";
+            public const string ChapelBell = "ChapelBell";
+            public const string LongTable = "LongTable";
+            public const string DiningTable = "DiningTable";
+            public const string HighBackChair = "HighBackChair";
+            public const string Throne = "Throne";
+            public const string Fireplace = "Fireplace";
+            public const string Sideboard = "Sideboard";
+            public const string KitchenHearth = "KitchenHearth";
+            public const string ButcherBlock = "ButcherBlock";
+            public const string Cauldron = "Cauldron";
+            public const string Bookshelf = "Bookshelf";
+            public const string ReadingTable = "ReadingTable";
+            public const string Lectern = "Lectern";
+            public const string Portrait = "Portrait";
+            public const string CanopyBed = "CanopyBed";
+            public const string Orrery = "Orrery";
+            public const string Telescope = "Telescope";
+            public const string Sarcophagus = "Sarcophagus";
+            public const string CryptBridge = "CryptBridge";
+            public const string ReliquaryBox = "ReliquaryBox";
+            public const string Pedestal = "Pedestal";
+        }
+
+        static readonly Dictionary<string, Vector3> sizes = new Dictionary<string, Vector3>
+        {
+            { ArtNames.GateArch, new Vector3(3.8f, 5.6f, 1.0f) }, { ArtNames.Drawbridge, new Vector3(3.2f, .25f, 6.0f) },
+            { ArtNames.Winch, new Vector3(1.0f, 1.6f, .8f) }, { ArtNames.LanternCart, new Vector3(1.8f, 1.3f, 1.0f) },
+            { ArtNames.Buttress, new Vector3(.9f, 6.4f, 1.2f) }, { ArtNames.Battlement, new Vector3(4.0f, 1.0f, .8f) },
+            { ArtNames.DoorFrame, new Vector3(1.9f, 2.6f, .8f) }, { ArtNames.GreatDoorFrame, new Vector3(3.6f, 5.2f, .9f) },
+            { ArtNames.ServiceDoorFrame, new Vector3(1.2f, 2.3f, .8f) },
+            { ArtNames.DoorLeaf, new Vector3(1.5f, 2.0f, .09f) }, { ArtNames.GreatDoorLeaf, new Vector3(1.5f, 4.5f, .12f) },
+            { ArtNames.ServiceDoorLeaf, new Vector3(.9f, 2.0f, .08f) }, { ArtNames.PortraitDoorLeaf, new Vector3(.9f, 2.0f, .1f) },
+            { ArtNames.LancetWindow, new Vector3(1.2f, 1.6f, .35f) }, { ArtNames.TallLancetWindow, new Vector3(1.4f, 3.5f, .35f) },
+            { ArtNames.ClerestoryWindow, new Vector3(1.2f, 1.8f, .35f) }, { ArtNames.ObservatoryWindow, new Vector3(1.6f, 2.7f, .35f) },
+            { ArtNames.RoseWindow, new Vector3(3.0f, 3.0f, .5f) },
+            { ArtNames.ColumnGreat, new Vector3(.9f, 8.8f, .9f) }, { ArtNames.Column, new Vector3(.7f, 3.0f, .7f) },
+            { ArtNames.CryptRib, new Vector3(8.4f, .6f, .6f) }, { ArtNames.RafterBeam, new Vector3(11.4f, .5f, .5f) },
+            { ArtNames.Balustrade, new Vector3(2.0f, 1.1f, .2f) }, { ArtNames.Fountain, new Vector3(2.6f, 1.8f, 2.6f) },
+            { ArtNames.DeadTree, new Vector3(2.4f, 4.5f, 2.4f) }, { ArtNames.Candelabra, new Vector3(.5f, 1.7f, .5f) },
+            { ArtNames.Pew, new Vector3(2.4f, 1.0f, .7f) }, { ArtNames.Altar, new Vector3(2.4f, 1.1f, 1.1f) },
+            { ArtNames.ChapelBell, new Vector3(1.2f, 2.0f, .9f) }, { ArtNames.LongTable, new Vector3(6.6f, .95f, 1.4f) },
+            { ArtNames.DiningTable, new Vector3(5.6f, .9f, 1.6f) }, { ArtNames.HighBackChair, new Vector3(.6f, 1.3f, .6f) },
+            { ArtNames.Throne, new Vector3(1.0f, 1.9f, .9f) }, { ArtNames.Fireplace, new Vector3(2.6f, 2.6f, .9f) },
+            { ArtNames.Sideboard, new Vector3(2.6f, 1.1f, .6f) }, { ArtNames.KitchenHearth, new Vector3(2.8f, 2.4f, 1.0f) },
+            { ArtNames.ButcherBlock, new Vector3(1.5f, .9f, 1.0f) }, { ArtNames.Cauldron, new Vector3(1.0f, .9f, 1.0f) },
+            { ArtNames.Bookshelf, new Vector3(2.0f, 3.0f, .5f) }, { ArtNames.ReadingTable, new Vector3(2.0f, .85f, 1.0f) },
+            { ArtNames.Lectern, new Vector3(.7f, 1.2f, .6f) }, { ArtNames.Portrait, new Vector3(.9f, 1.3f, .1f) },
+            { ArtNames.CanopyBed, new Vector3(2.4f, 2.8f, 2.6f) }, { ArtNames.Orrery, new Vector3(3.0f, 2.8f, 3.0f) },
+            { ArtNames.Telescope, new Vector3(1.0f, 2.2f, 2.4f) }, { ArtNames.Sarcophagus, new Vector3(2.2f, 1.2f, 1.0f) },
+            { ArtNames.CryptBridge, new Vector3(1.4f, .3f, 1.2f) }, { ArtNames.ReliquaryBox, new Vector3(1.0f, 1.0f, .7f) },
+            { ArtNames.Pedestal, new Vector3(.6f, 1.0f, .6f) },
+        };
+        public static IReadOnlyDictionary<string, Vector3> ArtSizes => sizes;
+        public static Vector3 ArtSize(string name) => sizes.TryGetValue(name, out var s) ? s : Vector3.one;
+
+        // ---- rooms ------------------------------------------------------------------------------
+        // Order matters for RoomAt: Balcony before GreatHall.
+        public static readonly CastleRoomDef[] Rooms =
+        {
+            new CastleRoomDef(CastleRoom.Gatehouse, "Gatehouse", 0, 5f, -6, 6, 0, 6),
+            new CastleRoomDef(CastleRoom.Courtyard, "Courtyard", 0, 12f, -6, 6, 6, 14),
+            new CastleRoomDef(CastleRoom.Balcony, "Balcony", 3.2f, 9f, -5.7f, 5.7f, 14.3f, 27.7f),
+            new CastleRoomDef(CastleRoom.GreatHall, "Great hall", 0, 9f, -6, 6, 14, 28),
+            new CastleRoomDef(CastleRoom.Kitchen, "Kitchen", 0, 3f, -14, -6, 0, 10),
+            new CastleRoomDef(CastleRoom.DiningHall, "Dining hall", 0, 3f, -14, -6, 10, 22),
+            new CastleRoomDef(CastleRoom.Chapel, "Chapel", 0, 6.2f, 6, 14, 0, 13),
+            new CastleRoomDef(CastleRoom.Vestibule, "Vestibule", 0, 3f, 6, 14, 13, 28),
+            new CastleRoomDef(CastleRoom.Bedchamber, "Count's bedchamber", 3.2f, 6.2f, -14, -6, 0, 10),
+            new CastleRoomDef(CastleRoom.Library, "Library gallery", 3.2f, 6.2f, -14, -6, 10, 22),
+            new CastleRoomDef(CastleRoom.PortraitCloset, "Portrait closet", 3.2f, 6.2f, 11, 13.55f, 13.3f, 15.5f),
+            new CastleRoomDef(CastleRoom.PortraitHall, "Portrait hall", 3.2f, 6.2f, 6, 14, 13, 28),
+            new CastleRoomDef(CastleRoom.Observatory, "Observatory", 6.4f, 11.4f, 6, 14, 19.4f, 28),
+            new CastleRoomDef(CastleRoom.Crypt, "Crypt", -3.2f, -.2f, -6, 6, 14, 28),
+            new CastleRoomDef(CastleRoom.Reliquary, "Reliquary", -3.2f, -.2f, 6, 14, 16, 26),
+            new CastleRoomDef(CastleRoom.ServiceStair, "Service stair", -3.2f, 6.2f, -14, -6, 22, 28),
+        };
+
+        public static CastleRoom RoomAt(Vector3 p)
+        {
+            foreach (var r in Rooms) if (r.Contains(p)) return r.Id;
+            return CastleRoom.Outside;
+        }
+        public static CastleRoomDef Room(CastleRoom id) { foreach (var r in Rooms) if (r.Id == id) return r; return default; }
+
+        // ---- doors ------------------------------------------------------------------------------
+        public static readonly CastleDoorDef[] Doors =
+        {
+            new CastleDoorDef("Gate", true, 0, 0, 0, CastleDoorKind.Gate, CastleRoom.Outside, CastleRoom.Gatehouse),
+            new CastleDoorDef("Gatehouse great doors", true, 6, 0, 0, CastleDoorKind.Great, CastleRoom.Gatehouse, CastleRoom.Courtyard),
+            new CastleDoorDef("Gatehouse kitchen passage", false, -6, 3, 0, CastleDoorKind.Service, CastleRoom.Gatehouse, CastleRoom.Kitchen),
+            new CastleDoorDef("Gatehouse guard door", false, 6, 3, 0, CastleDoorKind.Standard, CastleRoom.Gatehouse, CastleRoom.Chapel),
+            new CastleDoorDef("Kitchen courtyard door", false, -6, 8, 0, CastleDoorKind.Standard, CastleRoom.Kitchen, CastleRoom.Courtyard),
+            new CastleDoorDef("Dining courtyard door", false, -6, 12, 0, CastleDoorKind.Standard, CastleRoom.DiningHall, CastleRoom.Courtyard),
+            new CastleDoorDef("Chapel great doors", false, 6, 9, 0, CastleDoorKind.Great, CastleRoom.Chapel, CastleRoom.Courtyard),
+            new CastleDoorDef("Hall great doors", true, 14, 0, 0, CastleDoorKind.Great, CastleRoom.Courtyard, CastleRoom.GreatHall),
+            new CastleDoorDef("Kitchen dining door", true, 10, -10, 0, CastleDoorKind.Standard, CastleRoom.Kitchen, CastleRoom.DiningHall),
+            new CastleDoorDef("Dining hall door", false, -6, 16, 0, CastleDoorKind.Standard, CastleRoom.DiningHall, CastleRoom.GreatHall),
+            new CastleDoorDef("Dining stair door", true, 22, -8, 0, CastleDoorKind.Service, CastleRoom.DiningHall, CastleRoom.ServiceStair),
+            new CastleDoorDef("Hall stair door", false, -6, 25, 0, CastleDoorKind.Service, CastleRoom.GreatHall, CastleRoom.ServiceStair),
+            new CastleDoorDef("Chapel vestibule door", true, 13, 10, 0, CastleDoorKind.Standard, CastleRoom.Chapel, CastleRoom.Vestibule),
+            new CastleDoorDef("Vestibule hall door", false, 6, 16, 0, CastleDoorKind.Standard, CastleRoom.Vestibule, CastleRoom.GreatHall),
+            new CastleDoorDef("Bedchamber library door", true, 10, -10, 3.2f, CastleDoorKind.Standard, CastleRoom.Bedchamber, CastleRoom.Library),
+            new CastleDoorDef("Library balcony door", false, -6, 16, 3.2f, CastleDoorKind.Standard, CastleRoom.Library, CastleRoom.Balcony),
+            new CastleDoorDef("Library stair door", true, 22, -8, 3.2f, CastleDoorKind.Service, CastleRoom.Library, CastleRoom.ServiceStair),
+            new CastleDoorDef("Portrait balcony door", false, 6, 16, 3.2f, CastleDoorKind.Standard, CastleRoom.PortraitHall, CastleRoom.Balcony),
+            new CastleDoorDef("Portrait door", false, 11, 14.4f, 3.2f, CastleDoorKind.Service, CastleRoom.PortraitHall, CastleRoom.PortraitCloset),
+            new CastleDoorDef("Crypt stair door", false, -6, 25, -3.2f, CastleDoorKind.Service, CastleRoom.Crypt, CastleRoom.ServiceStair),
+            new CastleDoorDef("Crypt reliquary door", false, 6, 21, -3.2f, CastleDoorKind.Standard, CastleRoom.Crypt, CastleRoom.Reliquary),
+        };
+
+        // The hunter AI reads this: a service door is 0.9 m wide and he must land and walk through it.
+        public static bool IsServiceDoor(Door d) => d && d.name.StartsWith(ServiceDoorPrefix);
+        public static string DoorPrefix(CastleDoorKind k) => k == CastleDoorKind.Service ? ServiceDoorPrefix : k == CastleDoorKind.Great ? GreatDoorPrefix : StandardDoorPrefix;
+
+        // ---- windows ----------------------------------------------------------------------------
+        // Exterior walls plus courtyard-facing walls. Inward is the direction of the room along the wall normal.
+        public static readonly CastleWindowDef[] Windows =
+        {
+            // west exterior (x = -14, room to +x)
+            new CastleWindowDef(false, -14, 5, 0, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, true),
+            new CastleWindowDef(false, -14, 13.5f, 0, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, true),
+            new CastleWindowDef(false, -14, 18.5f, 0, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, false),
+            new CastleWindowDef(false, -14, 5, 3.2f, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, true),
+            new CastleWindowDef(false, -14, 13.5f, 3.2f, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, true),
+            new CastleWindowDef(false, -14, 18.5f, 3.2f, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, false),
+            // south exterior (z = 0, room to +z)
+            new CastleWindowDef(true, 0, -10, 0, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, false),
+            new CastleWindowDef(true, 0, -10, 3.2f, 1.2f, 1.0f, 2.6f, 1, ArtNames.LancetWindow, false),
+            new CastleWindowDef(true, 0, 8.5f, 0, 1.4f, 1.4f, 4.9f, 1, ArtNames.TallLancetWindow, true),
+            new CastleWindowDef(true, 0, 11.5f, 0, 1.4f, 1.4f, 4.9f, 1, ArtNames.TallLancetWindow, false),
+            // east exterior (x = 14, room to -x)
+            new CastleWindowDef(false, 14, 3.5f, 0, 1.4f, 1.4f, 4.9f, -1, ArtNames.TallLancetWindow, true),
+            new CastleWindowDef(false, 14, 9.5f, 0, 1.4f, 1.4f, 4.9f, -1, ArtNames.TallLancetWindow, true),
+            new CastleWindowDef(false, 14, 18, 3.2f, 1.2f, 1.0f, 2.6f, -1, ArtNames.LancetWindow, true),
+            new CastleWindowDef(false, 14, 21, 6.4f, 1.6f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, true),
+            new CastleWindowDef(false, 14, 25, 6.4f, 1.6f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, false),
+            // north exterior (z = 28, room to -z)
+            new CastleWindowDef(true, 28, -4.4f, 0, 1.4f, 1.8f, 5.4f, -1, ArtNames.TallLancetWindow, true),
+            new CastleWindowDef(true, 28, 4.4f, 0, 1.4f, 1.8f, 5.4f, -1, ArtNames.TallLancetWindow, true),
+            new CastleWindowDef(true, 28, 0, 0, 3.0f, 5.6f, 8.6f, -1, ArtNames.RoseWindow, true, true),
+            new CastleWindowDef(true, 28, 9, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, true),
+            new CastleWindowDef(true, 28, 12, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, false),
+            // courtyard-facing
+            new CastleWindowDef(false, -6, 8, 3.2f, 1.2f, 1.0f, 2.6f, -1, ArtNames.LancetWindow, true),
+            new CastleWindowDef(false, -6, 12, 3.2f, 1.2f, 1.0f, 2.6f, -1, ArtNames.LancetWindow, false),
+            new CastleWindowDef(false, 6, 12, 0, 1.2f, 1.5f, 5.0f, 1, ArtNames.TallLancetWindow, false),
+            // great hall clerestory (above the wing roofs, looking outside)
+            new CastleWindowDef(false, -6, 17.5f, 0, 1.2f, 6.8f, 8.6f, 1, ArtNames.ClerestoryWindow, false),
+            new CastleWindowDef(false, -6, 21.5f, 0, 1.2f, 6.8f, 8.6f, 1, ArtNames.ClerestoryWindow, true, true),
+            new CastleWindowDef(false, -6, 25, 0, 1.2f, 6.8f, 8.6f, 1, ArtNames.ClerestoryWindow, false),
+            new CastleWindowDef(false, 6, 17.5f, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, false),
+            new CastleWindowDef(false, 6, 21.5f, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, true, true),
+            new CastleWindowDef(false, 6, 25, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, false),
+        };
+
+        // ---- candelabra -------------------------------------------------------------------------
+        // Warm point lights as in the house (intensity .5 - 1.2, range 5.5); only a few cast shadows.
+        public static readonly CastleCandleDef[] Candles =
+        {
+            // gatehouse
+            new CastleCandleDef(new Vector3(-4.8f, 0, 4.6f), .8f), new CastleCandleDef(new Vector3(4.8f, 0, 4.8f), .8f),
+            // courtyard (dim)
+            new CastleCandleDef(new Vector3(-4.6f, 0, 7.6f), .6f), new CastleCandleDef(new Vector3(4.6f, 0, 12.4f), .6f),
+            // great hall
+            new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
+            new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
+            new CastleCandleDef(new Vector3(-2.5f, .95f, 25.9f), .8f), new CastleCandleDef(new Vector3(2.5f, .95f, 25.9f), .8f),
+            // balcony
+            new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
+            // dining hall
+            new CastleCandleDef(new Vector3(-10f, .9f, 14.0f), .9f), new CastleCandleDef(new Vector3(-10f, .9f, 18.0f), .9f),
+            // kitchen
+            new CastleCandleDef(new Vector3(-12.4f, 0, 8.6f), .8f), new CastleCandleDef(new Vector3(-12.2f, .2f, 5.0f), 1.1f, 5.5f, false, false, 1.0f),
+            // chapel
+            new CastleCandleDef(new Vector3(12.7f, .32f, 4.8f), .9f, 6.5f), new CastleCandleDef(new Vector3(12.7f, .32f, 8.2f), .9f, 6.5f),
+            new CastleCandleDef(new Vector3(8.0f, 0, 1.2f), .6f),
+            // vestibule
+            new CastleCandleDef(new Vector3(12.5f, 0, 15.5f), .8f), new CastleCandleDef(new Vector3(12.5f, 0, 26.5f), .6f),
+            // library
+            new CastleCandleDef(new Vector3(-10.5f, 4.05f, 16.8f), .8f), new CastleCandleDef(new Vector3(-8.0f, 3.2f, 20.6f), .6f), new CastleCandleDef(new Vector3(-12.6f, 3.2f, 11.2f), .6f),
+            // bedchamber
+            new CastleCandleDef(new Vector3(-8.0f, 3.2f, 2.0f), .7f), new CastleCandleDef(new Vector3(-10.2f, 3.2f, 8.8f), .7f),
+            // portrait hall
+            new CastleCandleDef(new Vector3(9.8f, 3.2f, 17.0f), .7f), new CastleCandleDef(new Vector3(9.8f, 3.2f, 21.0f), .7f), new CastleCandleDef(new Vector3(13.1f, 3.2f, 13.9f), .5f, 3.5f),
+            // observatory
+            new CastleCandleDef(new Vector3(7.3f, 6.4f, 21.0f), .7f), new CastleCandleDef(new Vector3(8.0f, 6.4f, 27.0f), .6f),
+            // crypt (dimmer, as the house basement)
+            new CastleCandleDef(new Vector3(-4.6f, -3.2f, 20.0f), .55f), new CastleCandleDef(new Vector3(4.6f, -3.2f, 20.0f), .55f),
+            new CastleCandleDef(new Vector3(-2.4f, -3.2f, 15.2f), .5f), new CastleCandleDef(new Vector3(2.4f, -3.2f, 15.2f), .5f), new CastleCandleDef(new Vector3(0, -3.2f, 26.8f), .5f),
+            // reliquary
+            new CastleCandleDef(new Vector3(7.2f, -3.2f, 17.0f), .5f), new CastleCandleDef(new Vector3(7.2f, -3.2f, 25.0f), .5f),
+            new CastleCandleDef(new Vector3(13.0f, -3.2f, 18.8f), .55f), new CastleCandleDef(new Vector3(13.0f, -3.2f, 23.2f), .55f),
+            // service stair
+            new CastleCandleDef(new Vector3(-7.2f, -3.2f, 25.6f), .45f), new CastleCandleDef(new Vector3(-7.2f, 0, 25.4f), .5f), new CastleCandleDef(new Vector3(-7.0f, 3.2f, 24.5f), .5f),
+        };
+    }
+}

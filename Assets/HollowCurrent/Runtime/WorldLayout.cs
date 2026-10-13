@@ -8,7 +8,7 @@ namespace HollowCurrent
         // Missing in scenes saved before maps existed: defaults to Bellwether.
         public MapId Map;
         // Castle contract points (default/empty for Bellwether).
-        public CastleWorld.Points Castle;
+        public World.CastleSpots Castle;
         public Transform Trace;
         public Vector3 Anchor,Induction,Voice,Print;
         public Light[] Lamps,WindowLights;

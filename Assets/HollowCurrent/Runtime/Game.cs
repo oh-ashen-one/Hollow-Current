@@ -237,6 +237,8 @@ namespace HollowCurrent
             {evidenceAppearanceScheduled=true;StartCoroutine(RevealFirstRecord());}
             if(phase==Phase.Warning){Scares?.Pulse(Player.transform.position+Player.transform.forward*3,9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);Sound.Speak("warning");}
             if(phase==Phase.Return)Sound.Speak("return");
+            // Castle: the sealed bell lowers the drawbridge for the escape.
+            if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)World.Castle.Drawbridge.Lower();
             if(phase==Phase.Containment)Sound.Speak("contain");
             if(phase==Phase.Won)Sound.Speak("ending");
             if(phase==Phase.Return)Sound.Cue("containment_release",World.Anchor,.65f);

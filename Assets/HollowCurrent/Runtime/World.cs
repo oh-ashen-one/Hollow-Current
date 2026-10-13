@@ -33,7 +33,24 @@ namespace HollowCurrent
         public float AnchorFloor = -3.2f;
         public readonly List<Vector3> PerchPoints = new List<Vector3>();
         // Castle contract points (valid when Map==Castle): altar, relics, drawbridge.
-        public CastleWorld.Points Castle;
+        // A serializable copy of CastleWorld.Points (whose lists/nav fields Unity
+        // cannot serialize), stored in the prepared scene's WorldLayout.
+        [System.Serializable]
+        public sealed class CastleSpots
+        {
+            public Vector3 Spawn,Anchor,Compass,Voice,Print,HunterSpawn,AltarPosition,DrawbridgeWinch,RuneRingCenter,StairLoopReturn;
+            public float SpawnYaw,RuneRingRadius;
+            public Bounds Gatehouse,DrawbridgeTrigger;
+            public Vector3[] PerchPoints,RelicPositions;
+            public CastleDrawbridge Drawbridge;
+            public Transform StairLoop,RuneRingAnchor,KnifeOrbitAnchor,AltarAnchor;
+            public Door[] ServiceDoors;
+            public static CastleSpots From(CastleWorld.Points p)=>new CastleSpots{Spawn=p.Spawn,SpawnYaw=p.SpawnYaw,Gatehouse=p.GatehouseSafeBounds,Anchor=p.Anchor,Compass=p.Compass,Voice=p.Voice,Print=p.Print,
+                HunterSpawn=p.HunterSpawn,PerchPoints=p.PerchPoints,AltarPosition=p.AltarPosition,RelicPositions=p.RelicPositions,DrawbridgeTrigger=p.DrawbridgeTrigger,DrawbridgeWinch=p.DrawbridgeWinch,
+                Drawbridge=p.Drawbridge,RuneRingCenter=p.RuneRingCenter,RuneRingRadius=p.RuneRingRadius,RuneRingAnchor=p.RuneRingAnchor,KnifeOrbitAnchor=p.KnifeOrbitAnchor,AltarAnchor=p.AltarAnchor,
+                StairLoop=p.StairLoop,StairLoopReturn=p.StairLoopReturn,ServiceDoors=p.ServiceDoors!=null?p.ServiceDoors.ToArray():new Door[0]};
+        }
+        public CastleSpots Castle;
         // Plan-view rectangles with strict bounds; y is ignored, exactly as the
         // original Investigator.Inside / InVan tests.
         public struct Area
@@ -88,8 +105,9 @@ namespace HollowCurrent
             MissingArt.Placeholders=map!=MapId.Bellwether;
             if(map==MapId.Castle)BuildCastle();else Build();
         }
-        void ApplyCastlePoints(CastleWorld.Points p)
+        void ApplyCastlePoints(CastleSpots p)
         {
+            if(p==null)throw new System.InvalidOperationException("Castle layout has no saved contract points; re-run PrepareCastle");
             Castle=p;Spawn=p.Spawn;Anchor=p.Anchor;Induction=p.Compass;Voice=p.Voice;Print=p.Print;HunterSpawn=p.HunterSpawn;AnchorFloor=FloorBelow(p.Anchor.y);
             PerchPoints.Clear();if(p.PerchPoints!=null)PerchPoints.AddRange(p.PerchPoints);
             var g=p.Gatehouse;SafeArea=new Area(g.min.x,g.max.x,g.min.z,g.max.z);
@@ -97,20 +115,25 @@ namespace HollowCurrent
             NavBounds=new Bounds(new Vector3(0,2,12),new Vector3(48,22,56));
         }
         // The castle: CastleWorld (piece 1) builds the geometry and returns the
-        // contract points; World harvests doors, hides and lamps from the hierarchy
-        // and adds any case interactable CastleWorld did not provide.
+        // contract points and lists; World adopts them, replaces CastleWorld's own
+        // NavMesh with World.BuildNavigation's, and adds any case interactable
+        // CastleWorld did not provide.
         void BuildCastle()
         {
             Map=MapId.Castle;
             Root=new GameObject("Haunted Castle / authored layout").transform;
-            Mat("paper",new Color(.62f,.55f,.42f));Mat("wood",new Color(.23f,.13f,.075f));Mat("metal",new Color(.18f,.21f,.20f));Mat("brass",new Color(.47f,.33f,.13f));Mat("black",new Color(.025f,.03f,.029f));
             CastleWorld.Build(Root,out var points);
-            ApplyCastlePoints(points);
-            foreach(var door in Root.GetComponentsInChildren<Door>(true))Doors.Add(door);
-            foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Hide)HidingPlaces.Add(item);
-            foreach(var fixture in Root.GetComponentsInChildren<PracticalFixture>(true))if(fixture.Source&&!Lamps.Contains(fixture.Source))Lamps.Add(fixture.Source);
-            foreach(var light in Root.GetComponentsInChildren<Light>(true))if(light.name.StartsWith("Window light",System.StringComparison.Ordinal))WindowLights.Add(light);
-            foreach(var point in CastleRoutePoints())SearchPoints.Add(point+Vector3.up*.1f);
+            if(points.NavInstance.valid)points.NavInstance.Remove();
+            if(points.NavData!=null)Release(points.NavData);
+            if(points.Materials!=null)foreach(var kv in points.Materials)Materials[kv.Key]=kv.Value;
+            foreach(var id in new[]{"paper","wood","metal","brass","black"})if(!Materials.ContainsKey(id))Mat(id,new Color(.3f,.27f,.22f));
+            ApplyCastlePoints(CastleSpots.From(points));
+            if(points.Doors!=null)Doors.AddRange(points.Doors);else foreach(var door in Root.GetComponentsInChildren<Door>(true))Doors.Add(door);
+            if(points.HidingPlaces!=null)HidingPlaces.AddRange(points.HidingPlaces);else foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Hide)HidingPlaces.Add(item);
+            if(points.Lamps!=null)Lamps.AddRange(points.Lamps);
+            if(points.WindowLights!=null)WindowLights.AddRange(points.WindowLights);
+            if(points.SearchPoints!=null&&points.SearchPoints.Count>0)SearchPoints.AddRange(points.SearchPoints);
+            else foreach(var point in CastleRoutePoints())SearchPoints.Add(point+Vector3.up*.1f);
             Physics.SyncTransforms();
             CastleCaseItems();
             CastleTrace();
@@ -119,7 +142,7 @@ namespace HollowCurrent
         // patrol route and the castle validator's reachability targets.
         public List<Vector3> CastleRoutePoints()
         {
-            var list=new List<Vector3>();if(Map!=MapId.Castle)return list;
+            var list=new List<Vector3>();if(Map!=MapId.Castle||Castle==null)return list;
             void Add(Vector3 p){list.Add(new Vector3(p.x,FloorBelow(p.y),p.z));}
             Add(Castle.Compass);Add(Castle.Voice);Add(Castle.Anchor);Add(Castle.AltarPosition);Add(Castle.HunterSpawn);Add(Castle.DrawbridgeTrigger.center);
             if(Castle.RelicPositions!=null)foreach(var p in Castle.RelicPositions)Add(p);
