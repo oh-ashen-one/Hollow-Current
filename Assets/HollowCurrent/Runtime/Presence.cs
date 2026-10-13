@@ -801,13 +801,17 @@ namespace HollowCurrent
                     var mats=skin.sharedMaterials;if(mats==null||mats.Length==0)continue;
                     var gore=new Material[mats.Length];
                     // Round 8 (critic r7: 80% red-dominant px): no Skin gore on the body; submesh 1 wing membrane, 2 flayed flesh.
+                    // Round 9: by material name (CountClaudeImport matches submeshes to parts by triangle count), never by index.
                     for(int i=0;i<mats.Length;i++)
-                        gore[i]=i==1?CastleArt.Gore(CastleArt.GoreKind.Membrane,mats[i],count.GoreMembraneWet)??mats[i]
-                               :i==2?CastleArt.Gore(CastleArt.GoreKind.Flesh,mats[i],count.GoreFleshWet)??mats[i]
+                    {
+                        string n=mats[i]?mats[i].name.ToLowerInvariant():"";
+                        gore[i]=n.Contains("membrane")?CastleArt.Gore(CastleArt.GoreKind.Membrane,mats[i],count.GoreMembraneWet)??mats[i]
+                               :n.Contains("flesh")?CastleArt.Gore(CastleArt.GoreKind.Flesh,mats[i],count.GoreFleshWet)??mats[i]
                                :count.GoreSkinOnBody?CastleArt.Gore(CastleArt.GoreKind.Skin,mats[i],count.GoreSkinWet)??mats[i]:mats[i];
+                    }
                     skin.sharedMaterials=gore;
                 }
-                Debug.Log("HC_COUNT_GORE applied");
+                Debug.Log("HC_COUNT_GORE applied "+string.Join(",",System.Array.ConvertAll(silhouette.GetComponentsInChildren<SkinnedMeshRenderer>(true),r=>string.Join("/",System.Array.ConvertAll(r.sharedMaterials,m=>m?m.name:"null")))));
             }
             catch(System.Exception e){Debug.LogWarning("HC_COUNT_GORE skipped: "+e.Message);}
         }

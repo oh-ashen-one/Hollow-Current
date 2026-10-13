@@ -540,7 +540,9 @@ for name, (action, end, loop) in actions.items():
                              add_leaf_bones=False, bake_anim=True, bake_anim_use_all_actions=False, bake_anim_use_nla_strips=False,
                              bake_anim_simplify_factor=0, axis_forward='-Z', axis_up='Y', path_mode='STRIP')
 report = {'source': str(SOURCE.relative_to(ROOT)), 'head_top_m': HEAD_TOP, 'mesh_height_m': round(hi - lo, 4), 'triangles': triangles,
-          'vertices': len(me.vertices), 'bones': len(arm.bones), 'wing_vertices': wing_verts, 'membrane_faces': membrane_faces, 'flesh_faces': flesh_faces, 'rest_membrane_m2': round(REST_MEMBRANE, 3),
+          'vertices': len(me.vertices), 'bones': len(arm.bones), 'wing_vertices': wing_verts, 'membrane_faces': membrane_faces, 'flesh_faces': flesh_faces, 'body_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 0),
+          'membrane_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 1),
+          'flesh_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 2), 'rest_membrane_m2': round(REST_MEMBRANE, 3),
           'rest_span_m': round(float(rest_pts[:, 0].max() - rest_pts[:, 0].min()), 3), 'shoulder_width_m': round(shoulder_width, 3),
           'grab_reach_m': metrics['Grab']['forward_reach_m_last'], 'clips': metrics}
 (OUT / 'Native/CountClaude.json').write_text(json.dumps(report, indent=2) + '\n')

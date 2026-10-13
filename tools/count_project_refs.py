@@ -123,6 +123,7 @@ for name, img, right, toward in (('front', load(REFS / 'demon_front.png'), np.ar
 
 acc = np.zeros((SIZE, SIZE, 3), np.float32); wsum = np.zeros((SIZE, SIZE), np.float32)
 emis = np.zeros((SIZE, SIZE), np.float32); regmap = np.full((SIZE, SIZE), -1, np.int8); headdark = np.zeros((SIZE, SIZE), np.float32)
+teeth = np.zeros((SIZE, SIZE), np.float32); down = np.zeros((SIZE, SIZE), bool)
 UVp = uvs * SIZE
 front_view = views[0]
 for t in range(len(tris)):
@@ -138,6 +139,7 @@ for t in range(len(tris)):
     if not ins.any(): continue
     pts = (l1[ins, None] * P[t, 0] + l2[ins, None] * P[t, 1] + l3[ins, None] * P[t, 2])
     yy = gy[ins].astype(int); xx = gx[ins].astype(int); reg = treg[t]; regmap[yy, xx] = reg
+    if fn[t][2] < -.35: down[yy, xx] = True                  # undersides no reference view sees (throat, jaw, sleeves)
     for vi, (name, img, toward, to_img, zbuf, dscale) in enumerate(views):
         facing = float(fn[t] @ toward)
         if facing < .25: continue
@@ -155,6 +157,10 @@ for t in range(len(tris)):
                 np.maximum.at(emis, (yy[vis], xx[vis]), e)
             m0 = (ex[:, 0] > MOUTH[0]) & (ex[:, 0] < MOUTH[2]) & (ex[:, 1] > MOUTH[1]) & (ex[:, 1] < MOUTH[3])
             headdark[yy[vis][m0], xx[vis][m0]] = 1.0
+            # needle teeth: a 7 px strip along each edge of the slit, alternating ivory and gum every 4 px of height
+            band = (ex[:, 1] > MOUTH[1] + 4) & (ex[:, 1] < MOUTH[3] - 4) & (((ex[:, 0] > MOUTH[0] - 7) & (ex[:, 0] <= MOUTH[0] + 1)) | ((ex[:, 0] >= MOUTH[2] - 1) & (ex[:, 0] < MOUTH[2] + 7)))
+            tooth = band & ((ex[:, 1] % 4.0) < 2.2)
+            teeth[yy[vis][band], xx[vis][band]] = np.where(tooth[band], 1.0, -1.0)
 seen = wsum > 0
 tex = np.zeros_like(acc); tex[seen] = acc[seen] / wsum[seen, None]
 mean = tex[seen].mean(0) if seen.any() else np.array([.4, .35, .33])
@@ -167,6 +173,9 @@ for it in range(32):
     grow = (~filled) & (n > 0)
     tex[grow] = s[grow] / n[grow, None]; filled |= grow
 tex[~filled] = mean
+# Undersides that no reference view saw (the r8 'tan patch' at the throat) are shadow, not skin.
+under = down & ~seen
+tex[under] = np.array([.07, .035, .03], np.float32)
 
 # region rules
 luma = tex @ np.array([.299, .587, .114], np.float32)
@@ -179,9 +188,16 @@ head = regmap == HEAD
 crush = head & (luma < .22)
 tex[crush] *= (np.clip(luma[crush] / .22, 0, 1) ** 1.6)[:, None]
 slit = head & (headdark > 0) & (luma < .30); tex[slit] *= .25          # only the already-dark slit, not the jaw halves
+# needle teeth (ivory) and gums (dark red) inside the jaw halves
+tex[teeth > 0] = tex[teeth > 0] * .15 + np.array([.86, .80, .68], np.float32) * .85
+tex[teeth < 0] = tex[teeth < 0] * .3 + np.array([.22, .04, .03], np.float32) * .7
+# embers: dilate 4 texels so they survive mipmapping at hunt distance
+for _ in range(4):
+    pad = np.pad(emis, 1); emis = np.maximum.reduce([pad[1 + dy:SIZE + 1 + dy, 1 + dx:SIZE + 1 + dx] for dy in (-1, 0, 1) for dx in (-1, 0, 1)]) * (regmap == HEAD)
+emis = np.clip(emis * 1.5, 0, 1)
 ember = emis > .01
 tex[ember] = tex[ember] * (1 - emis[ember, None]) + np.array([.35, .05, .02]) * emis[ember, None]
-print('HC_PROJECT texels seen', int(seen.sum()), 'head', int(head.sum()), 'flesh', int(flesh.sum()), 'ember', int(ember.sum()),
+print('HC_PROJECT texels seen', int(seen.sum()), 'head', int(head.sum()), 'flesh', int(flesh.sum()), 'ember', int(ember.sum()), 'teeth', int((teeth > 0).sum()), 'undersides', int(under.sum()),
       'red-dominant %.1f%%' % (100 * ((tex[..., 1] < .5 * tex[..., 0]) & (tex[..., 0] > .15))[regmap >= 0].mean()),
       'grey-white %.1f%%' % (100 * (((tex[..., 0] - tex[..., 2]) < .176) & (luma > .353))[regmap >= 0].mean()), flush=True)
 
