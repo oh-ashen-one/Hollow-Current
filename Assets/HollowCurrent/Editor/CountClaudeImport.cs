@@ -25,7 +25,7 @@ namespace HollowCurrent.Editor
         // Round 2 wing rig (tools/count_prepare.py): a root at each shoulder blade, a five-bone fan sharing that pivot, and
         // zero-weight end markers the runtime reads for the posed silhouette (HearthboundActor.PoseBounds). Round 3: each fan
         // bone has an Ext child that stretches its finger (translation only) and the single-sheet membrane is doubled.
-        static readonly string[] WingBones={"WingL","WingR","WingFanL0","WingFanL4","WingFanR0","WingFanR4","WingFanL0End","WingFanL4End","WingFanR0End","WingFanR4End","WingFanL4Ext","WingFanR4Ext"};
+        static readonly string[] WingBones={"WingL","WingR","WingFanL0","WingFanL4","WingFanR0","WingFanR4","WingFanL0End","WingFanL4End","WingFanR0End","WingFanR4End","WingFanL4Ext","WingFanR4Ext","Jaw"};
         [Serializable] class Receipt{public float head_top_m,mesh_height_m,grab_reach_m,shoulder_width_m,rest_span_m;public int triangles,bones,wing_vertices;}
         public static void Prepare()
         {
@@ -47,7 +47,9 @@ namespace HollowCurrent.Editor
             material=Save(material,Folder+"CountClaude.mat");
             foreach(var skin in skins)
             {
-                skin.sharedMaterial=material;skin.shadowCastingMode=ShadowCastingMode.On;skin.receiveShadows=true;
+                // Round 7: submesh 0 = body/coat, 1 = skin-wing membrane; both get the albedo material here, and Presence swaps in
+                // CastleArt.Gore(Skin / Membrane) at runtime in the castle.
+                skin.sharedMaterials=Enumerable.Repeat(material,Mathf.Max(1,skin.sharedMesh.subMeshCount)).ToArray();skin.shadowCastingMode=ShadowCastingMode.On;skin.receiveShadows=true;
                 skin.lightProbeUsage=LightProbeUsage.BlendProbes;skin.reflectionProbeUsage=ReflectionProbeUsage.BlendProbes;
                 skin.localBounds=new Bounds(skin.localBounds.center,skin.localBounds.size*2.5f);
             }

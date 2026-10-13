@@ -202,8 +202,15 @@ namespace HollowCurrent
             // courtyard doorway are behind the camera.
             game.Creature.ManifestAt(new Vector3(-.2f,0,2.2f),0,9999,true);
             var man=Presence.ScaleReference(new Vector3(1.05f,0,2.2f),0);
-            e=new Vector3(.4f,1.15f,5.6f);t=new Vector3(.4f,1.1f,2.2f);Place(e,t);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse facing the gate; Count feet (-0.2,0,2.2) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (1.05,0,2.2), investigator torch on");
+            // Round 7: the demon's head is ~2.5 m; aim at mid-height so head, feet and the 1.80 m
+            // figure stay in frame, and log their viewport positions.
+            e=new Vector3(.4f,1.3f,5.6f);t=new Vector3(.4f,1.25f,2.2f);Place(e,t);
+            {
+                var cam=game.Player.View;var head=game.Creature.Actor.Head?game.Creature.Actor.Head.position+Vector3.up*.15f:new Vector3(-.2f,2.5f,2.2f);
+                string Vp(Vector3 w){var v=cam.WorldToViewportPoint(w);return "("+v.x.ToString("F2")+","+v.y.ToString("F2")+")";}
+                Log("S6 framing countHeadTop="+Vp(head)+" countFeet="+Vp(new Vector3(-.2f,0,2.2f))+" figureTop="+Vp(new Vector3(1.05f,1.8f,2.2f))+" figureFeet="+Vp(new Vector3(1.05f,0,2.2f))+" headTopY="+head.y.ToString("F2"));
+            }
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse facing the gate (eye 0.4,1.3,5.6); Count feet (-0.2,0,2.2) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (1.05,0,2.2), investigator torch on");
             game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(man);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;

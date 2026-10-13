@@ -40,7 +40,7 @@ namespace HollowCurrent
                 if(!actor||actor.BoneCount<Profile.MinimumBones)throw new System.InvalidOperationException("Apparition is not a verified skinned rig");
             }
             agent=gameObject.AddComponent<NavMeshAgent>();agent.radius=Profile.AgentRadius;agent.height=Profile.AgentHeight;agent.speed=Profile.Speed;agent.angularSpeed=Profile.AngularSpeed;agent.acceleration=Profile.Acceleration;agent.stoppingDistance=Profile.StoppingDistance;
-            if(count!=null)CountRimLight();
+            if(count!=null){CountRimLight();CountGoreMaterials();}
             silhouette.gameObject.SetActive(false);agent.enabled=false;
         }
         // Magenta stand-in (no rig, no animator controller) so a map runs before its hunter art lands.
@@ -788,6 +788,25 @@ namespace HollowCurrent
             }
             CaptureNote="phase="+CapturePhases[phase]+" mode="+mode+" clock="+choreoClock.ToString("F2")+" distance="+Vector3.Distance(bounds.center,eye).ToString("F2")+" span="+bounds.size.x.ToString("F2")+" height="+bounds.size.y.ToString("F2");
             KeepCameraClear();
+        }
+        // Round 7: the projected albedo reads dry; CastleArt.Gore keeps it and adds pallid skin tint, wet blood and translucency
+        // (submesh 0 body/coat = Skin, submesh 1 wing membrane = Membrane). Any failure keeps the imported material.
+        void CountGoreMaterials()
+        {
+            if(!count.GoreMaterials)return;
+            try
+            {
+                foreach(var skin in silhouette.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                {
+                    var mats=skin.sharedMaterials;if(mats==null||mats.Length==0)continue;
+                    var gore=new Material[mats.Length];
+                    for(int i=0;i<mats.Length;i++)
+                        gore[i]=CastleArt.Gore(i==1?CastleArt.GoreKind.Membrane:CastleArt.GoreKind.Skin,mats[i],i==1?count.GoreMembraneWet:count.GoreSkinWet)??mats[i];
+                    skin.sharedMaterials=gore;
+                }
+                Debug.Log("HC_COUNT_GORE applied");
+            }
+            catch(System.Exception e){Debug.LogWarning("HC_COUNT_GORE skipped: "+e.Message);}
         }
         // A cold, shadowless rim light that rides behind his shoulders so wings and coat read against dark stone
         // (r2 hunt: "an unlit black smear"). Castle only; Split Grin never gets it.

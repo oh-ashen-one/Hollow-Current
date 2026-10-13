@@ -63,3 +63,15 @@ Original project work, CC BY 4.0 like the rest of the project media. Produced he
 Shared helpers: `tools/castle_common.py`, `tools/castle_lib.py`; verification `tools/castle_verify.py`; previews `tools/castle_preview.py`; all in order: `tools/castle_build_all.sh`.
 - `Resources/UI/BloodLedger/{Panel,Dialogue,Warning}.png` and `Resources/UI/CastleBackdrop.png` (castle card art and title key art): derived from the project's Mourning Note cards and the castle sky by `tools/ui_blood_ledger.py`; original project work, CC BY 4.0.
 - Surreal prop textures in `Resources/Castle/Textures/` (candle flame, halo, rune, window moon): `tools/castle_surreal_textures.py`; original project work, CC BY 4.0.
+
+## Customuse 3D: Count Claude demon (added 2026-10-13, round 7)
+
+The Haunted Castle hunter mesh is now the owner-approved demon redesign, which supersedes the Higgsfield mesh above in the shipped
+character. `tools/count_source/CountClaude_demon_mesh.glb` is a Customuse Tripo v3.1 multiview reconstruction generated on the
+owner's Customuse account from the owner's original GPT Image 2.5 concept views (`docs/haunted-castle/refs/demon_front/side/back.png`).
+`tools/count_source/CountClaude_demon_rigged.glb` is the same mesh after Customuse Mesh Clean-up and Auto Rig (Tripo provider). The
+workflow is `79358063-a4bd-4a8e-ac51-50effc66655b`. [Customuse terms §4](https://customuse.com/terms) retain user content rights and
+allow lawful personal and commercial use, subject to any feature or third-party terms; the workflow uses only the owner's supplied
+images. `tools/count_source/CountClaude_demon_albedo.png` is projected locally from those concept views by `tools/count_project_refs.py`.
+The skeleton remap, wing re-skin, scaling and the eight animation clips are original project work (CC BY 4.0), produced by
+`tools/count_prepare.py`. Provider model weights and software are not included. Provenance and credits: `docs/haunted-castle/ASSET_LOG.md`.
