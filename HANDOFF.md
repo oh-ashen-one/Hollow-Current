@@ -48,3 +48,50 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4f — Count Claude round 6 (branch `hc/count6`, Opus 5.5)
+
+Commit `4e87630` (+ this handoff). `check_source.py` PASS; Unity not launched.
+
+## BLOCKER: demon mesh not generated (owner/coordinator decision needed)
+- `multi_image_to_3d` with front+side+back: job `ae97187c-4128-4440-b0d5-edec63f27a8c` ended **`nsfw`** (provider moderation).
+- One retry with front+back only: job `d9c5eafa-b063-4a0c-b20b-69c5f8021871` ended **`nsfw`**. Stopped per the one-retry rule; `3d_rigging` was not run.
+- **Credits: 0 net** (2 × 30 spent, 2 × 30 refunded). **But the first spend triggered a 400-credit Auto Top-Up on the owner's account**
+  (21:47:26Z); balance is now 547.64. Logged in `docs/haunted-castle/ASSET_LOG.md`; no ASSET_LICENSES line (no asset).
+- Options, none taken (each needs an OK and new paid jobs): (a) a moderation-safe input set (desaturated, bloodless "clay" crops
+  of the same sheet) for the mesh, then gore via the look builder's `CastleArt.Gore` materials; (b) another 3D provider.
+- So the model is still the round-5 mesh: **head top 2.15 m, 36,405 tris, 56 bones**. The 2.5 m rescale, re-skin and
+  split-jaw bones wait for a mesh. Profile scale values are unchanged (ModelHeight 2.15).
+- Gore materials (`CastleArt.Gore`, merged into haunted-castle from hc/look6): not applied. The current model has one material
+  slot for coat, skin and wings, so Skin/Flesh/Membrane can't be split yet. Apply on the demon mesh (skin: body, flesh: chest
+  and forearms, membrane: wings, wet on mouth and claws).
+
+## What changed anyway
+- **Grab (Mode 6), forward wing-wrap:** wings swept forward and opened (yaw 80, stretch 1.8); claws reach toward the lens at
+  shoulder width beside a clear face. In a Blender camera matching the capture (2.8 m, eye 0.39 m above his origin, vFOV 66,
+  aimed at his bounds centre), the mesh spans x −0.02..1.02 (wing tips leave both frame edges) and y 0.16..0.80 (feet in frame).
+  `GrabReach` 1.70 m (the wing tips lead), so a gameplay grab presentation stands him 2.35 m from the camera.
+- **Crawl (Mode 7, new):** stooped four-limbed walk, top 1.83 m (fits 2.0 m lintels). Presence uses it on foot at service doors
+  (`CastleLayout.IsServiceDoor`) and wherever the clear height over the floor is under `CrawlCeiling` 2.3 m, at 2.4 m/s.
+  `CountClaudeImport` now builds 8 states (Crawl loops, speed follows LocomotionRate); `HearthboundActor.ModeFrames` has 8 entries.
+- **Capture:** hold height 1.25 m (lowest point 1.35 m, above the 1.1 m fog); the climax aims at his bounds centre (r5 H10 feet cut)
+  and lunges to 2.5 m; glide leans back 34 deg with the heading 80% toward the camera (H05 chest/face).
+
+| Mode | Clip | Length | Wrap | Max span | Max top |
+|---|---|---|---|---|---|
+| 0 | Perch | 3.2 s | loop | span 3.19 m | top 1.19 m |
+| 1 | Glide | 2.0 s | loop | span 4.45 m | top 2.12 m |
+| 2 | Search | 2.6 s | loop | span 2.14 m | top 2.21 m |
+| 3 | Dive | 1.0 s | loop | span 2.86 m | top 1.55 m |
+| 4 | Stagger | 1.3 s | hold last | span 2.67 m | top 2.24 m |
+| 5 | Death | 2.4 s | hold last | span 2.89 m | top 2.25 m |
+| 6 | Grab | 0.9 s | hold last | span 3.55 m | top 2.57 m |
+| 7 | Crawl | 1.4 s | loop | span 1.28 m | top 1.83 m |
+
+## Integrator steps
+1. Merge `hc/count6`; run `CountClaudeImport.Prepare` (new `CountClaudeCrawl.fbx`, meta committed). Expect 8 `HC_CHARACTER_CLIP`
+   lines incl. `Crawl` and `HC_COUNTCLAUDE_PASS ... 8 independent motions`; no `HC_COUNTCLAUDE_GRAB_REACH` warning. Commit
+   `Resources/Characters/CountClaude*` (new `CountClaudeCrawl.anim`).
+2. CaptureMode: no call changes (hunt choreography and S5/S6 as round 5). ValidateCastleGeometry contract unchanged (56 bones, Animator).
