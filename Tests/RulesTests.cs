@@ -9,6 +9,53 @@ static class RulesTests
     static void Context(Investigation c){c.Read("Family photograph");c.Read("Child's drawing");c.Read("Furnace diary");}
     static bool Correct(Investigation c)=>c.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd);
     static void Hunt(Investigation c){c.Record(Evidence.Induction);c.Record(Evidence.Handprint);c.Tick(95,true);Assert(c.Phase==Phase.Warning,"telegraphed warning");c.Tick(8,true);Assert(c.Phase==Phase.Warning,"eight seconds is still safe");c.Tick(1,true);Assert(c.Phase==Phase.Hunt,"hunt begins after nine seconds");}
+    // Piece 5: relic, forging and Count fight rules (Core/Forge.cs).
+    static void ForgeAndFightTests()
+    {
+        var forge=new Forge();forge.AtAltar=true;
+        Assert(forge.RelicCount==0&&!forge.CanCraft,"no relics, no craft");
+        Assert(forge.Found(Relic.SilverBlade)&&!forge.Found(Relic.SilverBlade),"relic found once");
+        forge.Found(Relic.Moonstone);Assert(forge.RelicCount==2&&forge.HasRelic(Relic.Moonstone)&&!forge.HasRelic(Relic.HallowedHilt),"relic bookkeeping");
+        Assert(!forge.CanCraft&&!forge.Craft()&&!forge.HasSword,"cannot craft with two relics");
+        forge.Tick(30);Assert(!forge.HasSword&&forge.CraftProgress01==0,"two relics never progress the forge");
+        forge.Found(Relic.HallowedHilt);forge.AtAltar=false;Assert(!forge.CanCraft&&!forge.Craft(),"cannot craft away from the altar");
+        forge.Tick(30);Assert(!forge.HasSword&&forge.CraftProgress01==0,"time away from altar does not forge");
+        forge.AtAltar=true;Assert(forge.CanCraft,"three relics at altar can craft");
+        forge.Tick(4.5f);Assert(Math.Abs(forge.CraftProgress01-.5f)<.001&&!forge.HasSword,"nine second hold: half way");
+        forge.AtAltar=false;forge.Tick(.1f);Assert(forge.CraftProgress01==0,"leaving the altar resets progress");
+        forge.AtAltar=true;forge.Tick(8.9f);Assert(!forge.HasSword&&forge.CraftProgress01<1,"8.9 seconds is not enough");
+        int crafted=0;forge.Crafted+=()=>crafted++;forge.Tick(.2f);Assert(forge.HasSword&&forge.CraftProgress01==1&&crafted==1,"craft completes after nine seconds at altar");
+        forge.Tick(5);forge.AtAltar=false;forge.Tick(5);Assert(forge.HasSword&&crafted==1&&!forge.CanCraft,"sword is permanent and crafts once");
+        bool badForge=false;try{forge.Tick(float.NaN);}catch(ArgumentOutOfRangeException){badForge=true;}Assert(badForge,"forge rejects invalid time");
+        var instant=new Forge();instant.AtAltar=true;foreach(Relic r in Enum.GetValues(typeof(Relic)))instant.Found(r);Assert(instant.Craft()&&instant.HasSword&&!instant.Craft(),"direct craft needs relics and works once");
+
+        var fight=new Fight();Assert(!fight.CanBeHit&&!fight.RegisterHit()&&fight.Hits==0,"no hits before the fight begins");
+        fight.Begin();Assert(fight.CanBeHit&&fight.Tier==0&&fight.SpeedMultiplier==1f&&!fight.Dead&&!fight.Lost,"fresh fight: tier 0 at normal speed");
+        Assert(fight.RegisterHit()&&fight.Hits==1&&fight.Staggered&&!fight.Retreating&&!fight.CanBeHit,"first hit staggers");
+        Assert(!fight.RegisterHit()&&fight.Hits==1,"hit during stagger does not count");
+        fight.Tick(2.4f);Assert(fight.Staggered,"stagger lasts 2.5 seconds");fight.Tick(.2f);Assert(!fight.Staggered&&fight.Retreating&&!fight.CanBeHit,"stagger gives way to retreat");
+        Assert(fight.Tier==0&&fight.SpeedMultiplier==1f,"tier rises only after the retreat ends");
+        Assert(!fight.RegisterHit()&&fight.Hits==1,"hits during retreat do not count");
+        fight.Tick(19.8f);Assert(fight.Retreating&&!fight.RegisterHit()&&fight.Hits==1,"retreat holds for 20 seconds");
+        fight.Tick(.2f);Assert(!fight.Retreating&&fight.CanBeHit&&fight.Tier==1&&Math.Abs(fight.SpeedMultiplier-1.15f)<.0001f,"after retreat he returns enraged at 1.15x");
+        Assert(fight.RegisterHit()&&fight.Hits==2,"second hit counts");fight.Tick(2.5f);fight.Tick(20);
+        Assert(fight.CanBeHit&&fight.Tier==2&&Math.Abs(fight.SpeedMultiplier-1.3f)<.0001f,"second retreat raises tier 2 to 1.3x");
+        bool killed=false;fight.Killed+=()=>killed=true;Assert(fight.RegisterHit()&&fight.Hits==3&&fight.Dead&&killed,"three counted hits kill");
+        Assert(!fight.CanBeHit&&!fight.RegisterHit()&&fight.Hits==3,"dead hunter takes no more hits");fight.Tick(100);Assert(fight.Dead&&fight.Tier==2,"death is terminal");
+        fight.PlayerGrabbed();Assert(!fight.Lost,"a dead hunter cannot grab");
+        var lost=new Fight();lost.PlayerGrabbed();Assert(!lost.Lost,"grab before the fight begins is ignored");
+        lost.Begin();lost.RegisterHit();lost.PlayerGrabbed();Assert(lost.Lost&&!lost.Dead&&!lost.CanBeHit&&!lost.Staggered&&!lost.Retreating,"grab ends the fight as Lost");
+        Assert(!lost.RegisterHit()&&lost.Hits==1,"no hits after the player is lost");lost.Begin();Assert(!lost.Lost&&lost.Hits==0&&lost.Tier==0&&lost.CanBeHit,"Begin restarts a lost fight");
+        var split=new Fight();split.Begin();split.RegisterHit();split.Tick(1);split.Tick(1.5f);split.Tick(1);Assert(split.Retreating&&!split.Staggered,"timers carry across ticks");
+        bool badFight=false;try{split.Tick(-1);}catch(ArgumentOutOfRangeException){badFight=true;}Assert(badFight,"fight rejects invalid time");
+
+        Assert(Enum.GetValues(typeof(Relic)).Length==3&&LedgerHints.EntryByRelic.Count==3,"one ledger hint per relic");
+        var seen=new System.Collections.Generic.HashSet<string>();
+        foreach(Relic r in Enum.GetValues(typeof(Relic))){string id=LedgerHints.EntryFor(r);Assert(!string.IsNullOrEmpty(id)&&id.StartsWith("cc_ledger_",StringComparison.Ordinal),"hint id is a cc_ledger entry");Assert(seen.Add(id),"hint ids are unique");Relic back;Assert(LedgerHints.TryRelicFor(id,out back)&&back==r,"hint id maps back to its relic");}
+        Assert(LedgerHints.EntryFor(Relic.SilverBlade)=="cc_ledger_steward"&&LedgerHints.EntryFor(Relic.HallowedHilt)=="cc_ledger_orrery"&&LedgerHints.EntryFor(Relic.Moonstone)=="cc_ledger_portrait","hint ids match the design");
+        Relic none;Assert(!LedgerHints.TryRelicFor("cc_ledger_unknown",out none)&&!LedgerHints.TryRelicFor(null,out none),"unknown ledger entry reveals nothing");
+        var journal=new Forge();Assert(journal.ReadLedger("cc_ledger_orrery")&&journal.HintKnown(Relic.HallowedHilt)&&!journal.HintKnown(Relic.Moonstone),"reading an entry unlocks its hint");Assert(!journal.ReadLedger("cc_ledger_orrery")&&!journal.ReadLedger("nonsense"),"hints unlock once; unknown entries ignored");
+    }
     static void Main()
     {
         // Every source of a full apparition shares the same cooldown.
@@ -72,6 +119,7 @@ static class RulesTests
         Assert(Math.Abs(timing.minimum_one_second_fps-96)<.01,"rolling interval includes the hitch");
         Assert(timing.p99_ms==10&&timing.one_percent_low_fps<100,"percentile and one-percent-low remain distinct metrics");
         Assert(!FrameStatistics.Measure(new float[0]).meets_60_fps_floor,"no rendered samples cannot pass performance");
+        ForgeAndFightTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
 }
