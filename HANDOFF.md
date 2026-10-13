@@ -48,3 +48,39 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4d — Count Claude round 4 (branch `hc/count4`, Opus 5.5)
+
+Commits: `42eba16` (rig/clips re-export), runtime commit after it (see `git log hc/count4`). `check_source.py` PASS; Unity not
+launched. Exported FBX re-imported in Blender: Perch/Grab world joints match the source rig exactly.
+
+**Import must re-run** (`CountClaudeImport.Prepare`, same command as round 3; bone count unchanged at 56, all seven clips changed).
+Commit `Resources/Characters/CountClaude.prefab` + `Resources/Characters/CountClaude/*`.
+
+## Changes
+- **Hunt climax:** the choreography keeps its timing (Perch 0–3.5, Glide 3.5–6.5, Dive 6.5–8.0, climax 8.0–9.5, Feint 9.5–12.5).
+  The climax is now `phase=Grab`, Mode 6, facing the camera, at 2.8 m (`CaptureHoldDistance`) and origin 1.2 m
+  (`CaptureHoldHeight`): his lowest point is 1.3 m, above the ground-fog planes (0.08–1.1 m, `CastleAtmosphere`), which caused
+  the r3 waist cut. Grab vertical extent 2.23 m -> about 55–64% of frame height at 2.8 m. The feint backs away facing the
+  camera for 1.3 s (`CaptureFeintFacingSeconds`) then turns at 150 deg/s, so H10 shows his face, not his back.
+  No CaptureMode change needed for the hunt (same call sequence as round 3). The log shows `phase=Grab` instead of `phase=Hold`.
+- **Wings to the knee (S6, Search):** wing top 2.20 m to lowest visible tip 0.36 m = 85% of height (knee joint 0.68 m); arms
+  hang at his sides. Spread poses lengthened x1.12 (Glide span 4.4 m).
+- **S5 perch:** symmetric crouch, both feet on the rail top, wrists on the rail's front edge with claws over it, wings held
+  high above his back (span 3.1 m, nothing below the rail).
+- **S5 occluding book:** call `game.Creature.StageForCapture(0,true)` instead of `StageForCapture(0)`. `CaptureFraming` then hides
+  every Floater within 2 m of its eye-to-Count line (log `HC_CAPTURE_FLOATERS_HIDDEN n`); `Dismiss()` (already called after S6)
+  restores them.
+
+## Requests for the integrator (CaptureMode.cs)
+1. S5: `StageForCapture(0,true)`; everything else unchanged.
+2. S6: the crate behind his right hand is the "Gatehouse table" box at (-1.4, 0.4, 5.3) (CastleWorld.Gatehouse); the doorway behind
+   him leaks the courtyard flames. Turn the shot around to face the gate: Count `ManifestAt(new Vector3(-0.2f,0,2.2f),0,9999,true)`,
+   `ScaleReference(new Vector3(1.05f,0,2.2f),0)`, eye `(0.4,1.15,5.6)`, target `(0.4,1.1,2.2)`. The table is then behind the camera;
+   the winch (-2.6,0,1.4) sits about 35 deg left and 2.4 m to his side, not behind him; the lantern cart and kit rack are at the frame edge.
+3. Hunt: unchanged from round 3 (wait 3 s after `BeginWarning`, `BeginCaptureChoreography(1)`, shoot on `CaptureClock` 1..10).
+
+## Not done
+- Glide banking toward the camera (critic secondary) not added. Rose window behind his head in S5 depends on the perch/framing; not addressed.
