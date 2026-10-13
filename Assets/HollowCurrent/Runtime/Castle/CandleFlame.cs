@@ -40,8 +40,37 @@ namespace HollowCurrent
 
         float seed;
         bool ready;
+        static bool reported;
+        static string Describe(Material m)
+        {
+            if(!m)return "<no material>";
+            var t=m.mainTexture;
+            return "shader="+(m.shader?m.shader.name:"<none>")+" tex="+(t?t.name+" "+t.width+"x"+t.height+" "+(t is Texture2D t2?t2.format.ToString()+" readable="+t2.isReadable:t.GetType().Name):"<null>");
+        }
+        // Flames built by CastleWorld are saved into the prepared scene; the player must not depend on what the scene serialized
+        // (procedural textures arrived blank white there, which drew every flame as an opaque card). Re-assign the shared runtime
+        // materials, built from the baked PNG sprites, and log once what the scene had and what is used now.
+        void UseRuntimeMaterials()
+        {
+            var flameRenderer=billboard?billboard.GetComponent<Renderer>():null;
+            string before=flameRenderer?Describe(flameRenderer.sharedMaterial):"<no billboard>";
+            var flameMaterial=SurrealProps.SharedFlameMaterial;
+            if(flameRenderer&&flameMaterial)flameRenderer.sharedMaterial=flameMaterial;
+            if(glow)
+            {
+                var glowRenderer=glow.GetComponent<Renderer>();
+                var glowMaterial=SurrealProps.SharedGlowMaterial;
+                if(glowRenderer&&glowMaterial)glowRenderer.sharedMaterial=glowMaterial;
+            }
+            if(!reported)
+            {
+                reported=true;
+                Debug.Log("HC_FLAME_CHECK scene material: "+before+" | runtime material: "+Describe(flameMaterial)+(flameRenderer?" | queue="+flameRenderer.sharedMaterial.renderQueue:""));
+            }
+        }
         void Start()
         {
+            UseRuntimeMaterials();
             var p=transform.position;
             seed=Mathf.Abs(Mathf.Sin(p.x*12.9898f+p.y*37.719f+p.z*78.233f))*100f;
             ready=true;

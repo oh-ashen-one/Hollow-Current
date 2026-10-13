@@ -202,6 +202,8 @@ namespace HollowCurrent
                     }
                     strokes[g]=list;
                 }
+                runeAtlas=LoadSprite("Surreal_Runes");
+                if(runeAtlas)return runeAtlas;
                 runeAtlas=MakeTexture("Surreal runes",AtlasColumns*CellPixels,AtlasRows*CellPixels,(u,v)=>
                 {
                     int column=Mathf.Min(AtlasColumns-1,(int)(u*AtlasColumns)),row=Mathf.Min(AtlasRows-1,(int)(v*AtlasRows));
@@ -472,8 +474,9 @@ namespace HollowCurrent
                 return c;
             });
         }
-        static Material PaleMoonMaterial=>paleMoonMaterial?paleMoonMaterial:paleMoonMaterial=Unlit("Pale moon",paleMoonTexture?paleMoonTexture:paleMoonTexture=MoonTexture(new Color(.9f,.94f,1f,1),new Color(.45f,.6f,.95f,1),3),Color.white);
-        static Material RedMoonMaterial=>redMoonMaterial?redMoonMaterial:redMoonMaterial=Unlit("Red moon",redMoonTexture?redMoonTexture:redMoonTexture=MoonTexture(new Color(.95f,.3f,.3f,1),new Color(.7f,.18f,.3f,1),11),Color.white);
+        internal static Material MoonMaterial(bool red)=>red?RedMoonMaterial:PaleMoonMaterial;
+        static Material PaleMoonMaterial=>paleMoonMaterial?paleMoonMaterial:paleMoonMaterial=Unlit("Pale moon",paleMoonTexture?paleMoonTexture:paleMoonTexture=LoadSprite("Surreal_MoonPale")??MoonTexture(new Color(.9f,.94f,1f,1),new Color(.45f,.6f,.95f,1),3),Color.white);
+        static Material RedMoonMaterial=>redMoonMaterial?redMoonMaterial:redMoonMaterial=Unlit("Red moon",redMoonTexture?redMoonTexture:redMoonTexture=LoadSprite("Surreal_MoonRed")??MoonTexture(new Color(.95f,.3f,.3f,1),new Color(.7f,.18f,.3f,1),11),Color.white);
 
         // ---- painted-over sun window (chapel): pointed-arch stained glass with the gilt sun blotted out with black ink ----
         static Texture2D sunWindowTexture;

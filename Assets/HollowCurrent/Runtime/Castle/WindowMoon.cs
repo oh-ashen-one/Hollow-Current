@@ -7,9 +7,11 @@ namespace HollowCurrent
     public sealed class WindowMoon : MonoBehaviour
     {
         public Renderer disc;
+        public bool red;
         public Transform castleRoot;
         public float margin=.2f;
         bool shown=true;
+        void Start(){var m=SurrealProps.MoonMaterial(red);if(disc&&m)disc.sharedMaterial=m;}
         void Update()
         {
             if(!disc||!castleRoot)return;
