@@ -48,3 +48,35 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4h — Count Claude round 8 (branch `hc/count8`, Opus 5.5)
+
+Commit `e40cce4` (+ this handoff). `check_source.py` PASS. Unity not launched; no paid jobs.
+
+## Findings and fixes (critic r7, section 6 and the hunt)
+- **Red cast:** the baked albedo was not red (6.5% red-dominant and 12.1% grey-white texels, against 9.5% and 16.5% on the
+  sheet). The cause was the round-7 `Gore(Skin)` material on the whole body. Submesh 0 (body/coat) now keeps the plain imported
+  material (`GoreSkinOnBody=false`). `Gore(Flesh)` goes only on a new submesh 2 (1,191 faces from a UV mask of red torso and
+  forearm texels) and `Gore(Membrane)` on the wings (wet 0.2). After the round-8 bake the albedo is 2.8% red-dominant and
+  13.6% grey-white.
+- **Face:** the head is projected from the front view (×4 weight, bilinear); its darks are crushed (sockets, split-jaw slit) and
+  two ember spots at the sheet's eye positions go to `Maps/Emission.png`. The import enables `_EMISSION` (colour ×3). Blender
+  render: the ember eyes still read at full-body distance.
+- **Grab:** wings no longer compress the fan to half (spread keeps 72% of its 170 deg). Membrane area against rest: Perch 1.11,
+  Glide 1.25, Search 1.22, Dive 1.26, Stagger 1.21, Death 0.98, Grab 2.09, Crawl 0.84 (all ≥ 0.8). Grab pose: torso pitched
+  **27.9 deg** toward the camera, arms down and out past the lens, wings half-wrapped (yaw 66) with their inner faces to the
+  camera, jaw open. In a Blender camera matching the capture at 2.8 m: tips at x 0.04–1.00, face clear, feet in frame. The H10
+  lunge to 2.5 m pushes the tips past the edges.
+- **Smear:** grazing views (facing < 0.25) no longer contribute, weights are facing^4, and the side views paint the strands.
+  UV islands were not re-unwrapped.
+
+## Integrator steps
+1. Merge `hc/count8`; run `CountClaudeImport.Prepare` (new `Maps/Emission.png` with its meta; three submeshes; all FBX changed).
+   Expect `HC_COUNTCLAUDE_PASS ... 8 independent motions`, no `HC_COUNTCLAUDE_GRAB_REACH` warning (GrabReach 1.39 m).
+   Commit `Resources/Characters/CountClaude*`.
+2. The castle log should show `HC_COUNT_GORE applied`. Capture calls are unchanged.
+
+## Not done
+- H01–H03 still one perch beat. UV islands not re-unwrapped (the projection change only reduces the smear).
