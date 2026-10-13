@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-13T17:24:47.788272Z",
+    "display_name": "GPT Image 2.5",
+    "id": "f495eab4-36df-46d6-9360-f9af30647eec",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172447_f495eab4-36df-46d6-9360-f9af30647eec_min.webp",
+    "params": {
+      "aspect_ratio": "16:9",
+      "height": 1520,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Item reference sheet on a plain dark grey background, three objects spaced evenly in a row, each shown clearly from a three-quarter angle with even studio lighting and a soft shadow beneath. Left: a slender silver sword blade without a handle, slightly tarnished, engraved with a thin line of runes, the tip blackened. Middle: an ornate sword hilt and crossguard of dark iron wrapped in faded red leather, with an empty round socket in the pommel. Right: a fist-sized uncut moonstone, milky white with a faint internal blue glow. Realistic painterly style, museum-catalog clarity, no text, no watermark.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172447_f495eab4-36df-46d6-9360-f9af30647eec.png",
+    "status": "completed"
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-13T17:25:23.937445Z",
+    "display_name": "GPT Image 2.5",
+    "id": "12cedba3-ba66-40e0-acf0-594f71cfab6b",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172523_12cedba3-ba66-40e0-acf0-594f71cfab6b_min.webp",
+    "params": {
+      "aspect_ratio": "16:9",
+      "height": 1520,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Weapon reference on a plain dark grey background, a single longsword shown in two views: the full sword horizontal across the upper half, and a large close-up of the hilt in the lower half. The slender silver blade is engraved with a thin line of runes that glow faint blue, the dark iron crossguard is wrapped in faded red leather, and a milky uncut moonstone glowing softly sits in the pommel socket. Slight wisps of pale mist drift off the blade. Even studio lighting, realistic painterly style, no hands, no text, no watermark.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172523_12cedba3-ba66-40e0-acf0-594f71cfab6b.png",
+    "status": "completed"
+  }
+]

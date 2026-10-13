@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-13T17:25:58.935824Z",
+    "display_name": "GPT Image 2.5",
+    "id": "7e06ef27-30bd-4cef-9e8d-9b3fd351de0b",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172558_7e06ef27-30bd-4cef-9e8d-9b3fd351de0b_min.webp",
+    "params": {
+      "aspect_ratio": "21:9",
+      "height": 1152,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Wide exterior concept art of a vampire lord's gothic castle on a black crag at night, seen from the far end of a lowered wooden drawbridge. The moat below is a slow river of dark red. Two moons dominate the sky, one huge and pale, one smaller and blood-red, with a faint green aurora between them and stars that are slightly too large. Jagged towers, one broken, bats circling, a single warm light in a high window. Bare dead trees, mist, cold blue moonlight. Realistic painterly horror style, no people, no text, no watermark.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261013_172558_7e06ef27-30bd-4cef-9e8d-9b3fd351de0b.png",
+    "status": "completed"
+  }
+]
