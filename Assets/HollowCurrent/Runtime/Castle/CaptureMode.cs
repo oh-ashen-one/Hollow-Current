@@ -114,24 +114,27 @@ namespace HollowCurrent
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(true);
             Physics.SyncTransforms();
             float fov=game.Player.View.fieldOfView;
+            // Round 6: the search also walks eye height 3.5 -> 2.5 m and distance 14 -> 18 m back
+            // from the gate; the bridge constraint is only "far end of the lowered leaf in frame".
             e=S4Eye;float s4Pitch=S4Pitch,s4Fov=S4Fov;string s4="fallback";
             var moonDirs=new[]{("pale",CastleArt.PaleMoonDirection,.15f),("red",CastleArt.RedMoonDirection,.07f)};
-            foreach(float f in new[]{90f,95f})
+            foreach(float back in new[]{14f,15f,16f,17f,18f})foreach(float height in new[]{3.5f,3f,2.5f})foreach(float f in new[]{90f,95f})
             {
+                if(s4!="fallback")break;
+                var eye=new Vector3(0,height,-back);
                 for(float p=0;p<=30.01f&&s4=="fallback";p+=1.5f)
                 {
-                    game.Player.View.fieldOfView=f;var aim=e+Quaternion.Euler(-p,0,0)*Vector3.forward*20;Place(e,aim);
+                    game.Player.View.fieldOfView=f;var aim=eye+Quaternion.Euler(-p,0,0)*Vector3.forward*20;Place(eye,aim);
                     var cam=game.Player.View;bool ok=true;
                     foreach(var m in moonDirs)
                     {
-                        var vp=cam.WorldToViewportPoint(e+m.Item2*500);
-                        if(vp.z<0||vp.x<m.Item3||vp.x>1-m.Item3||vp.y<m.Item3||vp.y>1-m.Item3||Physics.Raycast(e,m.Item2,600,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))ok=false;
+                        var vp=cam.WorldToViewportPoint(eye+m.Item2*500);
+                        if(vp.z<0||vp.x<m.Item3||vp.x>1-m.Item3||vp.y<m.Item3||vp.y>1-m.Item3||Physics.Raycast(eye,m.Item2,600,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))ok=false;
                     }
                     var gate=cam.WorldToViewportPoint(new Vector3(0,0,0));if(gate.z<0||gate.y<.08f||gate.y>.34f)ok=false;
-                    var bridge=cam.WorldToViewportPoint(new Vector3(0,0,-6.4f));if(bridge.z<0||bridge.y<.01f)ok=false;
-                    if(ok){s4Pitch=p;s4Fov=f;s4="pitch="+p+" fov="+f;}
+                    var leafEnd=cam.WorldToViewportPoint(new Vector3(0,0,-6.45f));if(leafEnd.z<0||leafEnd.y<0||leafEnd.y>1||leafEnd.x<0||leafEnd.x>1)ok=false;
+                    if(ok){e=eye;s4Pitch=p;s4Fov=f;s4="eye="+V(eye)+" pitch="+p+" fov="+f;}
                 }
-                if(s4!="fallback")break;
             }
             game.Player.View.fieldOfView=s4Fov;t=e+Quaternion.Euler(-s4Pitch,0,0)*Vector3.forward*20;Place(e,t);Log("S4 search "+s4);
             string moons="";
@@ -143,7 +146,7 @@ namespace HollowCurrent
                 moons+=" "+m.Item1+"_moon inFrame="+inFrame+" occluded="+blocked+" viewport=("+vp.x.ToString("F2")+","+vp.y.ToString("F2")+")";
             }
             Log("S4"+moons);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+" (14 m back on the bridge axis, 3.5 m), "+s4+";"+moons);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);
             game.Player.View.fieldOfView=fov;
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5 (round 5): Count Claude crouched on the rose-window ledge (Presence.StageOnRoseLedge,
@@ -158,8 +161,33 @@ namespace HollowCurrent
                 if(!game.Creature.CaptureFraming(.5f,30,out e,out t)){e=new Vector3(3.6f,1.64f,15.2f);t=game.Creature.transform.position+Vector3.up*1.2f;}
                 s5="FALLBACK balcony perch 0, CaptureFraming(0.5,30)";Log("S5 rose-ledge staging failed; fallback used");
             }
+            // r5: RoseLedgeFraming puts the eye on the line from CastleLayout.RoseWindowEye through
+            // him (that line rises ~21 deg) at the distance fill 0.58 needs at FOV 72 (~2.8 m), so the
+            // camera sat close below him. Here the same target is shot from a flatter, farther eye:
+            // pitch 4 deg up, FOV narrowed so his posed height still fills 58% of the frame.
+            float s5Fov=game.Player.View.fieldOfView;var hidden=new List<Renderer>();
+            if(s5.StartsWith("rose ledge",StringComparison.Ordinal))
+            {
+                var pose=game.Creature.Actor.PoseBounds(0);
+                var flat=t-e;flat.y=0;if(flat.sqrMagnitude<.01f)flat=Vector3.forward;flat.Normalize();
+                const float s5ViewFov=50,fill=.58f,pitch=4;
+                float d=pose.size.y/(fill*2*Mathf.Tan(s5ViewFov*.5f*Mathf.Deg2Rad));
+                t=pose.center;e=t-flat*d*Mathf.Cos(pitch*Mathf.Deg2Rad)-Vector3.up*d*Mathf.Sin(pitch*Mathf.Deg2Rad);
+                game.Player.View.fieldOfView=s5ViewFov;
+                // Floaters within 1.2 m of the new eye-to-Count line are hidden for this shot only.
+                foreach(var floater in Floater.All)
+                {
+                    if(!floater)continue;var q=floater.transform.position;var seg=t-e;float u=Mathf.Clamp01(Vector3.Dot(q-e,seg)/seg.sqrMagnitude);
+                    if(Vector3.Distance(q,e+seg*u)<1.2f)foreach(var r in floater.GetComponentsInChildren<Renderer>())if(r.enabled){r.enabled=false;hidden.Add(r);}
+                }
+                s5+=" -> flattened: pitch "+pitch+" deg, FOV "+s5ViewFov+", distance "+d.ToString("F2")+" m, pose height "+pose.size.y.ToString("F2")+" m, floaters hidden "+hidden.Count;
+            }
             Place(e,t);
-            yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,s5+"; Count feet "+V(game.Creature.transform.position)+", investigator torch on");
+            int moonsInFrame=0;
+            foreach(var tr in game.World.Root.GetComponentsInChildren<Transform>(true))if(tr.name=="Pale moon"||tr.name=="Red moon"){var vp=game.Player.View.WorldToViewportPoint(tr.position);if(vp.z>0&&vp.x>0&&vp.x<1&&vp.y>0&&vp.y<1)moonsInFrame++;}
+            Log("S5 "+s5+" eye="+V(e)+" target="+V(t)+" moonSpritesInFrame="+moonsInFrame);
+            yield return new WaitForSecondsRealtime(.5f);yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,s5+"; moon sprites in frame "+moonsInFrame+"; Count feet "+V(game.Creature.transform.position)+", investigator torch on");
+            foreach(var r in hidden)if(r)r.enabled=true;game.Player.View.fieldOfView=s5Fov;
             game.Creature.Dismiss();
             // S6: Count Claude standing on the courtyard floor (Mode 2 Search) with a 1.80 m
             // mannequin (Presence.ScaleReference) beside him for scale.
