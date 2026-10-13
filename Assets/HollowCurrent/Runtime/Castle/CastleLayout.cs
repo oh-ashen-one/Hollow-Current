@@ -139,6 +139,7 @@ namespace HollowCurrent
             public const string FloatingBook = "FloatingBook";       // open book, pages up
             public const string Banner = "Banner";                   // oxblood hanging banner, origin floor centre
             public const string StoneFont = "StoneFont";
+            public const string DrawbridgeChains = "DrawbridgeChains"; // static pair of chains from the lowered leaf's far corners up to the gate
             public const string CoffinNiche = "CoffinNiche";         // origin at the front face; recess runs back 1.2 m, the coffin projects 1.15 m
         }
 
@@ -280,10 +281,14 @@ namespace HollowCurrent
 
         // ---- dressing data (round 2) ---------------------------------------------------------------
         // Great hall: the long table, its chairs and the giant skeleton arching over them at the far end.
-        public const float HallTableZ = 25.6f;
-        public static readonly Vector3 SkeletonPos = new Vector3(0, 0, HallTableZ);
-        public const float SkeletonYaw = -90f;     // head toward -x, spine along the hall's width
-        public const float SkeletonScale = .88f;   // 12 m -> 10.5 m so it clears the spine walls (inner faces at +-5.7)
+        // Round 3: the skeleton lies diagonally across the far end with its skull front-left (facing the entrance, in the gap
+        // between the west columns at z 21.6 and 24.4); the long table sits in front of its ribs, clear of every bone.
+        // The art's +Y (head) imports as local -Z, so yaw 58 puts the skull at (-4.5, 22.8) and the tail into the back wall.
+        public static readonly Vector3 SkeletonPos = new Vector3(0, 0, 25.4f);
+        public const float SkeletonYaw = 58f;
+        public const float SkeletonScale = 1.0f;
+        public static readonly Vector3 TablePos = new Vector3(2.0f, 0, 22.75f);
+        public const float TableCandleZ = 22.75f;
 
         // Floating candelabra (centre of the stand) and books; hall-local. Under the galleries (|x| > 3, y < 3.2) nothing hangs.
         public static readonly Vector3[] HallCandelabras =
@@ -295,8 +300,9 @@ namespace HollowCurrent
         };
         public static readonly Vector3[] HallBooks =
         {
-            new Vector3(-2.8f, 3.1f, 16.2f), new Vector3(2.2f, 2.7f, 19.8f), new Vector3(-0.9f, 5.0f, 18.2f), new Vector3(1.6f, 4.3f, 15.9f),
-            new Vector3(-2.4f, 4.5f, 22.4f), new Vector3(0.6f, 3.6f, 21.7f), new Vector3(3.8f, 5.0f, 21.0f), new Vector3(-4.2f, 5.9f, 17.6f),
+            new Vector3(-2.4f, 3.0f, 17.6f), new Vector3(1.8f, 3.4f, 18.4f), new Vector3(-1.0f, 4.2f, 19.4f), new Vector3(2.6f, 3.2f, 20.6f),
+            new Vector3(-2.8f, 4.8f, 21.2f), new Vector3(0.4f, 3.9f, 19.9f), new Vector3(-1.9f, 5.4f, 23.0f), new Vector3(2.3f, 5.0f, 24.0f),
+            new Vector3(-0.4f, 2.7f, 17.0f), new Vector3(3.0f, 4.4f, 22.0f),
         };
 
         public readonly struct CastleBannerDef
@@ -326,7 +332,6 @@ namespace HollowCurrent
         public static bool IsFallenPew(float x, float z) { foreach (var p in ChapelFallenPews) if (Mathf.Abs(p.X - x) < .01f && Mathf.Abs(p.Z - z) < .01f) return true; return false; }
         public static readonly Vector3 FontPos = new Vector3(7.55f, 0, 6.95f);
         public static readonly Vector3 BrazierPos = new Vector3(12.6f, 0, 11.2f);
-        public static readonly Vector3 SunWindowPos = new Vector3(13.55f, 3.2f, 6.5f);   // east wall inner face, behind the altar
 
         // Crypt: coffin niches cut into the walls. Inward is the room side along the wall normal.
         public const float NicheWidth = 1.1f, NicheSill = .35f, NicheTop = 1.15f;
@@ -368,7 +373,7 @@ namespace HollowCurrent
             // great hall
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
-            new CastleCandleDef(new Vector3(-2.5f, .95f, HallTableZ), .8f), new CastleCandleDef(new Vector3(2.5f, .95f, HallTableZ), .8f),
+            new CastleCandleDef(new Vector3(.4f, .95f, TableCandleZ), .8f), new CastleCandleDef(new Vector3(3.6f, .95f, TableCandleZ), .8f),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall

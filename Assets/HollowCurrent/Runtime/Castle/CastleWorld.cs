@@ -90,7 +90,7 @@ namespace HollowCurrent
         static readonly Vector3 HunterLocal = new Vector3(0, -3.2f, 21.4f);
         static readonly Vector3 AltarLocal = new Vector3(13.0f, 1.45f, 6.5f);
         static readonly Vector3 WinchLocal = new Vector3(-2.6f, 1.0f, 1.4f);
-        static readonly Vector3 RuneLocal = new Vector3(0, .02f, 19.5f);
+        static readonly Vector3 RuneLocal = new Vector3(0, .02f, 18.5f);   // pulled 1 m toward the entrance so the ring's far edge clears the table (z 22.05)
         static readonly Vector3 LoopReturnLocal = new Vector3(-7.0f, -3.1f, 25.4f);
         static readonly Vector3[] PerchLocal =
         {
@@ -136,6 +136,7 @@ namespace HollowCurrent
             foreach (var d in CastleLayout.Doors) BuildDoor(d);
             foreach (var w in CastleLayout.Windows) BuildWindow(w);
             Moons();
+            Keep();
             Balcony();
             Gatehouse();
             Courtyard();
@@ -167,14 +168,14 @@ namespace HollowCurrent
             Mat("metal", new Color(.18f, .21f, .2f)); Mat("black", new Color(.025f, .03f, .029f)); Mat("earth", new Color(.055f, .06f, .05f));
             Mat("cloth", new Color(.34f, .08f, .1f)); Mat("glass", new Color(.075f, .14f, .2f));
             Mat("blood", new Color(.45f, .03f, .04f), new Color(.38f, .02f, .03f));
-            Mat("bloodpool", new Color(.30f, .018f, .028f), new Color(.2f, .01f, .018f));
+            Mat("bloodpool", new Color(.36f, .02f, .03f), new Color(.45f, .02f, .035f));
             Mat("ember", new Color(.35f, .1f, .04f), new Color(1.8f, .5f, .12f));
         }
         void Mat(string id, Color c, Color emission = default(Color))
         {
             var shader = Shader.Find("Standard");
             var m = new Material(shader) { name = "HC castle / " + id, color = c };
-            m.SetFloat("_Glossiness", id == "metal" || id == "brass" ? .35f : id == "blood" || id == "bloodpool" ? .9f : .12f);
+            m.SetFloat("_Glossiness", id == "metal" || id == "brass" ? .35f : id == "blood" || id == "bloodpool" ? .55f : .12f);
             if (id == "bloodpool") m.SetFloat("_Metallic", .2f);
             if (emission.maxColorComponent > 0) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", emission); }
             mats[id] = m;
@@ -189,6 +190,12 @@ namespace HollowCurrent
             if (render) r.sharedMaterial = mats[mat]; else r.enabled = false;
             g.GetComponent<Collider>().enabled = collide;
             return g;
+        }
+        // Castle_Blood liquid surface (scrolling normals, deep red). The Standard fallback stays red if the shader is unavailable.
+        void Liquid(GameObject g)
+        {
+            var m = CastleArt.Surface("Castle_Blood", CastleArt.SurfaceKind.Liquid, Color.white);
+            if (m) g.GetComponent<Renderer>().sharedMaterial = m;
         }
         GameObject Cyl(string name, Vector3 center, float diameter, float height, string mat)
         {
@@ -451,7 +458,14 @@ namespace HollowCurrent
             leaf.name = "Drawbridge leaf"; leaf.transform.SetParent(hinge.transform, false);
             leaf.transform.localPosition = new Vector3(0, -.125f, -3f); leaf.transform.localScale = new Vector3(3.2f, .25f, 6f);
             leaf.GetComponent<Renderer>().enabled = false;               // CastleArt supplies the visible leaf
-            CastleArt.Place(Art.Drawbridge, hinge.transform, Vector3.zero, Quaternion.identity);
+            // The leaf must extend toward -Z (over the moat). If the FBX axis conversion put the mesh on the +Z side (into the
+            // gatehouse, which is why no bridge showed from the far bank), turn it about the hinge. The chains follow the same fix.
+            var leafArt = CastleArt.Place(Art.Drawbridge, hinge.transform, Vector3.zero, Quaternion.identity);
+            float artYaw = 0;
+            if (ArtLocalCentre(leafArt, hinge.transform).z > 0) { artYaw = 180; leafArt.transform.localRotation = Quaternion.Euler(0, 180, 0); }
+            var chains = CastleArt.Place(Art.DrawbridgeChains, root, new Vector3(0, 0, -.45f), Quaternion.Euler(0, artYaw, 0));
+            chains.gameObject.SetActive(false);
+            var chainGate = chains.gameObject;
             foreach (int side in new[] { -1, 1 })
             {
                 var rail = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -460,6 +474,16 @@ namespace HollowCurrent
                 rail.GetComponent<Renderer>().sharedMaterial = mats["stone"];
             }
             bridge = hinge.AddComponent<CastleDrawbridge>(); bridge.Hinge = hinge.transform;
+            var vis = hinge.AddComponent<ChainVisibility>(); vis.bridge = bridge; vis.chains = chainGate;
+        }
+
+        // Centre of an art object's meshes in `space`'s local coordinates (exact for rotated parents; no AABB).
+        static Vector3 ArtLocalCentre(Transform art, Transform space)
+        {
+            var sum = Vector3.zero; int n = 0;
+            foreach (var f in art.GetComponentsInChildren<MeshFilter>())
+                if (f.sharedMesh != null) { sum += space.InverseTransformPoint(f.transform.TransformPoint(f.sharedMesh.bounds.center)); n++; }
+            return n > 0 ? sum / n : Vector3.zero;
         }
 
         void BuildWindow(CastleWindowDef w)
@@ -512,14 +536,36 @@ namespace HollowCurrent
             l2.type = LightType.Directional; l2.color = new Color(.62f, .32f, .46f); l2.intensity = .06f; l2.shadows = LightShadows.None;
         }
 
+        // ---- keep towers ----
+        // Round towers with conical slate spires on the roofs, so the skyline from the far bank has at least five spires above the wall.
+        void Keep()
+        {
+            Tower("Gate tower W", new Vector3(-9.5f, 6.4f, 2.4f), 1.5f, 5.0f, 6.0f);
+            Tower("Gate tower E", new Vector3(9.5f, 6.4f, 2.4f), 1.5f, 5.0f, 6.0f);
+            Tower("Rear tower W", new Vector3(-10f, 6.4f, 24f), 1.4f, 5.0f, 6.0f);
+            Tower("Keep", new Vector3(0, 9.2f, 22.5f), 2.4f, 7.0f, 8.0f);
+            Tower("Observatory spire", new Vector3(10.5f, 11.6f, 23.5f), 1.3f, 3.0f, 5.0f);
+        }
+        void Tower(string name, Vector3 baseCentre, float radius, float shaft, float spire)
+        {
+            Cyl(name + " shaft", baseCentre + new Vector3(0, shaft * .5f, 0), radius * 2f, shaft, "stone");
+            Cyl(name + " corbel", baseCentre + new Vector3(0, shaft, 0), radius * 2.35f, .35f, "darkstone");
+            var b = new SurrealProps.MeshBuilder(1);
+            b.Prism(Vector3.zero, radius * 1.3f, .03f, spire, 10, 0);
+            var g = new GameObject(name + " spire");
+            g.transform.SetParent(root, false); g.transform.localPosition = baseCentre + new Vector3(0, shaft + .17f, 0);
+            g.AddComponent<MeshFilter>().sharedMesh = b.Build(name + " spire");
+            var r = g.AddComponent<MeshRenderer>(); r.sharedMaterial = mats["black"]; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+
         // ---- exterior -----------------------------------------------------------------------------------
         void Exterior()
         {
             // blood moat around the walls, banks beyond, bed below
-            Box("Blood moat front", new Vector3(0, -.6f, -3.025f), new Vector3(39f, .1f, 5.15f), "blood", false);
-            Box("Blood moat back", new Vector3(0, -.6f, 31.025f), new Vector3(39f, .1f, 5.15f), "blood", false);
-            Box("Blood moat west", new Vector3(-16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false);
-            Box("Blood moat east", new Vector3(16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false);
+            Liquid(Box("Blood moat front", new Vector3(0, -.6f, -3.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
+            Liquid(Box("Blood moat back", new Vector3(0, -.6f, 31.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
+            Liquid(Box("Blood moat west", new Vector3(-16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
+            Liquid(Box("Blood moat east", new Vector3(16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
             // bed ring only outside the footprint, so it never intrudes on the crypt
             Box("Moat bed front", new Vector3(0, -2.5f, -3.025f), new Vector3(39f, 1f, 5.15f), "earth");
             Box("Moat bed back", new Vector3(0, -2.5f, 31.025f), new Vector3(39f, 1f, 5.15f), "earth");
@@ -572,10 +618,15 @@ namespace HollowCurrent
             foreach (int side in new[] { -1, 1 })
                 foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
                     Prop(Art.ColumnGreat, new Vector3(side * 3.9f, 0, z), 0);
-            // The long table sits under the ribs of the giant skeleton (its spine runs along the hall's width behind the rune ring).
-            Prop(Art.LongTable, new Vector3(0, 0, CastleLayout.HallTableZ), 0);
+            // The giant skeleton lies diagonally behind the long table; the table is clear of every bone.
+            Prop(Art.LongTable, CastleLayout.TablePos, 0);
             Prop(Art.Throne, new Vector3(-5.1f, 0, 18.2f), 90);
-            foreach (float x in new[] { -2.4f, -1.2f, 0f, 1.2f, 2.4f }) Prop(Art.HighBackChair, new Vector3(x, 0, CastleLayout.HallTableZ - 1.1f), 0, false);
+            // chairs only where no bone arches over the table: the east end, both sides
+            foreach (float x in new[] { 2.2f, 3.0f })
+            {
+                Prop(Art.HighBackChair, new Vector3(x, 0, CastleLayout.TablePos.z - 1.1f), 0, false);
+                Prop(Art.HighBackChair, new Vector3(x, 0, CastleLayout.TablePos.z + 1.1f), 180, false);
+            }
             runeAnchor = new GameObject("RuneRing anchor").transform; runeAnchor.SetParent(root, false); runeAnchor.localPosition = RuneLocal;
             Hide("Hall armoire", new Vector3(5.7f, 0, 21.0f), 90);
             HallDressing();
@@ -597,7 +648,7 @@ namespace HollowCurrent
             for (int i = 0; i < CastleLayout.HallBooks.Length; i++)
             {
                 var book = ArtAt(Art.FloatingBook, CastleLayout.HallBooks[i], 0);
-                book.localScale = Vector3.one * 1.8f;
+                book.localScale = Vector3.one * 2.2f;
                 // pages tipped up toward the entrance so the open book reads from the aisle
                 book.localRotation = Quaternion.Euler(-(52 + (i * 7) % 20), (i % 2 == 0 ? 1 : -1) * (14 + i * 9), (i % 3 - 1) * 12);
                 var f = book.gameObject.AddComponent<Floater>();
@@ -665,7 +716,6 @@ namespace HollowCurrent
                 "Cut into the altar slab:\n\nWHAT WAS BARGAINED FOR NIGHT IS PAID IN BLOOD. WHAT WAS HIDDEN FROM HIM IS HIDDEN IN THREE: THE BLADE UNDER THE CRYPT, THE HILT AMONG THE STARS, THE STONE BEHIND A FACE.\n\nBring them here and the altar remembers its trade.");
             ChapelFont();
             ChapelBrazier();
-            ChapelSunWindow();
             ChapelCandles();
         }
 
@@ -694,25 +744,17 @@ namespace HollowCurrent
             Cyl("Brazier stem", p + new Vector3(0, .46f, 0), .12f, .84f, "metal");
             Cyl("Brazier bowl", p + new Vector3(0, .92f, 0), .72f, .14f, "metal");
             Cyl("Brazier coals", p + new Vector3(0, .995f, 0), .62f, .02f, "ember");
-            SurrealProps.MakeCandleFlame(root, p + new Vector3(0, 1.0f, 0), .5f, false, "Brazier flame");
+            SurrealProps.MakeCandleFlame(root, p + new Vector3(0, 1.0f, 0), .5f, false, "Brazier flame", .8f);
             Interact("Chapel brazier", p + new Vector3(0, .5f, 0), new Vector3(.7f, 1.0f, .7f), "metal", InteractKind.Breaker, "Chapel brazier", "", false);
         }
 
-        // Pointed-arch window behind the altar, the gilt sun blotted out with black paint, in a stone reveal.
-        void ChapelSunWindow()
-        {
-            var c = CastleLayout.SunWindowPos;
-            SurrealProps.MakeSunWindow(root, c + new Vector3(-.005f, 0, 0), Vector3.left, 1.9f, 3.2f);
-            foreach (int side in new[] { -1, 1 }) Box("Sun window jamb", c + new Vector3(-.06f, 0, side * 1.0f), new Vector3(.12f, 3.2f, .14f), "stone", false);
-            Box("Sun window sill", c + new Vector3(-.08f, -1.6f, 0), new Vector3(.16f, .06f, 2.1f), "stone", false);
-        }
-
-        // 44 candles hang in the chapel at 1.5 to 5 m; only one burns (a billboard flame, no light).
+        // 44 candles hang in the chapel at 1.5 to 5 m: 34 burn (billboard flame plus halo, no point light) and 10 stay dark; the
+        // hero candle above the altar burns brightest.
         void ChapelCandles()
         {
             var rnd = new System.Random(2026);
             var placed = new List<Vector3> { new Vector3(12.2f, 2.4f, 5.0f) };
-            SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.2f);
+            SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.5f, true);
             int guard = 0;
             while (placed.Count < 44 && guard++ < 4000)
             {
@@ -723,7 +765,8 @@ namespace HollowCurrent
                 bool crowded = false;
                 foreach (var q in placed) if ((q - p).sqrMagnitude < .45f) { crowded = true; break; }
                 if (crowded) continue;
-                SurrealProps.MakeFloatingCandle(root, p, placed.Count, false, .9f + .4f * (float)rnd.NextDouble());
+                int n = placed.Count;
+                SurrealProps.MakeFloatingCandle(root, p, n, n % 4 != 3, .9f + .4f * (float)rnd.NextDouble());
                 placed.Add(p);
             }
         }
@@ -773,10 +816,10 @@ namespace HollowCurrent
             // Blood channel 1.2 m wide: a 0.3 m deep trench (floor -3.2, bed -3.5) holding glossy blood 0.1 m below the floor,
             // fenced by low curbs and crossed by a single bridge.
             Box("Channel bed", new Vector3(0, -3.65f, 22.5f), new Vector3(6.4f, .3f, 6.4f), "darkstone");
-            Box("Blood channel north", new Vector3(0, -3.31f, 24.9f), new Vector3(6.0f, .02f, 1.2f), "bloodpool", false);
-            Box("Blood channel south", new Vector3(0, -3.31f, 20.1f), new Vector3(6.0f, .02f, 1.2f), "bloodpool", false);
-            Box("Blood channel west", new Vector3(-2.4f, -3.31f, 22.5f), new Vector3(1.2f, .02f, 3.6f), "bloodpool", false);
-            Box("Blood channel east", new Vector3(2.4f, -3.31f, 22.5f), new Vector3(1.2f, .02f, 3.6f), "bloodpool", false);
+            Liquid(Box("Blood channel north", new Vector3(0, -3.31f, 24.9f), new Vector3(6.0f, .02f, 1.2f), "bloodpool", false));
+            Liquid(Box("Blood channel south", new Vector3(0, -3.31f, 20.1f), new Vector3(6.0f, .02f, 1.2f), "bloodpool", false));
+            Liquid(Box("Blood channel west", new Vector3(-2.4f, -3.31f, 22.5f), new Vector3(1.2f, .02f, 3.6f), "bloodpool", false));
+            Liquid(Box("Blood channel east", new Vector3(2.4f, -3.31f, 22.5f), new Vector3(1.2f, .02f, 3.6f), "bloodpool", false));
             // trench walls between the slab underside (-3.4) and the bed (-3.5)
             const float lw = .04f, lh = .1f, ly = -3.45f;
             Box("Trench wall W", new Vector3(-3.0f, ly, 22.5f), new Vector3(lw, lh, 6.0f), "darkstone", false); Box("Trench wall E", new Vector3(3.0f, ly, 22.5f), new Vector3(lw, lh, 6.0f), "darkstone", false);

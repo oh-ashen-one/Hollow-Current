@@ -15,7 +15,7 @@ namespace HollowCurrent
         }
         static void ResetMoreAssets()
         {
-            candleMesh=crownMesh=null;handRootMeshes=null;candleMaterials=handRootMaterials=null;rootCrownMaterials=null;
+            candleMesh=crownMesh=null;glowTexture=null;glowMaterial=null;handRootMeshes=null;candleMaterials=handRootMaterials=null;rootCrownMaterials=null;
             paleMoonTexture=redMoonTexture=sunWindowTexture=null;paleMoonMaterial=redMoonMaterial=sunWindowMaterial=violetRuneMaterial=null;
             runeAtlas=null;runeGlyphMeshes=null;portraitTexture=null;pupilTexture=null;batTexture=null;batMaterial=null;knifeMesh=null;knifeMaterials=null;frameMesh=null;frameMaterial=null;portraitMaterial=null;pupilMaterial=null;
         }

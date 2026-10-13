@@ -17,6 +17,11 @@ namespace HollowCurrent
         [Tooltip("Beyond this distance from the viewer the billboard stops turning toward the camera.")]
         public float billboardRange=40;
 
+        [Tooltip("Optional additive halo billboard (centre pivot); it turns to the viewer and breathes with the flicker.")]
+        public Transform glow;
+        [Tooltip("Halo diameter in metres.")]
+        public float glowSize=.5f;
+
         [Header("Flicker")]
         [Tooltip("Noise samples per second. Higher is more nervous.")]
         public float flickerSpeed=6;
@@ -55,6 +60,12 @@ namespace HollowCurrent
                 var to=billboard.position-viewer;
                 if(haveViewer&&to.sqrMagnitude<billboardRange*billboardRange&&to.sqrMagnitude>1e-4f)
                     billboard.rotation=Quaternion.LookRotation(to,transform.up);
+            }
+            if(glow)
+            {
+                glow.localScale=new Vector3(glowSize*(.9f+.2f*level),glowSize*(.9f+.2f*level),1);
+                var to=glow.position-viewer;
+                if(haveViewer&&to.sqrMagnitude<billboardRange*billboardRange&&to.sqrMagnitude>1e-4f)glow.rotation=Quaternion.LookRotation(to,Vector3.up);
             }
             if(flameLight)
             {
