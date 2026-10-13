@@ -294,13 +294,13 @@ namespace HollowCurrent
         public const float SkeletonYaw = 0f;
         public static readonly Vector3 SkeletonScaleVec = new Vector3(.30f, .82f, .90f);   // local x lateral, y height, z length
         public const float SkeletonMaxX = -3.0f;
-        public static readonly Vector3 TablePos = new Vector3(0f, 0, 24.65f);
+        public static readonly Vector3 TablePos = new Vector3(0f, 0, 23.7f);   // round 8: shorter (3.3 m, z 22.05-25.35) to leave room for the dais (z 25.5-27.55)
         public const float TableYaw = 90f;         // length axis along the hall axis (z)
-        public const float TableLengthScale = .66f, TableWidthScale = 1f;
+        public const float TableLengthScale = .5f, TableWidthScale = 1f;
 
         // Camera lines the dressing must stay clear of (round 4): S5 looks from the hall floor up at the Count's perch,
         // S6 stands in the gatehouse. Nothing that floats may sit within 2 m of the eye-to-subject segment.
-        public static readonly Vector3 S5Eye = new Vector3(0f, 6.0f, 25.3f), S5Subject = new Vector3(0f, 5.6f, 27.3f);   // round 6: the rose-window ledge perch
+        public static readonly Vector3 S5Eye = new Vector3(0f, 6.33f, 24.2f), S5Subject = new Vector3(0f, 6.52f, 26.9f);   // round 6: the rose-window ledge perch
         public static readonly Vector3 S6Eye = new Vector3(-0.30f, 1.15f, 1.00f), S6Subject = new Vector3(-0.9f, 1.2f, 4.4f);
         public static bool NearCaptureLine(Vector3 p, float radius)
         {
@@ -319,11 +319,17 @@ namespace HollowCurrent
             new Vector3(-1.8f, 3.3f, 15.8f), new Vector3(2.5f, 4.4f, 22.1f), new Vector3(-0.4f, 6.0f, 20.5f), new Vector3(-4.8f, 6.2f, 17.5f),
             new Vector3(4.6f, 5.4f, 16.8f), new Vector3(-3.9f, 5.8f, 23.4f), new Vector3(3.9f, 5.6f, 24.2f), new Vector3(0.3f, 3.5f, 23.1f),
             new Vector3(2.0f, 6.4f, 24.0f), new Vector3(-2.1f, 6.6f, 23.0f),
-            // the S5 view (eye (0,6,25.3) looking at the rose-window ledge): six candelabras in its lower third, off the camera line
-            new Vector3(-1.9f, 4.2f, 26.6f), new Vector3(1.9f, 4.2f, 26.6f), new Vector3(-3.2f, 4.8f, 26.3f),
-            new Vector3(3.2f, 4.8f, 26.3f), new Vector3(-1.0f, 3.9f, 26.9f), new Vector3(1.0f, 3.9f, 26.9f),
         };
         // Books sit east of the S5 line (hall floor to the Count's perch) and above 2.7 m; none within 2 m of an S5/S6 camera line.
+        // The S5 ledge candelabras (round 8): the capture eye sits at about (0, 6.33, 24.2) and looks 2.7 m ahead at the Count crouched
+        // on the rose-window ledge (FOV 50, pitch 4 up), so its lower third (y 5.2-6.1 at z 26.5-27.3) is where these hang, 1.6-2.3 m off
+        // the eye-to-Count line, inside the horizontal half-FOV (about 40 degrees). Floater.neverHide keeps the capture's hide-for-shot
+        // pass from removing them; HC_S5_CANDLES counts them at S5 time.
+        public static readonly Vector3[] S5LedgeCandelabras =
+        {
+            new Vector3(-1.6f, 5.4f, 26.8f), new Vector3(1.6f, 5.4f, 26.8f), new Vector3(-2.0f, 5.2f, 27.0f),
+            new Vector3(2.0f, 5.2f, 27.0f), new Vector3(-2.3f, 5.6f, 27.3f), new Vector3(2.3f, 5.6f, 27.3f),
+        };
         public static readonly Vector3[] HallBooks =
         {
             new Vector3(2.0f, 3.3f, 17.5f), new Vector3(3.0f, 4.3f, 19.2f), new Vector3(1.2f, 5.2f, 21.0f), new Vector3(2.6f, 3.6f, 21.5f),
@@ -402,7 +408,7 @@ namespace HollowCurrent
             // great hall
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
-            new CastleCandleDef(new Vector3(0f, .95f, 23.6f), .8f), new CastleCandleDef(new Vector3(0f, .95f, 25.7f), .8f),
+            new CastleCandleDef(new Vector3(0f, .95f, 22.85f), .8f), new CastleCandleDef(new Vector3(0f, .95f, 24.55f), .8f),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall

@@ -99,15 +99,15 @@ namespace HollowCurrent
             // S1: great hall from the entrance doors at eye level.
             var e=new Vector3(0,1.64f,14.7f);var t=new Vector3(0,2.6f,27);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S1_great_hall",3);
-            yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");
+            yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");SetPiece.Report(game.Player.View,"S1");
             // S2: chapel altar from the nave.
             // Round 7: pitched 10 degrees down toward the altar top so its relic sockets read.
             e=new Vector3(7.0f,1.64f,6.5f);t=e+new Vector3(Mathf.Cos(10*Mathf.Deg2Rad),-Mathf.Sin(10*Mathf.Deg2Rad),0)*6;Place(e,t);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S2_chapel_altar","refs/chapel_altar.png",e,t);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S2_chapel_altar","refs/chapel_altar.png",e,t);SetPiece.Report(game.Player.View,"S2");
             // S3: crypt from the stair foot looking at the sarcophagus.
             // Round 7: eye from hc/arch7's HANDOFF (crypt axis, looking at the sarcophagus).
             e=new Vector3(0,-1.56f,15.4f);t=new Vector3(0,-2.3f,24.0f);Place(e,t);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S3_crypt","refs/crypt.png",e,t);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S3_crypt","refs/crypt.png",e,t);SetPiece.Report(game.Player.View,"S3");
             // S4 (round 5 brief; the 2.2 m eye limit is lifted for this shot only): pulled
             // back along the bridge axis to 14 m from the gate at 3.5 m. Pitch and FOV are
             // searched so both moons sit fully in open sky (centre inset by the disc radius,
@@ -148,7 +148,7 @@ namespace HollowCurrent
                 moons+=" "+m.Item1+"_moon inFrame="+inFrame+" occluded="+blocked+" viewport=("+vp.x.ToString("F2")+","+vp.y.ToString("F2")+")";
             }
             Log("S4"+moons);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);SetPiece.Report(game.Player.View,"S4");
             game.Player.View.fieldOfView=fov;
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5 (round 5): Count Claude crouched on the rose-window ledge (Presence.StageOnRoseLedge,
@@ -187,7 +187,7 @@ namespace HollowCurrent
                 // Floaters within 1.2 m of the new eye-to-Count line are hidden for this shot only.
                 foreach(var floater in Floater.All)
                 {
-                    if(!floater)continue;var q=floater.transform.position;var seg=t-e;float u=Mathf.Clamp01(Vector3.Dot(q-e,seg)/seg.sqrMagnitude);
+                    if(!floater||floater.neverHide)continue;var q=floater.transform.position;var seg=t-e;float u=Mathf.Clamp01(Vector3.Dot(q-e,seg)/seg.sqrMagnitude);
                     if(Vector3.Distance(q,e+seg*u)<1.2f)foreach(var r in floater.GetComponentsInChildren<Renderer>())if(r.enabled){r.enabled=false;hidden.Add(r);}
                 }
                 s5+=" -> flattened: pitch "+pitch+" deg, FOV "+s5ViewFov+", distance "+d.ToString("F2")+" m, framed height max(head-to-feet "+(headTop-feetY).ToString("F2")+", 0.6 x pose) "+bodyHeight.ToString("F2")+" m, pose height "+pose.size.y.ToString("F2")+" m, floaters hidden "+hidden.Count;
