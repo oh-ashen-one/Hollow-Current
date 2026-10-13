@@ -1,0 +1,26 @@
+{
+  "name": "Bathtub",
+  "source": "Art/Tripo/HC_Bathtub.glb",
+  "sha256": "ea1d6936e5b9febb8d125002c11482401709feeccf9b380fe2ab8719d40a8c83",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 20182,
+      "triangles": 30000
+    }
+  ]
+}

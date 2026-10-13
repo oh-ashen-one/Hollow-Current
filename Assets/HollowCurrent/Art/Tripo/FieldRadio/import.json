@@ -1,0 +1,26 @@
+{
+  "name": "FieldRadio",
+  "source": "Art/Tripo/HC_FieldRadio.glb",
+  "sha256": "9bdb0882b03e6c131efad8c5c48a6e56dfab157aa4cf8fb45be18f4bcf73fb18",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 19483,
+      "triangles": 30000
+    }
+  ]
+}

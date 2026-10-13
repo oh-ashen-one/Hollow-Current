@@ -1,0 +1,26 @@
+{
+  "name": "CookingRange",
+  "source": "Art/Tripo/HC_CookingRange.glb",
+  "sha256": "5029ee1c7c81005883fad1002742a7e04fb7c84da5190bf13d4d9ccbccd1b5cc",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 37488,
+      "triangles": 39998
+    }
+  ]
+}

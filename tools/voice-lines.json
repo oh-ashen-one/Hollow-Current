@@ -1,0 +1,57 @@
+{
+  "arrival": {
+    "text": "Bellwether Field Office. The Harrows are clear. Find what stayed behind. Call when you need me.",
+    "rate": 145,
+    "voice": "en-gb"
+  },
+  "kit": {
+    "text": "Check your instruments. Read the family notes. Find a hiding place before you need one.",
+    "rate": 148,
+    "voice": "en-gb"
+  },
+  "hint_signal": {
+    "text": "Start with the rooms they used most. Follow the meter. An echo is not always the source.",
+    "rate": 142,
+    "voice": "en-gb"
+  },
+  "hint_trace": {
+    "text": "Look at what the family left behind. Ultraviolet may show you what they could not see.",
+    "rate": 142,
+    "voice": "en-gb"
+  },
+  "hint_voice": {
+    "text": "The recorder needs a quiet room. Ask once, then listen.",
+    "rate": 139,
+    "voice": "en-gb"
+  },
+  "warning": {
+    "text": "That is not interference. Find cover. Light off. Stay quiet.",
+    "rate": 155,
+    "voice": "en-gb"
+  },
+  "return": {
+    "text": "I can hear the rain again. Come back to the van.",
+    "rate": 134,
+    "voice": "en-gb"
+  },
+  "ending": {
+    "text": "The line is clear. You did it. We are going home.",
+    "rate": 134,
+    "voice": "en-gb"
+  },
+  "evp": {
+    "text": "Her chair. Do not put it away. Keep the house warm.",
+    "rate": 112,
+    "voice": "en-sc"
+  },
+  "whisper": {
+    "text": "You left her downstairs.",
+    "rate": 100,
+    "voice": "en-sc"
+  },
+  "contain": {
+    "text": "Keep it quiet. Let the last note end.",
+    "rate": 132,
+    "voice": "en-gb"
+  }
+}

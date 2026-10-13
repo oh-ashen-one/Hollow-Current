@@ -1,0 +1,26 @@
+{
+  "name": "DiningTable",
+  "source": "Art/Tripo/HC_DiningTable.glb",
+  "sha256": "79f2016852be4c4116fd7f310503102201bb7b36a496a559456a9308d08b9e64",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 13633,
+      "triangles": 14750
+    }
+  ]
+}

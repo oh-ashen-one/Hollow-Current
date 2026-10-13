@@ -1,0 +1,26 @@
+{
+  "name": "ParentsBed",
+  "source": "Art/Tripo/HC_ParentsBed.glb",
+  "sha256": "75d5dae54c4cc6b4da6f9038b2c012d30e531280649271899ad1f97a712d6979",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 18996,
+      "triangles": 18794
+    }
+  ]
+}

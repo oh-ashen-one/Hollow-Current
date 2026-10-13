@@ -1,0 +1,26 @@
+{
+  "name": "Washer",
+  "source": "Art/Tripo/HC_Washer.glb",
+  "sha256": "28097a8cabfe2fad47b22db3c5c73a95602f27a34be41c1d8abdfe0f14c270fc",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 20655,
+      "triangles": 29999
+    }
+  ]
+}

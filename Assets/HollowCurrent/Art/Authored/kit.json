@@ -1,0 +1,1131 @@
+{
+  "version": 1,
+  "coordinate_system": "Unity Y up metres",
+  "assets": [
+    {
+      "name": "SashWindow",
+      "parts": [
+        {
+          "file": "SashWindow-Paint.hcm",
+          "material": "Paint",
+          "vertices": 5640,
+          "triangles": 1880
+        },
+        {
+          "file": "SashWindow-Ivory.hcm",
+          "material": "Ivory",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "SashWindow-Glass.hcm",
+          "material": "Glass",
+          "vertices": 36,
+          "triangles": 12
+        },
+        {
+          "file": "SashWindow-Brass.hcm",
+          "material": "Brass",
+          "vertices": 1128,
+          "triangles": 376
+        }
+      ]
+    },
+    {
+      "name": "CurtainPair",
+      "parts": [
+        {
+          "file": "CurtainPair-Linen.hcm",
+          "material": "Linen",
+          "vertices": 11376,
+          "triangles": 3792
+        },
+        {
+          "file": "CurtainPair-Brass.hcm",
+          "material": "Brass",
+          "vertices": 25920,
+          "triangles": 8640
+        },
+        {
+          "file": "CurtainPair-Walnut.hcm",
+          "material": "Walnut",
+          "vertices": 720,
+          "triangles": 240
+        }
+      ]
+    },
+    {
+      "name": "BaseCabinet",
+      "parts": [
+        {
+          "file": "BaseCabinet-Sage.hcm",
+          "material": "Sage",
+          "vertices": 3948,
+          "triangles": 1316
+        },
+        {
+          "file": "BaseCabinet-Black.hcm",
+          "material": "Black",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "BaseCabinet-Brass.hcm",
+          "material": "Brass",
+          "vertices": 4320,
+          "triangles": 1440
+        },
+        {
+          "file": "BaseCabinet-Ivory.hcm",
+          "material": "Ivory",
+          "vertices": 1128,
+          "triangles": 376
+        }
+      ]
+    },
+    {
+      "name": "WallCabinet",
+      "parts": [
+        {
+          "file": "WallCabinet-Paint.hcm",
+          "material": "Paint",
+          "vertices": 3948,
+          "triangles": 1316
+        },
+        {
+          "file": "WallCabinet-Brass.hcm",
+          "material": "Brass",
+          "vertices": 2160,
+          "triangles": 720
+        }
+      ]
+    },
+    {
+      "name": "PanelDoor",
+      "parts": [
+        {
+          "file": "PanelDoor-Walnut.hcm",
+          "material": "Walnut",
+          "vertices": 23124,
+          "triangles": 7708
+        },
+        {
+          "file": "PanelDoor-Brass.hcm",
+          "material": "Brass",
+          "vertices": 4008,
+          "triangles": 1336
+        }
+      ]
+    },
+    {
+      "name": "Baluster",
+      "parts": [
+        {
+          "file": "Baluster-Walnut.hcm",
+          "material": "Walnut",
+          "vertices": 1428,
+          "triangles": 476
+        }
+      ]
+    },
+    {
+      "name": "CeilingLamp",
+      "parts": [
+        {
+          "file": "CeilingLamp-Paint.hcm",
+          "material": "Paint",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "CeilingLamp-Brass.hcm",
+          "material": "Brass",
+          "vertices": 552,
+          "triangles": 184
+        },
+        {
+          "file": "CeilingLamp-Shade.hcm",
+          "material": "Shade",
+          "vertices": 1140,
+          "triangles": 380
+        }
+      ]
+    },
+    {
+      "name": "TableLamp",
+      "parts": [
+        {
+          "file": "TableLamp-Ceramic.hcm",
+          "material": "Ceramic",
+          "vertices": 1140,
+          "triangles": 380
+        },
+        {
+          "file": "TableLamp-Brass.hcm",
+          "material": "Brass",
+          "vertices": 372,
+          "triangles": 124
+        },
+        {
+          "file": "TableLamp-Shade.hcm",
+          "material": "Shade",
+          "vertices": 756,
+          "triangles": 252
+        },
+        {
+          "file": "TableLamp-Linen.hcm",
+          "material": "Linen",
+          "vertices": 744,
+          "triangles": 248
+        }
+      ]
+    },
+    {
+      "name": "Switch",
+      "parts": [
+        {
+          "file": "Switch-Ivory.hcm",
+          "material": "Ivory",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "Switch-Paint.hcm",
+          "material": "Paint",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "Switch-Nickel.hcm",
+          "material": "Nickel",
+          "vertices": 1128,
+          "triangles": 376
+        }
+      ]
+    },
+    {
+      "name": "Socket",
+      "parts": [
+        {
+          "file": "Socket-Ivory.hcm",
+          "material": "Ivory",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "Socket-Black.hcm",
+          "material": "Black",
+          "vertices": 2256,
+          "triangles": 752
+        },
+        {
+          "file": "Socket-Nickel.hcm",
+          "material": "Nickel",
+          "vertices": 1128,
+          "triangles": 376
+        }
+      ]
+    },
+    {
+      "name": "CoffeeTable",
+      "parts": [
+        {
+          "file": "CoffeeTable-Walnut.hcm",
+          "material": "Walnut",
+          "vertices": 3960,
+          "triangles": 1320
+        },
+        {
+          "file": "CoffeeTable-Oak.hcm",
+          "material": "Oak",
+          "vertices": 564,
+          "triangles": 188
+        }
+      ]
+    },
+    {
+      "name": "MusicBox",
+      "parts": [
+        {
+          "file": "MusicBox-Walnut.hcm",
+          "material": "Walnut",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "MusicBox-Oak.hcm",
+          "material": "Oak",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "MusicBox-Brass.hcm",
+          "material": "Brass",
+          "vertices": 1824,
+          "triangles": 608
+        },
+        {
+          "file": "MusicBox-Black.hcm",
+          "material": "Black",
+          "vertices": 6768,
+          "triangles": 2256
+        }
+      ]
+    },
+    {
+      "name": "KitchenSink",
+      "parts": [
+        {
+          "file": "KitchenSink-Nickel.hcm",
+          "material": "Nickel",
+          "vertices": 3840,
+          "triangles": 1280
+        },
+        {
+          "file": "KitchenSink-Black.hcm",
+          "material": "Black",
+          "vertices": 564,
+          "triangles": 188
+        }
+      ]
+    },
+    {
+      "name": "Radiator",
+      "parts": [
+        {
+          "file": "Radiator-Enamel.hcm",
+          "material": "Enamel",
+          "vertices": 8208,
+          "triangles": 2736
+        },
+        {
+          "file": "Radiator-Nickel.hcm",
+          "material": "Nickel",
+          "vertices": 1440,
+          "triangles": 480
+        }
+      ]
+    },
+    {
+      "name": "PictureFrame",
+      "parts": [
+        {
+          "file": "PictureFrame-Walnut.hcm",
+          "material": "Walnut",
+          "vertices": 2820,
+          "triangles": 940
+        },
+        {
+          "file": "PictureFrame-Paper.hcm",
+          "material": "Paper",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "PictureFrame-Sage.hcm",
+          "material": "Sage",
+          "vertices": 564,
+          "triangles": 188
+        }
+      ]
+    },
+    {
+      "name": "GlovePalm",
+      "parts": [
+        {
+          "file": "GlovePalm-Glove.hcm",
+          "material": "Glove",
+          "vertices": 2820,
+          "triangles": 940
+        },
+        {
+          "file": "GlovePalm-Seam.hcm",
+          "material": "Seam",
+          "vertices": 7200,
+          "triangles": 2400
+        }
+      ]
+    },
+    {
+      "name": "GloveFinger",
+      "parts": [
+        {
+          "file": "GloveFinger-Glove.hcm",
+          "material": "Glove",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "GloveFinger-Seam.hcm",
+          "material": "Seam",
+          "vertices": 2880,
+          "triangles": 960
+        }
+      ]
+    },
+    {
+      "name": "GloveTip",
+      "parts": [
+        {
+          "file": "GloveTip-Glove.hcm",
+          "material": "Glove",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "GloveTip-Seam.hcm",
+          "material": "Seam",
+          "vertices": 2880,
+          "triangles": 960
+        }
+      ]
+    },
+    {
+      "name": "JacketSleeve",
+      "parts": [
+        {
+          "file": "JacketSleeve-Cuff.hcm",
+          "material": "Cuff",
+          "vertices": 2988,
+          "triangles": 996
+        },
+        {
+          "file": "JacketSleeve-Sleeve.hcm",
+          "material": "Sleeve",
+          "vertices": 3216,
+          "triangles": 1072
+        }
+      ]
+    },
+    {
+      "name": "Mug",
+      "parts": [
+        {
+          "file": "Mug-Ivory.hcm",
+          "material": "Ivory",
+          "vertices": 4212,
+          "triangles": 1404
+        },
+        {
+          "file": "Mug-Coffee.hcm",
+          "material": "Coffee",
+          "vertices": 372,
+          "triangles": 124
+        }
+      ]
+    },
+    {
+      "name": "HousePlant",
+      "parts": [
+        {
+          "file": "HousePlant-Clay.hcm",
+          "material": "Clay",
+          "vertices": 1332,
+          "triangles": 444
+        },
+        {
+          "file": "HousePlant-Soil.hcm",
+          "material": "Soil",
+          "vertices": 372,
+          "triangles": 124
+        },
+        {
+          "file": "HousePlant-Leaf.hcm",
+          "material": "Leaf",
+          "vertices": 35904,
+          "triangles": 11968
+        },
+        {
+          "file": "HousePlant-LeafLight.hcm",
+          "material": "LeafLight",
+          "vertices": 1584,
+          "triangles": 528
+        }
+      ]
+    },
+    {
+      "name": "Television",
+      "parts": [
+        {
+          "file": "Television-Black.hcm",
+          "material": "Black",
+          "vertices": 1692,
+          "triangles": 564
+        },
+        {
+          "file": "Television-Walnut.hcm",
+          "material": "Walnut",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "Television-Screen.hcm",
+          "material": "Screen",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "Television-Nickel.hcm",
+          "material": "Nickel",
+          "vertices": 7644,
+          "triangles": 2548
+        }
+      ]
+    },
+    {
+      "name": "WinterTree1",
+      "parts": [
+        {
+          "file": "WinterTree1-Bark.hcm",
+          "material": "Bark",
+          "vertices": 13932,
+          "triangles": 4644
+        }
+      ]
+    },
+    {
+      "name": "WinterTree1Low",
+      "parts": [
+        {
+          "file": "WinterTree1Low-Bark.hcm",
+          "material": "Bark",
+          "vertices": 4692,
+          "triangles": 1564
+        }
+      ]
+    },
+    {
+      "name": "WinterTree2",
+      "parts": [
+        {
+          "file": "WinterTree2-Bark.hcm",
+          "material": "Bark",
+          "vertices": 13932,
+          "triangles": 4644
+        }
+      ]
+    },
+    {
+      "name": "WinterTree2Low",
+      "parts": [
+        {
+          "file": "WinterTree2Low-Bark.hcm",
+          "material": "Bark",
+          "vertices": 4692,
+          "triangles": 1564
+        }
+      ]
+    },
+    {
+      "name": "WinterTree3",
+      "parts": [
+        {
+          "file": "WinterTree3-Bark.hcm",
+          "material": "Bark",
+          "vertices": 13932,
+          "triangles": 4644
+        }
+      ]
+    },
+    {
+      "name": "WinterTree3Low",
+      "parts": [
+        {
+          "file": "WinterTree3Low-Bark.hcm",
+          "material": "Bark",
+          "vertices": 4692,
+          "triangles": 1564
+        }
+      ]
+    },
+    {
+      "name": "FencePost",
+      "parts": [
+        {
+          "file": "FencePost-WeatheredTimber.hcm",
+          "material": "WeatheredTimber",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "FencePost-Paint.hcm",
+          "material": "Paint",
+          "vertices": 564,
+          "triangles": 188
+        }
+      ]
+    },
+    {
+      "name": "FencePanel",
+      "parts": [
+        {
+          "file": "FencePanel-WeatheredTimber.hcm",
+          "material": "WeatheredTimber",
+          "vertices": 5208,
+          "triangles": 1736
+        }
+      ]
+    },
+    {
+      "name": "HouseRoof",
+      "parts": [
+        {
+          "file": "HouseRoof-SlateDark.hcm",
+          "material": "SlateDark",
+          "vertices": 23832,
+          "triangles": 7944
+        },
+        {
+          "file": "HouseRoof-Paint.hcm",
+          "material": "Paint",
+          "vertices": 19188,
+          "triangles": 6396
+        },
+        {
+          "file": "HouseRoof-Gutter.hcm",
+          "material": "Gutter",
+          "vertices": 7608,
+          "triangles": 2536
+        },
+        {
+          "file": "HouseRoof-Slate.hcm",
+          "material": "Slate",
+          "vertices": 31680,
+          "triangles": 10560
+        },
+        {
+          "file": "HouseRoof-SlateLight.hcm",
+          "material": "SlateLight",
+          "vertices": 23040,
+          "triangles": 7680
+        },
+        {
+          "file": "HouseRoof-Black.hcm",
+          "material": "Black",
+          "vertices": 1128,
+          "triangles": 376
+        },
+        {
+          "file": "HouseRoof-WeatheredTimber.hcm",
+          "material": "WeatheredTimber",
+          "vertices": 7896,
+          "triangles": 2632
+        }
+      ]
+    },
+    {
+      "name": "FieldVanWheel",
+      "parts": [
+        {
+          "file": "FieldVanWheel-TireRubber.hcm",
+          "material": "TireRubber",
+          "vertices": 39156,
+          "triangles": 13052
+        },
+        {
+          "file": "FieldVanWheel-Nickel.hcm",
+          "material": "Nickel",
+          "vertices": 3096,
+          "triangles": 1032
+        },
+        {
+          "file": "FieldVanWheel-Black.hcm",
+          "material": "Black",
+          "vertices": 1056,
+          "triangles": 352
+        }
+      ]
+    },
+    {
+      "name": "FieldVanBody",
+      "parts": [
+        {
+          "file": "FieldVanBody-VehicleNavy.hcm",
+          "material": "VehicleNavy",
+          "vertices": 83388,
+          "triangles": 27796
+        },
+        {
+          "file": "FieldVanBody-TireRubber.hcm",
+          "material": "TireRubber",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "FieldVanBody-VehicleCream.hcm",
+          "material": "VehicleCream",
+          "vertices": 17640,
+          "triangles": 5880
+        },
+        {
+          "file": "FieldVanBody-VehicleSage.hcm",
+          "material": "VehicleSage",
+          "vertices": 1692,
+          "triangles": 564
+        },
+        {
+          "file": "FieldVanBody-Nickel.hcm",
+          "material": "Nickel",
+          "vertices": 12216,
+          "triangles": 4072
+        },
+        {
+          "file": "FieldVanBody-Black.hcm",
+          "material": "Black",
+          "vertices": 20328,
+          "triangles": 6776
+        },
+        {
+          "file": "FieldVanBody-TailLens.hcm",
+          "material": "TailLens",
+          "vertices": 2256,
+          "triangles": 752
+        },
+        {
+          "file": "FieldVanBody-LampLens.hcm",
+          "material": "LampLens",
+          "vertices": 2256,
+          "triangles": 752
+        },
+        {
+          "file": "FieldVanBody-Ivory.hcm",
+          "material": "Ivory",
+          "vertices": 564,
+          "triangles": 188
+        },
+        {
+          "file": "FieldVanBody-CabGlass.hcm",
+          "material": "CabGlass",
+          "vertices": 1164,
+          "triangles": 388
+        },
+        {
+          "file": "FieldVanBody-AmberLens.hcm",
+          "material": "AmberLens",
+          "vertices": 1128,
+          "triangles": 376
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "Paint",
+      "color": [
+        0.68,
+        0.65,
+        0.54,
+        1
+      ],
+      "smoothness": 0.23,
+      "metallic": 0
+    },
+    {
+      "name": "Sage",
+      "color": [
+        0.29,
+        0.35,
+        0.29,
+        1
+      ],
+      "smoothness": 0.26,
+      "metallic": 0
+    },
+    {
+      "name": "Walnut",
+      "color": [
+        0.17,
+        0.085,
+        0.038,
+        1
+      ],
+      "smoothness": 0.3,
+      "metallic": 0
+    },
+    {
+      "name": "Oak",
+      "color": [
+        0.3,
+        0.18,
+        0.085,
+        1
+      ],
+      "smoothness": 0.32,
+      "metallic": 0
+    },
+    {
+      "name": "Brass",
+      "color": [
+        0.43,
+        0.29,
+        0.105,
+        1
+      ],
+      "smoothness": 0.52,
+      "metallic": 0.75
+    },
+    {
+      "name": "Nickel",
+      "color": [
+        0.33,
+        0.36,
+        0.35,
+        1
+      ],
+      "smoothness": 0.6,
+      "metallic": 0.82
+    },
+    {
+      "name": "Linen",
+      "color": [
+        0.54,
+        0.47,
+        0.34,
+        1
+      ],
+      "smoothness": 0.05,
+      "metallic": 0
+    },
+    {
+      "name": "Ivory",
+      "color": [
+        0.78,
+        0.73,
+        0.61,
+        1
+      ],
+      "smoothness": 0.24,
+      "metallic": 0
+    },
+    {
+      "name": "Black",
+      "color": [
+        0.018,
+        0.022,
+        0.02,
+        1
+      ],
+      "smoothness": 0.22,
+      "metallic": 0
+    },
+    {
+      "name": "Glass",
+      "color": [
+        0.21,
+        0.29,
+        0.32,
+        0.18
+      ],
+      "smoothness": 0.88,
+      "metallic": 0
+    },
+    {
+      "name": "Shade",
+      "color": [
+        0.78,
+        0.67,
+        0.46,
+        1
+      ],
+      "smoothness": 0.1,
+      "metallic": 0
+    },
+    {
+      "name": "Ceramic",
+      "color": [
+        0.49,
+        0.38,
+        0.24,
+        1
+      ],
+      "smoothness": 0.35,
+      "metallic": 0
+    },
+    {
+      "name": "Enamel",
+      "color": [
+        0.66,
+        0.66,
+        0.56,
+        1
+      ],
+      "smoothness": 0.42,
+      "metallic": 0
+    },
+    {
+      "name": "Paper",
+      "color": [
+        0.73,
+        0.66,
+        0.48,
+        1
+      ],
+      "smoothness": 0.02,
+      "metallic": 0
+    },
+    {
+      "name": "Glove",
+      "color": [
+        0.048,
+        0.041,
+        0.029,
+        1
+      ],
+      "smoothness": 0.32,
+      "metallic": 0
+    },
+    {
+      "name": "Seam",
+      "color": [
+        0.14,
+        0.12,
+        0.08,
+        1
+      ],
+      "smoothness": 0.14,
+      "metallic": 0
+    },
+    {
+      "name": "Cuff",
+      "color": [
+        0.085,
+        0.105,
+        0.095,
+        1
+      ],
+      "smoothness": 0.08,
+      "metallic": 0
+    },
+    {
+      "name": "Sleeve",
+      "color": [
+        0.16,
+        0.185,
+        0.16,
+        1
+      ],
+      "smoothness": 0.12,
+      "metallic": 0
+    },
+    {
+      "name": "Clay",
+      "color": [
+        0.38,
+        0.17,
+        0.085,
+        1
+      ],
+      "smoothness": 0.08,
+      "metallic": 0
+    },
+    {
+      "name": "Leaf",
+      "color": [
+        0.095,
+        0.19,
+        0.07,
+        1
+      ],
+      "smoothness": 0.28,
+      "metallic": 0
+    },
+    {
+      "name": "LeafLight",
+      "color": [
+        0.18,
+        0.27,
+        0.08,
+        1
+      ],
+      "smoothness": 0.23,
+      "metallic": 0
+    },
+    {
+      "name": "Soil",
+      "color": [
+        0.025,
+        0.019,
+        0.01,
+        1
+      ],
+      "smoothness": 0.03,
+      "metallic": 0
+    },
+    {
+      "name": "Coffee",
+      "color": [
+        0.022,
+        0.013,
+        0.006,
+        1
+      ],
+      "smoothness": 0.6,
+      "metallic": 0
+    },
+    {
+      "name": "Screen",
+      "color": [
+        0.025,
+        0.055,
+        0.047,
+        1
+      ],
+      "smoothness": 0.68,
+      "metallic": 0
+    },
+    {
+      "name": "Bark",
+      "color": [
+        0.12,
+        0.095,
+        0.067,
+        1
+      ],
+      "smoothness": 0.08,
+      "metallic": 0
+    },
+    {
+      "name": "WeatheredTimber",
+      "color": [
+        0.27,
+        0.26,
+        0.21,
+        1
+      ],
+      "smoothness": 0.12,
+      "metallic": 0
+    },
+    {
+      "name": "Slate",
+      "color": [
+        0.065,
+        0.08,
+        0.085,
+        1
+      ],
+      "smoothness": 0.18,
+      "metallic": 0
+    },
+    {
+      "name": "SlateLight",
+      "color": [
+        0.09,
+        0.1,
+        0.1,
+        1
+      ],
+      "smoothness": 0.16,
+      "metallic": 0
+    },
+    {
+      "name": "SlateDark",
+      "color": [
+        0.047,
+        0.059,
+        0.064,
+        1
+      ],
+      "smoothness": 0.2,
+      "metallic": 0
+    },
+    {
+      "name": "Gutter",
+      "color": [
+        0.23,
+        0.25,
+        0.24,
+        1
+      ],
+      "smoothness": 0.28,
+      "metallic": 0.45
+    },
+    {
+      "name": "VehicleCream",
+      "color": [
+        0.66,
+        0.65,
+        0.53,
+        1
+      ],
+      "smoothness": 0.32,
+      "metallic": 0.18
+    },
+    {
+      "name": "VehicleSage",
+      "color": [
+        0.25,
+        0.31,
+        0.27,
+        1
+      ],
+      "smoothness": 0.3,
+      "metallic": 0.18
+    },
+    {
+      "name": "VehicleNavy",
+      "color": [
+        0.055,
+        0.075,
+        0.09,
+        1
+      ],
+      "smoothness": 0.28,
+      "metallic": 0.22
+    },
+    {
+      "name": "TireRubber",
+      "color": [
+        0.017,
+        0.019,
+        0.019,
+        1
+      ],
+      "smoothness": 0.1,
+      "metallic": 0
+    },
+    {
+      "name": "CabGlass",
+      "color": [
+        0.025,
+        0.055,
+        0.063,
+        1
+      ],
+      "smoothness": 0.86,
+      "metallic": 0.22
+    },
+    {
+      "name": "TailLens",
+      "color": [
+        0.25,
+        0.014,
+        0.011,
+        1
+      ],
+      "smoothness": 0.55,
+      "metallic": 0.05
+    },
+    {
+      "name": "AmberLens",
+      "color": [
+        0.56,
+        0.2,
+        0.028,
+        1
+      ],
+      "smoothness": 0.48,
+      "metallic": 0.03
+    },
+    {
+      "name": "LampLens",
+      "color": [
+        0.61,
+        0.6,
+        0.49,
+        1
+      ],
+      "smoothness": 0.65,
+      "metallic": 0.05
+    }
+  ]
+}

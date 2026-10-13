@@ -1,0 +1,26 @@
+{
+  "name": "InductionReader",
+  "source": "Art/Tripo/HC_InductionReader.glb",
+  "sha256": "7895fc5a845a51c8288490384da5d6631771485575c0743e568affc046ae22d9",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 18855,
+      "triangles": 30000
+    }
+  ]
+}

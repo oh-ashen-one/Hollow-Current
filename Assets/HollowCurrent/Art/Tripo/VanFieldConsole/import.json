@@ -1,0 +1,26 @@
+{
+  "name": "VanFieldConsole",
+  "source": "Art/Tripo/HC_VanFieldConsole.glb",
+  "sha256": "2cedf8d70c83925005a40b6a885259cfdcd1a8d484478ebd8d1d4f46f3332faf",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 29608,
+      "triangles": 40000
+    }
+  ]
+}

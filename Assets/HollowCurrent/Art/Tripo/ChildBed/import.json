@@ -1,0 +1,26 @@
+{
+  "name": "ChildBed",
+  "source": "Art/Tripo/HC_ChildBed.glb",
+  "sha256": "61250cc8f5d86bf353fa4d3b6a855e26e169a00bb135fc4309a6281f07cd909d",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 20638,
+      "triangles": 18742
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "BasementWorkbench",
+  "source": "Art/Tripo/HC_BasementWorkbench.glb",
+  "sha256": "a795d38efbcb7f80bece200b50fe118255dc6243c09a78488f5be610a66ea20c",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 36341,
+      "triangles": 40000
+    }
+  ]
+}

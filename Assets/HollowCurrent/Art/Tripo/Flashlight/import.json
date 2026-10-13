@@ -1,0 +1,26 @@
+{
+  "name": "Flashlight",
+  "source": "Art/Tripo/HC_Flashlight.glb",
+  "sha256": "3df1f3b0e449cc549e1c20df0fa7b4c4a20debf17dee61e361ac72ff2fad5e1e",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 17827,
+      "triangles": 29996
+    }
+  ]
+}

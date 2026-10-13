@@ -1,0 +1,26 @@
+{
+  "name": "Sofa",
+  "source": "Art/Tripo/HC_Sofa.glb",
+  "sha256": "3a755481e1200efec4fbd0fd7a951a1435d2ab87e2fd5a5f5c4e85044b0a08d2",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        0.800000011920929,
+        0.800000011920929,
+        0.800000011920929,
+        1.0
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 18060,
+      "triangles": 18839
+    }
+  ]
+}

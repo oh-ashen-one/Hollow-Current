@@ -1,0 +1,26 @@
+{
+  "name": "Bookcase",
+  "source": "Art/Tripo/HC_Bookcase.glb",
+  "sha256": "6910f28201f8da8b62bfc50311cb0670e47f40c84a14bd5f6f1d124c93828c42",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 24079,
+      "triangles": 30000
+    }
+  ]
+}
