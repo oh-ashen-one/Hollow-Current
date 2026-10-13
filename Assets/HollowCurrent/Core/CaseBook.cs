@@ -44,7 +44,7 @@ namespace HollowCurrent
         // Castle kill ending and forge (Bellwether has no fight: copies of its won text).
         public string KillHero, KillBody, KillFooter, AltarLabel, AltarHint, SwordForged, HitLanded;
         public string[] RelicNames, RelicFound, RelicHints;
-        public string BladeSealed;
+        public string BladeSealed, BellRung;
 
         public string EvidenceName(Evidence e)=>EvidenceNames[(int)e];
         public string EvidenceId(Evidence e)=>EvidenceIds[(int)e];
@@ -125,7 +125,7 @@ namespace HollowCurrent
             WonFooter="CONTAINMENT CONFIRMED   /   FIELD RECORD ARCHIVED",LostFooter="CASE UNRESOLVED   /   A NEW INVESTIGATION CAN BEGIN",
             LocSafe="FIELD VAN",LocOutside="BELLWETHER LANE",LocLower="BASEMENT",LocGround="GROUND FLOOR",LocUpper="UPPER FLOOR",LocTower="UPPER FLOOR",
             KillHero="The house\nfalls silent.",KillBody="",KillFooter="CONTAINMENT CONFIRMED   /   FIELD RECORD ARCHIVED",AltarLabel="",AltarHint="",SwordForged="",HitLanded="",
-            RelicNames=new[]{"","",""},RelicFound=new[]{"","",""},RelicHints=new[]{"","",""},BladeSealed="",
+            RelicNames=new[]{"","",""},RelicFound=new[]{"","",""},RelicHints=new[]{"","",""},BladeSealed="",BellRung="",
         };
 
         // The Blood Ledger (DESIGN.md): compass / grave-ash lantern / ear-trumpet,
@@ -209,6 +209,7 @@ namespace HollowCurrent
             RelicHints=new[]{"Dispatch / The steward hid the silver blade in the reliquary below the chapel. The box opens only to the marks of his claws: use the grave-ash lantern on it.",
                 "Dispatch / The hallowed hilt sits in the orrery's empty planet socket, up in the observatory.",
                 "Dispatch / One portrait in the portrait hall is a door. The moonstone is behind it."},
+            BellRung="Dispatch / The bell tolls on its own. The bargain hears you. Nine seconds: get under cover.",
             BladeSealed="Dispatch / The reliquary box will not open. Something scored the lid; the grave-ash lantern may show where.",
             RelicFound=new[]{"Dispatch / The silver blade. Cold as a grave, bright as a coin.","Dispatch / The hallowed hilt, from the orrery's empty socket.","Dispatch / The moonstone. It hums when you face the chapel."},
         };

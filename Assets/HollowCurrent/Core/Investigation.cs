@@ -138,7 +138,11 @@ namespace HollowCurrent
             if (Phase != Phase.Return) return false;
             Set(Phase.Won); return true;
         }
-        public void Die() { if (!Terminal && Phase == Phase.Hunt) Set(Phase.Dead); }
+        // Automated playtest driver only (never set by the game): a grab during a hunt is
+        // counted instead of ending the run, so a scripted route can finish both endings.
+        public bool Invulnerable { get; set; }
+        public int BlockedDeaths { get; private set; }
+        public void Die() { if (!Terminal && Phase == Phase.Hunt) { if (Invulnerable) { BlockedDeaths++; return; } Set(Phase.Dead); } }
         // Castle second win: the hunter is slain (Forge/Fight). Escape stays FinishAtVan.
         public bool HunterSlain { get; private set; }
         public bool WinByKill() { if (Terminal) return false; HunterSlain = true; Set(Phase.Won); return true; }

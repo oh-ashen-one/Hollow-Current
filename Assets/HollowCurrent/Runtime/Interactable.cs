@@ -29,6 +29,7 @@ namespace HollowCurrent
                 case InteractKind.Relic: if(game.Castle)game.Castle.TakeRelic(this);break;
                 case InteractKind.Altar: if(game.Castle)game.Castle.AltarHint();break;
                 case InteractKind.Anchor:
+                    if(game.Castle){game.Castle.RingBell();break;}
                     if(game.Case.Phase!=Phase.Containment)game.Say(game.Book.AnchorNotReady);break;
             }
         }

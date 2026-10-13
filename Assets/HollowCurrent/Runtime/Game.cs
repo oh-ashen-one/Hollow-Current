@@ -98,6 +98,7 @@ namespace HollowCurrent
             Say(Book.Arrival);
             ApplyFocus();Debug.Log("HC_READY source-generated house; runtime route remains subject to playtest.");
             if(Map==MapId.Castle&&CaptureMode.Requested)gameObject.AddComponent<CaptureMode>().Initialize(this);
+            if(PlaytestDriver.Requested)gameObject.AddComponent<PlaytestDriver>().Initialize(this);
             if(NativeVerification.Requested&&FindFirstObjectByType<NativeVerification>()==null)new GameObject("Opt-in native verification").AddComponent<NativeVerification>();
         }
         IEnumerator Start()
@@ -199,7 +200,7 @@ namespace HollowCurrent
             if(uiProbe&&(Event.current.isKey||Event.current.type==EventType.MouseDown||Event.current.type==EventType.MouseUp))
                 Debug.Log("HC_UI_EVENT "+Event.current.type+" mouse="+Event.current.mousePosition+" key="+Event.current.keyCode+" focused="+Application.isFocused);
         }
-        void OnApplicationFocus(bool focus){if(uiProbe)Debug.Log("HC_UI_FOCUS "+focus);if(!focus&&Started&&!Case.Terminal&&!NativeVerification.Requested&&!CaptureMode.Requested){Paused=true;ApplyFocus();}}
+        void OnApplicationFocus(bool focus){if(uiProbe)Debug.Log("HC_UI_FOCUS "+focus);if(!focus&&Started&&!Case.Terminal&&!NativeVerification.Requested&&!CaptureMode.Requested&&!PlaytestDriver.Requested){Paused=true;ApplyFocus();}}
         public void SelectMap(MapId map)
         {
             if(Loading||Started||map==SelectedMap||!MapAvailable(map))return;

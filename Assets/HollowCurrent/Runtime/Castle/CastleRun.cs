@@ -68,6 +68,18 @@ namespace HollowCurrent
                 item.gameObject.SetActive(false);
             }
         }
+        // DESIGN.md: ring the chapel bell, the bargain hears you, survive the hunt, then the
+        // ledger can be closed. With the sword, ringing it calls him back for the fight. During
+        // containment the bell is the seal (held, Investigation.Seal), not a summons.
+        public void RingBell()
+        {
+            var c=Game.Case;var phase=c.Phase;
+            bool summon=c.Equipped&&!c.Terminal&&phase!=Phase.Warning&&phase!=Phase.Hunt&&phase!=Phase.Containment&&phase!=Phase.Return&&phase!=Phase.Briefing
+                &&((!c.Survived&&c.Evidence.Count>=2)||Forge.HasSword);
+            if(!summon){if(phase!=Phase.Containment)Game.Say(Game.Book.AnchorNotReady);return;}
+            if(bellCooldown<=0){bellCooldown=7;Game.Sound.Cue("chapel_bell_toll",Game.World.Castle.Anchor,1);}
+            c.BeginWarning();Game.Say(Game.Book.BellRung);
+        }
         public void AltarHint(){if(Forge.RelicCount<3&&!Forge.HasSword)Game.ShowNote(Game.Book.AltarLabel,Game.Book.AltarHint);}
         // A ledger page was opened: unlock its relic hint and read it aloud.
         public void NoteRead(string title)
