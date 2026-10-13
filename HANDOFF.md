@@ -48,3 +48,60 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4c — Count Claude round 3 (branch `hc/count3`, Opus 5.5)
+
+Commits: `2e88dd4` (wings: two-sided membrane, finger Ext bones, folded Search pose), `fa5a3b3` (capture choreography,
+tracking camera, ledge-launch fix, rim light). `tools/check_source.py` PASS. Unity not launched; Blender headless only.
+The exported FBX were re-imported in Blender: every clip's world joint positions (incl. wing-tip markers) match the source rig.
+
+## Findings (r2 critic items)
+- **Hunt off camera (H02–H10):** log shows `HC_COUNT_DIVE` then nothing. The straight swoop's sphere cast hit the
+  rail coping under his own feet (feet 0.30 m behind its front edge, 35 deg downward sweep, radius 0.28 m), so
+  PlanRoute fell back to the NavMesh route back across the balcony deck, behind the balustrade and out of view, never
+  reaching the 2.5 m hold (no feint logged); the capture camera did not track. Fixed: PlanRoute now inserts a launch point
+  0.6 m forward / 0.5 m up when that clears the swoop. The capture no longer depends on the AI: see the choreography below.
+- **Wings stop at the hip (S6):** S6 used the Search clip, which spread the fan (0.62) and lifted the fingers. Search now
+  keeps the wings folded to the shins (rest tip z 0.35–0.48 m = sheet proportion), arms at his sides. Spread poses are
+  lengthened by Ext bones (Glide span 4.0 m, Dive 2.6 m).
+- **Wing as a black smear:** 5709 of 8296 membrane faces were a single sheet (back-face culled from behind). They are now
+  doubled with reversed winding and negated custom normals; material stays Standard (lit). Plus a cold shadowless rim
+  light (range 3.6, intensity 1.1) parented behind his shoulders (`CountClaudeProfile.RimLightRange/Intensity`).
+- **Tree behind him (S6):** not mine: the courtyard `DeadTree` prop at (-4.2, 0, 12.4) (`CastleWorld.Courtyard`). The r2 S6
+  camera (z 7.4 looking +z) put it straight behind him; S6 moves to the gatehouse (below).
+- **830×690 px "fog card" (H01/H02):** not mine: `Game` calls `ScareDirector.Pulse(player + forward*3)` on `Phase.Warning`,
+  which emits the "Local manifestation mist" particles (2.8 s lifetime, size 1.6) 3 m in front of the camera. The capture
+  enters Warning and Hunt in the same frame, so H01/H02 catch it. Wait 3 s after `BeginWarning` before the first H shot.
+
+## Integrator steps
+1. Merge `hc/count3`, then **re-run the import** (bones changed 46 → 56, mesh doubled): `CountClaudeImport.Prepare` through
+   `gpu_slot.sh`, `-batchmode -nographics -quit`. Expect `HC_CHARACTER_RIG bones=56`, seven `HC_CHARACTER_CLIP`,
+   `HC_COUNTCLAUDE_PASS`. Commit `Resources/Characters/CountClaude.prefab` and `Resources/Characters/CountClaude/*`.
+2. Hunt capture (`CaptureMode.cs`), replacing the 1 s realtime loop:
+   ```csharp
+   e=new Vector3(0,1.64f,15.6f);t=new Vector3(1.5f,1.6f,24f);Place(e,t);Torch(true);
+   game.Case.Equip();game.Case.EnterHouse();game.Case.Record(Evidence.Induction);game.Case.Record(Evidence.Handprint);
+   game.Case.BeginWarning();game.Creature.SetHuntOrigin(origin);game.Case.Tick(9.05f,true);
+   yield return new WaitForSecondsRealtime(3f);                 // warning mist (ScareDirector.Pulse) dies at 2.8 s
+   game.Creature.BeginCaptureChoreography(1);                   // 1 = east balcony perch; hold 2.5 m (default)
+   for(int i=0;i<10;i++){
+       while(game.Creature.CaptureClock<i+1)yield return null;  // deterministic: shot k at choreography second k
+       var view=game.Player.View.transform;
+       yield return Shot("H"+(i+1).ToString("00")+"_hunt_dive","(hunt sequence)",view.position,view.position+view.forward*5,game.Creature.CaptureNote);
+   }
+   game.Creature.EndCaptureChoreography();
+   ```
+   Timeline: H01–H03 Perch (Mode 0), H04–H06 Glide (Mode 1, airborne, wings spread), H07 Dive, H08–H09 Hold at 2.5 m (Mode 3),
+   H10 Feint (Mode 1). The investigator's view tracks him (yaw on the body, pitch on the view, eye height unchanged).
+   Log check: `HC_COUNT_CAPTURE begin ...`, then `phase=Perch|Glide|Dive|Hold|Feint` lines with `clock=0.00/3.50/6.50/8.00/9.50`;
+   `HC_CAPTURE_CAMERA_PUSHED` should not appear.
+3. S6 (scale + sheet), moved to the gatehouse: `game.Creature.ManifestAt(new Vector3(-0.9f,0,4.4f),180,9999,true);` (Mode 2,
+   no Pose override), `Presence.ScaleReference(new Vector3(0.35f,0,4.4f),180)`, eye `(-0.3,1.15,1.0)`, target `(-0.3,1.1,4.4)`.
+   Behind him is the gatehouse inner wall and great doors; the lantern cart (3.6,0,3) and winch (-2.6,0,1.4) are outside the frame.
+4. S5 unchanged (`StageForCapture(0)` + `CaptureFraming(.5f,30,...)`).
+
+## Not done
+- Nothing verified in Unity (choreography path vs hall geometry, rim light look, two-sided normals in engine).
+- S5 left-claw clip through the rail and "one knee up on the coping" (critic r2 S5) not addressed this round.
