@@ -48,3 +48,47 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4e — Count Claude round 5 (branch `hc/count5`, Opus 5.5)
+
+Commits `a1f959f` (rig/clips re-export) and `7bd19bb` (runtime). `check_source.py` PASS; Unity not launched. FBX re-imported in
+Blender: Grab world joints match the source rig exactly.
+
+**Import must re-run** (`CountClaudeImport.Prepare`; 56 bones; Grab and Search clips changed). Commit `Resources/Characters/CountClaude*`.
+
+## Changes
+- **Grab (climax):** re-authored. He rears up looking down at the lens; both arms reach forward at shoulder width (hands
+  0.87 m apart, nearest hand 0.63 m from the head, so no claw crosses the face); wings spread in the frontal plane with the
+  lower fingers swept forward (span 3.6 m). `GrabReach` 0.88 m.
+- **Hunt choreography (same call sequence as round 3/4):** Perch 0–3.5 s; Glide 3.5–6.5 now curves out and straight toward the
+  camera (r4 H05 flew away), heading blended 60% toward the camera, the figure leaning back 24 deg; Dive 6.5–8.0 (lean 16 deg);
+  Grab 8.0–10.6 at 2.8 m, lunging to 2.0 m between 9.2 and 9.8 s with the camera aimed between his centre and head; Feint from
+  10.6 s. Glide end 2.2 m and hold 1.6 m high: his lowest point never goes below 1.7 m, above the 0.08–1.1 m fog planes
+  (r4 H07/H08 waist cut). Expected H09 = Grab at 2.8 m, H10 = Grab at 2.0 m. Log: `HC_COUNT_CAPTURE phase=Perch/Glide/Dive/Grab/Feint`
+  at clock 0.00/3.50/6.50/8.00/10.60.
+- **S6 wings:** lowest visible tip 0.31 m (knee 0.68 m), 5 cm lower than r4.
+- **S5 on the rose-window ledge:** `StageOnRoseLedge(true)` crouches him on PerchPoints[2] with his claws over the ledge's
+  front edge. `RoseLedgeFraming(fill, out eye, out target)` puts the camera on the line from `CastleLayout.RoseWindowEye` through
+  him (the moon sprites are placed on rays from that eye), at the distance for `fill`, raised until both moons sit about 9 deg
+  above his head. It also hides floaters on the eye-to-Count and eye-to-moon lines, and logs `HC_S5_FRAMING eye=… pitch=…`.
+  Offline estimate (vFOV 64–72): eye ≈ (0, 6.0, 25.3), about 1.8–2.0 m from him, pitch about 0 to +5 deg (level, slightly up).
+  The moons appear about 150–300 px above his head, near the frame centre.
+
+## Integrator steps (CaptureMode.cs)
+1. S5:
+   ```csharp
+   game.Creature.StageOnRoseLedge(true);
+   yield return new WaitForSecondsRealtime(1.5f);
+   if(!game.Creature.RoseLedgeFraming(.58f,out e,out t)){/* fallback: old S5 */}
+   Place(e,t);yield return new WaitForSecondsRealtime(.5f);
+   yield return Shot("S5_lord_perch","refs/lord_perch.png",e,t,"rose ledge, RoseLedgeFraming(0.58)");
+   ```
+   (`Dismiss()` after S6 restores the hidden floaters; call it after S5 too if S6 is skipped.)
+2. Hunt: unchanged.
+3. Optional request to the look builder: the approach no longer needs it, but dropping the top ground-fog layer from 1.1 m to
+   0.8 m would remove the remaining veil over the hall floor in H frames.
+
+## Not done
+- H01–H03 are still one perch beat (critic secondary). Glide banking and the candle-rule lean are not mine.
