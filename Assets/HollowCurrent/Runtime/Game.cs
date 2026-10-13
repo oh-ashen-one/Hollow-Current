@@ -177,7 +177,8 @@ namespace HollowCurrent
         public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();}
         public void Say(string value)
         {
-            Subtitle=value;SubtitleTime=value.StartsWith("Filed")?3:7;Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);
+            Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);
+            if(FieldMessages.ShowCard(value)){Subtitle=value;SubtitleTime=FieldMessages.CardSeconds(value);}
             if(Sound==null)return;
             if(value.Contains("Family evacuated"))Sound.Speak("arrival");
             else if(value.Contains("Three instruments"))Sound.Speak("kit");
@@ -212,10 +213,8 @@ namespace HollowCurrent
         }
         IEnumerator RevealFirstRecord()
         {
-            bool pulse=Case.Evidence.Contains(Evidence.Induction),voice=Case.Evidence.Contains(Evidence.Voice);
-            yield return new WaitForSeconds(voice?5.1f:.8f);
-            var point=pulse?new Vector3(-5.5f,0,12.3f):voice?new Vector3(5.8f,-3.2f,12.6f):new Vector3(-4.5f,3.2f,6.1f);
-            Scares.Trigger();
+            yield return new WaitForSeconds(UnityEngine.Random.Range(8f,14f));
+            Scares.Dread();
         }
         void Manifest(){if(Scares.Trigger())manifestation++;}
         void LateUpdate()

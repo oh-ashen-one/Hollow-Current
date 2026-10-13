@@ -2,6 +2,8 @@
 
 An original single-player ghost investigation in a furnished three-floor family house. Collect evidence with an induction reader, UV light and EVP recorder; piece together the family's story; survive a sight-and-sound-driven hunt; quiet the music box and return to the van.
 
+**Bellwether House implementation is complete on this feature branch.** See [MAP_STATUS.md](MAP_STATUS.md) for the final feedback fixes and the exact validation boundary.
+
 The project includes the Split Grin character, authored running/search/grab animations, Mourning Note interface, procedural house, investigative rules, controller support and local audio. No runtime API keys or external generation services are required.
 
 ## Requirements
@@ -19,7 +21,7 @@ The project includes the Split Grin character, authored running/search/grab anim
 4. Enter Play mode. Runtime boot creates the investigator, interface and investigation state.
 5. Use **Begin Investigation** on the title screen.
 
-If regenerating the authored scene, use the existing editor methods below. The committed native-ready assets and public voice files are already included; no paid generation account is needed.
+If regenerating the authored scene, use the existing editor methods below. The committed runtime assets and public voice files are already included; no paid generation account is needed. Optional authoring scripts for reconstructing models may expect their original provider/master inputs; unused HD masters are excluded from this repository.
 
 ## Build macOS
 

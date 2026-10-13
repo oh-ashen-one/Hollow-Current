@@ -17,6 +17,8 @@ namespace HollowCurrent
         public Game Game;
         public Camera View;
         public Light Torch, Ultraviolet;
+        Light hiddenVision;
+        float hideYaw;
         public CharacterController Controller;
         public Interactable Focus;
         public bool Hidden { get; private set; }
@@ -71,6 +73,11 @@ namespace HollowCurrent
             // World beams must not illuminate the back of their own instrument.
             Torch.cullingMask&=~(1<<30);Ultraviolet.cullingMask&=~(1<<30);
             BuildInstruments(cam.transform);
+            var adaptation=new GameObject("Dim cabinet dark adaptation");adaptation.transform.SetParent(cam.transform,false);
+            adaptation.transform.localPosition=new Vector3(0,0,.48f);
+            hiddenVision=adaptation.AddComponent<Light>();hiddenVision.type=LightType.Point;hiddenVision.range=2.6f;
+            hiddenVision.color=new Color(.48f,.55f,.64f);hiddenVision.intensity=.09f;hiddenVision.shadows=LightShadows.None;
+            hiddenVision.cullingMask&=~(1<<30);hiddenVision.enabled=false;
         }
         void BuildInstruments(Transform camera)
         {
@@ -99,11 +106,12 @@ namespace HollowCurrent
         {
             if(Game==null)return;
             Torch.enabled=Game.Case.Equipped&&TorchOn&&!(Game.Scares&&Game.Scares.TorchFailed);Torch.intensity=.85f*Brightness;
-            Ultraviolet.enabled=Game.Case.Equipped&&Tool==2;
-            heldTool.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&radioPose<=0);
-            radioModel.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&radioPose>0);
-            torchModel.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal);
-            leftHand.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal);
+            Ultraviolet.enabled=Game.Case.Equipped&&Tool==2&&!Hidden;
+            hiddenVision.enabled=Hidden&&!Game.Modal;hiddenVision.intensity=.09f*Brightness;
+            heldTool.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden&&radioPose<=0);
+            radioModel.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden&&radioPose>0);
+            torchModel.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden);
+            leftHand.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden);
             for(int i=0;i<instrumentModels.Length;i++)instrumentModels[i].gameObject.SetActive(i==Tool-1);
             if(Game.Modal||Game.Case.Terminal){Moving=false;Running=false;Focus=null;return;}
             float dt=Time.deltaTime;radioPose=Mathf.Max(0,radioPose-dt);
@@ -141,6 +149,11 @@ namespace HollowCurrent
                 var direction=input.Look.Value-View.transform.position;
                 transform.rotation=Quaternion.Euler(0,Mathf.Atan2(direction.x,direction.z)*Mathf.Rad2Deg,0);
                 pitch=-Mathf.Atan2(direction.y,new Vector2(direction.x,direction.z).magnitude)*Mathf.Rad2Deg;
+            }
+            if(Hidden)
+            {
+                float yaw=hideYaw+Mathf.Clamp(Mathf.DeltaAngle(hideYaw,transform.eulerAngles.y),-32,32);
+                transform.rotation=Quaternion.Euler(0,yaw,0);pitch=Mathf.Clamp(pitch,-16,16);
             }
             View.transform.localRotation=Quaternion.Euler(pitch,0,0);
             if(input.Torch&&Game.Case.Equipped)TorchOn=!TorchOn;
@@ -241,9 +254,13 @@ namespace HollowCurrent
         {
             if(Game.Case.Phase==Phase.Briefing)return;
             Game.Creature.WitnessHide(spot.HidePoint);
-            hiding=spot;Hidden=true;Teleport(spot.HidePoint);Game.Say("Concealed / E to leave. F switches off the torch. Keep the radio silent.");
+            hiding=spot;Hidden=true;Teleport(spot.HidePoint);
+            var outward=Vector3.ProjectOnPlane(spot.ExitPoint-spot.HidePoint,Vector3.up).normalized;
+            hideYaw=Quaternion.LookRotation(outward).eulerAngles.y;transform.rotation=Quaternion.Euler(0,hideYaw,0);
+            pitch=0;View.transform.localRotation=Quaternion.identity;View.transform.localPosition=new Vector3(0,1.65f,.18f);
+            Crouched=false;Moving=false;Running=false;
         }
-        void ExitHide(){Game.Creature.LeaveHide();Hidden=false;Teleport(hiding.ExitPoint);hiding=null;}
+        void ExitHide(){Game.Creature.LeaveHide();Hidden=false;Teleport(hiding.ExitPoint);View.transform.localPosition=Vector3.up*1.64f;hiddenVision.enabled=false;hiding=null;}
         public void Teleport(Vector3 point){Controller.enabled=false;transform.position=point;Controller.enabled=true;vertical=0;}
     }
 }

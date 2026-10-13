@@ -185,7 +185,15 @@ namespace HollowCurrent.Editor
             {
                 if(item.Kind!=InteractKind.Hide)continue;
                 if(!NavMesh.SamplePosition(item.ExitPoint,out _,.7f,NavMesh.AllAreas))throw new Exception("Hide exit not navigable: "+item.name);
+                var outward=(item.ExitPoint-item.HidePoint).normalized;
+                var eye=item.HidePoint+Vector3.up*1.65f+outward*.18f;
+                var outside=item.ExitPoint+Vector3.up*1.65f;
+                if(Physics.Linecast(eye,outside,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))throw new Exception("Hiding peek slit is obstructed: "+item.name);
+                // Looking down must hit the actual door, retaining concealment.
+                if(!Physics.Linecast(eye-Vector3.up*.45f,outside-Vector3.up*.45f,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))throw new Exception("Hiding door has lost its solid lower panel: "+item.name);
+                if(!item.GetComponent<Collider>().isTrigger||item.GetComponent<Renderer>().enabled)throw new Exception("Hiding focus volume obscures the viewport: "+item.name);
             }
+            Debug.Log("HC_HIDING_PEEK_PASS three clear eye-height slits; solid lower doors; navigable exits");
             Debug.Log("HC_GEOMETRY_PASS "+destinations.Length+" destination routes; three hiding exits");
         }
         static void ValidateFurniture(World world)
