@@ -175,8 +175,10 @@ namespace HollowCurrent
         {
             var t=NewChild("Rune ring",parent,localPosition,Quaternion.identity);
             var ring=t.gameObject.AddComponent<RuneRing>();
+            // A ring of 3 m radius carries 24 glyphs: more than that crowds the quads into a line.
+            if(radius<=4f)runeCount=Mathf.Min(runeCount,24);
             ring.radius=radius;ring.runeCount=runeCount;ring.watcher=watcher;
-            ring.runeSize=Mathf.Clamp(radius*.075f,.25f,.6f);
+            ring.runeSize=Mathf.Clamp(radius*.17f,.25f,.6f);
             return ring;
         }
 
@@ -258,6 +260,73 @@ namespace HollowCurrent
             }
             flock.bats=list;
             return flock;
+        }
+
+        // ---- floating candle ----
+        // A long wax taper hanging in the air (instanced: one mesh, two shared materials). Only a `lit` candle gets a
+        // flame billboard; none gets a point light.
+        public static Floater MakeFloatingCandle(Transform parent,Vector3 localPosition,int seed,bool lit,float scale=1)
+        {
+            var t=NewChild(lit?"Floating candle (lit)":"Floating candle",parent,localPosition,Quaternion.Euler(0,(seed*57)%360,0));
+            t.localScale=Vector3.one*scale;
+            var floater=t.gameObject.AddComponent<Floater>();
+            floater.phase=Mathf.Repeat(seed*.6180339f,1);
+            floater.bobAmplitude=.06f+.05f*Mathf.Repeat(seed*.381966f,1);
+            floater.bobHertz=.1f+.08f*Mathf.Repeat(seed*.754877f,1);
+            floater.driftRadius=.05f;floater.tiltDegrees=2f;floater.yawDegreesPerSecond=1.5f;
+            NewRenderer("Candle",t,Vector3.zero,Quaternion.identity,CandleMesh,CandleMaterials,false);
+            if(lit)
+            {
+                var flame=MakeCandleFlame(t,Vector3.up*.23f,.2f,false,"Flame");
+                floater.flames=new[]{flame.transform};
+            }
+            return floater;
+        }
+
+        // ---- hand-roots ----
+        // A root strand hanging from the ceiling: `localPosition` is the top of the hanging part, a crown cone of
+        // `crownLength` metres reaches up to the ceiling. The strand sways slowly about the top.
+        public static Floater MakeHandRoot(Transform parent,Vector3 localPosition,int seed,float crownLength)
+        {
+            var t=NewChild("Hand-root",parent,localPosition,Quaternion.Euler(0,(seed*97)%360,0));
+            var floater=t.gameObject.AddComponent<Floater>();
+            floater.phase=Mathf.Repeat(seed*.6180339f,1);
+            floater.bobAmplitude=0;floater.driftRadius=0;floater.yawDegreesPerSecond=0;
+            floater.tiltDegrees=2.4f;floater.bobHertz=.08f;
+            NewRenderer("Roots",t,Vector3.zero,Quaternion.identity,HandRootMesh(seed),HandRootMaterials,false);
+            var crown=NewRenderer("Crown",t,Vector3.zero,Quaternion.identity,CrownMesh,RootCrownMaterials,false);
+            crown.transform.localScale=new Vector3(1,Mathf.Max(.05f,crownLength),1);
+            return floater;
+        }
+
+        // ---- moon in a window ----
+        // A moon sprite at `localPosition` (castle-local), turned to face `viewerLocal`. The disc is `radius` metres.
+        public static Transform MakeMoon(Transform parent,Vector3 localPosition,Vector3 viewerLocal,float radius,bool red)
+        {
+            var t=NewChild(red?"Red moon":"Pale moon",parent,localPosition,Quaternion.LookRotation(localPosition-viewerLocal));
+            var r=NewRenderer("Disc",t,Vector3.zero,Quaternion.identity,CentreQuad,new[]{red?RedMoonMaterial:PaleMoonMaterial},false);
+            float size=radius/.78f*2;
+            r.transform.localScale=new Vector3(size,size,1);
+            return t;
+        }
+
+        // ---- painted-over sun window ----
+        // A pointed-arch window quad `width` x `height` centred on localPosition; it faces `facing` (the room side).
+        public static Transform MakeSunWindow(Transform parent,Vector3 localPosition,Vector3 facing,float width,float height)
+        {
+            var t=NewChild("Painted-over sun window",parent,localPosition,Quaternion.LookRotation(-facing));
+            var r=NewRenderer("Glass",t,Vector3.zero,Quaternion.identity,CentreQuad,new[]{SunWindowMaterial},false);
+            r.transform.localScale=new Vector3(width,height,1);
+            return t;
+        }
+
+        // ---- glowing runes ----
+        // One violet rune quad lying flat against a surface whose outward normal is `normal` (up = world up).
+        public static Transform MakeGlowRune(Transform parent,Vector3 localPosition,Vector3 normal,float size,int glyph)
+        {
+            var r=NewRenderer("Glow rune",parent,localPosition,Quaternion.LookRotation(-normal,Vector3.up),RuneGlyphMesh(glyph),new[]{VioletRuneMaterial},false);
+            r.transform.localScale=new Vector3(size,size,1);
+            return r.transform;
         }
     }
 }

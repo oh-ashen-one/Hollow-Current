@@ -24,15 +24,8 @@ namespace HollowCurrent
         // The grave-ash lantern has shown the claw marks on the reliquary box (opens relic 0).
         public bool BladeRevealed {get;private set;}
 
-        // Floater.SetFlameTarget(null) while flames are still bent throws inside
-        // Floater.UpdateFlames (reads flameTarget.position during the relax); until that
-        // is fixed in the prop script, "clear" parks the target far below the castle.
-        static Transform idleFlameTarget;
-        public static void ClearFlameTarget()
-        {
-            if(!idleFlameTarget){idleFlameTarget=new GameObject("Flame target (idle, far)").transform;idleFlameTarget.position=new Vector3(0,-5000,0);}
-            Floater.SetFlameTarget(idleFlameTarget);
-        }
+        // Flames ease upright after the target is cleared (Floater null-target fix, hc/dressing).
+        public static void ClearFlameTarget()=>Floater.SetFlameTarget(null);
         public void Initialize(Game game)
         {
             Game=game;
@@ -47,7 +40,7 @@ namespace HollowCurrent
             if(spots==null)return;
             foreach(var t in root.GetComponentsInChildren<Transform>(true))if(t.name=="Reliquary claw-scores")claws=t.gameObject;
             // Props on piece 1's anchors (piece 3's factories).
-            if(spots.RuneRingAnchor)Rune=SurrealProps.MakeRuneRing(spots.RuneRingAnchor,Vector3.zero,spots.RuneRingRadius>0?spots.RuneRingRadius:3,28,Game.Player.transform);
+            if(spots.RuneRingAnchor)Rune=SurrealProps.MakeRuneRing(spots.RuneRingAnchor,Vector3.zero,spots.RuneRingRadius>0?spots.RuneRingRadius:3,24,Game.Player.transform);
             if(spots.KnifeOrbitAnchor)SurrealProps.MakeKnifeOrbit(spots.KnifeOrbitAnchor,Vector3.zero);
             if(spots.StairLoop)
             {
@@ -57,15 +50,8 @@ namespace HollowCurrent
                 Loop.destination=drop;Loop.player=Game.Player.transform;Loop.ResetForNewRun();
             }
             Bats=SurrealProps.MakeGiantBat(root,root.InverseTransformPoint(new Vector3(0,0,10)),6,6,7.5f);
-            // Floating candelabras ring the great-hall rune circle; books drift over the library.
+            // Floating candelabras, books and candles are placed by CastleWorld (hc/dressing).
             var hall=spots.RuneRingCenter;
-            for(int i=0;i<6;i++)
-            {
-                float a=i*Mathf.PI/3;var p=hall+new Vector3(Mathf.Cos(a)*4.6f,2.7f,Mathf.Sin(a)*4.6f);
-                SurrealProps.MakeFloater(root,root.InverseTransformPoint(p),FloaterKind.Candelabra,i,i%3==0?1:0);
-            }
-            var library=spots.Compass+new Vector3(0,3.2f+1.6f,0);
-            for(int i=0;i<5;i++)SurrealProps.MakeFloater(root,root.InverseTransformPoint(library+new Vector3((i-2)*.9f,(i%2)*.4f,(i%3-1)*.8f)),i%2==0?FloaterKind.OpenBook:FloaterKind.ClosedBook,10+i,0);
             // Loops (docs/haunted-castle/AUDIO.md).
             wings=Game.Sound.SpatialLoop("wing_beats_loop",Game.Creature.transform,Game.Creature.transform.position+Vector3.up*1.6f,0,2,24);
             candles=Game.Sound.SpatialLoop("candle_whisper_bed",root,hall+Vector3.up*1.5f,.25f,3,18);
@@ -131,6 +117,6 @@ namespace HollowCurrent
             if(candles)candles.volume=Mathf.MoveTowards(candles.volume,phase==Phase.Hunt&&Vector3.Distance(Game.Creature.transform.position,candles.transform.position)<12?.6f:.25f,dt*.5f);
             if(forgeHum)forgeHum.volume=Mathf.MoveTowards(forgeHum.volume,Forge.CraftProgress01>0&&!Forge.HasSword?.6f:0,dt*1.5f);
         }
-        void OnDestroy(){if(idleFlameTarget)Destroy(idleFlameTarget.gameObject);Floater.SetFlameTarget(null);if(SurrealProps.Viewer&&Game&&Game.Player&&SurrealProps.Viewer==Game.Player.View.transform)SurrealProps.Viewer=null;}
+        void OnDestroy(){Floater.SetFlameTarget(null);if(SurrealProps.Viewer&&Game&&Game.Player&&SurrealProps.Viewer==Game.Player.View.transform)SurrealProps.Viewer=null;}
     }
 }

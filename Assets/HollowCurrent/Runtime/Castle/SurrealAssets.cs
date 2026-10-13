@@ -15,6 +15,8 @@ namespace HollowCurrent
         }
         static void ResetMoreAssets()
         {
+            candleMesh=crownMesh=null;handRootMeshes=null;candleMaterials=handRootMaterials=null;rootCrownMaterials=null;
+            paleMoonTexture=redMoonTexture=sunWindowTexture=null;paleMoonMaterial=redMoonMaterial=sunWindowMaterial=violetRuneMaterial=null;
             runeAtlas=null;runeGlyphMeshes=null;portraitTexture=null;pupilTexture=null;batTexture=null;batMaterial=null;knifeMesh=null;knifeMaterials=null;frameMesh=null;frameMaterial=null;portraitMaterial=null;pupilMaterial=null;
         }
 
@@ -63,6 +65,33 @@ namespace HollowCurrent
                     Tri(top,top+d0*topRadius,top+d1*topRadius,Vector3.up,submesh);
                     Tri(baseCentre,baseCentre+d0*bottomRadius,baseCentre+d1*bottomRadius,Vector3.down,submesh);
                 }
+            }
+            // Faceted tube along a polyline with per-point radii; closed with a cap at the far end.
+            public void Tube(Vector3[] pts,float[] radii,int sides,int submesh)
+            {
+                int n=pts.Length;if(n<2)return;
+                var rings=new Vector3[n][];
+                for(int i=0;i<n;i++)
+                {
+                    var tangent=(pts[Mathf.Min(n-1,i+1)]-pts[Mathf.Max(0,i-1)]).normalized;
+                    var reference=Mathf.Abs(tangent.y)<.9f?Vector3.up:Vector3.right;
+                    var right=Vector3.Cross(reference,tangent).normalized;var up=Vector3.Cross(tangent,right);
+                    rings[i]=new Vector3[sides];
+                    for(int s=0;s<sides;s++)
+                    {
+                        float a=s*Mathf.PI*2/sides;
+                        rings[i][s]=pts[i]+(right*Mathf.Cos(a)+up*Mathf.Sin(a))*radii[i];
+                    }
+                }
+                for(int i=0;i<n-1;i++)for(int s=0;s<sides;s++)
+                {
+                    int t=(s+1)%sides;
+                    var a=rings[i][s];var b=rings[i][t];var c=rings[i+1][t];var d=rings[i+1][s];
+                    var outward=(a+b+c+d)*.25f-(pts[i]+pts[i+1])*.5f;
+                    Quad(a,b,c,d,outward,submesh);
+                }
+                var end=(pts[n-1]-pts[n-2]).normalized;
+                for(int s=0;s<sides;s++)Tri(pts[n-1],rings[n-1][s],rings[n-1][(s+1)%sides],end,submesh);
             }
             public Mesh Build(string name)
             {
@@ -320,5 +349,159 @@ namespace HollowCurrent
             Lit("Orbiting knife steel",new Color(.62f,.64f,.68f),.9f,.7f),
             Lit("Orbiting knife handle",new Color(.14f,.08f,.05f),0,.3f)
         };
+
+        // ---- floating candle (chapel): a long wax taper, origin at its centre; submesh 0 wax, 1 wick ----
+        static Mesh candleMesh;
+        static Material[] candleMaterials;
+        static Mesh CandleMesh
+        {
+            get
+            {
+                if(candleMesh)return candleMesh;
+                var b=new MeshBuilder(2);
+                b.Prism(new Vector3(0,-.2f,0),.05f,.042f,.4f,7,0);
+                b.Box(new Vector3(0,.215f,0),new Vector3(.008f,.03f,.008f),Quaternion.identity,1);
+                return candleMesh=b.Build("Surreal floating candle");
+            }
+        }
+        static Material[] CandleMaterials=>candleMaterials!=null?candleMaterials:candleMaterials=new[]
+        {
+            Lit("Floating candle wax",new Color(.82f,.76f,.62f),0,.25f),
+            Lit("Floating candle wick",new Color(.05f,.04f,.03f),0,.05f)
+        };
+
+        // ---- hand-roots (crypt): dark root strands hanging from the ceiling, each ending in pale hands ----
+        public const int HandRootVariants=6;
+        static readonly float[] HandRootLengths={1.0f,1.3f,1.6f,1.9f,2.2f,1.45f};
+        static Mesh[] handRootMeshes;
+        static Mesh crownMesh;
+        static Material[] handRootMaterials,rootCrownMaterials;
+        public static float HandRootLength(int variant)=>HandRootLengths[((variant%HandRootVariants)+HandRootVariants)%HandRootVariants];
+        static Material[] HandRootMaterials
+        {
+            get
+            {
+                if(handRootMaterials!=null)return handRootMaterials;
+                var flesh=Lit("Hand-root flesh",new Color(.74f,.68f,.58f),0,.3f);
+                flesh.EnableKeyword("_EMISSION");flesh.SetColor("_EmissionColor",new Color(.07f,.06f,.05f));
+                return handRootMaterials=new[]{Lit("Hand-root bark",new Color(.21f,.15f,.1f),0,.12f),flesh};
+            }
+        }
+        static Material[] RootCrownMaterials=>rootCrownMaterials!=null?rootCrownMaterials:rootCrownMaterials=new[]{HandRootMaterials[0]};
+        static Mesh CrownMesh
+        {
+            get
+            {
+                if(crownMesh)return crownMesh;
+                var b=new MeshBuilder(1);
+                b.Prism(Vector3.zero,.045f,.09f,1f,6,0);
+                return crownMesh=b.Build("Surreal root crown");
+            }
+        }
+        // Mesh with its top at the origin; the strand hangs along -Y. Submesh 0 root, 1 hands.
+        public static Mesh HandRootMesh(int variant)
+        {
+            if(handRootMeshes==null)handRootMeshes=new Mesh[HandRootVariants];
+            variant=((variant%HandRootVariants)+HandRootVariants)%HandRootVariants;
+            if(handRootMeshes[variant])return handRootMeshes[variant];
+            var random=new System.Random(4001+variant*31);
+            float length=HandRootLengths[variant];
+            var b=new MeshBuilder(2);
+            const int steps=8;
+            var pts=new Vector3[steps+1];var radii=new float[steps+1];
+            float phase=(float)random.NextDouble()*6.28f;
+            for(int i=0;i<=steps;i++)
+            {
+                float k=i/(float)steps;
+                pts[i]=new Vector3(Mathf.Sin(k*3.1f+phase)*.16f*k,-k*length,Mathf.Cos(k*2.3f+phase)*.12f*k);
+                radii[i]=Mathf.Lerp(.05f,.011f,Mathf.Pow(k,.8f));
+            }
+            b.Tube(pts,radii,6,0);
+            AddHand(b,pts[steps],(pts[steps]-pts[steps-1]).normalized,1.8f,random);
+            int branches=2+random.Next(2);
+            for(int j=0;j<branches;j++)
+            {
+                int start=2+random.Next(4);
+                var dir=new Vector3((random.Next(2)==0?-1:1)*(.4f+.4f*(float)random.NextDouble()),-.8f-.4f*(float)random.NextDouble(),(random.Next(2)==0?-1:1)*.5f*(float)random.NextDouble()).normalized;
+                const int segments=4;
+                var bp=new Vector3[segments+1];var br=new float[segments+1];
+                float segment=.15f+.07f*(float)random.NextDouble();
+                bp[0]=pts[start];br[0]=radii[start]*.5f;
+                for(int i=1;i<=segments;i++)
+                {
+                    dir=(dir+new Vector3((float)random.NextDouble()-.5f,-.25f,(float)random.NextDouble()-.5f)*.35f).normalized;
+                    bp[i]=bp[i-1]+dir*segment;
+                    br[i]=Mathf.Lerp(br[0],.006f,i/(float)segments);
+                }
+                b.Tube(bp,br,5,0);
+                AddHand(b,bp[segments],(bp[segments]-bp[segments-1]).normalized,1.4f,random);
+            }
+            return handRootMeshes[variant]=b.Build("Surreal hand-root "+variant);
+        }
+        // A hand whose fingers point along `tangent`. Unit hand is ~0.2 m long; submesh 1.
+        static void AddHand(MeshBuilder b,Vector3 wrist,Vector3 tangent,float scale,System.Random random)
+        {
+            var orient=Quaternion.FromToRotation(Vector3.down,tangent)*Quaternion.Euler(0,(float)random.NextDouble()*360f,0);
+            Vector3 W(Vector3 v)=>wrist+orient*(v*scale);
+            b.Box(W(new Vector3(0,-.045f,0)),new Vector3(.08f,.09f,.018f)*scale,orient,1);
+            float[] fx={-.03f,-.01f,.01f,.03f};float[] fl={.07f,.085f,.08f,.065f};
+            for(int f=0;f<4;f++)
+            {
+                float x=fx[f],len=fl[f]*(.9f+.2f*(float)random.NextDouble());
+                var fp=new[]{W(new Vector3(x,-.09f,0)),W(new Vector3(x*1.25f,-.09f-len*.55f,.012f)),W(new Vector3(x*1.5f,-.09f-len,.032f))};
+                b.Tube(fp,new[]{.0085f*scale,.0068f*scale,.0045f*scale},4,1);
+            }
+            var tp=new[]{W(new Vector3(.04f,-.03f,0)),W(new Vector3(.066f,-.05f,.008f)),W(new Vector3(.085f,-.085f,.022f))};
+            b.Tube(tp,new[]{.01f*scale,.008f*scale,.005f*scale},4,1);
+        }
+
+        // ---- moons painted into window openings (sprites; the skybox moons are not visible through narrow windows) ----
+        static Texture2D paleMoonTexture,redMoonTexture;
+        static Material paleMoonMaterial,redMoonMaterial;
+        static Texture2D MoonTexture(Color body,Color halo,int seed)
+        {
+            return MakeTexture("Surreal moon",96,96,(u,v)=>
+            {
+                float r=Mathf.Sqrt((u-.5f)*(u-.5f)+(v-.5f)*(v-.5f))*2;
+                float crater=Mathf.PerlinNoise(u*7+seed,v*7)*.35f+Mathf.PerlinNoise(u*19,v*19+seed)*.15f;
+                var disc=Color.Lerp(body*.78f,body,Mathf.Clamp01(1-crater*1.4f));
+                float inside=Smooth(.78f,.74f,r);
+                float glow=Smooth(1f,.76f,r)*.5f;
+                var c=Color.Lerp(halo,disc,inside);
+                c.a=Mathf.Max(inside,glow*.55f);
+                return c;
+            });
+        }
+        static Material PaleMoonMaterial=>paleMoonMaterial?paleMoonMaterial:paleMoonMaterial=Unlit("Pale moon",paleMoonTexture?paleMoonTexture:paleMoonTexture=MoonTexture(new Color(.9f,.94f,1f,1),new Color(.45f,.6f,.95f,1),3),Color.white);
+        static Material RedMoonMaterial=>redMoonMaterial?redMoonMaterial:redMoonMaterial=Unlit("Red moon",redMoonTexture?redMoonTexture:redMoonTexture=MoonTexture(new Color(.95f,.3f,.3f,1),new Color(.7f,.18f,.3f,1),11),Color.white);
+
+        // ---- painted-over sun window (chapel): pointed-arch stained glass with the gilt sun blotted out with black ink ----
+        static Texture2D sunWindowTexture;
+        static Material sunWindowMaterial;
+        static Texture2D SunWindowTexture=>sunWindowTexture?sunWindowTexture:sunWindowTexture=MakeTexture("Surreal sun window",192,320,(u,v)=>
+        {
+            float shoulder=.7f;
+            float half=v<shoulder?.5f:.5f*(1-Mathf.Pow(Mathf.Clamp01((v-shoulder)/(1-shoulder)),1.7f));
+            float d=Mathf.Abs(u-.5f);
+            if(d>half||v<.01f)return new Color(0,0,0,0);
+            if(d>half-.05f||v<.04f)return new Color(.2f,.2f,.23f,1); // stone surround
+            var glass=Color.Lerp(new Color(.04f,.07f,.17f),new Color(.12f,.18f,.34f),Mathf.PerlinNoise(u*14,v*14));
+            // leading: a mullion and transoms
+            if(d<.012f||Mathf.Abs(v-.32f)<.008f||Mathf.Abs(v-.55f)<.008f)glass=new Color(.02f,.02f,.03f);
+            float dx=u-.5f,dy=(v-.62f)*.6f;
+            float radius=Mathf.Sqrt(dx*dx+dy*dy),angle=Mathf.Atan2(dy,dx);
+            float ray=Mathf.Pow(Mathf.Abs(Mathf.Cos(angle*8)),6);
+            float sun=Smooth(.17f,.14f,radius)+Smooth(.3f,.0f,radius)*ray*.9f;
+            glass=Color.Lerp(glass,new Color(.78f,.58f,.2f),Mathf.Clamp01(sun)*(1-Smooth(.34f,.3f,radius)*0));
+            // black ink blot with jagged spikes
+            float spike=.17f+.14f*Mathf.PerlinNoise(angle*2.6f+4,.3f)+.07f*Mathf.Pow(Mathf.Abs(Mathf.Sin(angle*7.5f)),3);
+            glass=Color.Lerp(glass,new Color(.005f,.005f,.008f),Smooth(spike+.01f,spike-.02f,radius));
+            glass.a=1;return glass;
+        });
+        static Material SunWindowMaterial=>sunWindowMaterial?sunWindowMaterial:sunWindowMaterial=Unlit("Painted-over sun window",SunWindowTexture,Color.white);
+
+        // ---- violet glowing runes (sarcophagus) ----
+        static Material violetRuneMaterial;
+        public static Material VioletRuneMaterial=>violetRuneMaterial?violetRuneMaterial:violetRuneMaterial=Unlit("Violet runes",RuneAtlas,new Color(.62f,.32f,1f,1));
     }
 }

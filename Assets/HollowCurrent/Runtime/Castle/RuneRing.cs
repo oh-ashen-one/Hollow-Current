@@ -22,7 +22,7 @@ namespace HollowCurrent
         [Tooltip("The player (or any transform). Leave empty to use the camera.")] public Transform watcher;
         [Tooltip("A rune starts to glow when the watcher is closer than this (metres, horizontal).")] public float watchRadius=3.5f;
         [Tooltip("Ignore the watcher when it is more than this far above or below the ring (another floor).")] public float maxHeightDifference=2.2f;
-        [Tooltip("Faint glow of an untouched rune, 0..1.")] [Range(0,.5f)] public float idleGlow=.12f;
+        [Tooltip("Faint glow of an untouched rune, 0..1.")] [Range(0,.5f)] public float idleGlow=.3f;
         [Tooltip("Glow gained per second while the watcher is close.")] public float riseSpeed=3;
         [Tooltip("Glow lost per second once the watcher has passed.")] public float fallSpeed=.5f;
         [Tooltip("Seconds for the ignition sweep to go once round the ring.")] public float igniteSweepSeconds=1.4f;
@@ -63,7 +63,9 @@ namespace HollowCurrent
             for(int i=0;i<Levels;i++)
             {
                 float k=i/(float)(Levels-1);
-                var tint=new Color(glowColor.r*(.4f+.6f*k),glowColor.g*(.4f+.6f*k),glowColor.b*(.4f+.6f*k),k);
+                // Even an unlit rune stays readable on dark stone: brightness and alpha never drop to zero.
+                float shade=.55f+.45f*k;
+                var tint=new Color(glowColor.r*shade,glowColor.g*shade,glowColor.b*shade,.4f+.6f*k);
                 levelMaterials[i]=SurrealProps.Unlit("Rune glow "+i,SurrealProps.RuneAtlas,tint);
             }
             runes=new MeshRenderer[runeCount];runeLocal=new Vector3[runeCount];glow=new float[runeCount];runeLevel=new int[runeCount];
@@ -155,6 +157,20 @@ namespace HollowCurrent
                 if(level!=circleLevel){circleLevel=level;foreach(var c in circles)c.sharedMaterial=levelMaterials[level];}
             }
             settled=atRest&&!Ignited;
+        }
+    }
+
+    // Slow breathing of the shared violet rune material (sarcophagus runes). One material, one colour write per frame.
+    public sealed class RunePulse : MonoBehaviour
+    {
+        public Color dim=new Color(.42f,.2f,.72f,1),bright=new Color(.82f,.48f,1f,1);
+        public float hertz=.22f;
+        Material material;
+        void Start(){material=SurrealProps.VioletRuneMaterial;}
+        void Update()
+        {
+            if(!material)return;
+            material.color=Color.Lerp(dim,bright,.5f+.5f*Mathf.Sin(Time.time*hertz*Mathf.PI*2));
         }
     }
 }
