@@ -18,11 +18,14 @@ namespace HollowCurrent.Editor
         // Sources (FBX, albedo, receipt) live outside Resources so they do not ship in the player.
         const string Source="Assets/HollowCurrent/Art/Characters/CountClaude/";
         const string Native=Source+"Native/";
-        // Animator state names, index == Mode int: 0 Perch, 1 Glide, 2 SearchGlide, 3 Dive, 4 Stagger, 5 Death.
-        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death"};
-        // Perch, Glide and Search loop; Dive, Stagger and Death hold their last frame (Mode stays set until the next Pose call).
-        static readonly bool[] Loops={true,true,true,false,false,false};
-        [Serializable] class Receipt{public float head_top_m,mesh_height_m;public int triangles,bones;}
+        // Animator state names, index == Mode int: 0 Perch, 1 Glide, 2 SearchGlide, 3 Dive, 4 Stagger, 5 Death, 6 Grab (wing-wrap).
+        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death","Grab"};
+        // Perch, Glide, Search and Dive loop; Stagger, Death and Grab hold their last frame (Mode stays set until the next Pose call).
+        static readonly bool[] Loops={true,true,true,true,false,false,false};
+        // Round 2 wing rig (tools/count_prepare.py): a root at each shoulder blade, a five-bone fan sharing that pivot, and
+        // zero-weight end markers the runtime reads for the posed silhouette (HearthboundActor.PoseBounds).
+        static readonly string[] WingBones={"WingL","WingR","WingFanL0","WingFanL4","WingFanR0","WingFanR4","WingFanL0End","WingFanL4End","WingFanR0End","WingFanR4End"};
+        [Serializable] class Receipt{public float head_top_m,mesh_height_m,grab_reach_m,shoulder_width_m,rest_span_m;public int triangles,bones,wing_vertices;}
         public static void Prepare()
         {
             Directory.CreateDirectory(Folder);AssetDatabase.Refresh();
@@ -67,7 +70,10 @@ namespace HollowCurrent.Editor
             float skeletonHeight=Mathf.Abs(headTip.position.y-footTip.position.y);
             Debug.Log("HC_CHARACTER_WORLD_SKELETON height="+skeletonHeight+" head_top="+receipt.head_top_m);
             if(skeletonHeight<1.5f||skeletonHeight>receipt.head_top_m)throw new Exception("Mesh/skeleton world scale mismatch: "+skeletonHeight);
-            foreach(var wing in new[]{"WingL","WingTipL","WingR","WingTipR"})Bone(wing);
+            foreach(var wing in WingBones)Bone(wing);
+            float profileReach=CountClaudeProfile.Default.GrabReach;
+            if(Mathf.Abs(receipt.grab_reach_m-profileReach)>.08f)Debug.LogWarning("HC_COUNTCLAUDE_GRAB_REACH receipt "+receipt.grab_reach_m+" m differs from CountClaudeProfile.GrabReach "+profileReach+" m; update the profile");
+            Debug.Log("HC_CHARACTER_RIG bones="+receipt.bones+" wing_vertices="+receipt.wing_vertices+" rest_span="+receipt.rest_span_m+" shoulder_width="+receipt.shoulder_width_m+" grab_reach="+receipt.grab_reach_m);
             var animator=body.GetComponent<Animator>();if(!animator)animator=body.AddComponent<Animator>();
             var avatar=AvatarBuilder.BuildGenericAvatar(body,"");avatar.name="CountClaude generic rig";
             if(!avatar.isValid)throw new Exception("Count Claude avatar could not bind to its exported skeleton");
@@ -91,7 +97,7 @@ namespace HollowCurrent.Editor
                         corrected.path=AnimationUtility.CalculateTransformPath(t,body.transform);
                         AnimationUtility.SetEditorCurve(clip,binding,null);
                     }
-                    // Navigation owns horizontal travel; the clips only lift the hips (hover, collapse) and lean.
+                    // Presence owns travel and hover height; the clips carry the crouch, lean, collapse and the 0.10 m skim offset.
                     AnimationUtility.SetEditorCurve(clip,corrected,curve);
                 }
                 var settings=AnimationUtility.GetAnimationClipSettings(clip);settings.loopTime=Loops[i];settings.loopBlend=Loops[i];AnimationUtility.SetAnimationClipSettings(clip,settings);
@@ -109,13 +115,13 @@ namespace HollowCurrent.Editor
             {
                 var state=machine.AddState(Modes[i]);state.motion=clips[i];if(i==0)machine.defaultState=state;
                 if(i==1){state.speedParameter="LocomotionRate";state.speedParameterActive=true;} // wing-beat rate follows glide speed
-                var transition=machine.AddAnyStateTransition(state);transition.hasExitTime=false;transition.duration=i==3?.08f:.2f;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.Equals,i,"Mode");
+                var transition=machine.AddAnyStateTransition(state);transition.hasExitTime=false;transition.duration=i==3?.08f:i==6?.06f:.2f;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.Equals,i,"Mode");
             }
             animator.runtimeAnimatorController=controller;
             var actor=root.AddComponent<HearthboundActor>();actor.Animator=animator;actor.Head=headTip;actor.LeftFoot=Bone("LeftFoot");actor.BoneCount=skins[0].bones.Length;
             // The prefab sits beside the folder so Resources.Load<GameObject>("Characters/CountClaude") resolves it.
             PrefabUtility.SaveAsPrefabAsset(root,"Assets/HollowCurrent/Resources/Characters/CountClaude.prefab");UnityEngine.Object.DestroyImmediate(root);AssetDatabase.SaveAssets();
-            Debug.Log("HC_COUNTCLAUDE_PASS skinned rig with wing bones, six independent motions, head top "+receipt.head_top_m+"m, triangles "+receipt.triangles);
+            Debug.Log("HC_COUNTCLAUDE_PASS skinned rig with wing fans, "+Modes.Length+" independent motions, head top "+receipt.head_top_m+"m, triangles "+receipt.triangles);
         }
         static void Configure(string path,bool animation)
         {
