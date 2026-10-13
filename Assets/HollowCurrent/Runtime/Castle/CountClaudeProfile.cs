@@ -2,50 +2,79 @@ namespace HollowCurrent
 {
     /// <summary>
     /// Tuning for Count Claude, the Haunted Castle hunter (docs/haunted-castle/DESIGN.md, "The Count").
-    /// Piece 4's values, reshaped onto piece 0's HunterProfile: inherited fields Presence reads today,
-    /// plus the Count-only fields the behaviour pass (perch/glide/dive, fight) will read.
+    /// Inherited HunterProfile fields keep their meaning; the Count-only fields below are read by Presence's
+    /// castle branch (perch / glide / dive / grab / stagger / death). Presence never takes that branch for
+    /// SplitGrinProfile, so Bellwether is unaffected by anything in this file.
     /// </summary>
     public sealed class CountClaudeProfile : HunterProfile
     {
         public static readonly CountClaudeProfile Default=new CountClaudeProfile();
 
-        // Animator "Mode" ints. Same contract as HearthboundActor.Pose; 4 and 5 are new.
-        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeCount=6;
+        // Animator "Mode" ints (HearthboundActor.Pose). 0-5 are the shared contract; 6 Grab is the wing-wrap.
+        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCount=7;
+        public int ModeGrab=ModeGrabId;
 
-        public float ModelHeight=2.15f;                        // head top, metres; wing hooks reach about 2.18 m
+        public float ModelHeight=2.15f;                        // head top, metres (tools/count_prepare.py HEAD_TOP); wing hooks reach 2.18 m
 
-        // Movement. Glide is faster than sprint (3.9) on long straights and slower than walk-sprint in tight rooms.
+        // Movement. Glide is faster than a sprint (3.9) on straights and slower in tight rooms (wings clip columns).
         public float GlideStraightSpeed=4.6f;
         public float GlideTightSpeed=3.0f;
-        public float LandedWalkSpeed=2.4f;                     // PROPOSED, not in DESIGN.md: used when he lands to follow through 0.9 m service doors
-        public float TightRoomWidth=4.0f;                      // PROPOSED: corridor/room width below which GlideTightSpeed applies
+        public float LandedWalkSpeed=2.4f;                     // he lands and walks (Mode 1) through 0.9 m service doors
+        public float TightRoomWidth=4.0f;                      // open width (left + right) below which GlideTightSpeed applies
+        public float StraightLookahead=3.0f;                   // a leg shorter than this before a turn is not a straight
+        public float TurnDegreesPerSecond=420f;
+        public float ServiceDoorLandRadius=1.4f;               // within this of a service door he is on foot, hover 0
+
+        // Flight height: clearance under his lowest point (the clips are exported with the lowest point 0.10 m above
+        // the origin, so hover 0 skims the floor). Capped by the ceiling above the route.
+        public float HoverMax=1.1f;
+        public float BodyClearance=2.25f;                      // ceiling - this = highest hover (Glide clip top is 2.12 m)
+        public float HoverNearPlayer=.15f;                     // last leg of a chase: drop to grab height
+        public float HoverTierScale=.25f;                      // each completed retreat: comes back lower (1 - tier * this)
+        public float FlightClearRadius=.28f;                   // sphere for "can he fly straight there"
+
+        // Perches (CastleWorld.Points.PerchPoints): idle and search stations.
+        public float PerchMinSeconds=6f, PerchMaxSeconds=14f;  // between hunts (scripted appearances)
+        public float HuntPerchMinSeconds=2.5f, HuntPerchMaxSeconds=5f;
+        public float PerchTellSeconds=.9f;                     // watches you this long from a perch before the dive
+        public float PerchEyeHeight=1.05f, FlightEyeHeight=1.55f, PerchLookDown=25f;
+        public float LedgeProbe=2.2f;                          // balustrade search distance in front of a perch point
+        public float SearchLandSeconds=2.6f;                   // lands at a heard/last-seen spot and prowls (Mode 2)
 
         // Fight.
         public int HitsToKill=3;
-        public float StaggerRetreatSeconds=20f;                // retreat to a perch for 20 s, return lower and angrier
+        public float StaggerRetreatSeconds=20f;                // retreat to a perch for 20 s, return lower and angrier (Fight.RetreatSeconds)
 
-        // Perches (used by the behaviour piece): seconds spent perched between hunts.
-        public float PerchMinSeconds=6f, PerchMaxSeconds=14f;
+        // Grab presentation: the Grab clip's wing-wrap reaches 0.79 m ahead of his origin (receipt grab_reach_m);
+        // keep the camera at least CameraClearance outside it.
+        public float GrabReach=.79f, CameraClearance=.6f;
+        public float GrabStandOff=>GrabReach+CameraClearance+.05f;
+
+        // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
+        // then feints back to a perch, so the hunt sequence shows perch, glide and dive without a kill.
+        public float CaptureHoldDistance=2.5f, CaptureHoldSeconds=1.6f;
 
         public CountClaudeProfile()
         {
             Name="Count Claude";
             ModelResource="Characters/CountClaude";            // Resources path of the prefab (CountClaudeImport.Prepare writes it)
             AllowPlaceholderModel=true;                        // magenta stand-in if the prefab is missing
-            // Perception: Presence.Sees() compares distance and Vector3.Angle(forward, toPlayer): SightAngle is a half-angle.
-            SightRange=14f;SightAngle=80f;EyeHeight=2.05f;     // Split Grin: 12 / 72 / 1.75; he looks down from above
-            // Navigation agent: until the glide behaviour lands, the nav agent runs at the tight-room glide speed.
+            MinimumBones=24;
+            // Perception: half-angle cone, line of sight required (Presence.CountSees). Split Grin: 12 / 72.
+            SightRange=14f;SightAngle=80f;EyeHeight=FlightEyeHeight;
+            // The nav agent is never enabled for the Count (he flies kinematically along NavMesh corners); these keep
+            // the agent component sane if anything inspects it.
             Speed=GlideTightSpeed;AgentRadius=.30f;AgentHeight=2.2f;Acceleration=10f;AngularSpeed=250f;
             GrabDistance=1.05f;
-            HuntSpawn=null;                                    // CastleWorld.Points.HunterSpawn
+            Search=SearchRoute.PerchPoints;
+            HuntSpawn=null;                                    // CastleWorld.Points.HunterSpawn; the hunt starts on the nearest perch
             ModeIdle=ModePerch;ModeMove=ModeGlide;ModeSearch=ModeSearchGlide;ModeReach=ModeDive;ModeStagger=ModeStaggerId;ModeDeath=ModeDeathId;
         }
 
-        /// <summary>Glide speed for a given room width in metres: tight rooms clip his wings on columns.</summary>
-        public float GlideSpeedFor(float openWidth)
-        {
-            float t=openWidth<=TightRoomWidth?0f:openWidth>=TightRoomWidth*2f?1f:(openWidth-TightRoomWidth)/TightRoomWidth;
-            return GlideTightSpeed+(GlideStraightSpeed-GlideTightSpeed)*t;
-        }
+        /// <summary>Glide speed for an open width in metres: tight rooms clip his wings on columns.</summary>
+        public float GlideSpeedFor(float openWidth,bool straight=true)=>openWidth<TightRoomWidth||!straight?GlideTightSpeed:GlideStraightSpeed;
+
+        public override void OnStagger(Presence presence)=>presence.CountStagger();
+        public override void OnDeath(Presence presence)=>presence.CountDefeat();
     }
 }
