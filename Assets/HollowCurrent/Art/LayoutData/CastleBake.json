@@ -1,10 +1,10 @@
 {
-    "sceneDependencies": "3845eb09fab426698d8554220492279d",
-    "sourceHash": "5DXpSXHdGP9/7ExthU+b0VWOzXmW6Mtn5xWJdTvGUv8=",
-    "utc": "2026-10-13T20:44:24.2613700Z",
+    "sceneDependencies": "676a91272199f5dbc2d814d5f76e8cff",
+    "sourceHash": "e/GwzLzU73rGONo2mKXMZt5MzztsDvpBPFSPnpav84s=",
+    "utc": "2026-10-13T21:56:58.1771260Z",
     "map": "Castle",
     "hashScope": "all .cs/.shader under Assets/HollowCurrent except NativeVerification.cs",
-    "lightmaps": 6,
-    "lightProbes": 197,
+    "lightmaps": 7,
+    "lightProbes": 196,
     "reflections": 17
 }

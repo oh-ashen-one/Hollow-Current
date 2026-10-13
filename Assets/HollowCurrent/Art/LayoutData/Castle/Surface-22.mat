@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Castle surface / Castle_FlagStone / World
+  m_Name: Castle surface / Castle_StoneWeathered / World
   m_Shader: {fileID: 4800000, guid: 97422229ed157a2e37c90ce2d5ae94a4, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -24,15 +24,15 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 42a7fd4cad28770d136e9adce2f9243c, type: 3}
+        m_Texture: {fileID: 2800000, guid: cb56788a60fe747187682b980a876bac, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 50d97bb0b659b9cffe8c2fc34cc645eb, type: 3}
+        m_Texture: {fileID: 2800000, guid: 40302eb215a5a3b3bbdd1fff9b20d021, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MaskTex:
-        m_Texture: {fileID: 2800000, guid: 73d78e646bf5f880df0a33ab10df4e9a, type: 3}
+        m_Texture: {fileID: 2800000, guid: bec4887b635b0caba1dfec198eaaad45, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -42,7 +42,7 @@ Material:
     - _Sharp: 6
     - _Tile: 0.5
     m_Colors:
-    - _Color: {r: 0.74, g: 0.74, b: 0.8, a: 1}
+    - _Color: {r: 0.8, g: 0.8, b: 0.82, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Flow: {r: 0.02, g: 0.012, b: 1.7, a: 0}
   m_BuildTextureStacks: []

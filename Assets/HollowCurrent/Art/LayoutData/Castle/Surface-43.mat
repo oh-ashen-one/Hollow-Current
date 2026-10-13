@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Surface-43
+  m_Name: Castle surface / Castle_FlagStone / World
   m_Shader: {fileID: 4800000, guid: 97422229ed157a2e37c90ce2d5ae94a4, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -42,7 +42,7 @@ Material:
     - _Sharp: 6
     - _Tile: 0.5
     m_Colors:
-    - _Color: {r: 0.7303321, g: 0.7249219, b: 0.77951175, a: 1}
+    - _Color: {r: 0.70688814, g: 0.70328134, b: 0.75967455, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Flow: {r: 0.02, g: 0.012, b: 1.7, a: 0}
   m_BuildTextureStacks: []
