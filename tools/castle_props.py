@@ -6,10 +6,11 @@
 Exports Assets/HollowCurrent/Resources/Castle/<Name>.fbx and docs/haunted-castle/art/manifest_props.json.
 Asset space: X right, Y depth (front = +Y), Z up, metres, origin at the floor centre unless noted.
 """
-import sys, math, random
+import sys, math, random, bmesh
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from castle_lib import *
+from mathutils import Matrix
 
 S, BS, OAK, BRASS, IRON, OX, SIL, BONE, PAPER, FLAME, CANVAS = (
     "Castle_Stone", "Castle_BlackStone", "Castle_Oak", "Castle_Brass", "Castle_Iron", "Castle_Oxblood",
@@ -44,26 +45,16 @@ def loft(b, c, sections, sides, mat, smooth=True):
     b._f(list(reversed(rings[0])), mat); b._f(list(rings[-1]), mat)
 
 # ---------------------------------------------------------------- seating / tables
-def chair(b, c=(0, 0, 0), yaw=0):
-    with b.xf(T(*c) @ Rz(yaw)):
-        b.box((0, 0, .46), (.5, .5, .06), OAK)
-        for sx in (-1, 1):
-            for sy in (-1, 1):
-                b.box((sx * .21, sy * .21, .215), (.05, .05, .43), OAK)
-            b.box((sx * .22, -.22, .88), (.05, .05, .84), OAK)
-        b.poly([(-.22, .55), (.22, .55), (.22, 1.15), (0, 1.4), (-.22, 1.15)], -.245, -.205, OAK, 'XZ')
-        b.box((0, -.22, .42), (.44, .04, .04), OAK)
-
 def pew():
+    """Oak pew, 2.4 x 1.0 x 0.7 m. Seat faces +Y (front); backrest at the rear; kneeler in front. Origin: floor centre."""
     b = Builder("Pew")
     for sx in (-1, 1):
-        x = sx * 1.2
-        b.poly([(-.3, 0), (.32, 0), (.32, .52), (-.02, .52), (-.12, 1.0), (-.26, 1.14), (-.32, 1.0)], x - .05, x + .05, OAK, 'YZ')
+        x = sx * 1.15
+        b.poly([(-.32, 0), (.38, 0), (.38, .46), (.28, .46), (.28, .12), (-.02, .12), (-.02, .5), (-.1, .86), (-.24, 1.0), (-.32, .86)], x - .05, x + .05, OAK, 'YZ')
     b.box((0, 0, .47), (2.3, .5, .06), OAK)
-    b.box((0, -.27, .64), (2.3, .05, .22), OAK)
-    b.box((0, -.27, .9), (2.3, .05, .22), OAK)
-    b.box((0, .45, .06), (2.3, .24, .12), OAK)
-    b.notes["length"] = 2.5
+    b.box((0, -.28, .64), (2.3, .05, .22), OAK)
+    b.box((0, -.28, .9), (2.3, .05, .2), OAK)
+    b.box((0, .33, .1), (2.3, .1, .2), OAK)
     return b
 
 def banquet_table():
@@ -86,30 +77,29 @@ def banquet_table():
         for sy in (-1, 1):
             b.lathe((x + .15, sy * .38, .818), [(0, 0), (.03, 0), (.012, .04), (.012, .08), (.045, .13), (.04, .14), (.03, .12), (0, .11)], 6, SIL, cap=False)
     for x in (-3.0, -1.8, -.6, .6, 1.8, 3.0):
-        chair(b, (x, -.95, 0), 0); chair(b, (x, .95, 0), 180)
-    chair(b, (-4.55, 0, 0), -90); chair(b, (4.55, 0, 0), 90)
+        hb_chair(b, (x, -.95, 0), 0); hb_chair(b, (x, .95, 0), 180)
+    hb_chair(b, (-4.55, 0, 0), -90); hb_chair(b, (4.55, 0, 0), 90)
     return b
 
 # ---------------------------------------------------------------- ritual furniture
 def altar():
-    """Black altar, 2.8 x 1.3 x 1.13 m, three pointed recesses in the +Y face for blade, hilt, gem
-    (niche centres x = -0.8, 0, 0.8; each 0.56 wide, 0.38..0.96 high, 0.4 deep)."""
+    """Black altar, 2.4 x 1.1 x 1.1 m, three pointed recesses in the +Y face for blade, hilt, gem
+    (niche centres x = -0.65, 0, 0.65; each 0.5 wide, 0.34..0.94 high, 0.35 deep). Origin: floor centre."""
     b = Builder("Altar")
-    b.box((0, 0, .1), (2.8, 1.3, .2), BS)
-    b.box_mm((-1.2, -.5, .2), (1.2, .1, 1.0), BS)
-    cxs = (-.8, 0, .8)
-    edges = [-1.2] + [v for cx in cxs for v in (cx - .28, cx + .28)] + [1.2]
+    b.box((0, 0, .08), (2.4, 1.1, .16), BS)
+    b.box_mm((-1.1, -.5, .16), (1.1, .05, .98), BS)
+    cxs = (-.65, 0, .65)
+    edges = [-1.1] + [v for cx in cxs for v in (cx - .25, cx + .25)] + [1.1]
     for k in range(4):
-        x0, x1 = edges[2 * k], edges[2 * k + 1]
-        b.box_mm((x0, .1, .2), (x1, .5, 1.0), BS)
-    b.box_mm((-1.2, .1, .2), (1.2, .5, .38), BS)
+        b.box_mm((edges[2 * k], .05, .16), (edges[2 * k + 1], .4, .98), BS)
+    b.box_mm((-1.1, .05, .16), (1.1, .4, .34), BS)
     for cx in cxs:
-        curve = [(x + cx, z) for (x, z) in arch_curve(.28, .72, .28, 5)]
-        b.poly(curve + [(cx + .28, 1.0), (cx - .28, 1.0)], .1, .5, BS, 'XZ', smooth_range=(0, len(curve) - 1))
-    b.box((0, 0, 1.05), (2.6, 1.2, .14), BS)
-    b.box((0, .605, 1.05), (2.5, .02, .03), BRASS)
-    b.box((0, -.05, 1.127), (1.4, .8, .012), OX)
-    b.notes.update(niche_x=list(cxs), niche_size=[.56, .58, .4])
+        curve = [(x + cx, z) for (x, z) in arch_curve(.25, .62, .35, 5)]
+        b.poly(curve + [(cx + .25, .98), (cx - .25, .98)], .05, .4, BS, 'XZ', smooth_range=(0, len(curve) - 1))
+    b.box((0, 0, 1.04), (2.4, 1.1, .12), BS)
+    b.box((0, .555, 1.04), (2.3, .02, .03), BRASS)
+    b.box((0, -.05, 1.106), (1.3, .75, .012), OX)
+    b.notes.update(niche_x=list(cxs), niche_size=[.5, .6, .35])
     return b
 
 def stone_font():
@@ -121,20 +111,19 @@ def stone_font():
     return b
 
 def sarcophagus():
-    """Stone sarcophagus, 2.3 x 1.0 x 0.85 m trough with the lid pushed half off (+X) and skewed 9 deg.
+    """Stone sarcophagus, trough 2.0 x 1.0 x 1.0 m, lid pushed half off towards +X and skewed 9 deg (overall ~2.4 m).
     Origin: floor centre of the trough."""
     b = Builder("Sarcophagus")
-    b.box((0, 0, .1), (2.3, 1.0, .2), S)
+    b.box((0, 0, .1), (2.0, 1.0, .2), S)
     for sy in (-1, 1):
-        b.box((0, sy * .42, .525), (2.3, .16, .65), S)
+        b.box((0, sy * .42, .6), (2.0, .16, .8), S)
     for sx in (-1, 1):
-        b.box((sx * 1.07, 0, .525), (.16, .68, .65), S)
-    b.box((0, 0, .205), (2.0, .68, .01), BS)
-    with b.xf(about((.95, 0, .93), Rz(9))):
-        b.box((.95, 0, .93), (2.4, 1.1, .16), S)
-        b.box((.95, 0, 1.03), (2.2, .86, .06), S)
-        b.box((.95, 0, 1.065), (.06, .6, .01), BRASS); b.box((.95, .12, 1.065), (.4, .06, .01), BRASS)
-    b.notes["lid_offset"] = .95
+        b.box((sx * .92, 0, .6), (.16, .68, .8), S)
+    b.box((0, 0, .205), (1.7, .68, .01), BS)
+    with b.xf(about((.4, 0, 1.03), Rz(5))):
+        b.box((.4, 0, 1.04), (2.1, 1.0, .12), S)
+        b.box((.4, 0, 1.15), (1.9, .8, .1), S)
+        b.box((.4, 0, 1.205), (.05, .5, .01), BRASS); b.box((.4, .1, 1.205), (.34, .05, .01), BRASS)
     return b
 
 # ---------------------------------------------------------------- the skeleton
@@ -201,25 +190,25 @@ def giant_skeleton():
 
 # ---------------------------------------------------------------- surreal dressing
 def candelabra():
-    """Five-candle brass candelabrum, 0.85 m tall, parts: body + Flame_0..4 (Castle_Flame), each flame's
-    pivot at its base so a script can bend it. Origin: base centre."""
+    """Tall five-candle brass candelabrum, 0.5 x 1.7 x 0.5 m, parts: body + Flame_0..4 (Castle_Flame); each flame's pivot
+    is at its base so a script can bend it. Origin: base centre."""
     b = Builder("Candelabra")
-    b.lathe((0, 0, 0), [(0, 0), (.14, 0), (.14, .025), (.07, .07), (.04, .12), (.05, .2), (.03, .26), (.035, .34), (.03, .45), (.05, .5), (.05, .52), (0, .52)], 10, BRASS)
-    tips = [(0, 0, .52)]
+    b.lathe((0, 0, 0), [(0, 0), (.2, 0), (.2, .04), (.1, .12), (.05, .22), (.07, .3), (.04, .4), (.05, .6), (.035, .75), (.04, .95),
+                        (.03, 1.1), (.05, 1.2), (.05, 1.24), (0, 1.24)], 10, BRASS)
+    tips = [(0, 0, 1.24)]
     for k in range(4):
         a = math.radians(45 + 90 * k); ca, sa = math.cos(a), math.sin(a)
-        pts = [(.03 * ca, .03 * sa, .38), (.1 * ca, .1 * sa, .35), (.2 * ca, .2 * sa, .41), (.27 * ca, .27 * sa, .52)]
-        b.tube(pts, .015, 5, BRASS)
-        b.lathe((.27 * ca, .27 * sa, .52), [(0, 0), (.035, 0), (.045, .035), (0, .035)], 8, BRASS)
-        tips.append((.27 * ca, .27 * sa, .555))
-    for i, t in enumerate(tips):
-        h = .22 if i == 0 else .17
-        b.lathe(t, [(.022, 0), (.022, h), (0, h)], 6, BONE, cap=False)
-    for i, t in enumerate(tips):
-        h = .22 if i == 0 else .17
+        pts = [(.03 * ca, .03 * sa, 1.0), (.1 * ca, .1 * sa, .97), (.2 * ca, .2 * sa, 1.04), (.27 * ca, .27 * sa, 1.17)]
+        b.tube([(x * .85, y * .85, z) for x, y, z in pts], .018, 5, BRASS)
+        b.lathe((.23 * ca, .23 * sa, 1.17), [(0, 0), (.035, 0), (.045, .035), (0, .035)], 8, BRASS)
+        tips.append((.23 * ca, .23 * sa, 1.205))
+    heights = [.3] + [.22] * 4
+    for t, h in zip(tips, heights):
+        b.lathe(t, [(.024, 0), (.024, h), (0, h)], 6, BONE, cap=False)
+    for i, (t, h) in enumerate(zip(tips, heights)):
         base = (t[0], t[1], t[2] + h)
         b.part("Flame_%d" % i, base)
-        b.lathe(base, [(0, 0), (.012, .015), (.016, .04), (.008, .07), (0, .098)], 6, FLAME, smooth=True, cap=False)
+        b.lathe(base, [(0, 0), (.016, .02), (.021, .055), (.011, .1), (0, .14)], 6, FLAME, smooth=True, cap=False)
         b.use("Candelabra")
     return b
 
@@ -234,20 +223,20 @@ def floating_book():
     return b
 
 def portrait_frame():
-    """1.1 x 1.5 m gilt frame (depth 0.08, back plane y=0, front +Y), canvas is its own part 'Canvas' with 0..1 UVs
+    """0.9 x 1.3 m gilt frame (0.1 deep, back plane y=-0.05, front +Y), canvas is its own part 'Canvas' with 0..1 UVs
     (Castle_Canvas). Origin: bottom centre of the frame."""
-    b = Builder("PortraitFrame")
-    for sy_, zc, w, h in ((1, 1.45, 1.1, .1), (1, .05, 1.1, .1)):
-        b.box((0, .04, zc), (w, .08, h), BRASS)
+    b = Builder("Portrait")
+    W, Hh, f = .9, 1.3, .09
+    b.box((0, 0, Hh - f / 2), (W, .1, f), BRASS); b.box((0, 0, f / 2), (W, .1, f), BRASS)
     for sx in (-1, 1):
-        b.box((sx * .5, .04, .75), (.1, .08, 1.3), BRASS)
-        b.box((sx * .43, .06, .75), (.04, .06, 1.2), BRASS)
-    b.box((0, .06, 1.38), (.9, .06, .04), BRASS); b.box((0, .06, .12), (.9, .06, .04), BRASS)
-    b.part("Canvas", (0, .045, .75)); b.use("Canvas")
-    w, h = .9, 1.3
-    v = [b._v((x, .045, .75 + z)) for x, z in ((-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2))]
+        b.box((sx * (W / 2 - f / 2), 0, Hh / 2), (f, .1, Hh - 2 * f), BRASS)
+        b.box((sx * (W / 2 - f - .02), .02, Hh / 2), (.04, .06, Hh - 2 * f - .1), BRASS)
+    b.box((0, .02, Hh - f - .02), (W - 2 * f, .06, .04), BRASS); b.box((0, .02, f + .02), (W - 2 * f, .06, .04), BRASS)
+    cw, ch = W - 2 * f - .06, Hh - 2 * f - .06
+    b.part("Canvas", (0, .0, Hh / 2)); b.use("Canvas")
+    v = [b._v((x, .0, Hh / 2 + z)) for x, z in ((-cw / 2, -ch / 2), (cw / 2, -ch / 2), (cw / 2, ch / 2), (-cw / 2, ch / 2))]
     b._f(v, CANVAS, False, [(0, 0), (1, 0), (1, 1), (0, 1)], closed=False)
-    b.use("PortraitFrame")
+    b.use("Portrait")
     return b
 
 def bookshelf():
@@ -255,18 +244,18 @@ def bookshelf():
     rnd = random.Random(99)
     b = Builder("Bookshelf")
     for sx in (-1, 1):
-        b.box((sx * .97, 0, 1.5), (.06, .45, 3.0), OAK)
+        b.box((sx * .97, 0, 1.5), (.06, .5, 3.0), OAK)
     b.box((0, -.2, 1.5), (1.9, .03, 2.9), OAK)
-    b.box((0, 0, 3.0), (2.1, .5, .06), OAK)
+    b.box((0, 0, 2.97), (2.0, .5, .06), OAK)
     zs = [.06, .66, 1.26, 1.86, 2.46]
     for z in zs:
         b.box((0, 0, z), (1.94, .42, .04), OAK)
     mats = [OX, OAK, IRON, BRASS, OX]
     for z in zs:
-        x = -.9
+        x = -.91
         top = z + .02
         gap = (zs[zs.index(z) + 1] if zs.index(z) < 4 else 2.97) - z - .04
-        while x < .85:
+        while x < .88:
             w = rnd.uniform(.035, .075); h = rnd.uniform(.5, .92) * min(gap, .46)
             if rnd.random() < .08: x += rnd.uniform(.1, .25); continue
             lean = rnd.uniform(-9, 9) if rnd.random() < .08 else 0
@@ -279,6 +268,7 @@ def orrery():
     """Brass orrery on a pedestal, 1.2 m across, 1.1 m centre height. Parts: body + Sun (Castle_Flame, emissive).
     One planet is missing: an empty cup socket on the third arm (notes.socket) holds the hilt in the design."""
     b = Builder("Orrery")
+    ORR = 2.3
     b.lathe((0, 0, 0), [(0, 0), (.35, 0), (.35, .06), (.2, .12), (.12, .2), (.1, .7), (.2, .76), (.2, .82), (0, .82)], 12, BRASS)
     c = (0, 0, 1.12)
     b.tube([(0, 0, .82), (0, 0, 1.05)], .035, 6, BRASS)
@@ -298,13 +288,20 @@ def orrery():
             b.lathe(tuple(pos), [(0, -.01), (.03, -.01), (.045, .035), (.036, .04), (.0, .0)], 8, BRASS)
             b.notes["socket"] = [round(v, 3) for v in pos]
     b.part("Sun", c); sphere(b, c, .07, FLAME, seg=8)
+    for P in b.parts.values():
+        bm = P["bm"]; bm.verts.ensure_lookup_table()
+        bmesh.ops.scale(bm, vec=(ORR, ORR, ORR), space=Matrix.Identity(4), verts=bm.verts[:])
+        P["origin"] = P["origin"] * ORR
+    b.notes["socket"] = [round(v * ORR, 3) for v in b.notes.get("socket", [0, 0, 0])]
+    b.notes["scale"] = ORR
     return b
 
 def dead_fountain():
-    b = Builder("DeadFountain")
-    b.lathe((0, 0, 0), [(0, 0), (1.7, 0), (1.7, .55), (1.55, .62), (1.4, .55), (1.4, .15), (.5, .15), (.35, .3), (.3, 1.3), (.45, 1.4),
-                        (.8, 1.5), (.8, 1.6), (.7, 1.6), (.55, 1.55), (0, 1.5)], 10, S, smooth=False)
-    b.poly([(-.22, 0), (.2, -.18), (.28, .06), (.12, .22), (-.05, .12), (-.2, .2)], 1.5, 1.95, S, 'XY')
+    """Dry two-tier fountain, 2.6 x 1.8 x 2.6 m, cracked stump on top. Origin: floor centre."""
+    b = Builder("Fountain")
+    b.lathe((0, 0, 0), [(0, 0), (1.28, 0), (1.28, .45), (1.18, .5), (1.07, .45), (1.07, .13), (.4, .13), (.27, .25), (.23, 1.0), (.34, 1.1),
+                        (.6, 1.2), (.6, 1.3), (.52, 1.3), (.42, 1.25), (0, 1.2)], 10, S, smooth=False)
+    b.poly([(-.18, 0), (.16, -.14), (.22, .05), (.1, .17), (-.04, .1), (-.16, .16)], 1.2, 1.78, S, 'XY')
     return b
 
 def drawbridge_unused():
@@ -318,7 +315,7 @@ def dead_tree():
         pts = [Vector(p)]; radii = [r]
         cur = Vector(p); dd = Vector(d).normalized()
         for i in range(segs):
-            dd = (dd + Vector((rnd.uniform(-.35, .35), rnd.uniform(-.35, .35), rnd.uniform(-.1, .25)))).normalized()
+            dd = (dd + Vector((rnd.uniform(-.28, .28), rnd.uniform(-.28, .28), rnd.uniform(0, .3)))).normalized()
             cur = cur + dd * (length / segs)
             pts.append(cur.copy()); radii.append(r * (1 - .6 * (i + 1) / segs))
         radii[-1] = max(radii[-1] * .4, .004)
@@ -328,16 +325,18 @@ def dead_tree():
         for k in range(kids):
             i = rnd.randint(max(1, segs // 2 - 1), segs) if depth else rnd.randint(2, segs)
             base = pts[i]
-            az = rnd.uniform(0, math.tau); sp = math.radians(rnd.uniform(28, 55))
+            az = rnd.uniform(0, math.tau); sp = math.radians(rnd.uniform(12, 30))
             ax = dd.cross(Vector((0, 0, 1))).normalized() if abs(dd.z) < .9 else Vector((1, 0, 0))
             ay = dd.cross(ax).normalized()
             nd = dd * math.cos(sp) + (ax * math.cos(az) + ay * math.sin(az)) * math.sin(sp)
-            nd.z += .15
+            nd.z += .3
             branch(tuple(base), tuple(nd), length * rnd.uniform(.66, .8), radii[i] * .8, depth + 1, 4 if depth < 1 else 3)
-    branch((0, 0, 0), (0, 0, 1), 3.4, .42, 0, 5)
+    branch((0, 0, 0), (0, 0, 1), 1.95, .25, 0, 5)
+    bm = b.cur["bm"]; bm.verts.ensure_lookup_table()
+    bmesh.ops.scale(bm, vec=(.78, 1.2, 1.0), space=Matrix.Identity(4), verts=bm.verts[:])
     for k in range(5):
         a = k * math.tau / 5 + .3
-        b.tube([(.1 * math.cos(a), .1 * math.sin(a), .25), (.45 * math.cos(a), .45 * math.sin(a), .1), (.9 * math.cos(a), .9 * math.sin(a), -.02)], [.2, .14, .04], 5, OAK)
+        b.tube([(.08 * math.cos(a), .08 * math.sin(a), .22), (.3 * math.cos(a), .3 * math.sin(a), .08), (.6 * math.cos(a), .6 * math.sin(a), -.02)], [.14, .1, .03], 5, OAK)
     return b
 
 def banner():
@@ -362,8 +361,8 @@ def banner():
 BUILDERS = [
     ("Pew", pew, 3000), ("BanquetTable", banquet_table, 3000), ("Altar", altar, 3000), ("StoneFont", stone_font, 3000),
     ("Sarcophagus", sarcophagus, 3000), ("GiantSkeleton", giant_skeleton, 15000), ("Candelabra", candelabra, 3000),
-    ("FloatingBook", floating_book, 3000), ("PortraitFrame", portrait_frame, 3000), ("Bookshelf", bookshelf, 3000),
-    ("Orrery", orrery, 3000), ("DeadFountain", dead_fountain, 3000), ("DeadTree", dead_tree, 3000), ("Banner", banner, 3000),
+    ("FloatingBook", floating_book, 3000), ("Portrait", portrait_frame, 3000), ("Bookshelf", bookshelf, 3000),
+    ("Orrery", orrery, 3000), ("Fountain", dead_fountain, 3000), ("DeadTree", dead_tree, 3000), ("Banner", banner, 3000),
 ]
 
 def spec_for(name):
@@ -371,9 +370,9 @@ def spec_for(name):
         if name == "GiantSkeleton":
             assert 11.4 <= info["size"][1] <= 12.6, info["size"]
         if name == "Pew":
-            assert approx(info["size"][0], 2.5, .05), info["size"]
+            assert approx(info["size"][0], 2.4, .05), info["size"]
         if name == "Altar":
-            assert approx(info["size"][0], 2.8, .01)
+            assert approx(info["size"][0], 2.4, .01), info["size"]
     return check
 
 def main():
