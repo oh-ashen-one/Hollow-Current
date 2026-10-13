@@ -60,8 +60,8 @@ namespace HollowCurrent
             }
             if(phase==Phase.Hunt)
             {
-                var desired=huntOrigin??new Vector3(5,-3.05f,9.5f);huntOrigin=null;
-                if(Vector3.Distance(desired,Game.Player.transform.position)<3)desired=new Vector3(5,-3.05f,9.5f);
+                var desired=huntOrigin??Game.World.HunterSpawn;huntOrigin=null;
+                if(Vector3.Distance(desired,Game.Player.transform.position)<3)desired=Game.World.HunterSpawn;
                 // Spawn is fixed in the source room, never selected from hidden player state.
                 if(NavMesh.SamplePosition(desired,out var hit,3,NavMesh.AllAreas))transform.position=hit.position;
                 else {Game.Say("The investigation could not continue. Restart the case from the pause menu.");Debug.LogError("HC_NAV_UNAVAILABLE");return;}
@@ -105,7 +105,7 @@ namespace HollowCurrent
                 if(Game.Case.Phase==Phase.Containment&&Game.Case.SealProgress>.02f)
                 {
                     float progress=Game.Case.SealProgress;agent.enabled=false;
-                    transform.position=new Vector3(Game.World.Anchor.x,-3.2f,Game.World.Anchor.z+Mathf.Lerp(2,1.05f,progress));
+                    transform.position=new Vector3(Game.World.Anchor.x,Game.World.AnchorFloor,Game.World.Anchor.z+Mathf.Lerp(2,1.05f,progress));
                     transform.rotation=Quaternion.Euler(0,180,0);silhouette.gameObject.SetActive(true);actor.Pose(progress>.62f?3:2);return;
                 }
                 if(presentationRemaining>0)

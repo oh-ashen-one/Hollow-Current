@@ -69,7 +69,7 @@ The game includes checkpoint retry and a fresh investigation option. Physical Bl
 
 ## Tests and development
 
-After Unity has imported the Input System package, `python3 tools/check_source.py` compiles against installed Unity assemblies and runs engine-independent gameplay rules. It does not launch the game or verify graphics. Set `UNITY_CONTENTS` if the editor is installed elsewhere. `HollowCurrent.Editor.NativeBuild.HeadlessValidate` is the separate engine geometry/asset validation method. Native route instrumentation is opt-in via `-hc-verify`; ordinary launches never run it.
+After Unity has imported the Input System package, `python3 tools/check_source.py` compiles against installed Unity assemblies and runs engine-independent gameplay rules. It does not launch the game or verify graphics. Set `UNITY_CONTENTS` if the editor is installed elsewhere. It compiles every `.cs` under `Core/`, `Runtime/` and `Editor/` recursively (including `Runtime/Castle/`). A checkout without an imported `Library/` (for example a builder worktree) can borrow the Input System assembly from an imported clone: `INPUT_SYSTEM_REFERENCE=/path/to/imported/clone/Library/ScriptAssemblies/Unity.InputSystem.dll python3 tools/check_source.py`. `HollowCurrent.Editor.NativeBuild.HeadlessValidate` is the separate engine geometry/asset validation method. Native route instrumentation is opt-in via `-hc-verify`; ordinary launches never run it.
 
 The public-edition radio/EVP voices are intentionally different from the private prototype's Apple System Voices. Regenerate with:
 

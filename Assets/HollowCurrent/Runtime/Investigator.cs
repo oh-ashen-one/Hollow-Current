@@ -34,8 +34,9 @@ namespace HollowCurrent
         public float Sensitivity = 1.65f;
         public bool InvertY;
         public float Brightness = 1;
-        public bool Inside => transform.position.z>0 && Mathf.Abs(transform.position.x)<8.1f && transform.position.z<14.3f;
-        public bool InVan => transform.position.z < -8.2f && transform.position.z > -14.1f && Mathf.Abs(transform.position.x)<1.9f;
+        // Map regions come from the active World (Bellwether: house / van; Castle: walls / gatehouse).
+        public bool Inside => Game.World.IsInside(transform.position);
+        public bool InVan => Game.World.IsSafe(transform.position);
         float pitch,vertical,footstep,evp,scanAngle,readerPulse;
         Vector3 lastForward;
         Interactable hiding;

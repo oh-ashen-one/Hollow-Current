@@ -27,6 +27,46 @@ namespace HollowCurrent
         public MapId Map {get;private set;}=MapId.Bellwether;
         public static readonly Vector3 HouseSpawn = new Vector3(0, .1f, -11.4f);
         public Vector3 Spawn = HouseSpawn;
+        // Where a hunt begins when no scare chose an origin (Bellwether: basement source room).
+        public Vector3 HunterSpawn = new Vector3(5,-3.05f,9.5f);
+        // Floor the anchor stands on; the containment pose stands the hunter there.
+        public float AnchorFloor = -3.2f;
+        public readonly List<Vector3> PerchPoints = new List<Vector3>();
+        // Castle contract points (valid when Map==Castle): altar, relics, drawbridge.
+        public CastleWorld.Points Castle;
+        // Plan-view rectangles with strict bounds; y is ignored, exactly as the
+        // original Investigator.Inside / InVan tests.
+        public struct Area
+        {
+            public float MinX,MaxX,MinZ,MaxZ;
+            public Area(float minX,float maxX,float minZ,float maxZ){MinX=minX;MaxX=maxX;MinZ=minZ;MaxZ=maxZ;}
+            public bool Contains(Vector3 p)=>p.z>MinZ&&Mathf.Abs(p.x-(MinX+MaxX)*.5f)<(MaxX-MinX)*.5f&&p.z<MaxZ;
+        }
+        public Area InteriorArea = new Area(-8.1f,8.1f,0,14.3f);
+        public Area SafeArea = new Area(-1.9f,1.9f,-14.1f,-8.2f);
+        public Bounds NavBounds = new Bounds(new Vector3(0,1,2),new Vector3(42,18,42));
+        public bool IsInside(Vector3 p)=>InteriorArea.Contains(p)&&(Map==MapId.Bellwether||!SafeArea.Contains(p));
+        public bool IsSafe(Vector3 p)=>SafeArea.Contains(p);
+        public static readonly float[] CastleFloors={-3.2f,0,3.2f,6.4f};
+        public static float FloorBelow(float y)
+        {
+            float floor=CastleFloors[0];foreach(float f in CastleFloors)if(f<=y+.05f)floor=f;return floor;
+        }
+        // Where a checkpoint restores the investigator.
+        public Vector3 CheckpointPosition(Vector3 player,bool inside)
+        {
+            if(Map!=MapId.Bellwether)return Spawn;
+            float floor=player.y< -1?-3.2f:player.y>2?3.2f:0;
+            return inside?new Vector3(0,floor+.1f,10.5f):Spawn;
+        }
+        // Footstep surface for Soundscape ("wood", "tile", "carpet", "gravel").
+        public string StepSurface(Vector3 position)
+        {
+            if(Map!=MapId.Bellwether)return !IsInside(position)&&!IsSafe(position)?"gravel":"tile";
+            bool van=position.z< -8.2f&&position.z> -14.1f&&Mathf.Abs(position.x)<1.9f;
+            bool rug=position.y>-.4f&&position.y<.5f&&Mathf.Abs(position.x+5.4f)<1.8f&&Mathf.Abs(position.z-4.4f)<1.8f;
+            return van||rug?"carpet":position.z<0?"gravel":position.y>2?"carpet":position.y< -1||position.x>3?"tile":"wood";
+        }
 
         public void LoadOrBuild()=>LoadOrBuild(MapId.Bellwether);
         // A saved authored layout in the open scene wins; it records its own map.
@@ -37,6 +77,7 @@ namespace HollowCurrent
             if(saved.Map!=map)Debug.LogWarning("HC_MAP_MISMATCH scene layout is "+saved.Map+", requested "+map);
             Map=saved.Map;
             ownsMaterials=false;Root=saved.transform;Trace=saved.Trace;
+            if(Map==MapId.Castle)ApplyCastlePoints(saved.Castle);
             Anchor=saved.Anchor;Induction=saved.Induction;Voice=saved.Voice;Print=saved.Print;
             foreach(var item in Root.GetComponentsInChildren<Interactable>())if(item.Kind==InteractKind.Hide)HidingPlaces.Add(item);
             Lamps.AddRange(saved.Lamps);WindowLights.AddRange(saved.WindowLights);Dolls.AddRange(saved.Dolls);Doors.AddRange(saved.Doors);SearchPoints.AddRange(saved.SearchPoints);
@@ -44,20 +85,102 @@ namespace HollowCurrent
         }
         public void Build(MapId map)
         {
-            if(map!=MapId.Bellwether)throw new System.NotSupportedException("Castle layout is not wired yet");
-            Build();
+            if(map==MapId.Castle)BuildCastle();else Build();
+        }
+        void ApplyCastlePoints(CastleWorld.Points p)
+        {
+            Castle=p;Spawn=p.Spawn;Anchor=p.Anchor;Induction=p.Compass;Voice=p.Voice;Print=p.Print;HunterSpawn=p.HunterSpawn;AnchorFloor=FloorBelow(p.Anchor.y);
+            PerchPoints.Clear();if(p.PerchPoints!=null)PerchPoints.AddRange(p.PerchPoints);
+            var g=p.Gatehouse;SafeArea=new Area(g.min.x,g.max.x,g.min.z,g.max.z);
+            InteriorArea=new Area(-14.5f,14.5f,-.5f,28.5f);
+            NavBounds=new Bounds(new Vector3(0,2,12),new Vector3(48,22,56));
+        }
+        // The castle: CastleWorld (piece 1) builds the geometry and returns the
+        // contract points; World harvests doors, hides and lamps from the hierarchy
+        // and adds any case interactable CastleWorld did not provide.
+        void BuildCastle()
+        {
+            Map=MapId.Castle;
+            Root=new GameObject("Haunted Castle / authored layout").transform;
+            Mat("paper",new Color(.62f,.55f,.42f));Mat("wood",new Color(.23f,.13f,.075f));Mat("metal",new Color(.18f,.21f,.20f));Mat("brass",new Color(.47f,.33f,.13f));Mat("black",new Color(.025f,.03f,.029f));
+            CastleWorld.Build(Root,out var points);
+            ApplyCastlePoints(points);
+            foreach(var door in Root.GetComponentsInChildren<Door>(true))Doors.Add(door);
+            foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Hide)HidingPlaces.Add(item);
+            foreach(var fixture in Root.GetComponentsInChildren<PracticalFixture>(true))if(fixture.Source&&!Lamps.Contains(fixture.Source))Lamps.Add(fixture.Source);
+            foreach(var light in Root.GetComponentsInChildren<Light>(true))if(light.name.StartsWith("Window light",System.StringComparison.Ordinal))WindowLights.Add(light);
+            foreach(var point in CastleRoutePoints())SearchPoints.Add(point+Vector3.up*.1f);
+            Physics.SyncTransforms();
+            CastleCaseItems();
+            CastleTrace();
+        }
+        // Floor-level copies of the castle's points of interest: the hunter's
+        // patrol route and the castle validator's reachability targets.
+        public List<Vector3> CastleRoutePoints()
+        {
+            var list=new List<Vector3>();if(Map!=MapId.Castle)return list;
+            void Add(Vector3 p){list.Add(new Vector3(p.x,FloorBelow(p.y),p.z));}
+            Add(Castle.Compass);Add(Castle.Voice);Add(Castle.Anchor);Add(Castle.AltarPosition);Add(Castle.HunterSpawn);Add(Castle.DrawbridgeTrigger.center);
+            if(Castle.RelicPositions!=null)foreach(var p in Castle.RelicPositions)Add(p);
+            return list;
+        }
+        Interactable Find(InteractKind kind,string label=null)
+        {
+            foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==kind&&(label==null||item.Label==label))return item;
+            return null;
+        }
+        // First candidate around centre whose box is clear of geometry.
+        Vector3 FreeSpot(Vector3 center,Vector3 size,params Vector3[] offsets)
+        {
+            foreach(var offset in offsets)
+            {
+                var p=center+offset;
+                if(!Physics.CheckBox(p,size*.5f,Quaternion.identity,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))return p;
+            }
+            return center+offsets[0];
+        }
+        // Fallback case objects, created only when CastleWorld did not place its own
+        // Interactable of that kind (piece 1 may author the real ones).
+        void CastleCaseItems()
+        {
+            var book=CaseBook.For(MapId.Castle);
+            var around=new[]{new Vector3(1.6f,0,0),new Vector3(-1.6f,0,0),new Vector3(0,0,1.6f),new Vector3(0,0,-1.6f),new Vector3(2.4f,0,1.2f),new Vector3(-2.4f,0,1.2f)};
+            if(!Find(InteractKind.Kit))Interact("Fallback / lantern cart",FreeSpot(Spawn+new Vector3(0,.45f,0),new Vector3(.9f,.9f,.6f),new Vector3(1.4f,0,1.2f),new Vector3(-1.4f,0,1.2f),new Vector3(0,0,1.6f)),new Vector3(.9f,.9f,.6f),"wood",InteractKind.Kit,book.KitLabel,"");
+            if(!Find(InteractKind.Van))Interact("Fallback / drawbridge winch",Castle.DrawbridgeTrigger.center,new Vector3(.6f,1.2f,.6f),"metal",InteractKind.Van,book.FinishLabel,"");
+            if(!Find(InteractKind.Anchor))Interact("Fallback / chapel bell",Anchor,new Vector3(.6f,.7f,.6f),"brass",InteractKind.Anchor,book.AnchorLabel,"");
+            if(!Find(InteractKind.Breaker))Interact("Fallback / chapel brazier",FreeSpot(Castle.AltarPosition+new Vector3(0,.8f,0),new Vector3(.6f,1,.6f),around),new Vector3(.6f,1,.6f),"black",InteractKind.Breaker,book.BreakerLabel,"");
+            if(!Find(InteractKind.Note,book.ArrivalNoteTitle))Interact("Fallback / arrival note",FreeSpot(Spawn+new Vector3(0,.85f,0),new Vector3(.42f,.04f,.3f),new Vector3(-1.4f,0,1.2f),new Vector3(1.4f,0,-.6f),new Vector3(0,0,1)),new Vector3(.42f,.04f,.3f),"paper",InteractKind.Note,book.ArrivalNoteTitle,book.ArrivalNoteBody);
+            var anchors=new[]{Castle.Compass,Castle.Voice,Castle.AltarPosition};
+            for(int i=0;i<book.NoteTitles.Length;i++)
+            {
+                if(Find(InteractKind.Note,book.NoteTitles[i]))continue;
+                var near=anchors[i%anchors.Length];var floor=new Vector3(near.x,FloorBelow(near.y)+.85f,near.z);
+                Interact("Fallback / "+book.NoteTitles[i],FreeSpot(floor,new Vector3(.4f,.04f,.3f),around),new Vector3(.4f,.04f,.3f),"paper",InteractKind.Note,book.NoteTitles[i],book.NoteBodies[i]);
+            }
+        }
+        // The grave-ash lantern trace (UV print role): a quad on the wall nearest Print.
+        void CastleTrace()
+        {
+            var normal=Vector3.forward;float best=float.MaxValue;
+            foreach(var direction in new[]{Vector3.left,Vector3.right,Vector3.forward,Vector3.back})
+                if(Physics.Raycast(Print+direction*-.3f,direction,out var hit,.9f,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)&&hit.distance<best){best=hit.distance;normal=hit.normal;}
+            var trace=GameObject.CreatePrimitive(PrimitiveType.Quad);trace.name="Persistent claw-scores";trace.transform.SetParent(Root,false);
+            trace.transform.position=Print;trace.transform.rotation=Quaternion.LookRotation(-normal);trace.transform.localScale=new Vector3(.45f,.4f,1);
+            trace.GetComponent<Collider>().enabled=false;
+            var texture=Resources.Load<Texture2D>("Castle/ClawScores");if(!texture)texture=Resources.Load<Texture2D>("Surfaces/UVHandprint");
+            var material=new Material(Resources.Load<Shader>("UVTrace")){name="Castle latent claw-scores",mainTexture=texture};Materials["uvtrace"]=material;
+            var renderer=trace.GetComponent<Renderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+            Trace=trace.transform;Trace.gameObject.SetActive(false);
         }
         // Adds the serialized snapshot that a prepared scene loads back at runtime.
         public WorldLayout Snapshot()
         {
-            var snapshot=Root.gameObject.AddComponent<WorldLayout>();snapshot.Map=Map;
+            var snapshot=Root.gameObject.AddComponent<WorldLayout>();snapshot.Map=Map;snapshot.Castle=Castle;
             snapshot.Trace=Trace;snapshot.Anchor=Anchor;snapshot.Induction=Induction;snapshot.Voice=Voice;snapshot.Print=Print;
             snapshot.Lamps=Lamps.ToArray();snapshot.WindowLights=WindowLights.ToArray();snapshot.Dolls=Dolls.ToArray();snapshot.Doors=Doors.ToArray();snapshot.SearchPoints=SearchPoints.ToArray();
             snapshot.MaterialNames=new List<string>(Materials.Keys).ToArray();snapshot.Materials=new List<Material>(Materials.Values).ToArray();
             return snapshot;
         }
-        // Points the castle validator walks to from the gatehouse (empty for Bellwether).
-        public List<Vector3> CastleRoutePoints()=>new List<Vector3>();
         public void Build()
         {
             Map=MapId.Bellwether;Spawn=HouseSpawn;
@@ -581,11 +704,20 @@ namespace HollowCurrent
             foreach(var c in Root.GetComponentsInChildren<BoxCollider>())
             {
                 if(!c.enabled||c.GetComponentInParent<Door>()!=null)continue;
+                // Castle trigger volumes (stair loop, drawbridge) are not obstacles.
+                if(Map==MapId.Castle&&c.isTrigger)continue;
                 sources.Add(new NavMeshBuildSource {shape=NavMeshBuildSourceShape.Box,transform=c.transform.localToWorldMatrix,size=c.size,area=0});
             }
+            // Castle architecture may use mesh colliders (Blender/Higgsfield meshes).
+            if(Map==MapId.Castle)
+                foreach(var c in Root.GetComponentsInChildren<MeshCollider>())
+                {
+                    if(!c.enabled||c.isTrigger||!c.sharedMesh||c.GetComponentInParent<Door>()!=null)continue;
+                    sources.Add(new NavMeshBuildSource {shape=NavMeshBuildSourceShape.Mesh,sourceObject=c.sharedMesh,transform=c.transform.localToWorldMatrix,area=0});
+                }
             var settings=NavMesh.GetSettingsByID(0);settings.agentRadius=.28f;settings.agentHeight=1.8f;settings.agentClimb=.25f;settings.agentSlope=45;
             settings.overrideVoxelSize=true;settings.voxelSize=.1f;
-            NavData=NavMeshBuilder.BuildNavMeshData(settings,sources,new Bounds(new Vector3(0,1,2),new Vector3(42,18,42)),Vector3.zero,Quaternion.identity);
+            NavData=NavMeshBuilder.BuildNavMeshData(settings,sources,NavBounds,Vector3.zero,Quaternion.identity);
             if(NavData!=null)navInstance=NavMesh.AddNavMeshData(NavData);
         }
         public void Dispose()

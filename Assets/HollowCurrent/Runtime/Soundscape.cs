@@ -61,9 +61,7 @@ namespace HollowCurrent
         {
             if(id=="step")
             {
-                bool van=position.z< -8.2f&&position.z> -14.1f&&Mathf.Abs(position.x)<1.9f;
-                bool rug=position.y>-.4f&&position.y<.5f&&Mathf.Abs(position.x+5.4f)<1.8f&&Mathf.Abs(position.z-4.4f)<1.8f;
-                string material=van||rug?"carpet":position.z<0?"gravel":position.y>2?"carpet":position.y< -1||position.x>3?"tile":"wood";
+                string material=game.World.StepSurface(position);
                 id="step_"+material+"_"+(foot++%4);
             }
             if(id=="voice"){Speak("evp",position);return;}

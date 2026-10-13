@@ -33,8 +33,8 @@ def compile(name, sources, references, target="library"):
         raise SystemExit(result.returncode)
 def write_report():
     (ROOT / "evidence/source-verification.json").write_text(json.dumps({"timestamp_utc":time.strftime("%Y-%m-%dT%H:%M:%SZ",time.gmtime()),"unity_version":"6000.3.20f1","engine_launched":False,"rendered":False,"input_system_reference_override":os.environ.get("INPUT_SYSTEM_REFERENCE"),"checks":results},indent=2)+"\n")
-core = sorted((ROOT / "Assets/HollowCurrent/Core").glob("*.cs"))
-runtime = sorted((ROOT / "Assets/HollowCurrent/Runtime").glob("*.cs"))
+core = sorted((ROOT / "Assets/HollowCurrent/Core").rglob("*.cs"))
+runtime = sorted((ROOT / "Assets/HollowCurrent/Runtime").rglob("*.cs"))
 compile("RulesTests.exe", core + [ROOT / "Tests/RulesTests.cs"], base, "exe")
 test = subprocess.run([str(MONO), str(OUT / "RulesTests.exe")],cwd=ROOT,text=True,capture_output=True,timeout=30)
 print(test.stdout+test.stderr,end="")
@@ -46,7 +46,9 @@ engine = sorted(managed.glob("UnityEngine*.dll"))
 unity_base = [SCRIPT / "NetStandard/ref/2.1.0/netstandard.dll"]
 input_system = Path(os.environ.get("INPUT_SYSTEM_REFERENCE",str(ROOT / "Library/ScriptAssemblies/Unity.InputSystem.dll")))
 if not input_system.is_file():
-    raise SystemExit("Resolve/import the pinned Unity Input System package through the guarded editor before compiling")
+    raise SystemExit("Unity.InputSystem.dll not found. Import the pinned package once through the guarded editor, or set "
+                     "INPUT_SYSTEM_REFERENCE to an imported checkout's Library/ScriptAssemblies/Unity.InputSystem.dll "
+                     "(builder worktrees: /Users/midir/hollow-current-haunted-castle/Library/ScriptAssemblies/Unity.InputSystem.dll)")
 unity_base.append(input_system)
 player_managed = UNITY / "PlaybackEngines/MacStandaloneSupport/Variations/mono/Managed"
 player_engine = sorted(player_managed.glob("UnityEngine*.dll"))
@@ -57,6 +59,6 @@ if not player_engine:
 compile("HollowCurrent.Player.dll", core + runtime, unity_base + player_engine)
 compile("HollowCurrent.dll", core + runtime, unity_base + engine)
 editor = sorted(managed.glob("UnityEditor*.dll"))
-compile("HollowCurrent.Editor.dll", sorted((ROOT / "Assets/HollowCurrent/Editor").glob("*.cs")), unity_base+engine+editor+[OUT / "HollowCurrent.dll"])
+compile("HollowCurrent.Editor.dll", sorted((ROOT / "Assets/HollowCurrent/Editor").rglob("*.cs")), unity_base+engine+editor+[OUT / "HollowCurrent.dll"])
 write_report()
 print("PASS runtime C# against installed macOS Mono player and editor assemblies; editor C# also compiled. This check does not launch or validate graphics.")

@@ -30,11 +30,13 @@ namespace HollowCurrent
         public float Volume=.65f;
         public float SubtitleScale=1,CardOpacity=.94f;
         float radioCooldown;
-        static Investigation.Checkpoint checkpoint;
-        static Vector3 checkpointPosition;
+        // Checkpoints are kept per map: retrying or switching maps never restores
+        // one map's progress into the other.
+        static readonly Dictionary<MapId,Investigation.Checkpoint> checkpoints=new Dictionary<MapId,Investigation.Checkpoint>();
+        static readonly Dictionary<MapId,Vector3> checkpointPositions=new Dictionary<MapId,Vector3>();
         static bool restoreCheckpoint;
         int checkpointProgress=-1;
-        public bool HasCheckpoint=>checkpoint!=null;
+        public bool HasCheckpoint=>checkpoints.ContainsKey(Map);
         int manifestation;
         bool uiProbe,evidenceAppearanceScheduled;
         public int ManifestationCount => Scares?Scares.Events:manifestation;
@@ -89,8 +91,8 @@ namespace HollowCurrent
             yield return null;yield return new WaitForEndOfFrame();
             GC.Collect();LoadingProgress=1;yield return new WaitForEndOfFrame();
             Loading=false;
-            if(restoreCheckpoint&&checkpoint!=null)
-            {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);Player.Teleport(checkpointPosition);Started=true;Scares.RetryGrace();Say("Checkpoint restored / Your records are intact. Find cover before the signal rises.");}
+            if(restoreCheckpoint&&checkpoints.TryGetValue(Map,out var checkpoint))
+            {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);Player.Teleport(checkpointPositions[Map]);Started=true;Scares.RetryGrace();Say("Checkpoint restored / Your records are intact. Find cover before the signal rises.");}
             ApplyFocus();Debug.Log("HC_STARTUP_READY");
         }
         void Update()
@@ -140,9 +142,8 @@ namespace HollowCurrent
                 int progress=(Case.Equipped?1:0)+Case.Evidence.Count*10+Case.Notes.Count*100+(Case.Survived?10000:0)+(Case.Diagnosed?100000:0);
                 if(progress!=checkpointProgress&&Case.Phase!=Phase.Warning&&Case.Phase!=Phase.Hunt&&Case.Phase!=Phase.Return)
                 {
-                    checkpointProgress=progress;checkpoint=Case.SaveCheckpoint();
-                    float floor=Player.transform.position.y< -1?-3.2f:Player.transform.position.y>2?3.2f:0;
-                    checkpointPosition=Player.Inside?new Vector3(0,floor+.1f,10.5f):World.Spawn;
+                    checkpointProgress=progress;checkpoints[Map]=Case.SaveCheckpoint();
+                    checkpointPositions[Map]=World.CheckpointPosition(Player.transform.position,Player.Inside);
                 }
             }
             // Budget visible practical lights without allocating a new material or shadow map.
@@ -237,14 +238,17 @@ namespace HollowCurrent
             PlayerPrefs.SetInt("hc.invert-y",Player.InvertY?1:0);PlayerPrefs.SetInt("hc.subtitles",Subtitles?1:0);PlayerPrefs.SetInt("hc.help",HelpHints?1:0);PlayerPrefs.Save();
         }
         public void Quit(){SavePreferences();Application.Quit();}
-        public void RetryCheckpoint(){if(Loading||checkpoint==null)return;restoreCheckpoint=true;BeginReload();}
-        public void Retry(){if(Loading)return;checkpoint=null;restoreCheckpoint=false;BeginReload();}
-        void BeginReload(){SavePreferences();Loading=true;LoadingProgress=0;ApplyFocus();StartCoroutine(ReloadCase());}
-        IEnumerator ReloadCase()
+        public void RetryCheckpoint(){if(Loading||!HasCheckpoint)return;restoreCheckpoint=true;BeginReload(Map);}
+        public void Retry(){if(Loading)return;checkpoints.Remove(Map);checkpointPositions.Remove(Map);restoreCheckpoint=false;BeginReload(Map);}
+        void BeginReload(MapId target){SavePreferences();Loading=true;LoadingProgress=0;ApplyFocus();StartCoroutine(ReloadCase(target));}
+        IEnumerator ReloadCase(MapId target)
         {
             // Present a real transition frame before starting asynchronous I/O.
             yield return null;yield return new WaitForEndOfFrame();
-            var operation=SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex);operation.allowSceneActivation=false;
+            // Load the map's own scene by name; fall back to the active build
+            // index only if that scene is not in this player's build.
+            string scene=MapCatalog.Get(target).SceneName;
+            var operation=Application.CanStreamedLevelBeLoaded(scene)?SceneManager.LoadSceneAsync(scene):SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().buildIndex);operation.allowSceneActivation=false;
             while(operation.progress<.9f){LoadingProgress=Mathf.Clamp01(operation.progress/.9f);yield return null;}
             LoadingProgress=1;yield return new WaitForEndOfFrame();operation.allowSceneActivation=true;
         }
