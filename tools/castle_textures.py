@@ -250,7 +250,7 @@ def blood(n, rng, base):
     depth = fbm(n, rng, (1.6, 2.4), (1, .5))
     lum = 0.75 + 0.55 * depth
     albedo = np.clip(np.array(base)[None, None, :] * lum[..., None], 0, 1)
-    return dict(albedo=albedo, height=h, ns=5.5, smooth=0.93 - 0.05 * depth, metal=0.0, ao=1.0)
+    return dict(albedo=albedo, height=h, ns=5.5, smooth=0.98 - 0.03 * depth, metal=0.0, ao=1.0)
 
 # ---------------------------------------------------------------------------------------------------------------------
 # sun window: stained-glass sun painted over with black; blue moonlight leaks round the edges and through flaked paint.
@@ -498,8 +498,8 @@ Shader "HollowCurrent/CastleFogLayer"
             {
                 float2 w = i.wpos.xz * _Tile + _Scroll.xy * _Time.y;
                 float a = tex2D(_MainTex, w).a * 0.6 + tex2D(_MainTex, w * 2.3 + float2(0.31, 0.77) - _Scroll.xy * _Time.y * 1.7).a * 0.4;
-                a = saturate((a - 0.30) * 2.0);
-                float2 e = smoothstep(0.0, 0.18, i.uv) * smoothstep(0.0, 0.18, 1.0 - i.uv);
+                a = saturate((a - 0.22) * 2.4);
+                float2 e = smoothstep(0.0, 0.32, i.uv) * smoothstep(0.0, 0.32, 1.0 - i.uv);
                 float d = distance(_WorldSpaceCameraPos, i.wpos);
                 float f = smoothstep(_Fade.x, _Fade.y, d);
                 fixed4 c = _Color;
@@ -548,7 +548,7 @@ def main():
         em = None
         bump = 1.0
         if name == "Castle_Blood":
-            em = (0.16, 0.004, 0.008)
+            em = (0.30, 0.012, 0.020)
         cc.write_standard_mat(cc.MATS / (name + ".mat"), name, base, smooth, metal_v, g["albedo"], g["normal"],
                               emission=em, mask_guid=g["mask"], bump_scale=bump)
         print("texture", name, n)

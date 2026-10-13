@@ -33,7 +33,7 @@ namespace HollowCurrent
 
         [Header("Ambient fill for the castle surface shaders (linear). Kept low so shadows can reach real black.")]
         public Color FillSky = new Color(.016f, .022f, .036f);
-        public Color FillGround = new Color(.004f, .004f, .008f);
+        public Color FillGround = new Color(.010f, .012f, .022f);   // downward faces (vault undersides) pick this up, so ribs and ceilings read
 
         [Header("Materials")]
         public bool UpgradeMaterials = true;
@@ -46,8 +46,8 @@ namespace HollowCurrent
         [Header("Ground fog (layered noise planes, castle-local)")]
         public bool GroundFog = true;
         public Color GroundFogColor = new Color(.34f, .42f, .58f);
-        public int FogLayers = 6;
-        public float FogLayerAlpha = .16f;
+        public int FogLayers = 8;
+        public float FogLayerAlpha = .26f;
         public Vector3[] FogAreaCentres = { new Vector3(0f, 0f, 21f), new Vector3(0f, -3.2f, 21f) };   // floor centre of the great hall, crypt
         public Vector2[] FogAreaSizes = { new Vector2(12f, 14f), new Vector2(12f, 14f) };
 
@@ -151,6 +151,7 @@ namespace HollowCurrent
                     var m = shared[i]; if (!m) continue;
                     string n = m.name; int cut = n.IndexOf(" (Instance)", StringComparison.Ordinal); if (cut >= 0) n = n.Substring(0, cut);
                     Material replacement = null;
+                    if (n.StartsWith("Castle surface / Castle_Blood", StringComparison.Ordinal)) RefreshLiquid(m);
                     if (n.StartsWith(WorldPrefix, StringComparison.Ordinal) && World.TryGetValue(n.Substring(WorldPrefix.Length), out var spec))
                     {
                         string mat = spec.material;
@@ -170,6 +171,13 @@ namespace HollowCurrent
                 done.Add(r);
             }
             if (world + props > 0) Debug.Log("[CastleAtmosphere] upgraded " + world + " world and " + props + " prop material slots");
+        }
+
+        // CastleWorld bakes the liquid material into the scene at Prepare time; push the current look onto it at runtime.
+        static void RefreshLiquid(Material m)
+        {
+            if (!m.HasProperty("_EmissionColor")) return;
+            m.SetColor("_EmissionColor", CastleArt.LiquidEmission);
         }
 
         // ---- the painted-over sun window --------------------------------------------------------------------------------
@@ -254,7 +262,7 @@ namespace HollowCurrent
                     var m = new Material(shader) { name = "Castle ground fog " + a + "/" + i };
                     m.SetTexture("_MainTex", noise);
                     m.SetColor("_Color", GroundFogColor);
-                    m.SetFloat("_Alpha", FogLayerAlpha * Mathf.Lerp(1.25f, .6f, t));            // denser near the floor
+                    m.SetFloat("_Alpha", FogLayerAlpha * Mathf.Lerp(1.4f, .5f, t));            // denser near the floor
                     m.SetFloat("_Tile", .18f + .05f * i);
                     m.SetVector("_Scroll", new Vector4(.008f + .003f * i, (i % 2 == 0 ? .005f : -.006f) - .001f * i, 0f, 0f));
                     m.SetVector("_Fade", new Vector4(.9f, 2.8f, 0f, 0f));

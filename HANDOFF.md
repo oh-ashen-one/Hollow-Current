@@ -48,3 +48,29 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+## hc/look4 (round 4): exposure grade, crypt/exterior fills, fog, blood, skull
+No Unity. `check_source.py` PASS (394 assertions, runtime + editor C#), `castle_verify.py` HC_VERIFY_PASS (68 assets, 0 fails). Targets (12-30% of pixels below luma 8 in every shot) are unmeasured until the next capture.
+
+### Why the grade differed (found by reading Game.cs / Investigation.cs)
+1. `Investigation.BeginWarning()` set `BreakerOn=false`; Game.Update disables every lamp when the breaker is off. In the castle that killed every candle in the hunt frames: blue-black hall, 0% warm. The integrator already fixed this (candles stay lit); other hunt-time behaviours (strobe 8%, ScareDirector flicker, 8 m / same-floor lamp budget, ~5.5 m cut-off) are left alone and the new fills below are deliberately NOT in `World.Lamps`, so they are immune to all of them.
+2. **My earlier candle tuning was being overwritten.** Game.Awake adds `CastleLightTuning` and then records each lamp's intensity into `lampLevels`, which Game.Update writes back every frame. I tuned in `Start`, so the x2.4 intensity never stuck (only colour/range did); S1's orange came from the colour change alone. Tuning now runs in `Awake`, so recorded levels are the tuned ones. Because the intensity now actually applies, `CandleIntensityScale` is 1.0 (the old 2.4 was never seen) and the colour is less saturated, (1.0, 0.70, 0.42), to bring S1 from 20.8% warm towards 3-8% while S2/S5 stay warm. Range x1.3 clamped to 6.5-10 m (unchanged).
+
+### New realtime fill lights (CastleLightTuning, castle-local, no shadows)
+- Hall vault fill: point (0, 7.0, 21), colour (0.42, 0.55, 0.90), intensity 0.35, range 10 (ceiling/ribs read; S1 ceiling was 81% below 8).
+- Crypt candle pools: 4 points at (+-3.45, -2.3, 19.9) and (+-3.45, -2.3, 25.1), colour (1.0, 0.66, 0.38), intensity 1.3, range 5 (floor/curb pools, specular on the blood).
+- Crypt rune glow: point (0, -1.5, 22.5), colour (0.60, 0.32, 0.90), intensity 0.9, range 5.
+- Crypt blood glow: point (0, -2.7, 20.1), colour (0.95, 0.12, 0.10), intensity 0.9, range 4.
+- Facade moon fill: spot at (0, 9, -18) aimed at (0, 5, 0), angle 80, range 34, colour (0.40, 0.55, 0.88), intensity 1.2; enabled only while the camera is outside the gate (castle-local z < 0.5). The pale moon is behind the castle seen from the quay, so the front face was backlit and black.
+- Fog layers: 8 layers (was 6), alpha 0.26 x (1.4 at the floor to 0.5 at 1.1 m) (was 0.16 x 1.25-0.6), cloud threshold lowered, plane edge falloff 0.32 of the plane (was 0.18) so the hard intersection edge near walls softens. This should show as a veil from the entrance camera without touching the far wall above 1.1 m.
+- Ambient fill for downward faces: `FillGround` (0.010, 0.012, 0.022), was (0.004, 0.004, 0.008). Other fills unchanged.
+
+### Blood
+`Castle_Blood` smoothness 0.95-0.98 (was 0.90-0.98) and emission (0.30, 0.012, 0.020) (was 0.16, 0.004, 0.008), in the texture, `Castle_Blood.mat` and `CastleArt.LiquidEmission`. The liquid material is persisted into the baked scene at Prepare, so `CastleAtmosphere.Upgrade` also pushes the new emission onto existing "Castle surface / Castle_Blood" materials at runtime (no Prepare needed). Specular highlights come from the new crypt lights.
+
+### Giant skeleton skull (tools/castle_props.py::giant_skeleton)
+New ~1.6 m skull: elongated 12-sided cranium, brow ridges, ringed eye sockets with dark recesses, nasal openings, cheek arches, hinged lower jaw hanging open 24 deg, 6+5 teeth per side and two long fangs. The head is yawed 40 deg about the occiput in the mesh (Blender Rz -40 = Unity yaw -40, i.e. snout toward -Z in the asset's local frame; hc/dressing4 asked for ~30; with the stated placement yaw 53.1 the snout goes from ~90 deg off the S1 line of sight to ~50 deg) and moved to y=5.40 to keep the bounds: size 4.106 x 11.90 x 3.385 (was 11.96), min/max unchanged within 0.05 m. Tris 4,890 (budget 15,000). Only `GiantSkeleton.fbx` and its manifest entry changed. If the dressing builder rotates the skeleton again, re-aim by adjusting `Rz(-40)` in the `sc` block.
+
+### Requests for the integrator
+1. Re-bake the castle (ceiling/vault fill is realtime but the new `Castle fill lights` group lives under the layout root; baked window/moon values from round 3 still need the `CastleLightTuning.Tune(root)` call and the bake ambient given in the hc/look3 section).
+2. If any new light must not exist in the baked scene, set `AddFillLights = false`.

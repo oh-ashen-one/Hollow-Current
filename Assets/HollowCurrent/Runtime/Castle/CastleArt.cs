@@ -103,6 +103,8 @@ namespace HollowCurrent
         // not compile on this machine, the plain Standard material from Resources/Castle/Materials is used instead
         // (world-space kinds then tile by mainTextureScale) and one warning is logged.
         public enum SurfaceKind { World, Liquid, Prop }
+        // faint red self-glow so the moving blood reads even where no light reaches it (round 4)
+        public static readonly Color LiquidEmission = new Color(.30f, .012f, .020f);
 
         // Texture repeats per metre of world space (1 / tile size in tools/castle_textures.py).
         static readonly Dictionary<string, float> TilesPerMetre = new Dictionary<string, float>
@@ -152,7 +154,7 @@ namespace HollowCurrent
                     m.SetFloat("_Tile", TilesPerMetre.TryGetValue(name, out var t) ? t : 1f);
                     if (kind == SurfaceKind.Liquid)
                     {
-                        m.SetColor("_EmissionColor", new Color(.16f, .004f, .008f));
+                        m.SetColor("_EmissionColor", LiquidEmission);
                         m.SetVector("_Flow", new Vector4(.020f, .012f, 1.7f, 0f));
                         m.SetFloat("_BumpScale", 1.15f);
                     }
