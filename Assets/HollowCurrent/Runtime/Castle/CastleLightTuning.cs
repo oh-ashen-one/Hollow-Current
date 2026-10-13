@@ -53,8 +53,11 @@ namespace HollowCurrent
         public Vector3 VaultFillPosition = new Vector3(0f, 7.6f, 21f);
         public float VaultFillRange = 12f;
         public Color CryptCandleColor = new Color(1.0f, .66f, .38f);
-        public float CryptCandleIntensity = .65f;     // four warm candle pools on the channel curbs (round 6: -60%, the crypt was evenly orange)
-        public float CryptCandleRange = 4.5f;
+        public float CryptCandleIntensity = 1.1f;     // ONE warm pool on the west curb (r5: four pools at 1.6 = 4.2% near-black and 16% warm; r6: four at 0.65 = 41.9%)
+        public float CryptCandleRange = 5f;
+        public Color CryptColdColor = new Color(.34f, .44f, .80f);
+        public float CryptColdIntensity = .55f;       // cold base so the room reads blue with one warm accent
+        public Vector3 CryptColdPosition = new Vector3(0f, -1.3f, 22.5f);
         public Color CryptRuneColor = new Color(.60f, .32f, .90f);
         public float CryptRuneIntensity = .9f;       // violet rune glow over the sarcophagus
         public Color CryptBloodColor = new Color(.95f, .12f, .10f);
@@ -62,8 +65,8 @@ namespace HollowCurrent
 
         [Header("Warm fills for the dark shots (round 5)")]
         public Color WarmFillColor = new Color(1.0f, .70f, .45f);
-        public float CourtyardFillIntensity = 1.6f;   // two candle pools by the courtyard/gatehouse where S6 stands the Count
-        public float CourtyardFillRange = 8f;
+        public float CourtyardFillIntensity = 2.2f;   // two candle pools by the courtyard/gatehouse where S6 stands the Count
+        public float CourtyardFillRange = 9f;
         public Vector3 CourtyardFillA = new Vector3(-4.6f, 2.0f, 9.5f);
         public Vector3 CourtyardFillB = new Vector3(-1.5f, 2.0f, 12.5f);
         public float BalconyFillIntensity = 1.4f;      // warm rim on the perch above the hall for S5 and the hunt's first frames
@@ -73,18 +76,18 @@ namespace HollowCurrent
 
         [Header("Exterior facade fill (on only while the camera is outside the gate)")]
         public Color FacadeColor = new Color(.40f, .55f, .88f);
-        public float FacadeIntensity = 1.35f;
+        public float FacadeIntensity = .8f;
         public float FacadeRange = 34f;
         public float FacadeAngle = 80f;
         public Vector3 FacadePosition = new Vector3(0f, 9f, -18f);
         public Vector3 FacadeTarget = new Vector3(0f, 5f, 0f);
         public Color KeepColor = new Color(.40f, .55f, .90f);
-        public float KeepIntensity = 1.2f;            // cold moon fill higher up, aimed at the keep and spires
+        public float KeepIntensity = .35f;            // cold moon fill higher up, aimed at the keep and spires
         public float KeepRange = 50f;
         public float KeepAngle = 60f;
         public Vector3 KeepPosition = new Vector3(0f, 18f, -24f);
         public Vector3 KeepTarget = new Vector3(0f, 10f, 4f);
-        public float BridgeFillIntensity = .9f;       // cold pool over the lowered drawbridge planks
+        public float BridgeFillIntensity = .3f;       // cold pool over the lowered drawbridge planks
         public Vector3 BridgeFillPosition = new Vector3(0f, 2.5f, -4.5f);
         public float FacadeMaxCameraZ = .5f;          // castle-local z: the gate wall is at 0
 
@@ -204,9 +207,8 @@ namespace HollowCurrent
             group.SetParent(parent, false);
             Fill(group, "Hall vault fill", VaultFillPosition, VaultFillColor, VaultFillIntensity, VaultFillRange);
             const float cy = -3.2f + .9f;
-            foreach (var x in new[] { -3.45f, 3.45f })
-                foreach (var z in new[] { 19.9f, 25.1f })
-                    Fill(group, "Crypt candle pool", new Vector3(x, cy, z), CryptCandleColor, CryptCandleIntensity, CryptCandleRange);
+            Fill(group, "Crypt candle pool", new Vector3(-3.45f, cy, 19.9f), CryptCandleColor, CryptCandleIntensity, CryptCandleRange);
+            Fill(group, "Crypt cold fill", CryptColdPosition, CryptColdColor, CryptColdIntensity, 8f);
             Fill(group, "Crypt rune glow", new Vector3(0f, -3.2f + 1.7f, 22.5f), CryptRuneColor, CryptRuneIntensity, 5f);
             Fill(group, "Crypt blood glow", new Vector3(0f, -3.2f + .5f, 20.1f), CryptBloodColor, CryptBloodIntensity, 4f);
             Fill(group, "Courtyard candle fill", CourtyardFillA, WarmFillColor, CourtyardFillIntensity, CourtyardFillRange);
