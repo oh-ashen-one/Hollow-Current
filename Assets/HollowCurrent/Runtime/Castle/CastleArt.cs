@@ -80,18 +80,96 @@ namespace HollowCurrent
         // Fallback values (identical to tools/castle_common.py MATERIALS) if Resources/Castle/Materials/<name> is missing.
         static readonly Dictionary<string, Spec> Specs = new Dictionary<string, Spec>
         {
-            { "Castle_Stone", new Spec(new Color(.34f, .35f, .37f), .14f, 0f) },
-            { "Castle_BlackStone", new Spec(new Color(.075f, .075f, .09f), .55f, 0f) },
-            { "Castle_Oak", new Spec(new Color(.17f, .105f, .06f), .22f, 0f) },
-            { "Castle_Brass", new Spec(new Color(.40f, .31f, .14f), .42f, .8f) },
-            { "Castle_Oxblood", new Spec(new Color(.30f, .045f, .055f), .08f, 0f) },
-            { "Castle_Silver", new Spec(new Color(.56f, .57f, .60f), .38f, .85f) },
-            { "Castle_Iron", new Spec(new Color(.13f, .13f, .15f), .30f, .85f) },
-            { "Castle_Bone", new Spec(new Color(.62f, .58f, .48f), .20f, 0f) },
-            { "Castle_Paper", new Spec(new Color(.62f, .55f, .40f), .05f, 0f) },
-            { "Castle_Canvas", new Spec(new Color(.20f, .17f, .14f), .05f, 0f) },
+            { "Castle_Stone", new Spec(new Color(.50f, .52f, .57f), .20f, 0f) },
+            { "Castle_BlackStone", new Spec(new Color(.20f, .20f, .25f), .62f, 0f) },
+            { "Castle_FlagStone", new Spec(new Color(.30f, .32f, .38f), .58f, 0f) },
+            { "Castle_Oak", new Spec(new Color(.30f, .19f, .11f), .28f, 0f) },
+            { "Castle_Brass", new Spec(new Color(.62f, .48f, .22f), .50f, .85f) },
+            { "Castle_Oxblood", new Spec(new Color(.42f, .07f, .09f), .10f, 0f) },
+            { "Castle_Silver", new Spec(new Color(.70f, .71f, .75f), .45f, .90f) },
+            { "Castle_Iron", new Spec(new Color(.22f, .22f, .25f), .35f, .85f) },
+            { "Castle_Bone", new Spec(new Color(.72f, .67f, .56f), .30f, 0f) },
+            { "Castle_Paper", new Spec(new Color(.70f, .62f, .45f), .08f, 0f) },
+            { "Castle_Canvas", new Spec(new Color(.20f, .17f, .14f), .12f, 0f) },
+            { "Castle_Blood", new Spec(new Color(.22f, .012f, .02f), .95f, 0f) },
             { "Castle_Flame", new Spec(new Color(1f, .62f, .22f), 0f, 0f, true) },
         };
+
+        // ---- upgraded surfaces (round 2, hc/look) ---------------------------------------------------------------
+        // CastleWorld builds walls, floors and the moat from scaled cube primitives whose UVs are 0..1 per face, so UV-mapped
+        // textures would smear across 28 m of wall. Surface(World) projects the PBR set in world space instead (tiles per
+        // metre), Surface(Liquid) adds two scrolling normal layers, Surface(Prop) is plain UV mapping for the FBX props.
+        // All three add the global hemispheric fill CastleAtmosphere sets (_CastleFillSky/_CastleFillGround). If a shader did
+        // not compile on this machine, the plain Standard material from Resources/Castle/Materials is used instead
+        // (world-space kinds then tile by mainTextureScale) and one warning is logged.
+        public enum SurfaceKind { World, Liquid, Prop }
+
+        // Texture repeats per metre of world space (1 / tile size in tools/castle_textures.py).
+        static readonly Dictionary<string, float> TilesPerMetre = new Dictionary<string, float>
+        {
+            { "Castle_Stone", .5f }, { "Castle_FlagStone", .5f }, { "Castle_BlackStone", .667f }, { "Castle_Oak", 1f }, { "Castle_Brass", 2f },
+            { "Castle_Silver", 2f }, { "Castle_Iron", 2f }, { "Castle_Oxblood", 1f }, { "Castle_Bone", 1f }, { "Castle_Paper", 2f },
+            { "Castle_Canvas", 2f }, { "Castle_Blood", .5f },
+        };
+        static readonly Dictionary<string, Material> Surfaces = new Dictionary<string, Material>();
+        static readonly Dictionary<string, Shader> ShaderCache = new Dictionary<string, Shader>();
+
+        static Shader LoadShader(string shaderName)
+        {
+            if (ShaderCache.TryGetValue(shaderName, out var cached)) return cached;
+            Shader s = null;
+            try
+            {
+                s = Resources.Load<Shader>("Castle/Shaders/" + shaderName);
+                if (s == null) s = Shader.Find("HollowCurrent/" + shaderName);
+                if (s != null && !s.isSupported) { Warn(shaderName, "shader not supported (compile error?), using Standard fallback"); s = null; }
+            }
+            catch (Exception e) { Warn(shaderName, e.Message); s = null; }
+            if (s == null) Warn(shaderName, "shader unavailable, using Standard fallback");
+            ShaderCache[shaderName] = s;
+            return s;
+        }
+
+        static Texture2D CastleTexture(string name, string suffix) => Resources.Load<Texture2D>("Castle/Textures/" + name + "_" + suffix);
+
+        // Material for castle material `name` (e.g. "Castle_Stone"). `tint` multiplies the albedo (use Color.white for none).
+        // Returns null only if the material is unknown and no fallback exists.
+        public static Material Surface(string name, SurfaceKind kind, Color tint)
+        {
+            string key = name + "|" + kind + "|" + tint.r.ToString("F2") + tint.g.ToString("F2") + tint.b.ToString("F2");
+            if (Surfaces.TryGetValue(key, out var made) && made != null) return made;
+            Material m = null;
+            try
+            {
+                string shaderName = kind == SurfaceKind.World ? "CastleTriplanar" : kind == SurfaceKind.Liquid ? "CastleLiquid" : "CastleLit";
+                var shader = LoadShader(shaderName);
+                var albedo = CastleTexture(name, "albedo"); var normal = CastleTexture(name, "normal"); var mask = CastleTexture(name, "mask");
+                if (shader != null && albedo != null && normal != null && mask != null)
+                {
+                    m = new Material(shader) { name = "Castle surface / " + name + " / " + kind };
+                    m.SetTexture("_MainTex", albedo); m.SetTexture("_BumpMap", normal); m.SetTexture("_MaskTex", mask);
+                    m.SetColor("_Color", tint);
+                    m.SetFloat("_Tile", TilesPerMetre.TryGetValue(name, out var t) ? t : 1f);
+                    if (kind == SurfaceKind.Liquid)
+                    {
+                        m.SetColor("_EmissionColor", new Color(.16f, .004f, .008f));
+                        m.SetVector("_Flow", new Vector4(.020f, .012f, 1.7f, 0f));
+                        m.SetFloat("_BumpScale", 1.15f);
+                    }
+                }
+                else
+                {
+                    var basis = GetMaterial(name);
+                    if (basis == null) return null;
+                    m = new Material(basis) { name = "Castle surface (fallback) / " + name + " / " + kind };
+                    m.color = basis.color * tint;
+                    if (kind != SurfaceKind.Prop && TilesPerMetre.TryGetValue(name, out var t)) m.mainTextureScale = Vector2.one * Mathf.Max(1f, t * 4f);
+                }
+            }
+            catch (Exception e) { Warn(name + " surface", e.Message); m = GetMaterial(name); }
+            if (m != null) Surfaces[key] = m;
+            return m;
+        }
 
         static readonly Dictionary<string, GameObject> Prefabs = new Dictionary<string, GameObject>();
         static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
