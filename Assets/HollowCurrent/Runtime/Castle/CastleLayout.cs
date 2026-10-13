@@ -281,28 +281,47 @@ namespace HollowCurrent
 
         // ---- dressing data (round 2) ---------------------------------------------------------------
         // Great hall: the long table, its chairs and the giant skeleton arching over them at the far end.
-        // Round 3: the skeleton lies diagonally across the far end with its skull front-left (facing the entrance, in the gap
-        // between the west columns at z 21.6 and 24.4); the long table sits in front of its ribs, clear of every bone.
-        // The art's +Y (head) imports as local -Z, so yaw 58 puts the skull at (-4.5, 22.8) and the tail into the back wall.
-        public static readonly Vector3 SkeletonPos = new Vector3(0, 0, 25.4f);
-        public const float SkeletonYaw = 58f;
+        // Round 4: the skeleton lies diagonally across the hall with its skull front-left in the gap between the west columns
+        // (x -3.9, z 18.6 and 21.6: seen from the S1 eye the skull sits between the two columns' screen footprints) and its tail
+        // ending at the back wall. Its head (+Y in the art) imports as local -Z, so yaw 53 puts the snout toward (-0.80, -0.60).
+        // The art is stretched 1.2x vertically (arch 3.4 m) and the long table lies parallel to the spine UNDER the arch: ribs
+        // bow out to |lateral| >= 1.0 m and the table is 1.4 m wide, so no bone touches it (>= 0.3 m clearance, >= 0.2 m above the top).
+        public static readonly Vector3 SkeletonPos = new Vector3(-0.34f, 0.1f, 23.52f);
+        public const float SkeletonYaw = 53.1f;
         public const float SkeletonScale = 1.0f;
-        public static readonly Vector3 TablePos = new Vector3(2.0f, 0, 22.75f);
-        public const float TableCandleZ = 22.75f;
+        public const float SkeletonScaleY = 1.2f;
+        public static readonly Vector3 TablePos = new Vector3(-0.7f, 0, 23.05f);
+        public const float TableYaw = -36.9f;      // table length axis along the spine
+        public const float TableLengthScale = .75f;
+
+        // Camera lines the dressing must stay clear of (round 4): S5 looks from the hall floor up at the Count's perch,
+        // S6 stands in the gatehouse. Nothing that floats may sit within 2 m of the eye-to-subject segment.
+        public static readonly Vector3 S5Eye = new Vector3(-0.41f, 3.62f, 19.37f), S5Subject = new Vector3(-3.5f, 4.4f, 20.7f);
+        public static readonly Vector3 S6Eye = new Vector3(-0.30f, 1.15f, 1.00f), S6Subject = new Vector3(-0.9f, 1.2f, 4.4f);
+        public static bool NearCaptureLine(Vector3 p, float radius)
+        {
+            return SegmentDistance(p, S5Eye, S5Subject) < radius || SegmentDistance(p, S6Eye, S6Subject) < radius;
+        }
+        static float SegmentDistance(Vector3 p, Vector3 a, Vector3 b)
+        {
+            var ab = b - a; float t = Mathf.Clamp01(Vector3.Dot(p - a, ab) / Mathf.Max(1e-4f, ab.sqrMagnitude));
+            return Vector3.Distance(p, a + ab * t);
+        }
 
         // Floating candelabra (centre of the stand) and books; hall-local. Under the galleries (|x| > 3, y < 3.2) nothing hangs.
         public static readonly Vector3[] HallCandelabras =
         {
             new Vector3(-2.3f, 2.7f, 17.2f), new Vector3(2.4f, 3.0f, 17.8f), new Vector3(-1.2f, 4.8f, 16.5f), new Vector3(1.4f, 5.4f, 18.9f),
-            new Vector3(-2.6f, 3.6f, 21.0f), new Vector3(2.5f, 4.4f, 22.1f), new Vector3(-0.4f, 6.0f, 20.5f), new Vector3(-4.7f, 5.3f, 19.6f),
+            new Vector3(-1.8f, 3.3f, 15.8f), new Vector3(2.5f, 4.4f, 22.1f), new Vector3(-0.4f, 6.0f, 20.5f), new Vector3(-4.8f, 6.2f, 17.5f),
             new Vector3(4.6f, 5.4f, 16.8f), new Vector3(-3.9f, 5.8f, 23.4f), new Vector3(3.9f, 5.6f, 24.2f), new Vector3(0.3f, 3.5f, 23.1f),
             new Vector3(2.0f, 6.4f, 24.0f), new Vector3(-2.1f, 6.2f, 25.0f),
         };
+        // Books sit east of the S5 line (hall floor to the Count's perch) and above 2.7 m; none within 2 m of an S5/S6 camera line.
         public static readonly Vector3[] HallBooks =
         {
-            new Vector3(-2.4f, 3.0f, 17.6f), new Vector3(1.8f, 3.4f, 18.4f), new Vector3(-1.0f, 4.2f, 19.4f), new Vector3(2.6f, 3.2f, 20.6f),
-            new Vector3(-2.8f, 4.8f, 21.2f), new Vector3(0.4f, 3.9f, 19.9f), new Vector3(-1.9f, 5.4f, 23.0f), new Vector3(2.3f, 5.0f, 24.0f),
-            new Vector3(-0.4f, 2.7f, 17.0f), new Vector3(3.0f, 4.4f, 22.0f),
+            new Vector3(2.0f, 3.3f, 17.5f), new Vector3(3.0f, 4.3f, 19.2f), new Vector3(1.2f, 5.2f, 21.0f), new Vector3(2.6f, 3.6f, 21.5f),
+            new Vector3(-2.2f, 3.1f, 16.8f), new Vector3(0.3f, 4.6f, 17.6f), new Vector3(-0.5f, 5.6f, 22.4f), new Vector3(3.2f, 5.2f, 23.0f),
+            new Vector3(1.8f, 2.8f, 19.5f), new Vector3(-2.6f, 5.6f, 24.0f),
         };
 
         public readonly struct CastleBannerDef
@@ -373,7 +392,7 @@ namespace HollowCurrent
             // great hall
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
-            new CastleCandleDef(new Vector3(.4f, .95f, TableCandleZ), .8f), new CastleCandleDef(new Vector3(3.6f, .95f, TableCandleZ), .8f),
+            new CastleCandleDef(new Vector3(.1f, .95f, 23.65f), .8f), new CastleCandleDef(new Vector3(-1.5f, .95f, 22.45f), .8f),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall

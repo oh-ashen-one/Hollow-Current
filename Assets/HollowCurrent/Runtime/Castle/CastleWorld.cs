@@ -540,11 +540,15 @@ namespace HollowCurrent
         // Round towers with conical slate spires on the roofs, so the skyline from the far bank has at least five spires above the wall.
         void Keep()
         {
-            Tower("Gate tower W", new Vector3(-9.5f, 6.4f, 2.4f), 1.5f, 5.0f, 6.0f);
-            Tower("Gate tower E", new Vector3(9.5f, 6.4f, 2.4f), 1.5f, 5.0f, 6.0f);
-            Tower("Rear tower W", new Vector3(-10f, 6.4f, 24f), 1.4f, 5.0f, 6.0f);
-            Tower("Keep", new Vector3(0, 9.2f, 22.5f), 2.4f, 7.0f, 8.0f);
-            Tower("Observatory spire", new Vector3(10.5f, 11.6f, 23.5f), 1.3f, 3.0f, 5.0f);
+            // From the S4 eye (0, 2, -6) pitched 18 degrees the gatehouse wall top (y 7.5 at z 0) hides everything below an
+            // elevation of 42 degrees at x = 0. Spires must clear that line, and none may stand on the red/pale moon rays
+            // (azimuth +42 / -34, elevation 42 / 55), so there is no tower on the east wing.
+            Tower("Gate turret W", new Vector3(-4.6f, 5.2f, 4.6f), 1.0f, 3.5f, 7.0f);
+            Tower("Gate turret E", new Vector3(4.6f, 5.2f, 4.6f), 1.0f, 3.5f, 7.0f);
+            Tower("Wing tower W", new Vector3(-10.5f, 6.4f, 2.6f), 1.3f, 5.0f, 7.0f);
+            Tower("Keep", new Vector3(0, 9.2f, 22.5f), 2.4f, 7.0f, 16.0f);
+            Tower("Rear tower W", new Vector3(-10f, 6.4f, 24f), 1.4f, 5.0f, 12.0f);
+            Tower("Observatory spire", new Vector3(10.5f, 11.6f, 23.5f), 1.3f, 3.0f, 11.0f);
         }
         void Tower(string name, Vector3 baseCentre, float radius, float shaft, float spire)
         {
@@ -619,14 +623,12 @@ namespace HollowCurrent
                 foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
                     Prop(Art.ColumnGreat, new Vector3(side * 3.9f, 0, z), 0);
             // The giant skeleton lies diagonally behind the long table; the table is clear of every bone.
-            Prop(Art.LongTable, CastleLayout.TablePos, 0);
+            // the long table lies under the skeleton's arch, parallel to its spine
+            var table = ArtAt(Art.LongTable, CastleLayout.TablePos, CastleLayout.TableYaw);
+            table.localScale = new Vector3(CastleLayout.TableLengthScale, 1, 1);
+            var tableSize = CastleLayout.ArtSize(Art.LongTable);
+            Proxy("LongTable collision", CastleLayout.TablePos + new Vector3(0, tableSize.y * .5f, 0), new Vector3(tableSize.x * CastleLayout.TableLengthScale, tableSize.y, tableSize.z), CastleLayout.TableYaw);
             Prop(Art.Throne, new Vector3(-5.1f, 0, 18.2f), 90);
-            // chairs only where no bone arches over the table: the east end, both sides
-            foreach (float x in new[] { 2.2f, 3.0f })
-            {
-                Prop(Art.HighBackChair, new Vector3(x, 0, CastleLayout.TablePos.z - 1.1f), 0, false);
-                Prop(Art.HighBackChair, new Vector3(x, 0, CastleLayout.TablePos.z + 1.1f), 180, false);
-            }
             runeAnchor = new GameObject("RuneRing anchor").transform; runeAnchor.SetParent(root, false); runeAnchor.localPosition = RuneLocal;
             Hide("Hall armoire", new Vector3(5.7f, 0, 21.0f), 90);
             HallDressing();
@@ -637,16 +639,18 @@ namespace HollowCurrent
         void HallDressing()
         {
             var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
-            skeleton.localScale = Vector3.one * CastleLayout.SkeletonScale;
+            skeleton.localScale = new Vector3(CastleLayout.SkeletonScale, CastleLayout.SkeletonScaleY, CastleLayout.SkeletonScale);
             foreach (var b in CastleLayout.HallBanners) ArtAt(Art.Banner, b.Pos, b.Yaw);
             int seed = 100;
             foreach (var p in CastleLayout.HallCandelabras)
             {
+                if (CastleLayout.NearCaptureLine(p, 2f)) continue;   // keep the S5/S6 camera lines clear
                 var f = SurrealProps.MakeFloater(root, p, FloaterKind.Candelabra, seed++, 0);
                 f.transform.localScale = Vector3.one * 1.6f;
             }
             for (int i = 0; i < CastleLayout.HallBooks.Length; i++)
             {
+                if (CastleLayout.NearCaptureLine(CastleLayout.HallBooks[i], 2f)) continue;
                 var book = ArtAt(Art.FloatingBook, CastleLayout.HallBooks[i], 0);
                 book.localScale = Vector3.one * 2.2f;
                 // pages tipped up toward the entrance so the open book reads from the aisle
@@ -671,7 +675,8 @@ namespace HollowCurrent
                 }
             }
             Pair(CastleLayout.RoseWindowEye, new Vector3(0, 7.1f, 28f), Vector3.right, .62f, 1.9f, 55f);
-            foreach (float z in new[] { 3.5f, 9.5f }) Pair(CastleLayout.ChapelEye, new Vector3(14f, 3.4f, z), Vector3.forward, .3f, 1.4f, 45f);
+            // Chapel windows: no sprites (round 4). The real sky shows through them, and the only window pane in the chapel is
+            // CastleAtmosphere's painted-over sun window.
         }
 
         void DiningHall()
