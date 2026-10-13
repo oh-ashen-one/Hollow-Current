@@ -48,3 +48,25 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4i — Count Claude round 9, look only (branch `hc/count9`, Opus 5.5)
+
+Commit: see `git log hc/count9`. `check_source.py` PASS; Unity not launched; no paid jobs.
+
+- **Red mass and red outline (root cause):** the outline was `CastleGore`'s red translucency rim on the body. Unity's submesh
+  order did not follow Blender's material slots, so Presence's index-based swap put `Gore(Membrane/Flesh)` on the body and left the
+  wings plain (r8 S6: brown wings, red-rimmed body). That also replaced the material carrying the ember emission. Fix:
+  `CountClaudeImport` creates `CountClaude.mat` (body, with emission), `CountClaudeMembrane.mat` and `CountClaudeFlesh.mat`, and
+  maps each submesh by triangle count from the receipt (body 25,823, membrane 19,344, flesh 1,139). Presence chooses the Gore
+  kind by material name. The albedo itself bakes at 13.3% grey-white and 2.8% red-dominant (unchanged).
+- **Embers:** dilated 4 texels (767), `_EmissionColor` ×6. Blender render: 105 ember px at 3 m, 18 at 8 m (2560×1440, vFOV 66).
+- **Teeth:** an ivory and gum needle strip along both edges of the jaw slit (661 texels); visible at 3 m.
+- **Throat tan patch:** downward faces no reference view sees (62,649 texels, mostly the throat, under the jaw and sleeves) were
+  filled with neighbouring skin colour; they are now dark shadow.
+
+## Integrator steps
+1. Merge; run `CountClaudeImport.Prepare`. Expect three `HC_CHARACTER_SUBMESH i tris=… -> CountClaude …` lines mapping each part
+   to its own material. Commit `Resources/Characters/CountClaude*` (two new `.mat`).
+2. In the castle, `HC_COUNT_GORE applied CountClaude/…` should list Castle gore materials only on the membrane and flesh names.
