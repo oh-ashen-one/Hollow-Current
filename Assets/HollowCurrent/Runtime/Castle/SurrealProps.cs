@@ -179,5 +179,46 @@ namespace HollowCurrent
             ring.runeSize=Mathf.Clamp(radius*.075f,.25f,.6f);
             return ring;
         }
+
+        // ---- portrait eyes ----
+        // A framed portrait whose painted eyes follow `target` (null = camera). The
+        // portrait faces along the returned transform's +Z (out of the wall); place
+        // its position at the picture centre. Size is the canvas in metres.
+        public static PortraitEyes MakePortraitEyes(Transform parent,Vector3 localPosition,Quaternion localRotation,float width=.9f,float height=1.3f,Transform target=null)
+        {
+            var t=NewChild("Watching portrait",parent,localPosition,localRotation);
+            var eyes=t.gameObject.AddComponent<PortraitEyes>();
+            var frame=NewRenderer("Frame",t,Vector3.zero,Quaternion.identity,FrameMesh,new[]{FrameMaterial},true);
+            frame.transform.localScale=new Vector3(width,height,1);
+            var back=Quaternion.Euler(0,180,0); // quads show their front on -Z; turn it to face +Z
+            var canvas=NewRenderer("Canvas",t,Vector3.zero,back,CentreQuad,new[]{PortraitMaterial},false);
+            canvas.transform.localScale=new Vector3(width,height,1);
+            var pupils=new Transform[2];
+            float size=width*.045f;
+            for(int i=0;i<2;i++)
+            {
+                float side=i==0?-1:1;
+                var p=NewRenderer("Pupil",t,new Vector3(side*PortraitEyeU*width,(PortraitEyeV-.5f)*height,.004f),back,CentreQuad,new[]{PupilMaterial},false);
+                p.transform.localScale=new Vector3(size,size,1);
+                pupils[i]=p.transform;
+            }
+            eyes.pupils=pupils;eyes.target=target;
+            eyes.maxOffset=width*.018f;
+            return eyes;
+        }
+
+        // ---- stair loop ----
+        // A trigger volume of `size` metres centred on localPosition (its floor
+        // sits size.y/2 below). Armed is false until the game arms it. It lives on
+        // layer 2 (Ignore Raycast) so interaction rays never hit it.
+        public static StairLoop MakeStairLoop(Transform parent,Vector3 localPosition,Vector3 size,Transform destination,bool armed=false,Quaternion? localRotation=null)
+        {
+            var t=NewChild("Stair loop",parent,localPosition,localRotation??Quaternion.identity);
+            t.gameObject.layer=2;
+            var box=t.gameObject.AddComponent<BoxCollider>();box.size=size;box.isTrigger=true;
+            var loop=t.gameObject.AddComponent<StairLoop>();
+            loop.destination=destination;loop.Armed=armed;
+            return loop;
+        }
     }
 }

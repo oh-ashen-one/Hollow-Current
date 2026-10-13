@@ -15,7 +15,7 @@ namespace HollowCurrent
         }
         static void ResetMoreAssets()
         {
-            runeAtlas=null;runeGlyphMeshes=null;
+            runeAtlas=null;runeGlyphMeshes=null;portraitTexture=null;pupilTexture=null;frameMesh=null;frameMaterial=null;portraitMaterial=null;pupilMaterial=null;
         }
 
         // Small flat-shaded mesh builder (build-time only; allocation is fine here).
@@ -212,5 +212,60 @@ namespace HollowCurrent
             mesh.RecalculateBounds();
             return runeGlyphMeshes[glyph]=mesh;
         }
+
+        // ---- portrait: frame, painting and pupils ----
+        static Texture2D portraitTexture,pupilTexture;
+        static Mesh frameMesh;
+        static Material frameMaterial,portraitMaterial,pupilMaterial;
+        // Painted eye positions in portrait UV space (also used to place pupils).
+        public const float PortraitEyeV=.64f,PortraitEyeU=.1f; // eyes at 0.5 +- PortraitEyeU horizontally
+        static Texture2D PortraitTexture=>portraitTexture?portraitTexture:portraitTexture=MakeTexture("Surreal portrait",128,192,(u,v)=>
+        {
+            float vignette=Mathf.Clamp01(1.25f-2.2f*((u-.5f)*(u-.5f)+(v-.55f)*(v-.55f)));
+            float noise=Mathf.PerlinNoise(u*9,v*9)*.25f;
+            var colour=Color.Lerp(new Color(.05f,.02f,.03f),new Color(.2f,.07f,.06f),vignette*(.7f+noise));
+            // Shoulders and coat.
+            float coat=Smooth(.42f,.3f,v)*Smooth(.62f,.5f,Mathf.Abs(u-.5f)+(.34f-v)*.3f);
+            colour=Color.Lerp(colour,new Color(.03f,.03f,.04f),coat);
+            // Hair, then the pale face.
+            float hair=Smooth(1f,.8f,Mathf.Sqrt(Mathf.Pow((u-.5f)/.25f,2)+Mathf.Pow((v-.66f)/.3f,2)));
+            colour=Color.Lerp(colour,new Color(.02f,.02f,.025f),hair*.95f);
+            float face=Smooth(1f,.92f,Mathf.Sqrt(Mathf.Pow((u-.5f)/.19f,2)+Mathf.Pow((v-.58f)/.25f,2)));
+            var skin=Color.Lerp(new Color(.36f,.34f,.31f),new Color(.58f,.55f,.5f),Mathf.Clamp01(1.1f-Mathf.Abs(u-.5f)*5f))*(.8f+noise*.5f);
+            colour=Color.Lerp(colour,skin,face);
+            foreach(float side in new[]{-1f,1f})
+            {
+                float dx=(u-(.5f+side*PortraitEyeU))/.065f,dy=(v-PortraitEyeV)/.04f;
+                float r=Mathf.Sqrt(dx*dx+dy*dy);
+                colour=Color.Lerp(colour,new Color(.08f,.05f,.05f),Smooth(1.45f,1.05f,r)*face);      // socket
+                colour=Color.Lerp(colour,new Color(.78f,.74f,.62f),Smooth(1f,.8f,r)*face);           // eye white
+            }
+            colour=Color.Lerp(colour,new Color(.1f,.04f,.04f),Smooth(.012f,.004f,Mathf.Abs(v-.43f))*Smooth(.07f,.04f,Mathf.Abs(u-.5f))*face); // mouth
+            colour.a=1;return colour;
+        });
+        static Texture2D PupilTexture=>pupilTexture?pupilTexture:pupilTexture=MakeTexture("Surreal pupil",32,32,(u,v)=>
+        {
+            float r=Mathf.Sqrt((u-.5f)*(u-.5f)+(v-.5f)*(v-.5f))*2;
+            return new Color(1,1,1,Smooth(1f,.8f,r));
+        });
+        static Mesh FrameMesh
+        {
+            get
+            {
+                if(frameMesh)return frameMesh;
+                // Unit-size frame: four bars around a 1 x 1 opening, 0.05 deep, behind z = 0.
+                var b=new MeshBuilder(1);
+                const float bar=.07f,depth=.05f;
+                b.Box(new Vector3(0,.5f+bar*.5f,-depth*.5f),new Vector3(1+bar*2,bar,depth),Quaternion.identity,0);
+                b.Box(new Vector3(0,-.5f-bar*.5f,-depth*.5f),new Vector3(1+bar*2,bar,depth),Quaternion.identity,0);
+                b.Box(new Vector3(.5f+bar*.5f,0,-depth*.5f),new Vector3(bar,1,depth),Quaternion.identity,0);
+                b.Box(new Vector3(-.5f-bar*.5f,0,-depth*.5f),new Vector3(bar,1,depth),Quaternion.identity,0);
+                return frameMesh=b.Build("Surreal portrait frame");
+            }
+        }
+        static Material FrameMaterial=>frameMaterial?frameMaterial:frameMaterial=Lit("Portrait frame",new Color(.22f,.15f,.07f),.5f,.35f);
+        static Material PortraitMaterial=>portraitMaterial?portraitMaterial:portraitMaterial=NewPortraitMaterial();
+        static Material NewPortraitMaterial(){var m=Lit("Portrait painting",Color.white,0,.15f);m.mainTexture=PortraitTexture;return m;}
+        static Material PupilMaterial=>pupilMaterial?pupilMaterial:pupilMaterial=Unlit("Portrait pupil",PupilTexture,new Color(.02f,.01f,.01f,1));
     }
 }
