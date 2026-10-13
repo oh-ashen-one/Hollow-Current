@@ -24,3 +24,4 @@ docs/haunted-castle/refs/*.png
 docs/haunted-castle/refs/*.err
 .wt/
 /.*.log
+docs/haunted-castle/rounds/*/captures/

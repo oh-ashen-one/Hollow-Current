@@ -62,6 +62,8 @@ namespace HollowCurrent
             fakeRush=false;agent.enabled=false;transform.position=point;transform.rotation=Quaternion.Euler(0,yaw,0);
             silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeSearch);presentationRemaining=seconds;Appearances++;Game.Sound.Cue("apparition",point+Vector3.up,.85f);return true;
         }
+        // End a staged appearance immediately (capture tooling, scripted beats).
+        public void Dismiss(){presentationRemaining=0;fakeRush=false;if(silhouette)silhouette.gameObject.SetActive(false);}
         public void FacePlayer()
         {
             var delta=Game.Player.transform.position-transform.position;delta.y=0;
