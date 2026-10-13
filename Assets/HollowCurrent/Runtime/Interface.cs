@@ -120,7 +120,7 @@ namespace HollowCurrent
             if(Game.Case.Terminal)
             {
                 if(Game.Case.Phase==Phase.Dead&&Game.Creature.PresentationRemaining>0)
-                {float fade=1-Game.Creature.PresentationRemaining/2.8f;Panel(new Rect(0,0,1600,900),new Color(.005f,.008f,.01f,Mathf.Pow(fade,3)));return;}
+                {float fade=1-Game.Creature.PresentationRemaining/Game.Creature.Profile.CapturePresentationSeconds;Panel(new Rect(0,0,1600,900),new Color(.005f,.008f,.01f,Mathf.Pow(fade,3)));return;}
                 Ending();return;
             }
             if(Game.NoteBody!=null){Note();return;}

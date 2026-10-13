@@ -7,12 +7,16 @@ namespace HollowCurrent
         public Transform Head,LeftFoot;
         public int BoneCount;
         public int AnimatedFrames {get;private set;}
-        public readonly int[] ModeFrames=new int[4];
+        // Modes 0-3 (Split Grin), 4 Stagger and 5 Death (Count Claude).
+        public readonly int[] ModeFrames=new int[6];
         Quaternion previousFoot;
         int mode;
         public void Pose(int value,float speed=0,bool unscaled=false)
         {
-            mode=value;Animator.updateMode=unscaled?AnimatorUpdateMode.UnscaledTime:AnimatorUpdateMode.Normal;
+            mode=value;
+            // Placeholder actors have an Animator without a controller.
+            if(!Animator||!Animator.runtimeAnimatorController)return;
+            Animator.updateMode=unscaled?AnimatorUpdateMode.UnscaledTime:AnimatorUpdateMode.Normal;
             Animator.SetInteger("Mode",value);Animator.SetFloat("LocomotionRate",Mathf.Clamp(speed/2.05f,.35f,2.5f));
         }
         void LateUpdate()
