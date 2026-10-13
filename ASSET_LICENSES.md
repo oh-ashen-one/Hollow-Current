@@ -16,9 +16,26 @@ Except for the Higgsfield recordings and third-party software described below, t
 
 ## Higgsfield recordings: separate asset permission
 
-`Assets/HollowCurrent/Resources/HiggsfieldAudio/` contains ten original generated music/SFX recordings. These recordings are **not covered by the code's MIT license or the CC BY grant above**. The owner permits copying, modification, redistribution and commercial use of these recordings in games and other creative works, with credit to “Hollow Current by Ashen — audio generated with Higgsfield”. Do not use them to train, fine-tune, distill or improve AI/ML models. Preserve this notice with redistributions.
+`Assets/HollowCurrent/Resources/HiggsfieldAudio/` contains ten original generated music/SFX recordings (plus the ten Castle clips listed below). These recordings are **not covered by the code's MIT license or the CC BY grant above**. The owner permits copying, modification, redistribution and commercial use of these recordings in games and other creative works, with credit to “Hollow Current by Ashen — audio generated with Higgsfield”. Do not use them to train, fine-tune, distill or improve AI/ML models. Preserve this notice with redistributions.
 
 [Higgsfield Terms §4.4](https://higgsfield.ai/terms-of-use-agreement) state that Higgsfield does not claim output ownership or restrict commercial use; §§5.1/5.2 restrict using outputs for AI training. [Provider ownership guidance](https://higgsfield.ai/creator-hub/help-center/account/who-owns-my-generations-and-can-i-use-them-commercially) describes surviving and transferable/sublicensable output rights. This limited asset grant deliberately does not promise unrestricted AI-training rights. The source code remains open source; the media set has these separate terms.
+
+### Haunted Castle audio (`Assets/HollowCurrent/Resources/CastleAudio/`, added 2026-10-13)
+
+The ten clips below are Higgsfield Seed Audio 1.0 outputs under the same grant and restrictions as the recordings above (credit “Hollow Current by Ashen — audio generated with Higgsfield”; no AI/ML training use). Job ids and prompts are in `docs/haunted-castle/ASSET_LOG.md`.
+
+- `CastleAudio/wing_beats_loop.wav` — Higgsfield Seed Audio 1.0, job `5c335f14-8353-48e1-bef6-a7a8874a7fea`.
+- `CastleAudio/dive_whoosh.wav` — Higgsfield Seed Audio 1.0, job `2e0c964c-1f40-41f9-a06c-464fa4d4abfa`.
+- `CastleAudio/wing_wrap_grab.wav` — Higgsfield Seed Audio 1.0, job `b55a2327-30b2-4364-abfa-7384879441c8`.
+- `CastleAudio/stagger_screech.wav` — Higgsfield Seed Audio 1.0, job `0f15dd9d-c71a-4d06-b6c5-7f3a3c052412`.
+- `CastleAudio/death_wail_sunrise.wav` — Higgsfield Seed Audio 1.0, job `9e1b3219-518f-4d3a-b664-9aa67d6e480f`.
+- `CastleAudio/chapel_bell_toll.wav` — Higgsfield Seed Audio 1.0, job `3d81d29f-99c7-4995-b2ce-25fa6eeb633b`.
+- `CastleAudio/forge_hold_hum.wav` — Higgsfield Seed Audio 1.0, job `90a0534b-effd-4708-b482-eec3af3d4f4d`.
+- `CastleAudio/drawbridge_chains.wav` — Higgsfield Seed Audio 1.0, job `f34e4f5f-d38e-4b13-9525-488797b38c0a`.
+- `CastleAudio/candle_whisper_bed.wav` — Higgsfield Seed Audio 1.0, job `dcf0e64b-4be5-4d44-b2b1-6d347313f949`.
+- `CastleAudio/crypt_blood_trickle.wav` — Higgsfield Seed Audio 1.0, job `8ebb04d9-a782-4810-a797-2002f8ef3867`.
+
+`CastleAudio/orrery_tick.wav` is synthesised locally by `tools/audio_orrery_tick.py` (project CC BY 4.0 grant). `CastleAudio/voice_cc_*.wav` are eSpeak NG recordings of original lines (same basis as `Resources/Audio/voice_*.wav`), reproducible with `python3 tools/generate_open_voice.py --castle`.
 
 ## Excluded or independently obtained material
 
