@@ -14,6 +14,10 @@ namespace HollowCurrent
     public sealed class CaptureMode : MonoBehaviour
     {
         public const int Width=2560,Height=1440;
+        // S4 eye: on the lowered drawbridge (hinge z -0.45, leaf to z -6.45), 2.0 m above
+        // the planks, facing the gate (+z). Sprite moons for S4 can be placed on rays from here.
+        public static readonly Vector3 S4Eye=new Vector3(0,2.0f,-6.0f);
+        public const float S4Pitch=12,S4Fov=90;
         public static string Directory {get;private set;}
         public static bool Requested
         {
@@ -100,29 +104,25 @@ namespace HollowCurrent
             // S3: crypt from the stair foot looking at the sarcophagus.
             e=new Vector3(-5.2f,-3.2f+1.64f,25.0f);t=new Vector3(0,-2.6f,22.5f);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S3_crypt","refs/crypt.png",e,t);
-            // S4: from the far bank, back at the gatehouse and towers across the lowered
-            // drawbridge. The eye walks back from the bank edge until both moons are in
-            // frame and unobstructed by the walls (raycast along each moon direction).
+            // S4: standing ON the lowered drawbridge near its far end (2.0 m eye), looking back
+            // at the gate: planks fill the lower frame, gate and keep in the middle. Vertical
+            // FOV widened to 90 for this shot only. Each moon is logged as visible/occluded
+            // (ray from this eye along the skybox moon direction).
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(true);
             Physics.SyncTransforms();
-            string s4="fallback";
-            e=new Vector3(0,1.64f,-40);t=e+Quaternion.Euler(-10,4,0)*Vector3.forward*50;
-            for(float z=-6.5f;z>=-70&&s4=="fallback";z-=1.5f)foreach(float pitch in new[]{0f,3f,6f,9f,12f})
+            float fov=game.Player.View.fieldOfView;game.Player.View.fieldOfView=S4Fov;
+            e=S4Eye;t=e+Quaternion.Euler(-S4Pitch,0,0)*Vector3.forward*20;Place(e,t);
+            string moons="";
+            foreach(var pair in new[]{("pale",CastleArt.PaleMoonDirection),("red",CastleArt.RedMoonDirection)})
             {
-                var eye=new Vector3(0,1.64f,z);var aim=eye+Quaternion.Euler(-pitch,4,0)*Vector3.forward*50;Place(eye,aim);
-                var cam=game.Player.View;bool ok=true;
-                foreach(var dir in new[]{CastleArt.PaleMoonDirection,CastleArt.RedMoonDirection})
-                {
-                    var vp=cam.WorldToViewportPoint(eye+dir*500);
-                    if(vp.z<0||vp.x<.06f||vp.x>.94f||vp.y<.06f||vp.y>.94f||Physics.Raycast(eye,dir,600,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))ok=false;
-                }
-                // The gate and the lowered bridge's far end must sit in the lower half.
-                var gate=cam.WorldToViewportPoint(new Vector3(0,1,0));if(gate.z<0||gate.y<.15f||gate.y>.5f)ok=false;
-                var bridgeEnd=cam.WorldToViewportPoint(new Vector3(0,0,-6));if(bridgeEnd.z<0||bridgeEnd.y<.02f)ok=false;
-                if(ok){e=eye;t=aim;s4="z="+z.ToString("F1")+" pitch="+pitch;break;}
+                var vp=game.Player.View.WorldToViewportPoint(e+pair.Item2*500);
+                bool inFrame=vp.z>0&&vp.x>0&&vp.x<1&&vp.y>0&&vp.y<1;
+                bool blocked=Physics.Raycast(e,pair.Item2,600,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
+                moons+=" "+pair.Item1+"_moon inFrame="+inFrame+" occluded="+blocked;
             }
-            Place(e,t);Log("S4 search "+s4);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"drawbridge lowered (Snap); moon-clear search "+s4);
+            Log("S4"+moons);
+            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"on the lowered drawbridge, eye "+V(S4Eye)+", pitch "+S4Pitch+", vertical FOV "+S4Fov+";"+moons);
+            game.Player.View.fieldOfView=fov;
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5: great hall floor looking up at the balcony; Count Claude staged on balcony
             // perch 0 in Mode 0 (Presence.StageForCapture, hc/count2), framed by
