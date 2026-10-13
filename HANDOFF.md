@@ -48,3 +48,29 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Round 3 (hc/dressing3, merged with haunted-castle incl. hc/look3)
+
+Not seen in an engine; `check_source.py` PASS. Every claim below is by construction, not by capture.
+
+## Fixes
+1. **Flames were white cards because the sprite shader was not in the player build.** `Shader.Find("Sprites/Default")` returns null there (Always Included Shaders holds only Standard), so every `SurrealProps.Unlit` material fell back to opaque Standard. This also whitened the window moons, the chapel window quads and the rune sprites. New `Resources/Castle/Shaders/CastleSprite.shader` (alpha blend) and `CastleFlame.shader` (additive, premultiplied), both unlit, loaded via `Resources.Load`. `Unlit` uses the first; flames and halos use `UnlitAdditive`. Flame is a 0.075 x 0.15 m teardrop on candelabras (x1.6 floater scale = 0.12 x 0.24), 0.11 x 0.22 on chapel candles, 0.17 x 0.34 on the hero candle, each with a soft additive halo billboard (`CandleFlame.glow`), no lights. Lean: `Floater.bendRange` 14 m, `maxBendDegrees` 55, so about 33 degrees at 6 m (was 19). `SetFlameTarget` is still driven by CastleRun/CaptureMode.
+2. **Chapel candles:** 44 floating candles, 33 lit (flame + halo billboards), 11 dark, 1 hero (scale 1.5, brightest). Point-light count unchanged (zero lights added anywhere in this round).
+3. **Great hall:** skeleton scale 1.0, yaw 58, centre (0,0,25.4): it lies diagonally with the skull front-left at about (-4.4,22.8) in the gap between the west columns (z 21.6 / 24.4), tail into the back wall. The art's head (+Y) imports as local -Z (seen in r2 S1: the long thin tail was at screen left, the head at right with yaw -90). The table moved to (2.0,0,22.75), clear of every rib (rib tips reach z about 23.6), chairs only at its east end, the rune ring moved 1 m toward the entrance (centre z 18.5, far edge 22.17). Books: 10, x 2.2 scale, all inside the S1 frustum (z 17-24, y 2.7-5.4). Candelabras 14 as before. Throne unchanged (-5.1,0,18.2).
+4. **Sun window:** my quad was the 60,322 px white slab (same size as the 1.9 x 3.2 m quad at 5.5 m). Removed it; CastleAtmosphere's own pane (Castle_SunWindow material, blue rim) stays as the only window.
+5. **Blood:** trench strips and the four moat boxes now take `CastleArt.Surface("Castle_Blood", Liquid)` directly; the Standard fallback `bloodpool` is red (0.36,0.02,0.03), smoothness 0.55 (0.9 reflected the blue sky, which made the channel blue-grey).
+6. **S4 keep:** 5 round towers with conical slate spires (gate towers W/E apex y 17.4, rear W 17.4, keep 24.2, observatory 19.6), primitives with the stone/blackstone materials. Drawbridge: `BuildGate` now measures the leaf art's mesh centre in hinge space and turns it 180 about the hinge if it sits on the +Z (gatehouse) side, which would explain "no drawbridge" from the far bank; `DrawbridgeChains` art is placed (same fix) and shown only while the bridge is down (`ChainVisibility`). I did not touch the camera or the moon clipping: the S4 eye is chosen by CaptureMode (not mine), and from the lowered-bridge eye the 55/42 degree moons clear the walls by geometry (rays rise 55/42 degrees from a 2 m eye).
+7. **Fog card in H01-H03:** not one of my props. In H01 the blob is a soft blue-white pool on the floor in front of the camera, which is the investigator torch cone through the new fog: `Torch(true)` is switched on only for the hunt and S5/S6 captures, S1 (same hall, same props, no torch) has none. My billboards (bats, flames, moons) are all small or far. Nothing removed.
+
+## look3 merge and the window moons
+hc/look3 raised the sky moons to 55 / 42 degrees. The rose window is at about 22 degrees from the S1 eye and the chapel east windows top out near 25 degrees from the S2 eye, so the real moons cannot be framed by those windows; the six sprites stay, aimed along the rays from the capture eyes through each opening (independent of the sky vectors). New `WindowMoon` hides each sprite while the viewer is outside the castle footprint, so S4 shows only the two real moons.
+
+## Counts (round 3 total)
+Hall: 1 skeleton, 6 banners, 14 candelabras (70 flame billboards + halos), 10 books. Chapel: 44 candles (33 lit), 4 fallen pews, font, brazier (flame + halo), 6 moon sprites shared with the hall. Crypt: unchanged (30 roots, 13 niches, 36 glow runes, trench). Exterior: 5 towers/spires, drawbridge chains.
+
+## Needs the integrator
+- New files need Unity import (metas written with random guids): `Resources/Castle/Shaders/CastleSprite.shader`, `CastleFlame.shader`, `Runtime/Castle/WindowMoon.cs`, `ChainVisibility.cs`.
+- Re-bake the castle (geometry moved: table, ring, skeleton, towers).
+- If the drawbridge leaf logged as flipped is wrong in play, set `CastleArt.ImportYaw` instead; the chains and the leaf then both need no fix.
