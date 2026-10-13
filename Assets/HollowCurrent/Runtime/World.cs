@@ -491,10 +491,25 @@ namespace HollowCurrent
         }
         void Hide(string name,Vector3 p,float yaw)
         {
-            Box(name+" back",p+new Vector3(0,1,.35f),new Vector3(1.15f,2,.1f),"wood");
-            foreach(int s in new[]{-1,1})Box(name+" side",p+new Vector3(s*.56f,1,0),new Vector3(.08f,2,.8f),"wood");
-            var h=Interact(name,p+new Vector3(0,1,-.43f),new Vector3(1.1f,2,.08f),"wood",InteractKind.Hide,name,"");
-            HidingPlaces.Add(h);h.HidePoint=p+new Vector3(0,0,0);h.ExitPoint=p+new Vector3(0,0,-1.2f);
+            var rotation=Quaternion.Euler(0,yaw,0);
+            GameObject Panel(string part,Vector3 offset,Vector3 size)
+            {
+                var g=Box(name+" / "+part,p+rotation*offset,size,"wood");g.transform.rotation=rotation;return g;
+            }
+            Panel("back",new Vector3(0,1,.35f),new Vector3(1.15f,2,.1f));
+            foreach(int side in new[]{-1,1})Panel("side",new Vector3(side*.56f,1,0),new Vector3(.08f,2,.8f));
+            Panel("top",new Vector3(0,2,0),new Vector3(1.15f,.08f,.8f));
+            // A real slatted opening, not a transparent wall: the center eye
+            // ray leaves through a 6 cm gap, while the door blocks most of view.
+            Panel("lower door",new Vector3(0,.70f,-.43f),new Vector3(1.1f,1.40f,.08f));
+            Panel("upper door",new Vector3(0,1.95f,-.43f),new Vector3(1.1f,.10f,.08f));
+            foreach(int side in new[]{-1,1})Panel("vent stile",new Vector3(side*.445f,1.65f,-.43f),new Vector3(.21f,.50f,.08f));
+            foreach(float y in new[]{1.43f,1.53f,1.61f,1.71f,1.81f,1.89f})
+                Panel("vent louvre",new Vector3(0,y,-.43f),new Vector3(.68f,.025f,.055f));
+            var h=Interact(name,p+rotation*new Vector3(0,1,-.43f),new Vector3(1.1f,2,.08f),"wood",InteractKind.Hide,name,"");
+            h.transform.rotation=rotation;h.GetComponent<Renderer>().enabled=false;
+            h.GetComponent<Collider>().isTrigger=true; // Focus target, never an opaque wall across the slits.
+            HidingPlaces.Add(h);h.HidePoint=p;h.ExitPoint=p+rotation*new Vector3(0,0,-1.2f);
         }
         void DoorAt(string name,Vector3 p,float yaw)
         {

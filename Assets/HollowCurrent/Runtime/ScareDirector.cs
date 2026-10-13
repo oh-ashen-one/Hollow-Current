@@ -3,13 +3,14 @@ using UnityEngine;
 using UnityEngine.AI;
 namespace HollowCurrent
 {
-    // Every subtitle follows an actual effect. This director chooses presentation;
+    // Sparse appearances punctuate long stretches of unresolved tension;
     // pursuit still uses Presence's sight/sound memory and the investigation rules.
     public sealed class ScareDirector : MonoBehaviour
     {
         Game game;
-        float next=12,activity,blackout,age,warningDelay;
-        Vector3 warningOrigin;
+        float next=24,activity,blackout,age;
+        readonly ScareRhythm rhythm=new ScareRhythm();
+        Phase previousPhase;
         bool basement;
         readonly List<Transform> props=new List<Transform>();
         ParticleSystem mist;
@@ -35,7 +36,7 @@ namespace HollowCurrent
             var gradient=new Gradient();gradient.SetKeys(new[]{new GradientColorKey(Color.white,0),new GradientColorKey(Color.white,1)},new[]{new GradientAlphaKey(0,0),new GradientAlphaKey(.7f,.2f),new GradientAlphaKey(0,1)});color.color=gradient;
             mistMaterial=new Material(Resources.Load<Shader>("ManifestMist"));mist.GetComponent<ParticleSystemRenderer>().sharedMaterial=mistMaterial;
         }
-        public void RetryGrace(){next=12;basement=game.Player.transform.position.y< -1;}
+        public void RetryGrace(){next=25;rhythm.Rest(55);basement=game.Player.transform.position.y< -1;}
         public void Pulse(Vector3 point,float seconds=5)
         {
             activity=Mathf.Max(activity,seconds);blackout=Mathf.Max(blackout,1.8f);
@@ -47,42 +48,54 @@ namespace HollowCurrent
         {
             if(!game||game.Modal)return;
             float dt=Time.deltaTime;age+=dt;activity=Mathf.Max(0,activity-dt);blackout=Mathf.Max(0,blackout-dt);
-            if(warningDelay>0)
-            {
-                warningDelay-=dt;
-                if(warningDelay<=0&&game.Case.Phase==Phase.Disturbance){game.Creature.SetHuntOrigin(warningOrigin);game.Case.BeginWarning();}
-            }
             if(!game.Case.Equipped||game.Case.Phase==Phase.Briefing||game.Case.Phase==Phase.Return)return;
-            if(!basement&&game.Player.transform.position.y< -2.5f)
+            rhythm.Tick(dt);
+            if(previousPhase!=game.Case.Phase)
             {
-                if(Trigger(true)){basement=true;BasementFlashes++;next=10;}
+                previousPhase=game.Case.Phase;
+                if(previousPhase==Phase.Warning||previousPhase==Phase.Hunt)rhythm.Rest(90);
+                if(previousPhase==Phase.Recovery){rhythm.Rest(65);next=30;}
+            }
+            if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment)return;
+            // Reserve the approach to a natural hunt for dread, not a competing
+            // loud apparition. The nine-second hunt warning remains intact.
+            bool approachingHunt=game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55;
+            if(!basement&&game.Player.transform.position.y< -2.5f&&!approachingHunt&&rhythm.CanSurprise)
+            {
+                if(Trigger(true)){basement=true;BasementFlashes++;}
                 return;
             }
-            if(game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||(game.Case.Phase==Phase.Containment&&game.Case.SealProgress>.02f))return;
             next-=dt;if(next>0)return;
-            Trigger(false);next=Random.Range(12f,21f);
+            if(!approachingHunt&&rhythm.AppearanceDue)Trigger();else Dread();
+            next=Random.Range(22f,38f);
+        }
+        public void Dread()
+        {
+            if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Recovery)return;
+            var point=game.Player.transform.position-game.Player.transform.forward*3+game.Player.transform.right*2;
+            // These hints end without a sting, rush, blackout or explanatory card.
+            switch(Random.Range(0,6))
+            {
+                case 0:game.Sound.Cue("step",point,.15f);break;
+                case 1:game.Sound.Cue("knock",point,.12f);break;
+                case 2:game.Sound.Cue("radio",game.Player.transform.position,.09f);break;
+                case 3:activity=Mathf.Max(activity,.65f);break;
+                case 4:game.Sound.Cue("breath_presence",point+Vector3.up,.10f);break;
+                // The last beat is deliberately unresolved silence.
+            }
         }
         public bool Trigger(bool firstBasement=false)
         {
-            if(game.Modal||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning)return false;
-            if(!VisiblePoint(out var point))
-            {
-                // No valid visible apparition position: the local interference is
-                // still perceptible, without falsely announcing a passing figure.
-                if(firstBasement)return false;
-                Pulse(game.Player.transform.position+game.Player.transform.forward*1.5f,3);
-                game.Say("[The radio spits static. The light falters.]");Events++;return true;
-            }
+            if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
+            if(!firstBasement&&!rhythm.AppearanceDue)return false;
+            if(game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false;
+            if(!VisiblePoint(out var point)){if(!firstBasement)Dread();return false;}
             bool rush=!firstBasement&&Events%3==2;
             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true))return false;
             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
-            Pulse(point,firstBasement?3:5);Events++;
-            game.Say(firstBasement?"[A shape flashes in the basement.]":rush?"[She lunges through the dark.]":"[A face in the corner. Then nothing.]");
+            Pulse(point,firstBasement?3:5);Events++;rhythm.RecordAppearance(Random.value);
+            next=Random.Range(28f,40f);
             if(!firstBasement&&Events%2==0)ThrowNearbyProp();
-            // Most appearances end here. Occasional ones become a fully warned
-            // hunt, so a visible fake-out can never kill on spawn or touch.
-            if(!firstBasement&&Events%5==0&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>55)
-            {warningOrigin=point;warningDelay=1.8f;}
             Debug.Log("HC_SCARE visible="+Events+" basement="+firstBasement+" rush="+rush);return true;
         }
         bool VisiblePoint(out Vector3 point)

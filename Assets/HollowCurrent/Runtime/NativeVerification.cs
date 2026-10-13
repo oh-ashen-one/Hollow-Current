@@ -300,7 +300,7 @@ namespace HollowCurrent
             Require(Vector3.Distance(cupRenderer.bounds.center,cupStart)>.1f&&Mathf.Abs(game.Player.transform.position.y-playerY)<.2f,"Thrown cup visibly moves without displacing the investigator");
             yield return Capture("cup-thrown",new Vector3(-5.2f,.6f,4.6f));
             game.Player.Teleport(new Vector3(0,-3.2f,9));yield return Look(new Vector3(5,-1.6f,10));
-            float end=Time.realtimeSinceStartup+8;while(game.Scares.BasementFlashes==0&&Time.realtimeSinceStartup<end)yield return null;
+            float end=Time.realtimeSinceStartup+110;while(game.Scares.BasementFlashes==0&&Time.realtimeSinceStartup<end)yield return null;
             Require(game.Scares.BasementFlashes==1&&!game.Case.Terminal,"First basement appearance is a nonlethal flash");
             game.Player.Teleport(new Vector3(0,0,-10.2f));yield return Look(new Vector3(0,1.6f,-6));
             game.Creature.SetHuntOrigin(new Vector3(0,0,-6));game.Case.BeginWarning();yield return new WaitForSeconds(9.1f);
@@ -411,7 +411,7 @@ namespace HollowCurrent
             yield return Use(firstHide);if(game.Player.TorchOn){game.Player.TestInput=new FieldInput{Torch=true};yield return null;game.Player.TestInput=new FieldInput();}
             while(!game.Case.Survived&&!game.Case.Terminal)yield return null;Require(!game.Case.Terminal,"Natural hunt survived by breaking sight and hiding");
             game.Player.TestInput=new FieldInput{Use=true};yield return null;game.Player.TestInput=new FieldInput{Torch=true};yield return null;game.Player.TestInput=new FieldInput();
-            Require(game.ManifestationCount>=3&&game.Scares.BasementFlashes==1,"Natural disturbances and first-basement flash executed");
+            Require(game.ManifestationCount>=1&&game.Scares.BasementFlashes<=1,"Sparse natural activity occurred; basement surprise never repeats");
             yield return Walk(new Vector3(5.7f,-3.2f,10));
             yield return RecordWithTool(Evidence.Voice,3,game.World.Anchor);
             Require(game.Case.Evidence.Contains(Evidence.Voice),"EVP response captured while still");

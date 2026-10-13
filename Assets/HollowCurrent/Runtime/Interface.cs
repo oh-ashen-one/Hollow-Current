@@ -361,15 +361,15 @@ namespace HollowCurrent
                 cachedSubtitle=Game.Subtitle??"";dialogueBody=cachedSubtitle;dialogueSpeaker="FIELD SIGNAL / LOCAL";
                 int divider=cachedSubtitle.IndexOf(" / ");
                 if(divider>=0){dialogueSpeaker=cachedSubtitle.Substring(0,divider).ToUpperInvariant();dialogueBody=cachedSubtitle.Substring(divider+3);}
-                else if(cachedSubtitle.StartsWith("[")){dialogueSpeaker="ACTIVITY / NEARBY";dialogueBody=cachedSubtitle.Trim('[',']');}
+                
                 if(dialogueSpeaker=="DISPATCH"||dialogueSpeaker=="RADIO")dialogueSpeaker+=" / CHANNEL 04";
                 if(dialogueSpeaker=="EVIDENCE SECURED")dialogueSpeaker="CASE 014 / EVIDENCE RECORDED";
             }
             dialogueText.fontSize=Mathf.RoundToInt(24*Game.SubtitleScale);
-            float height=Mathf.Clamp(dialogueText.CalcHeight(new GUIContent(dialogueBody),468)/.53f,165,330);
+            float height=Mathf.Clamp(dialogueText.CalcHeight(new GUIContent(dialogueBody),460)/.53f,125,245);
             bool danger=Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference;
             float fade=Mathf.Clamp01(Game.SubtitleTime/.4f);
-            Dialogue(new Rect(475,840-height,650,height),dialogueSpeaker,dialogueBody,danger,fade);
+            Dialogue(new Rect(495,858-height,610,height),dialogueSpeaker,dialogueBody,danger,fade);
         }
         void KeyPill(float x,float y,string key,string text)
         {
@@ -385,7 +385,7 @@ namespace HollowCurrent
             string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+"TORCH OFF":"Stay quiet"):p.Focus!=null?use+p.Focus.Label+(p.Focus.Kind==InteractKind.Anchor?" · hold":""):"";
             Label(405,510,790,62,interaction,center);if(p.Capture>0)Panel(new Rect(630,568,340*Mathf.Clamp01(p.Capture),3),copper);
             if(Game.Case.SealProgress>0){Label(545,583,510,30,"SEALING "+Mathf.RoundToInt(Game.Case.SealProgress*100)+"%",center);Panel(new Rect(615,622,370*Game.Case.SealProgress,3),copper);}
-            if(Game.Subtitles&&Game.SubtitleTime>0)SubtitleCard();
+            if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))SubtitleCard();
             Track(42,796,p.Tool==1?"INDUCTION READER":p.Tool==2?"ULTRAVIOLET":"EVP RECORDER",ink);
             Label(42,824,290,48,Game.Scares.Interference?"SIGNAL UNSTABLE":p.Capture>0?"RECORDING… HOLD STEADY":p.Tool==1?p.InductionDisplay+" / 5.0":"FIELD KIT CONNECTED",hudTiny);
             bool ps=PadInput.Active&&PadInput.Current.PlayStation;
