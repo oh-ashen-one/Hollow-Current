@@ -302,26 +302,26 @@ def perch(p, ph, f):
     br = math.sin(ph * 2 * math.pi); look = math.tanh(2.2 * math.sin(ph * 2 * math.pi + .6))
     p.l('Hips', z=-.86 + .010 * br, y=.10); p.r('Hips', x=38)
     for b, a in (('Spine02', 22), ('Spine01', 20), ('Spine', 14 + 1.5 * br)): p.r(b, x=a)
-    p.r('neck', x=-42, z=10 * look); p.r('Head', x=-36, y=4 * look, z=16 * look)
-    p.wings(.45 + .05 * br, yaw=-12, beat=14 + 3 * br, pitch=72, curl=4 * br)
+    p.r('neck', x=-44, z=6 * look); p.r('Head', x=-38, y=2 * look, z=10 * look)
+    p.wings(.22 + .03 * br, yaw=-24, beat=36 + 2 * br, pitch=40, curl=2 * br, stretch=1.12)
 def perch_ik(f, ph):
     br = math.sin(ph * 2 * math.pi)
     for side, sg in (('Left', 1), ('Right', -1)):
         two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * .30, .03, .172), (sg * 1.4, -.6, .5)); plant(side + 'Foot', sg * 16)
-        two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', (sg * .22, -.26, .10 + .004 * br), (sg * 1.0, .4, .9))
+        two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', (sg * .22, -.32, .06 + .004 * br), (sg * 1.0, .4, .9))   # wrists at the rail's front edge, claws over it
 def glide(p, ph, f):
     a = ph * 2 * math.pi; flap = math.sin(a)
     p.r('Hips', x=30); p.l('Hips', z=.03 * math.sin(a - .4), y=.02 * flap)
     p.spine(8 + 2 * flap, neck=-24, head=-36, yaw=5 * math.sin(a * .5))
     p.legs(14 + 3 * flap, 20 + 5 * flap, 38, spread=3); p.arms(36 + 4 * flap, out=8, forearm=18, hand=12, inward=-6)
-    p.wings(.98 + .06 * math.sin(a - .5), yaw=26, beat=10 + 24 * flap, pitch=10, curl=-6 * math.sin(a - 1.0), lag=10 * math.sin(a - 1.4), stretch=1.3)
+    p.wings(.98 + .06 * math.sin(a - .5), yaw=26, beat=10 + 24 * flap, pitch=10, curl=-6 * math.sin(a - 1.0), lag=10 * math.sin(a - 1.4), stretch=1.45)
 def search(p, ph, f):
     # Landed prowl as on the sheet: upright, arms at his sides, wings folded to the shins and twitching, head scanning.
     a = ph * 2 * math.pi; look = math.tanh(3.0 * math.sin(a))
     p.r('Hips', x=6); p.l('Hips', z=-.04 + .008 * math.sin(2 * a))
     p.spine(8, head=4, yaw=58 * look, tilt=5 * look); p.legs(-10, 18, -8, spread=2)
-    p.arms(4, out=3, forearm=-14 + 3 * math.sin(2 * a + .5), hand=8, inward=4)
-    p.wings(.12 + .05 * math.sin(2 * a), yaw=-4, beat=3 + 2 * math.sin(2 * a - .4), pitch=2, curl=4 * math.sin(2 * a - .9))
+    p.arms(4, out=-10, forearm=-12 + 3 * math.sin(2 * a + .5), hand=8, inward=2)
+    p.wings(.03 + .03 * math.sin(2 * a), yaw=-4, beat=3 + 2 * math.sin(2 * a - .4), pitch=2, curl=-12 + 3 * math.sin(2 * a - .9), stretch=1.16)
 def search_ik(f, ph):
     for side, sg in (('Left', 1), ('Right', -1)):
         two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * .24, .12 if sg > 0 else -.08, .172), (sg * .3, -1.0, .6)); plant(side + 'Foot', sg * 10)
@@ -330,20 +330,20 @@ def dive(p, ph, f):
     p.r('Hips', x=52); p.l('Hips', z=.02 * fl)
     p.spine(10, neck=-36, head=-44); p.legs(18 + 3 * fl, 26 + 4 * fl, 42, spread=2)
     p.arms(-70 + 4 * fl, out=14, forearm=-6, hand=-14, inward=6)
-    p.wings(.58 + .05 * fl, yaw=-38, beat=6 + 7 * fl, pitch=26, curl=-4 * math.sin(a - .8), lag=6 * math.sin(a - 1.2), stretch=1.2)
+    p.wings(.58 + .05 * fl, yaw=-38, beat=6 + 7 * fl, pitch=26, curl=-4 * math.sin(a - .8), lag=6 * math.sin(a - 1.2), stretch=1.35)
 def grab(p, ph, f):
     a = ease(min(1, f / .45)); b = ease(max(0, min(1, (f - .25) / .55)))
     p.r('Hips', x=lerp(48, 16, a)); p.spine(lerp(10, 16, a), neck=lerp(-36, -10, a), head=lerp(-44, -12, a))
     p.legs(lerp(18, 6, a), lerp(26, 18, a), lerp(42, 20, a))
     p.arms(lerp(-72, -58, a), out=lerp(14, 4, a), forearm=lerp(-6, -48, b), hand=lerp(-14, -20, b), inward=lerp(6, 34, b))
-    p.wings(lerp(.6, .5, b), yaw=lerp(-30, 64, a), beat=lerp(6, 22, a), pitch=lerp(26, -8, a), curl=lerp(0, -10, b), stretch=1.2)
+    p.wings(lerp(.6, .5, b), yaw=lerp(-30, 64, a), beat=lerp(6, 22, a), pitch=lerp(26, -8, a), curl=lerp(0, -10, b), stretch=1.35)
 def stagger(p, ph, f):
     a = ease(min(1, f / .14)); rec = ease(max(0, min(1, (f - .32) / .68))); sh = math.sin(f * 38) * (1 - f) ** 2
     p.r('Hips', x=lerp(-14, 10, rec) * a); p.l('Hips', y=.14 * a * (1 - rec), z=-.06 * a)
     p.spine(lerp(-24, 12, rec) * a, head=lerp(-26, 4, rec) * a, yaw=8 * sh)
     p.legs(lerp(-10, 6, rec) * a, lerp(16, 20, rec) * a, lerp(-6, 0, rec) * a)
     p.arms(lerp(-30, 10, rec) * a, out=lerp(38, 14, rec) * a, forearm=lerp(40, 34, rec) * a, hand=22 * a)
-    p.wings(lerp(.2, lerp(.55, .45, rec), a) + .05 * sh, yaw=lerp(0, lerp(10, 2, rec), a), beat=lerp(0, lerp(14, 8, rec), a) + 6 * sh, pitch=lerp(0, lerp(34, 10, rec), a), curl=10 * sh, stretch=1.15)
+    p.wings(lerp(.2, lerp(.55, .45, rec), a) + .05 * sh, yaw=lerp(0, lerp(10, 2, rec), a), beat=lerp(0, lerp(14, 8, rec), a) + 6 * sh, pitch=lerp(0, lerp(34, 10, rec), a), curl=10 * sh, stretch=1.3)
 def death(p, ph, f):
     # buckles at the knees, then topples backward (away from the sword) and lies flat on his spread wings
     a = ease(min(1, f / .38)); b = ease(max(0, min(1, (f - .30) / .55)))
@@ -351,7 +351,7 @@ def death(p, ph, f):
     p.spine(lerp(0, 22, a) - 26 * b, head=10 * a + 4 * b, yaw=22 * b, tilt=8 * b)
     p.legs(lerp(0, -8, a) + 2 * b, lerp(0, 90, a) - 80 * b, lerp(0, 30, a) + 10 * b)
     p.arms(lerp(0, 14, a) + 16 * b, out=lerp(0, 16, a) + 34 * b, forearm=lerp(0, 24, a) - 8 * b, hand=20 * a)
-    p.wings(lerp(.2, .8, a) + .15 * b, yaw=lerp(0, -8, a) + 8 * b, beat=lerp(0, 10, a) - 4 * b, pitch=lerp(0, 6, a) - 6 * b, curl=-6 * b)
+    p.wings(lerp(.2, .8, a) + .15 * b, yaw=lerp(0, -8, a) + 8 * b, beat=lerp(0, 10, a) - 4 * b, pitch=lerp(0, 6, a) - 6 * b, curl=-6 * b, stretch=1.12)
 
 # (name, pose fn, seconds, loop, post-IK fn, floor rule): 'plant' keeps the lowest mesh point on z=0,
 # 'lift' only lifts it back above z=0 (airborne clips), None leaves the IK-planted feet alone.
