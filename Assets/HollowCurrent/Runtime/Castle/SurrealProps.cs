@@ -384,5 +384,22 @@ namespace HollowCurrent
             r.transform.localScale=new Vector3(size,size,1);
             return r.transform;
         }
+
+        // ---- chandelier ----
+        // The great hall's hanging iron chandelier: `localPosition` is the hub, `chain` metres of chain reach the ceiling above.
+        // 12 candles, each with a billboard flame and halo (no point light), a slow sway and a Floater so the flames lean like the rest.
+        public static Floater MakeChandelier(Transform parent,Vector3 localPosition,int seed,float chain)
+        {
+            ChandelierChain=chain;chandelierMesh=null;   // the mesh bakes the chain length: rebuild for this call
+            var t=NewChild("Chandelier",parent,localPosition,Quaternion.Euler(0,(seed*37)%360,0));
+            var floater=t.gameObject.AddComponent<Floater>();
+            floater.phase=Mathf.Repeat(seed*.6180339f,1);
+            floater.bobAmplitude=.04f;floater.bobHertz=.08f;floater.driftRadius=.03f;floater.tiltDegrees=1.2f;floater.yawDegreesPerSecond=1.5f;
+            NewRenderer("Chandelier body",t,Vector3.zero,Quaternion.identity,ChandelierMesh,ChandelierMaterials,true);
+            var flames=new Transform[ChandelierCandles];
+            for(int i=0;i<ChandelierCandles;i++)flames[i]=MakeCandleFlame(t,ChandelierFlameBase(i),.2f,false,"Flame "+i,.2f).transform;
+            floater.flames=flames;
+            return floater;
+        }
     }
 }

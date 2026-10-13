@@ -105,7 +105,8 @@ namespace HollowCurrent
             e=new Vector3(7.0f,1.64f,6.5f);t=e+new Vector3(Mathf.Cos(10*Mathf.Deg2Rad),-Mathf.Sin(10*Mathf.Deg2Rad),0)*6;Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S2_chapel_altar","refs/chapel_altar.png",e,t);
             // S3: crypt from the stair foot looking at the sarcophagus.
-            e=new Vector3(-5.2f,-3.2f+1.64f,25.0f);t=new Vector3(0,-2.6f,22.5f);Place(e,t);
+            // Round 7: eye from hc/arch7's HANDOFF (crypt axis, looking at the sarcophagus).
+            e=new Vector3(0,-1.56f,15.4f);t=new Vector3(0,-2.3f,24.0f);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S3_crypt","refs/crypt.png",e,t);
             // S4 (round 5 brief; the 2.2 m eye limit is lifted for this shot only): pulled
             // back along the bridge axis to 14 m from the gate at 3.5 m. Pitch and FOV are
@@ -229,8 +230,8 @@ namespace HollowCurrent
             {
                 while(game.Creature.CaptureClock<i+1){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
                 var view=game.Player.View.transform;
-                if(i==4)CandleFlame.LogLeanReport("H05");
                 yield return Shot("H"+(i+1).ToString("00")+"_hunt_dive","(hunt sequence)",view.position,view.position+view.forward*5,"clock="+game.Creature.CaptureClock.ToString("F2")+" phase="+game.Case.Phase+" "+game.Creature.CaptureNote);
+                if(i==4)CandleFlame.LogLeanReport("H05");
             }
             game.Creature.EndCaptureChoreography();
             Record("hunt_dive",samples);
