@@ -101,7 +101,8 @@ namespace HollowCurrent
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S1_great_hall",3);
             yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");
             // S2: chapel altar from the nave.
-            e=new Vector3(7.0f,1.64f,6.5f);t=spots!=null?spots.AltarPosition+Vector3.up*.3f:new Vector3(13,1.6f,6.5f);Place(e,t);
+            // Round 7: pitched 10 degrees down toward the altar top so its relic sockets read.
+            e=new Vector3(7.0f,1.64f,6.5f);t=e+new Vector3(Mathf.Cos(10*Mathf.Deg2Rad),-Mathf.Sin(10*Mathf.Deg2Rad),0)*6;Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S2_chapel_altar","refs/chapel_altar.png",e,t);
             // S3: crypt from the stair foot looking at the sarcophagus.
             e=new Vector3(-5.2f,-3.2f+1.64f,25.0f);t=new Vector3(0,-2.6f,22.5f);Place(e,t);
@@ -117,7 +118,7 @@ namespace HollowCurrent
             // Round 6: the search also walks eye height 3.5 -> 2.5 m and distance 14 -> 18 m back
             // from the gate; the bridge constraint is only "far end of the lowered leaf in frame".
             e=S4Eye;float s4Pitch=S4Pitch,s4Fov=S4Fov;string s4="fallback";
-            var moonDirs=new[]{("pale",CastleArt.PaleMoonDirection,.15f),("red",CastleArt.RedMoonDirection,.07f)};
+            var moonDirs=new[]{("pale",CastleArt.PaleMoonDirection,.19f),("red",CastleArt.RedMoonDirection,.11f)}; // disc radius + 4% margin (r6: pale moon touched the top edge)
             foreach(float back in new[]{14f,15f,16f,17f,18f})foreach(float height in new[]{3.5f,3f,2.5f})foreach(float f in new[]{90f,95f})
             {
                 if(s4!="fallback")break;
@@ -168,11 +169,15 @@ namespace HollowCurrent
             float s5Fov=game.Player.View.fieldOfView;var hidden=new List<Renderer>();
             if(s5.StartsWith("rose ledge",StringComparison.Ordinal))
             {
+                // Round 7: fill by the body (feet to head top), not the pose bounds incl. wings
+                // (r6 measured 34.7% of frame height against a 58% request).
                 var pose=game.Creature.Actor.PoseBounds(0);
+                float feetY=game.Creature.transform.position.y,headTop=(game.Creature.Actor.Head?game.Creature.Actor.Head.position.y:pose.max.y)+.15f;
+                float bodyHeight=Mathf.Max(.5f,headTop-feetY);var bodyCentre=new Vector3(pose.center.x,(feetY+headTop)*.5f,pose.center.z);
                 var flat=t-e;flat.y=0;if(flat.sqrMagnitude<.01f)flat=Vector3.forward;flat.Normalize();
                 const float s5ViewFov=50,fill=.58f,pitch=4;
-                float d=pose.size.y/(fill*2*Mathf.Tan(s5ViewFov*.5f*Mathf.Deg2Rad));
-                t=pose.center;e=t-flat*d*Mathf.Cos(pitch*Mathf.Deg2Rad)-Vector3.up*d*Mathf.Sin(pitch*Mathf.Deg2Rad);
+                float d=bodyHeight/(fill*2*Mathf.Tan(s5ViewFov*.5f*Mathf.Deg2Rad));
+                t=bodyCentre;e=t-flat*d*Mathf.Cos(pitch*Mathf.Deg2Rad)-Vector3.up*d*Mathf.Sin(pitch*Mathf.Deg2Rad);
                 game.Player.View.fieldOfView=s5ViewFov;
                 // Floaters within 1.2 m of the new eye-to-Count line are hidden for this shot only.
                 foreach(var floater in Floater.All)
@@ -180,7 +185,7 @@ namespace HollowCurrent
                     if(!floater)continue;var q=floater.transform.position;var seg=t-e;float u=Mathf.Clamp01(Vector3.Dot(q-e,seg)/seg.sqrMagnitude);
                     if(Vector3.Distance(q,e+seg*u)<1.2f)foreach(var r in floater.GetComponentsInChildren<Renderer>())if(r.enabled){r.enabled=false;hidden.Add(r);}
                 }
-                s5+=" -> flattened: pitch "+pitch+" deg, FOV "+s5ViewFov+", distance "+d.ToString("F2")+" m, pose height "+pose.size.y.ToString("F2")+" m, floaters hidden "+hidden.Count;
+                s5+=" -> flattened: pitch "+pitch+" deg, FOV "+s5ViewFov+", distance "+d.ToString("F2")+" m, body height (feet to head top) "+bodyHeight.ToString("F2")+" m, pose height "+pose.size.y.ToString("F2")+" m, floaters hidden "+hidden.Count;
             }
             Place(e,t);
             int moonsInFrame=0;
