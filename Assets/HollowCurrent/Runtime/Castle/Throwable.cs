@@ -49,6 +49,54 @@ namespace HollowCurrent
             }
         }
 
+        // True when any of its renderers was merged into a static batch. A batched renderer never moves with its transform and its
+        // MeshFilter reports the whole combined batch mesh, so it cannot be thrown (NativeBuild exempts Throwables from batching).
+        public bool StaticBatched
+        {
+            get{foreach(var r in GetComponentsInChildren<Renderer>())if(r.isPartOfStaticBatch)return true;return false;}
+        }
+
+        // Same occlusion mask as ScareDirector and CastleScares (ignore raycast layer 2 and layer 30).
+        public const int SightMask=~((1<<2)|(1<<30));
+        static readonly RaycastHit[] sightHits=new RaycastHit[32];
+        // True when something solid stands between `from` and `to`. A BoxCollider that contains `to` is not an obstacle: it is the
+        // collision proxy of the furniture the prop stands on. The castle's table proxies take the art's nominal height (LongTable
+        // 0.95 m against a 0.775 m top, DiningTable 0.9 against 0.792), so a plain Linecast to a goblet ends inside the table box and
+        // reports it blocked. `blocker` names the first real obstacle ("name@hit/length").
+        public static bool SightBlocked(Vector3 from,Vector3 to,out string blocker)
+        {
+            blocker=null;var line=to-from;float length=line.magnitude;if(length<1e-4f)return false;
+            int count=Physics.RaycastNonAlloc(from,line/length,sightHits,length,SightMask,QueryTriggerInteraction.Ignore);
+            float nearest=float.MaxValue;
+            for(int i=0;i<count;i++)
+            {
+                var c=sightHits[i].collider;if(!c||Encloses(c,to))continue;
+                if(sightHits[i].distance<nearest){nearest=sightHits[i].distance;blocker=c.name+"@"+nearest.ToString("F2")+"/"+length.ToString("F2");}
+            }
+            return blocker!=null;
+        }
+        static bool Encloses(Collider c,Vector3 point)
+        {
+            var box=c as BoxCollider;if(!box)return false;
+            var p=box.transform.InverseTransformPoint(point)-box.center;var half=box.size*.5f;
+            return Mathf.Abs(p.x)<=half.x&&Mathf.Abs(p.y)<=half.y&&Mathf.Abs(p.z)<=half.z;
+        }
+
+        // Why a throw candidate was passed over: one "HC_THROW_SKIP reason=..." line per rejected candidate that is near enough to
+        // matter (thrown props and props beyond 9 m are only counted), then one summary line when nothing was thrown.
+        public static void LogSkip(string source,string reason,Transform prop,float distance,float angle,string detail,Dictionary<string,int> counts)
+        {
+            counts.TryGetValue(reason,out int n);counts[reason]=n+1;
+            if(reason=="thrown"||distance>9)return;
+            Debug.Log("HC_THROW_SKIP reason="+reason+" source="+source+" prop="+prop.name+" at="+prop.position.ToString("F2")+" d="+distance.ToString("F1")+" angle="+angle.ToString("F0")+(detail!=null?" detail="+detail:""));
+        }
+        public static void LogSkipSummary(string source,Dictionary<string,int> counts,int candidates)
+        {
+            var text=new System.Text.StringBuilder("HC_THROW_SKIP summary source="+source+" candidates="+candidates);
+            foreach(var pair in counts)text.Append(' ').Append(pair.Key).Append('=').Append(pair.Value);
+            Debug.Log(text.ToString());
+        }
+
         // Gives the prop a collider and a Rigidbody and kicks it along `velocity` (m/s, world) with a random tumble. Returns false when it
         // was thrown already or its bounds break the 0.4 m rule.
         public bool Launch(Game game,Vector3 velocity)
