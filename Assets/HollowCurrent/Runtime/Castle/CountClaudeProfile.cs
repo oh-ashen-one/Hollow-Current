@@ -46,9 +46,12 @@ namespace HollowCurrent
         // Grab camera: when a grab commits the view turns to his skull over GrabCamTurnSeconds (no cut) and holds through the
         // death. The aim sits GrabCamClawBias of the way from the skull toward the claws (claws fill the lower frame). In the
         // kill presentation he is eased so the nearer claw is GrabCamClawDistance from the lens, never under CameraClearance.
-        // GrabDrop starts GrabDropAboveEye above her eye and falls in GrabDropFallSeconds. ClawWidth is the world width used for
+        // ClawWidth is the world width used for
         // the claw_px proof (2560-wide frame).
-        public float GrabCamTurnSeconds=.15f, GrabCamClawBias=.3f, GrabCamClawDistance=.8f, GrabDropAboveEye=.35f, GrabDropFallSeconds=.35f, ClawWidth=.3f;
+        public float GrabCamTurnSeconds=.15f, GrabCamClawBias=.3f, GrabCamClawDistance=.8f, ClawWidth=.3f;
+        // count17: the GrabDrop clip falls from its own height (receipt clips.GrabDrop.top_m_max 4.722 m), so a drop needs that
+        // much clear ceiling over his floor; otherwise the grab is GrabCrawl from the door.
+        public float GrabDropClipTop=4.72f;
         // Sword hits: he recoils SwordRecoilDistance away from her over SwordRecoilSeconds, and until SwordClearSeconds after the
         // stagger no joint (wing markers included) comes within SwordClearRadius (+0.15 m skin) of the camera.
         public float SwordRecoilDistance=1.2f, SwordRecoilSeconds=.25f, SwordClearRadius=.6f, SwordClearSeconds=1f;

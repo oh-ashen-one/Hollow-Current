@@ -369,16 +369,13 @@ namespace HollowCurrent
                 capturePresentation=true;presentationRemaining=Profile.CapturePresentationSeconds;
                 var player=Game.Player.transform.position;var towards=player-transform.position;towards.y=0;
                 if(towards.sqrMagnitude<.01f)towards=transform.forward;towards.Normalize();
-                transform.SetPositionAndRotation(player-towards*count.StandOffFor(mode),Quaternion.LookRotation(towards));
+                if(grabMode<0)mode=CommitGrab(false,mode);   // no grab under way (e.g. a forced death): choose with the headroom rule
+                // A hide grab is already standing in the torn door opening at its stand-off; anything else is placed now.
+                if(!grabHide)transform.SetPositionAndRotation(player-towards*count.StandOffFor(mode),Quaternion.LookRotation(towards));
                 silhouette.gameObject.SetActive(true);actor.Pose(mode,0,true);CanSeePlayer=false;Memory.Clear();
-                // r11: the drop grab comes down from above the lens: start with his feet GrabDropAboveEye over her eye, fall in place.
-                grabRest=transform.position;dropDy=0;dropT=0;
-                if(mode==count.ModeGrabDrop)
-                {
-                    dropDy=Mathf.Max(0,Game.Player.View.transform.position.y+count.GrabDropAboveEye-grabRest.y);transform.position=grabRest+Vector3.up*dropDy;
-                    Debug.Log("HC_COUNT_GRAB from=above dy="+dropDy.ToString("F2")+" fall="+count.GrabDropFallSeconds.ToString("F2")+" s");
-                }
-                BeginGrabCam("kill mode "+mode);grabCamT=Mathf.Min(grabCamT,count.GrabCamTurnSeconds);grabCamLog=Mathf.Min(grabCamLog,1);grabKill=true;
+                // count17: the GrabDrop clip carries its own fall (receipt top 4.72 m), so no extra lift here; CommitGrab already
+                // chose GrabCrawl where the ceiling is too low for it.
+                BeginGrabCam("dive",grabHide);grabCamT=Mathf.Min(grabCamT,count.GrabCamTurnSeconds);grabCamLog=Mathf.Min(grabCamLog,1);grabKill=true;
                 Debug.Log("HC_COUNT_GRAB_PRESENTATION mode="+mode+" standOff="+count.StandOffFor(mode).ToString("F2")+" "+DiagnosticState);return;
             }
             if(grabCam)EndGrabCam("phase "+phase);
@@ -590,7 +587,7 @@ namespace HollowCurrent
         }
         int chaseRouteFails;
         float chaseT0,chaseD0;bool diveCloseLogged;
-        void BeginChase(){chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
+        void BeginChase(){hideGrabLocked=false;chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
@@ -849,7 +846,8 @@ namespace HollowCurrent
                 !Physics.Linecast(transform.position+Vector3.up,player.HideExit+Vector3.up);
             bool clearReach=!CaptureMode.Requested&&distance<Profile.GrabDistance&&vertical<1.6f&&!player.Hidden&&
                 !Physics.Linecast(transform.position+Vector3.up,player.transform.position+Vector3.up,FlightMask,QueryTriggerInteraction.Ignore);
-            bool touching=(clearReach&&(CanSeePlayer||contact>0))||atHideEntrance;
+            // count17: a committed hide grab stays committed after CommitGrab moves him to the stand-off outside the door.
+            bool touching=(clearReach&&(CanSeePlayer||contact>0))||atHideEntrance||hideGrabLocked&&player.Hidden;
             // Integrator (r10 rerun, hostile return): a walking player flickered in and out of GrabDistance every frame, so contact
             // reset and he chose a grab 20 times on the bridge without one kill. Contact now decays instead of resetting.
             contact=touching?contact+dt:Mathf.Max(0,contact-dt*.5f);
@@ -861,7 +859,8 @@ namespace HollowCurrent
                     grabMode=ChooseGrab(atHideEntrance,out var why,out var height);
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+height.ToString("F2")+" reason="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
                     if(atHideEntrance)OpenHideDoor(player.HideExit);
-                    BeginGrabCam(atHideEntrance?"hide":"chase");
+                    grabMode=CommitGrab(atHideEntrance,grabMode);
+                    BeginGrabCam("dive",atHideEntrance);
                 }
                 actor.Pose(grabMode);
                 // huntClock, not PhaseTime: a hostile-return hunt (F1) runs inside Phase Return.
@@ -1314,36 +1313,64 @@ namespace HollowCurrent
             if(worst>max&&clampLogged.Add(actor.Mode))Debug.Log("HC_COUNT_WING_CLAMP mode="+actor.Mode+" stretch="+(1+worst).ToString("F2")+" clampedTo="+count.WingExtMaxStretch.ToString("F2"));
         }
         // ---- Wave K: grab camera, drop from above, door torn open, sword recoil (r11 blind playtest critic) ------------------
-        bool grabCam,grabKill;float grabCamT,dropDy,dropT;int grabCamLog;Vector3 grabRest;string grabCamKind="";
+        bool grabCam,grabKill,grabHide,hideGrabLocked;float grabCamT,camYaw0,camPitch0;int grabCamLog;string grabCamKind="";
         /// <summary>True while a grab steers the view (integrator: Game's Dead-phase look-at may skip itself then).</summary>
         public bool GrabCamActive=>count!=null&&grabCam;
-        void BeginGrabCam(string kind)
+        void BeginGrabCam(string path,bool hide=false)
         {
             if(grabCam)return;
-            grabCam=true;grabKill=false;grabCamT=0;grabCamLog=0;grabCamKind=kind;Debug.Log("HC_COUNT_GRABCAM begin kind="+kind+" "+DiagnosticState);
+            grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
         }
-        void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;dropDy=0;Debug.Log("HC_COUNT_GRABCAM end reason="+why);}
+        void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;Debug.Log("HC_COUNT_GRABCAM end path="+grabCamKind+" reason="+why);}
+        // count17: commit a grab. GrabDrop needs headroom for its own fall (GrabDropClipTop over his floor); without it the grab is
+        // GrabCrawl from the door. A hide grab stands him in the torn door opening at the clip's stand-off from her, facing in,
+        // so his skull lands in the centre band once the view has turned and the nearer claw ends about GrabCamClawDistance away.
+        int CommitGrab(bool hide,int mode)
+        {
+            var p=Game.Player;var feet=p.transform.position;var eye=p.View.transform.position;
+            var outward=hide?p.HideExit-feet:transform.position-feet;outward.y=0;
+            if(outward.sqrMagnitude<.01f){outward=-p.View.transform.forward;outward.y=0;}
+            if(outward.sqrMagnitude<.01f)outward=Vector3.forward;outward.Normalize();
+            if(mode==count.ModeGrabDrop)
+            {
+                var spot=feet+outward*count.StandOffFor(mode);
+                float ceiling=Physics.Raycast(spot+Vector3.up*.2f,Vector3.up,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore)?hit.point.y-feet.y:12;
+                if(ceiling<count.GrabDropClipTop+.1f)
+                {
+                    int crawl=count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl")?count.ModeGrabCrawl:count.ModeGrab;
+                    Debug.Log("HC_COUNT_GRAB from=door reason=headroom ceiling="+ceiling.ToString("F2")+" needs="+(count.GrabDropClipTop+.1f).ToString("F2")+" mode="+mode+"->"+crawl);
+                    mode=crawl;
+                }
+                else Debug.Log("HC_COUNT_GRAB from=above dy="+(count.GrabDropClipTop-(eye.y-feet.y)).ToString("F2")+" ceiling="+ceiling.ToString("F2")+" (the GrabDrop clip falls from "+count.GrabDropClipTop.ToString("F2")+" m)");
+            }
+            if(hide)
+            {
+                var at=feet+outward*count.StandOffFor(mode);at.y=feet.y;
+                transform.SetPositionAndRotation(at,Quaternion.LookRotation(-outward));hideGrabLocked=true;
+                Debug.Log("HC_COUNT_GRAB placed=door at="+at+" standOff="+count.StandOffFor(mode).ToString("F2")+" mode="+mode);
+            }
+            return mode;
+        }
         void GrabCamFrame()
         {
             var cam=Game.Player.View;if(!cam)return;float dt=Time.unscaledDeltaTime;grabCamT+=dt;
-            // The drop: from above the lens straight down onto its stand-off (ease-in, like a fall).
-            if(grabKill&&dropDy>0)
-            {
-                dropT+=dt;float k=Mathf.Clamp01(dropT/Mathf.Max(.01f,count.GrabDropFallSeconds));
-                transform.position=grabRest+Vector3.up*dropDy*(1-k*k);if(k>=1)dropDy=0;
-            }
-            else if(grabKill)FrameClaws(cam,dt);
+            // Claws ~GrabCamClawDistance from the lens, in the kill presentation and in a hide grab (he is in the door opening).
+            if(grabKill||grabHide)FrameClaws(cam,dt);
             // Turn the view to his skull (biased toward the claws) over GrabCamTurnSeconds, then hold it there. No cut.
             var head=actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
             var claws=handL&&handR?(handL.position+handR.position)*.5f:head-Vector3.up*.6f;
             var aim=Vector3.Lerp(head,claws,count.GrabCamClawBias);var to=aim-cam.transform.position;
             if(to.sqrMagnitude>.0001f)
             {
+                // Yaw and pitch blended separately (shortest way round, up to 180 deg of yaw: she may face the wardrobe's back
+                // wall), never a roll; then the view holds on him.
                 float k=Mathf.SmoothStep(0,1,grabCamT/Mathf.Max(.01f,count.GrabCamTurnSeconds));
-                cam.transform.rotation=Quaternion.Slerp(cam.transform.rotation,Quaternion.LookRotation(to),k);
+                if(grabCamT<=dt*1.01f){var f=cam.transform.forward;camYaw0=Mathf.Atan2(f.x,f.z)*Mathf.Rad2Deg;camPitch0=-Mathf.Asin(Mathf.Clamp(f.y,-1,1))*Mathf.Rad2Deg;}
+                float yaw=Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg,pitch=-Mathf.Atan2(to.y,new Vector2(to.x,to.z).magnitude)*Mathf.Rad2Deg;
+                cam.transform.rotation=Quaternion.Euler(Mathf.LerpAngle(camPitch0,pitch,k),Mathf.LerpAngle(camYaw0,yaw,k),0);
             }
-            // Proof in the log: at the commit frame, +0.3 s and +1.0 s.
-            if(grabCamLog==0||grabCamLog==1&&grabCamT>=.3f||grabCamLog==2&&grabCamT>=1f){grabCamLog++;LogGrabCam(cam,head);}
+            // Proof in the log: the commit frame (turn starts), the end of the turn (the grab frame), +0.3 s and +1.0 s.
+            if(grabCamLog==0||grabCamLog==1&&grabCamT>=count.GrabCamTurnSeconds||grabCamLog==2&&grabCamT>=.3f||grabCamLog==3&&grabCamT>=1f){grabCamLog++;LogGrabCam(cam,head);}
         }
         // Kill presentation: ease him so the nearer claw sits GrabCamClawDistance from the lens; no joint inside CameraClearance.
         void FrameClaws(Camera cam,float dt)
@@ -1364,7 +1391,7 @@ namespace HollowCurrent
                 if(!hand)continue;var a=cam.WorldToScreenPoint(hand.position-cam.transform.right*count.ClawWidth*.5f);var b=cam.WorldToScreenPoint(hand.position+cam.transform.right*count.ClawWidth*.5f);
                 if(a.z>0&&b.z>0)claw=Mathf.Max(claw,Mathf.Abs(b.x-a.x)*2560f/Mathf.Max(1,cam.pixelWidth));
             }
-            Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" kind="+grabCamKind+" mode="+actor.Mode+" skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_centre60="+centre+
+            Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" path="+grabCamKind+" blend="+(grabCamT<count.GrabCamTurnSeconds?"turning":"done")+" kill="+grabKill+" mode="+actor.Mode+" skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_centre60="+centre+
                 " claw_px="+claw.ToString("F0")+" claw_ok="+(claw>=200)+" eyeToSkull="+Vector3.Distance(cam.transform.position,head).ToString("F2")+" headAboveEye="+(head.y-cam.transform.position.y).ToString("F2"));
         }
         float ClosestJoint(Vector3 point)
@@ -1938,9 +1965,12 @@ namespace HollowCurrent
                 if(nearMissHold>0)return;
                 if(visitOpens)
                 {
-                    nearMissStage=4;visitGrab=0;OpenHideDoor(Game.Player.HideExit);BeginGrabCam("hide-open");
-                    // Wave I: at a hide entrance the grab is GrabDrop (it bursts the door down on her), witnessed or near-miss.
+                    nearMissStage=4;visitGrab=0;OpenHideDoor(Game.Player.HideExit);
+                    // Wave I: at a hide entrance the grab is GrabDrop (it bursts the door down on her), witnessed or near-miss;
+                    // count17: only with headroom for the clip's fall, else GrabCrawl from the door (CommitGrab).
                     grabMode=PreferGrab(count.ModeGrabDrop,"GrabDrop",out var why);
+                    grabMode=CommitGrab(true,grabMode);
+                    BeginGrabCam(visitWitnessed?"hideopen":"nearmiss",true);
                     if(!visitWitnessed)Debug.Log("HC_COUNT_NEARMISS open=True");
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+(transform.position.y-Game.Player.transform.position.y).ToString("F2")+" reason="+why+" hideEntrance=True witnessed="+visitWitnessed+" torch="+Game.Player.TorchOn+" "+DiagnosticState);
                     return;
