@@ -28,6 +28,10 @@ namespace HollowCurrent
         // Castle-only run state (relics, forge, fight, props); null in Bellwether.
         public CastleRun Castle {get;private set;}
         public Soundscape Sound {get;private set;}
+        // Castle dread beats (F3); null in Bellwether.
+        public CastleScares CastleDread {get;private set;}
+        // Death penalty (FEAR_PLAN item 7): the relic index moved to its alternate place this run, or -1.
+        public int MovedRelic {get;private set;}=-1;
         public bool Started, Paused, Journal;
         public bool Loading {get;private set;}
         public float LoadingProgress {get;private set;}
@@ -111,7 +115,14 @@ namespace HollowCurrent
             var entity=new GameObject("Presence senses and navigation");Creature=entity.AddComponent<Presence>();Creature.Initialize(this);
             Scares=gameObject.AddComponent<ScareDirector>();Scares.Initialize(this);
             if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);gameObject.AddComponent<CastleAtmosphere>();gameObject.AddComponent<CastleLightTuning>();}
-            if(Map==MapId.Castle){Scares.Castle=FearLink.AddCastleScares(this);if(Case.Rules.NailedHides>0)World.Castle?.NailHides(Case.Rules.NailedHides);}
+            if(Map==MapId.Castle)
+            {
+                CastleDread=gameObject.AddComponent<CastleScares>();CastleDread.Initialize(this);
+                // Long Night: nail hides at run start (the static list from a previous scene is cleared first).
+                CastleWorld.UnnailHides();
+                // Nailed spots are deactivated; drop them from the hunter's search list too.
+                if(Case.Rules.NailedHides>0&&CastleWorld.NailHides(Case.Rules.NailedHides,Player.transform.position)>0)World.HidingPlaces.RemoveAll(h=>!h||!h.gameObject.activeInHierarchy);
+            }
             foreach(var lamp in World.Lamps)lampLevels[lamp]=lamp.intensity;
             foreach(var doll in World.Dolls)dollHomes[doll]=doll.position;
             gameObject.AddComponent<Interface>().Game=this;
@@ -292,9 +303,24 @@ namespace HollowCurrent
             wasDiving=diving;
         }
         // FEAR_PLAN item 7: after a death he has moved the next relic or ledger page (F3's RelicAltPositions).
+        // The relic state lives in CastleRun.Forge, which a checkpoint reload rebuilds, so every relic is back in place:
+        // the moved one rotates with the death count. Interactable and art move together by the same offset.
         void DeathPenalty()
         {
-            Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F0")+" moved=none (RelicAltPositions not in this build)");
+            var alt=World.Castle?.RelicAltPositions;
+            if(alt==null||alt.Length<3){Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" moved=none (no RelicAltPositions in this scene)");return;}
+            int pick=(Case.Deaths+2)%3;
+            foreach(var item in World.Root.GetComponentsInChildren<Interactable>(true))
+            {
+                if(item.Kind!=InteractKind.Relic||item.RelicIndex!=pick)continue;
+                if(Castle&&Castle.Forge.HasRelic((Relic)pick))continue;
+                var from=item.transform.position;var delta=alt[pick]-from;
+                item.transform.position+=delta;if(item.Art&&!item.Art.transform.IsChildOf(item.transform))item.Art.transform.position+=delta;
+                MovedRelic=pick;
+                Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F0")+" moved relic="+pick+" from="+from+" to="+alt[pick]);
+                return;
+            }
+            Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" moved=none (relic "+pick+" interactable not found)");
         }
         void CacheCandles()
         {

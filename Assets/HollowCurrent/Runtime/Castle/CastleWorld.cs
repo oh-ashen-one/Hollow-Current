@@ -1262,7 +1262,7 @@ namespace HollowCurrent
             SarcophagusRunes(new Vector3(0, -3.2f, 22.5f));
             // Interactable over the whole sarcophagus (trigger: no collision, nav is unchanged). Kind Note is the closest existing kind;
             // CastleRun (F2) reacts to the label "Sarcophagus" in NoteRead. Invisible: the mesh is the Sarcophagus art.
-            var sarcophagus = Interact("Sarcophagus", new Vector3(0, -3.2f + .65f, 22.5f), new Vector3(2.3f, 1.3f, 1.1f), "stone", InteractKind.Note, "Sarcophagus",
+            var sarcophagus = Interact("Sarcophagus", new Vector3(0, -3.2f + .65f, 22.5f), new Vector3(2.3f, 1.3f, 1.1f), "stone", InteractKind.Sarcophagus, "Sarcophagus",
                 "The lid is carved with a sleeping margrave. The runes along the trough are warm to the touch, as if something under them were reading.", false);
             sarcophagus.GetComponent<Collider>().isTrigger = true;
             foreach (float z in new[] { 16.5f, 26.5f })

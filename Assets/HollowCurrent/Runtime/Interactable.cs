@@ -4,7 +4,7 @@ namespace HollowCurrent
 {
     // Append only: values are serialized in prepared scenes. Van = the map's escape
     // (Bellwether case terminal, castle drawbridge winch); Anchor = music box / chapel bell.
-    public enum InteractKind { Kit, Note, Door, Hide, Breaker, Anchor, Van, LightSwitch, Relic, Altar }
+    public enum InteractKind { Kit, Note, Door, Hide, Breaker, Anchor, Van, LightSwitch, Relic, Altar, Sarcophagus }
     public sealed class Interactable : MonoBehaviour
     {
         public InteractKind Kind;
@@ -16,8 +16,6 @@ namespace HollowCurrent
         public int RelicIndex=-1;
         // Kind Relic: the visible relic mesh (hidden together with the interactable when taken).
         public GameObject Art;
-        // Kind Hide: nailed shut by the castle's Long Night dial (runtime only, never serialized).
-        [System.NonSerialized] public bool Nailed;
         public void Use(Game game)
         {
             switch(Kind)
@@ -32,6 +30,8 @@ namespace HollowCurrent
                     if(!game.Case.FinishAtVan())game.ShowNote(game.Book.FinishNoteTitle,game.Case.Goal+game.Book.FinishNoteSuffix);break;
                 case InteractKind.Relic: if(game.Castle)game.Castle.TakeRelic(this);break;
                 case InteractKind.Altar: if(game.Castle)game.Castle.AltarHint();break;
+                // Castle crypt (FEAR_PLAN item 18, the cursed reading): CastleRun.Sarcophagus() once hc/count11 lands.
+                case InteractKind.Sarcophagus: Debug.Log("HC_SARCOPHAGUS used (CastleRun.Sarcophagus pending)");game.ShowNote(Label,Body);break;
                 case InteractKind.Anchor:
                     if(game.Castle){game.Castle.RingBell();break;}
                     if(game.Case.Phase!=Phase.Containment)game.Say(game.Book.AnchorNotReady);break;

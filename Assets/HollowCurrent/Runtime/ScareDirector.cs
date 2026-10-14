@@ -20,7 +20,7 @@ namespace HollowCurrent
         public int ThrownProps {get;private set;}
         public Transform LastThrownProp {get;private set;}
         // Castle only: the CastleScares beat set (F3), added by Game. Null in Bellwether.
-        public Component Castle {get;set;}
+        public CastleScares Castle=>game?game.CastleDread:null;
         bool IsCastle=>game.Map==MapId.Castle;
         public bool Interference=>activity>0;
         public bool TorchFailed=>blackout>0;
@@ -31,7 +31,7 @@ namespace HollowCurrent
             game=owner;
             foreach(var t in game.World.Root.GetComponentsInChildren<Transform>())if(t.name=="Authored / Mug")props.Add(t);
             // Castle goblets, candlesticks, books and plates carry F3's Throwable marker.
-            if(game.Map==MapId.Castle){FearLink.CollectThrowables(game.World.Root,props);Debug.Log("HC_THROWABLES "+props.Count);}
+            if(game.Map==MapId.Castle){foreach(var t in game.World.Root.GetComponentsInChildren<Throwable>())props.Add(t.transform);Debug.Log("HC_THROWABLES director="+props.Count);}
             var fog=new GameObject("Local manifestation mist");fog.transform.SetParent(transform,false);
             mist=fog.AddComponent<ParticleSystem>();mist.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             var main=mist.main;main.playOnAwake=false;main.loop=false;main.duration=2;main.startLifetime=2.8f;main.startSpeed=.15f;main.startSize=1.6f;main.startColor=new Color(.55f,.65f,.68f,.12f);main.maxParticles=32;main.simulationSpace=ParticleSystemSimulationSpace.World;
@@ -96,13 +96,17 @@ namespace HollowCurrent
         bool CastleBeat()
         {
             if(!Castle)return false;
-            string beat;
-            if(FearLink.Lies(game.Case)&&Random.value<.4f)beat=Random.value<.5f?"FalseCandleTell":"FalseCompassReading";
-            else{float r=Random.value;beat=r<.6f?"Beat":r<.8f?"WindowSilhouette":"BalustradeShape";}
-            bool ran=FearLink.Scare(Castle,beat);
-            if(!ran&&beat!="Beat"){beat="Beat";ran=FearLink.Scare(Castle,beat);}
-            Debug.Log("HC_SCARE_CASTLE beat="+beat+" ran="+ran+" dread="+FearLink.Dread(game.Case).ToString("F1"));
-            return ran;
+            // Lies (Dread >= 70): one candle tell in three points at an empty doorway; the compass lies while raised.
+            if(game.Case.Lies)
+            {
+                if(Random.value<1f/3&&Castle.FalseCandleTell())return true;
+                if(game.Player.Tool==1&&game.Case.Equipped&&Random.value<.5f){Castle.FalseCompassReading();return true;}
+            }
+            // Peripheral beats need the player's view and return false cheaply when nothing qualifies.
+            float r=Random.value;
+            if(r<.2f&&Castle.WindowSilhouette())return true;
+            if(r<.35f&&Castle.BalustradeShape())return true;
+            Castle.Beat();return true; // Beat logs its own HC_SCARE_CASTLE line
         }
         public bool Trigger(bool firstBasement=false)
         {
@@ -125,7 +129,8 @@ namespace HollowCurrent
             if(!firstBasement&&Events%2==0)
             {
                 // Castle: one throw in six is the poltergeist (everything on the table at once).
-                if(IsCastle&&Random.value<1f/6&&FearLink.Scare(Castle,"Poltergeist")){ThrownProps++;FearLink.AddDread(game.Case,game.Case.Rules.DreadThrow);Debug.Log("HC_THROW poltergeist");}
+                int thrown=IsCastle&&Castle&&Random.value<1f/6?Castle.Poltergeist():0;
+                if(thrown>0){ThrownProps+=thrown;FearLink.AddDread(game.Case,game.Case.Rules.DreadThrow);Debug.Log("HC_THROW poltergeist="+thrown);}
                 else ThrowNearbyProp();
             }
             Debug.Log("HC_SCARE visible="+Events+" basement="+firstBasement+" rush="+rush);return true;
@@ -169,7 +174,7 @@ namespace HollowCurrent
                         if(first){bounds=new Bounds(point,Vector3.zero);first=false;}else bounds.Encapsulate(point);
                     }
                 }
-                float limit=FearLink.IsThrowable(prop)?.9f:.4f; // castle candlesticks stand taller than a mug
+                float limit=prop.GetComponent<Throwable>()?.9f:.4f; // castle candlesticks stand taller than a mug
                 if(bounds.size.x>limit||bounds.size.y>limit||bounds.size.z>limit){Debug.LogError("HC_THROWABLE_BOUNDS_INVALID "+bounds);continue;}
                 var collider=prop.gameObject.AddComponent<BoxCollider>();collider.center=bounds.center;collider.size=bounds.size;Physics.IgnoreCollision(collider,game.Player.Controller);
                 var body=prop.gameObject.AddComponent<Rigidbody>();body.mass=.25f;body.collisionDetectionMode=CollisionDetectionMode.ContinuousDynamic;body.interpolation=RigidbodyInterpolation.Interpolate;
