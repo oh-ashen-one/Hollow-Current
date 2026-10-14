@@ -173,8 +173,15 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 | Count side (Presence) | at most +35 per hunt (seen +15, grab survived +20, once each) |
 | ScareDirector | +12 per apparition, +8 per throw/poltergeist |
 
+**Merged:** hc/rules4 `9b9cde8`; handoff `docs/haunted-castle/handoffs/rules4.md`.
+- **What it does:** event-Dread decay (0.4/s in Recovery, 0.15/s calm, × `DreadRelief`, floor 20 after the first hunt), a per-hunt `AddDread` cap of 25, a 30-90 s post-hunt grace, and `HuntShare`. `check_source` now runs 1018 assertions.
+- **Integrator diff applied:**
+  - `DreadRelief`: gatehouse 3x, chapel fire 2x, otherwise 1x.
+  - `HC_RULES` every 30 s with `huntShare=`; `HC_RECOVERY grace= huntDreadAdded= huntShare=`.
+  - Siege mode clears the grace once for the Recovery-cut proof.
+- **Driver change:** its `ForceDread` helper now calls `Investigation.ForceDread`, because the capped, decaying `AddDread` can no longer hold a test level.
+
 **Pending:**
-- hc/rules4 (Dread decay, per-hunt cap, post-hunt grace, hunt share ≤ 30 %).
 - F5's regenerated grab clips (wing stretch ≤ 1.6). Their `.anim` import (`CountClaudeImport.Prepare`) needs Unity, so it waits for the window.
 - When hc/rules4 lands: wire `DreadRelief` (gatehouse 3x, within 4 m of the chapel fire 2x, else 1x).
 
@@ -187,7 +194,9 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
   - Grab mode 8/9 shown.
   - `wallCrossings=0` in every hunt.
   - The wing tip has no crumple in H09/H10.
-- [ ] hc/rules4: hunt share ≤ 30 % of a natural run, Dread decays, and a post-hunt grace exists. Read `HC_HUNT_START` / `HC_RECOVERY` timelines.
+- [ ] hc/rules4: `huntShare` ≤ 0.30 over a natural 10-minute run (last `HC_RULES … huntShare=`).
+- [ ] Every `HC_RECOVERY` line has a `grace=` of 30-90 s, and no dice hunt starts inside a grace (bell and gamble excepted).
+- [ ] Event Dread decays: `HC_RULES event=` falls between hunts, faster in the gatehouse.
 
 ## Round 11 art pass (next wave, after the fear loop is proven)
 

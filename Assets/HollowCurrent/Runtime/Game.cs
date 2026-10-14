@@ -82,7 +82,7 @@ namespace HollowCurrent
         // the lit chapel fire are where Dread falls.
         readonly List<Light> candleLights=new List<Light>();
         bool candlesCached,litNearby,appliedLongNight;
-        float litCheck;
+        float litCheck,rulesLog=30;
         Vector3 chapelFire;bool hasChapelFire;
         Phase lastPhase;
 
@@ -339,7 +339,11 @@ namespace HollowCurrent
             if(!candlesCached)CacheCandles();
             litCheck-=dt;if(litCheck<=0){litCheck=.25f;litNearby=CandleWithin(6);}
             bool atFire=hasChapelFire&&Case.BreakerOn&&Vector3.Distance(Player.transform.position,chapelFire)<3;
+            // Wave I: event Dread decays 3x faster in the gatehouse, 2x at the chapel fire.
+            Case.DreadRelief=Player.InVan?3:atFire?2:1;
             Case.Tick(dt,Player.Inside,litNearby,Player.InVan||atFire);
+            rulesLog-=dt;
+            if(rulesLog<=0){rulesLog=30;Debug.Log("HC_RULES t="+Case.Elapsed.ToString("F0")+" phase="+Case.Phase+" dread="+Case.Dread.ToString("F1")+" event="+Case.DreadEvent.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" grace="+Case.GraceRemaining.ToString("F0")+" relief="+Case.DreadRelief.ToString("F0")+" huntShare="+Case.HuntShare.ToString("F3")+" hunts="+Case.Hunts);}
 
         }
         // FEAR_PLAN item 7: after a death he has moved the next relic or ledger page (F3's RelicAltPositions).
@@ -392,7 +396,7 @@ namespace HollowCurrent
                 if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" escalated="+Case.EscalatedWarning+" length="+Case.CurrentWarningSeconds.ToString("F1")+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1"));
                 if(previous==Phase.Warning&&phase!=Phase.Hunt&&!Case.Terminal)Debug.Log("HC_FALSE_WARNING ended phase="+phase);
                 if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START t="+Case.Elapsed.ToString("F0")+" phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" escalated="+Case.EscalatedWarning+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" huntSeconds="+Case.CurrentHuntSeconds.ToString("F1")+" breaker="+Case.BreakerOn+" hunts="+Case.Hunts);
-                if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
+                if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" grace="+Case.GraceSeconds.ToString("F1")+" huntDreadAdded="+Case.HuntDreadAdded.ToString("F1")+" huntShare="+Case.HuntShare.ToString("F3")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             }
             Creature?.PhaseChanged(phase);
             if(phase==Phase.Disturbance&&!Case.Survived&&!evidenceAppearanceScheduled)

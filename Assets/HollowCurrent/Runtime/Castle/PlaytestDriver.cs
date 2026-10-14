@@ -217,7 +217,9 @@ namespace HollowCurrent
         // ---- fear mode ----------------------------------------------------------------------------------
         readonly Queue<float> dice=new Queue<float>();
         IEnumerator WaitFor(Func<bool> done,float seconds){float end=Time.realtimeSinceStartup+seconds;while(!done()&&Time.realtimeSinceStartup<end)yield return null;}
-        void ForceDread(float target,string why){var c=game.Case;float before=c.Dread;c.AddDread(target-c.Dread);Debug.Log("HC_PLAY_FORCED dread "+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" ("+why+")");}
+        // Wave I: Investigation.ForceDread (ambient Dread, clears the post-hunt grace, restarts the dice schedule); AddDread is now capped
+        // at 25 per hunt and decays, so it cannot hold a test level.
+        void ForceDread(float target,string why){var c=game.Case;float before=c.Dread;c.ForceDread(target);Debug.Log("HC_PLAY_FORCED dread "+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" ("+why+")");}
         // Dice steps: Investigation.ForceDread sets Dread and restarts the dice schedule, so the queue always
         // begins with an interval roll: [interval, hunt roll, tell roll, false-alarm roll (dice only),
         // warning length (told/false), hunt length (when the hunt starts)]. Holds for any RunDreadMin (30-50)
@@ -380,7 +382,10 @@ namespace HollowCurrent
             float end=Time.realtimeSinceStartup+720;int recoveryCuts=0;Phase last=c.Phase;
             while(Time.realtimeSinceStartup<end&&!(Tag("HC_COUNT_NEARMISS open=True")>0&&recoveryCuts>0))
             {
-                if(c.Dread<82)ForceDread(86,"siege");
+                // Wave I: hold Dread as ambient (event Dread decays) and, once, clear the post-hunt grace at a Recovery
+                // start so the Recovery dice (1/8 at >= 80) can still be proven; logged as driver-forced.
+                if(c.Dread<82){c.ForceDread(86);Debug.Log("HC_PLAY_FORCED dread ->86 ambient (siege)");}
+                if(c.Phase==Phase.Recovery&&last!=Phase.Recovery&&recoveryCuts==0&&c.GraceRemaining>0){Debug.Log("HC_PLAY_FORCED grace "+c.GraceRemaining.ToString("F0")+"->0 (siege recovery-cut proof)");c.ForceDread(Mathf.Max(86,c.Dread));}
                 if(c.Phase!=last){if(last==Phase.Recovery&&(c.Phase==Phase.Hunt||c.Phase==Phase.Warning)){recoveryCuts++;Debug.Log("HC_PLAY_RECOVERY_CUT to="+c.Phase+" recoveryCuts="+recoveryCuts);}last=c.Phase;}
                 if(!game.Player.Hidden&&c.Phase!=Phase.Hunt){if(game.Player.TorchOn)yield return Torch(false);if(hide)yield return Use(hide,"re-hide");}
                 yield return null;
