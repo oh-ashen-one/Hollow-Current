@@ -25,7 +25,7 @@ namespace HollowCurrent
         readonly Dictionary<long,float> advances=new Dictionary<long,float>();
 
         // Crop of each map's backdrop shown on its card (x, y from the top, width, height; fractions).
-        public static Rect CropFor(MapId map)=>map==MapId.Castle?new Rect(.34f,.08f,.66f,.66f):new Rect(.30f,.17f,.66f,.66f);
+        public static Rect CropFor(MapId map)=>map==MapId.Castle?new Rect(.36f,.12f,.64f,.64f):new Rect(.30f,.17f,.64f,.64f);
 
         // Idempotent. `serif` is the dynamic Georgia the rest of the interface uses; it stands in when the Cinzel file is missing.
         public void Prepare(Font serif)
