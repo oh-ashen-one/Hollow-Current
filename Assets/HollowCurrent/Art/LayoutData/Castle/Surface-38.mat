@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Castle exterior fog high
+  m_Name: Castle exterior fog low
   m_Shader: {fileID: 4800000, guid: a7806f29b0f63d4151449e6ddbce447b, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -29,11 +29,11 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Alpha: 0.21
-    - _Tile: 0.11
+    - _Alpha: 0.34
+    - _Tile: 0.18
     m_Colors:
     - _Color: {r: 0.34, g: 0.42, b: 0.58, a: 1}
     - _Fade: {r: 0.9, g: 2.8, b: 0, a: 0}
-    - _Scroll: {r: -0.005, g: 0.006, b: 0, a: 0}
+    - _Scroll: {r: 0.007, g: 0.004, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

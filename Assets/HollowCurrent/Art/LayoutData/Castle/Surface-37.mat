@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Castle exterior fog low
-  m_Shader: {fileID: 4800000, guid: a7806f29b0f63d4151449e6ddbce447b, type: 3}
+  m_Name: Castle exterior backdrop
+  m_Shader: {fileID: 4800000, guid: 5b25915bdf9db8dce33fd0e60b3bf82d, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -22,18 +22,14 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 2800000, guid: c8f77265a42c412e6d2ec8d8ca05a9d3, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+    m_TexEnvs: []
     m_Ints: []
-    m_Floats:
-    - _Alpha: 0.3
-    - _Tile: 0.18
+    m_Floats: []
     m_Colors:
-    - _Color: {r: 0.34, g: 0.42, b: 0.58, a: 1}
-    - _Fade: {r: 0.9, g: 2.8, b: 0, a: 0}
-    - _Scroll: {r: 0.007, g: 0.004, b: 0, a: 0}
+    - _FarHigh: {r: 0.085, g: 0.105, b: 0.19, a: 1}
+    - _FarLow: {r: 0.2, g: 0.25, b: 0.38, a: 1}
+    - _Haze: {r: 0.2, g: 0.26, b: 0.4, a: 0.4}
+    - _NearHigh: {r: 0.04, g: 0.05, b: 0.095, a: 1}
+    - _NearLow: {r: 0.1, g: 0.13, b: 0.21, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

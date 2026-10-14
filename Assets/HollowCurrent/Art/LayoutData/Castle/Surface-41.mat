@@ -42,7 +42,7 @@ Material:
     - _Sharp: 6
     - _Tile: 0.5
     m_Colors:
-    - _Color: {r: 0.7213777, g: 0.71665627, b: 0.7719349, a: 1}
+    - _Color: {r: 0.82068884, g: 0.80832815, b: 0.85596746, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Flow: {r: 0.02, g: 0.012, b: 1.7, a: 0}
   m_BuildTextureStacks: []
