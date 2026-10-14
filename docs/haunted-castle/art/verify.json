@@ -259,6 +259,66 @@
   ],
   "tris": 1872
  },
+ "ExtBackdrop": {
+  "bytes": 58828,
+  "parts": 1,
+  "size": [
+   94.0,
+   92.0,
+   25.057
+  ],
+  "tris": 1200
+ },
+ "ExtGate": {
+  "bytes": 78316,
+  "parts": 1,
+  "size": [
+   18.889,
+   5.39,
+   16.5
+  ],
+  "tris": 2252
+ },
+ "ExtKeep": {
+  "bytes": 136828,
+  "parts": 1,
+  "size": [
+   12.64,
+   12.64,
+   41.8
+  ],
+  "tris": 4728
+ },
+ "ExtRock": {
+  "bytes": 310076,
+  "parts": 1,
+  "size": [
+   68.071,
+   36.0,
+   17.557
+  ],
+  "tris": 7640
+ },
+ "ExtTowers": {
+  "bytes": 167004,
+  "parts": 1,
+  "size": [
+   35.62,
+   35.72,
+   31.0
+  ],
+  "tris": 5216
+ },
+ "ExtWalls": {
+  "bytes": 42716,
+  "parts": 1,
+  "size": [
+   29.7,
+   29.57,
+   6.32
+  ],
+  "tris": 1428
+ },
  "Fireplace": {
   "bytes": 25644,
   "parts": 1,

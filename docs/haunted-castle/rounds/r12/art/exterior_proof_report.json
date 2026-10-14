@@ -1,0 +1,15 @@
+{
+ "moon_gap_pale_deg": 1.74,
+ "moon_gap_red_deg": 1.96,
+ "max_vertex_y": 50.8,
+ "vertices_inside_rooms": {
+  "west_wing": 0,
+  "east_wing": 0,
+  "great_hall": 0,
+  "gatehouse": 0,
+  "observatory": 0
+ },
+ "vertices_in_standing_spot_box": 0,
+ "vertices_in_bridge_corridor": 0,
+ "triangles_total": 22464
+}

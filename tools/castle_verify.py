@@ -76,7 +76,8 @@ for f in sorted(cc.CASTLE.glob("*.fbx")):
         note.append("rise %.2f" % m["notes"]["rise"] if m else "")
     if name == "GiantSkeleton" and not (11.4 <= size[1] <= 12.6): fails.append("skeleton length %s" % size)
     if name == "GiantSkeleton" and tris >= 15000: fails.append("skeleton tris")
-    if not name.startswith(("Giant",)) and not name.startswith("Wall_") and tris >= 3000 and name != "GiantSkeleton":
+    # Ext* = round 12 exterior structures, budgeted in manifest_exterior.json instead
+    if not name.startswith(("Giant", "Ext")) and not name.startswith("Wall_") and tris >= 3000 and name != "GiantSkeleton":
         fails.append("%s: %d tris >= 3000" % (name, tris))
     nom = cc.NOMINAL.get(name)
     if nom:

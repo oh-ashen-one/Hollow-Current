@@ -730,76 +730,15 @@ namespace HollowCurrent
             l2.type = LightType.Directional; l2.color = new Color(.62f, .32f, .46f); l2.intensity = .06f; l2.shadows = LightShadows.None;
         }
 
-        // ---- keep towers ----
-        // Round towers with conical slate spires on the roofs, so the skyline from the far bank has at least five spires above the wall.
+        // ---- exterior kit (round 12, hc/art-exterior) ----
+        // Replaces the plain keep box and the five black cones. CastleExterior places the FBX pieces authored by tools/castle_exterior.py (keep,
+        // gatehouse drums and hood, corner towers, wing roofs, curtain-wall dressing, rock outcrop, far backdrop ring) plus the exterior ground
+        // fog bands. Render only, no collider anywhere (the roofs and towers are not reachable). The gameplay points are untouched.
         void Keep()
         {
-            // From the S4 eye (0, 2, -6) pitched 18 degrees the gatehouse wall top (y 7.5 at z 0) hides everything below an
-            // elevation of 42 degrees at x = 0. Spires must clear that line, and none may stand on the red/pale moon rays
-            // (azimuth +42 / -34, elevation 42 / 55), so there is no tower on the east wing.
-            Tower("Gate turret W", new Vector3(-4.6f, 5.2f, 4.6f), 1.0f, 3.5f, 7.0f);
-            Tower("Gate turret E", new Vector3(4.6f, 5.2f, 4.6f), 1.0f, 3.5f, 7.0f);
-            Tower("Wing tower W", new Vector3(-10.5f, 6.4f, 2.6f), 1.3f, 5.0f, 7.0f);
-            KeepBlock();
-            Tower("Rear tower W", new Vector3(-10f, 6.4f, 24f), 1.4f, 5.0f, 12.0f);
-            Tower("Observatory spire", new Vector3(10.5f, 11.6f, 23.5f), 1.3f, 3.0f, 11.0f);
-        }
-        // A crenellated keep block on the great-hall roof (round 8; S4 saw only short cones on one slab). From the S4 eye (0,2.5,-14),
-        // pitched 27 degrees, the front walls hide everything under about 19.6 degrees of elevation, so the block rises to y 23.6 (8 x 14.4 x 8 m
-        // on z 14-22): its top edge sits at about 30 degrees, a 10 degree slice (about 11% of the frame) above the wall line, with the spire
-        // beyond. Render only, no collider (the roof is not reachable). Four coursed faces, a battlement ring, a spire.
-        void KeepBlock()
-        {
-            var keep = new GameObject("Keep block").transform; keep.SetParent(root, false);
-            var centre = new Vector3(0, 9.2f + 7.2f, 18.0f); var size = new Vector3(8f, 14.4f, 8f);
-            var body = Box("Keep body", centre, size, "stone", false); body.transform.SetParent(keep, true);
-            for (int face = 0; face < 4; face++)
-            {
-                bool alongX = face < 2; int sign = face % 2 == 0 ? -1 : 1;
-                float off = (alongX ? size.z : size.x) * .5f + .0625f;
-                int bands = Mathf.RoundToInt(size.y / 3.2f); float bh = size.y / bands;
-                var rnd = new System.Random(31 * face + 7);
-                for (int i = 0; i < 4; i++)
-                    for (int j = 0; j < bands; j++)
-                    {
-                        float along = -3f + i * 2f;
-                        var pos = centre + new Vector3(0, -size.y * .5f + j * bh, 0) + (alongX ? new Vector3(along, 0, sign * off) : new Vector3(sign * off, 0, along));
-                        var tile = ArtAt(Art.Wall2m, pos, alongX ? 0 : 90);
-                        tile.localScale = new Vector3(1f, bh / 3.2f, .25f);
-                        Paint(tile, StoneVariant(PickFamily(rnd, j == 0)));
-                        tile.SetParent(keep, true); tileCount++;
-                    }
-                // battlements along the top edge
-                for (int k = 0; k < 2; k++)
-                {
-                    float along = k == 0 ? -2f : 2f;
-                    var pos = new Vector3(centre.x, centre.y + size.y * .5f, centre.z) + (alongX ? new Vector3(along, 0, sign * (size.z * .5f - .3f)) : new Vector3(sign * (size.x * .5f - .3f), 0, along));
-                    var cren = ArtAt(Art.Battlement, pos, alongX ? 0 : 90);
-                    Paint(cren, StoneVariant(0)); cren.SetParent(keep, true);
-                }
-            }
-            Spire("Keep spire", centre + new Vector3(0, size.y * .5f, 0), 3.2f, 12f, keep);
-            Tag("keep_block", "S4", centre, size);   // a separate empty tag object: a script on the keep itself would pull it out of the baked statics
-        }
-        void Spire(string name, Vector3 baseCentre, float radius, float height, Transform parent)
-        {
-            var b = new SurrealProps.MeshBuilder(1);
-            b.Prism(Vector3.zero, radius, .03f, height, 10, 0);
-            var g = new GameObject(name);
-            g.transform.SetParent(parent, false); g.transform.position = root.TransformPoint(baseCentre);
-            g.AddComponent<MeshFilter>().sharedMesh = b.Build(name);
-            var r = g.AddComponent<MeshRenderer>(); r.sharedMaterial = mats["black"]; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        }
-        void Tower(string name, Vector3 baseCentre, float radius, float shaft, float spire)
-        {
-            Cyl(name + " shaft", baseCentre + new Vector3(0, shaft * .5f, 0), radius * 2f, shaft, "stone");
-            Cyl(name + " corbel", baseCentre + new Vector3(0, shaft, 0), radius * 2.35f, .35f, "darkstone");
-            var b = new SurrealProps.MeshBuilder(1);
-            b.Prism(Vector3.zero, radius * 1.3f, .03f, spire, 10, 0);
-            var g = new GameObject(name + " spire");
-            g.transform.SetParent(root, false); g.transform.localPosition = baseCentre + new Vector3(0, shaft + .17f, 0);
-            g.AddComponent<MeshFilter>().sharedMesh = b.Build(name + " spire");
-            var r = g.AddComponent<MeshRenderer>(); r.sharedMaterial = mats["black"]; r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            CastleExterior.Build(root);
+            // a separate empty tag object: a script on the keep itself would pull it out of the baked statics
+            Tag("keep_block", "S4", new Vector3(0, 20.5f, 19.5f), new Vector3(8.4f, 23f, 8.4f));
         }
 
         // ---- exterior -----------------------------------------------------------------------------------
