@@ -1,0 +1,94 @@
+{
+  "GrabDrop": {
+    "camera": {
+      "standoff_m": 1.9899999999999998,
+      "eye_m": 1.64,
+      "vfov_deg": 72.0,
+      "look_at": [
+        -0.009,
+        -1.271,
+        1.272
+      ]
+    },
+    "chest_pitch_deg": 61.3,
+    "neck_to_hips_px": 55,
+    "left_claw": {
+      "x": [
+        1857,
+        3084
+      ],
+      "y": [
+        285,
+        948
+      ],
+      "width_px": 1226,
+      "centre_dist_px": 1195,
+      "nearest_m": 0.312
+    },
+    "right_claw": {
+      "x": [
+        1128,
+        1924
+      ],
+      "y": [
+        824,
+        1434
+      ],
+      "width_px": 796,
+      "centre_dist_px": 477,
+      "nearest_m": 0.396
+    },
+    "mesh_forward_reach_m": 1.758,
+    "claw_reach_m": 1.758,
+    "mesh_x_range_px": [
+      153,
+      3022
+    ]
+  },
+  "GrabCrawl": {
+    "camera": {
+      "standoff_m": 1.9899999999999998,
+      "eye_m": 1.64,
+      "vfov_deg": 72.0,
+      "look_at": [
+        -0.009,
+        -1.167,
+        1.513
+      ]
+    },
+    "chest_pitch_deg": 50.5,
+    "neck_to_hips_px": 151,
+    "left_claw": {
+      "x": [
+        1601,
+        2740
+      ],
+      "y": [
+        1135,
+        2669
+      ],
+      "width_px": 1139,
+      "centre_dist_px": 1480,
+      "nearest_m": 0.245
+    },
+    "right_claw": {
+      "x": [
+        1151,
+        2064
+      ],
+      "y": [
+        852,
+        1239
+      ],
+      "width_px": 913,
+      "centre_dist_px": 462,
+      "nearest_m": 0.363
+    },
+    "mesh_forward_reach_m": 1.818,
+    "claw_reach_m": 1.818,
+    "mesh_x_range_px": [
+      88,
+      2943
+    ]
+  }
+}

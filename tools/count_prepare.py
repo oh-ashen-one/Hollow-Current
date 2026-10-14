@@ -1,6 +1,11 @@
 """Prepare Count Claude (demon redesign) for Unity. CPU-only headless Blender, no network, no UI.
 
-    /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/count_prepare.py [-- --preview DIR]
+    /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/count_prepare.py [-- --preview DIR] [--only-new] [--proof DIR]
+
+    --only-new  compute and export just the F5 clips (8 GrabDrop, 9 GrabCrawl); the mesh, the eight older FBX files and
+                their receipt entries are left untouched and the receipt is merged (idempotent, re-runnable).
+    --proof DIR render the F5 clips from the player's camera (GrabReach + 0.6 m out, eye 1.64 m, 2560x1440) to
+                DIR/grab_drop_pose.png, grab_crawl_pose.png and the frame-0 images, and print the measurements.
 
 Input : tools/count_source/CountClaude_demon_rigged.glb (Customuse Tripo v3.1 multiview mesh + Customuse auto-rig; see
         docs/haunted-castle/ASSET_LOG.md) and tools/count_source/CountClaude_demon_albedo.png (tools/count_project_refs.py).
@@ -12,7 +17,8 @@ bone's weights into its mapped ancestor; classify the wing membrane from the rig
 onto a fan per wing (root at the shoulder blade, five fan bones by angle, Ext children for a radial stretch, zero-weight
 End markers for the runtime silhouette); double the single-sheet membrane faces; put the membrane in material slot 1;
 author eight clips (Animator Mode = index): 0 Perch, 1 Glide, 2 Search, 3 Dive, 4 Stagger, 5 Death, 6 Grab (forward
-wing-wrap, jaw open), 7 Crawl (four-limbed, under 2.0 m lintels). Contact poses use a two-bone IK on the posed skeleton;
+wing-wrap, jaw open), 7 Crawl (four-limbed, under 2.0 m lintels), 8 GrabDrop (falls from 2.2 m onto the camera, 1.6 s),
+9 GrabCrawl (low lunge from the crawl, rears up, claws on the lens, 1.4 s). Contact poses use a two-bone IK on the posed skeleton;
 every clip is measured against the evaluated mesh and the numbers go to the receipt.
 """
 from pathlib import Path
@@ -35,6 +41,10 @@ YAW = -90.0                        # Tripo faces +X; turn him to face -Y like th
 FPS = 30
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 PREVIEW = Path(argv[argv.index('--preview') + 1]) if '--preview' in argv else None
+PROOF = Path(argv[argv.index('--proof') + 1]) if '--proof' in argv else None
+ONLY_NEW = '--only-new' in argv
+RECEIPT = OUT / 'Native/CountClaude.json'
+RUNTIME_MODES = OUT.parents[2] / 'Resources/Characters/CountClaude/CountClaudeModes.json'   # shipped: the runtime detects Mode 8/9 here
 (OUT / 'Native').mkdir(parents=True, exist_ok=True)
 (OUT / 'Maps').mkdir(parents=True, exist_ok=True)
 bpy.context.preferences.filepaths.save_version = 0
@@ -432,6 +442,105 @@ def death(p, ph, f):
     p.arms(lerp(0, 14, a) + 16 * b, out=lerp(0, 16, a) + 34 * b, forearm=lerp(0, 24, a) - 8 * b, hand=20 * a)
     p.wings(lerp(.2, .8, a) + .15 * b, yaw=lerp(0, -8, a) + 8 * b, beat=lerp(0, 10, a) - 4 * b, pitch=lerp(0, 6, a) - 6 * b, curl=-6 * b, stretch=1.12)
 
+# ---------------------------------------------------------------- F5 grab clips (Modes 8 and 9)
+# Both are keyframed control curves (monotone cubic through (f, value) keys, f = 0..1 over the clip) feeding the same Pose/IK
+# helpers as the older clips, in metres (armature axes: X character-left, Y back = -Y is forward toward the camera, Z up).
+# The camera in the game sits GrabReach + 0.6 m in front of the origin at 1.64 m: every claw/eye target below is aimed at it.
+def cubic(f, keys):
+    ts = [k[0] for k in keys]; vs = [k[1] for k in keys]; n = len(keys)
+    if f <= ts[0]: return vs[0]
+    if f >= ts[-1]: return vs[-1]
+    d = [(vs[i + 1] - vs[i]) / (ts[i + 1] - ts[i]) for i in range(n - 1)]
+    m = [0.0] * n
+    for i in range(1, n - 1):
+        m[i] = 0.0 if d[i - 1] * d[i] <= 0 else 2 * d[i - 1] * d[i] / (d[i - 1] + d[i])      # monotone: no overshoot between keys
+    m[0] = d[0] if n > 1 else 0.0; m[-1] = d[-1]
+    i = max(j for j in range(n - 1) if ts[j] <= f); h = ts[i + 1] - ts[i]; u = (f - ts[i]) / h
+    h00 = 2 * u ** 3 - 3 * u ** 2 + 1; h10 = u ** 3 - 2 * u ** 2 + u; h01 = -2 * u ** 3 + 3 * u ** 2; h11 = u ** 3 - u ** 2
+    return h00 * vs[i] + h10 * h * m[i] + h01 * vs[i + 1] + h11 * h * m[i + 1]
+def curves(f, table):
+    return {k: cubic(f, v) for k, v in table.items()}
+
+DROP_SECONDS, DROP_FALL_SECONDS, DROP_HEIGHT = 1.6, 0.5, 2.2
+DROP_LAND = DROP_FALL_SECONDS / DROP_SECONDS
+def drop_height(f):
+    # starts DROP_HEIGHT above the origin and falls in DROP_FALL_SECONDS (constant acceleration), then lands
+    u = min(1.0, f / DROP_LAND); return DROP_HEIGHT * (1 - u * u)
+L = DROP_LAND
+DROP = {   # chest = hips + spine pitch toward the lens; hy forward travel (-Y); hz crouch depth; hands/feet are IK targets (metres)
+    'hips_x':  [(0, 14), (L, 22), (L + .06, 34), (.62, 46), (1, 52)],
+    'hz':      [(0, -.02), (L, -.10), (L + .05, -.78), (.62, -.58), (1, -.62)],
+    'hy':      [(0, .10), (L, .06), (L + .05, -.10), (.62, -.40), (1, -.48)],
+    'lean':    [(0, 4), (L, 6), (L + .06, 14), (.62, 24), (1, 28)],
+    'neck':    [(0, -10), (L, -14), (L + .06, -26), (1, -40)],
+    'head':    [(0, -6), (L, -10), (1, -30)],
+    'jaw':     [(0, 0), (L, -6), (.50, -32), (1, -36)],
+    'wspread': [(0, 1.0), (L, 1.0), (1, 1.0)],
+    'wyaw':    [(0, -10), (L, 0), (L + .08, 30), (1, 46)],
+    'wbeat':   [(0, 44), (L, 36), (L + .06, 8), (1, 26)],
+    'wpitch':  [(0, 14), (L, 20), (1, 14)],
+    'wcurl':   [(0, -8), (L, -2), (1, -10)],
+    'wstr':    [(0, 1.7), (L, 1.7), (1, 2.1)],
+    'ax':      [(0, .40), (L, .44), (.55, .50), (1, .52)],           # left hand target (+x left): out beside the face
+    'ay':      [(0, -.50), (L, -.80), (.62, -1.05), (1, -1.15)],
+    'az':      [(0, 2.35), (L, 1.70), (.62, 1.45), (1, 1.40)],
+    'rx':      [(0, .40), (L, .40), (.55, .22), (1, .14)],           # right hand target (x is mirrored): one claw reaches the lower centre of the lens
+    'ry':      [(0, -.50), (L, -.80), (.62, -1.20), (1, -1.36)],
+    'rz':      [(0, 2.35), (L, 1.70), (.62, 1.20), (1, 1.14)],
+    'fx':      [(0, .22), (L, .34), (1, .34)],
+    'fy':      [(0, .30), (L, -.05), (1, -.12)],
+    'fz':      [(0, .34), (L, .05), (L + .05, 0), (1, 0)],
+}
+def drop(p, ph, f):
+    c = curves(f, DROP)
+    p.l('Hips', y=c['hy'], z=c['hz'], raw=True); p.r('Hips', x=c['hips_x'])
+    p.spine(c['lean'], neck=c['neck'], head=c['head']); p.r('Jaw', x=c['jaw'])
+    p.legs(0, 0)
+    p.wings(c['wspread'], yaw=c['wyaw'], beat=c['wbeat'], pitch=c['wpitch'], curl=c['wcurl'], stretch=c['wstr'])
+def drop_ik(f, ph):
+    c = curves(f, DROP)
+    for side, sg in (('Left', 1), ('Right', -1)):
+        two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * c['fx'], c['fy'], ANKLE + c['fz']), (sg * 1.3, -1.0, .7)); plant(side + 'Foot', sg * 12)
+        k = ('a' if sg > 0 else 'r'); two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', (sg * c[k + 'x'], c[k + 'y'], c[k + 'z']), (sg * 1.1, .6, 1.1))
+def drop_lift(f): return drop_height(f)
+
+CRAWL_GRAB_SECONDS, LUNGE_M = 1.4, 1.2
+CG = {
+    'hips_x':  [(0, 70), (.20, 76), (.34, 84), (.52, 80), (.78, 58), (1, 40)],
+    'hz':      [(0, -.72), (.20, -.86), (.34, -.80), (.52, -.88), (.78, -.80), (1, -.74)],
+    'hy':      [(0, 0), (.20, .16), (.34, -.05), (.52, -LUNGE_M), (.78, -LUNGE_M + .30), (1, -LUNGE_M + .72)],
+    'lean':    [(0, 8), (.20, 4), (.52, -4), (.78, 14), (1, 30)],
+    'neck':    [(0, -52), (.20, -58), (.52, -50), (.78, -54), (1, -62)],
+    'head':    [(0, -30), (.52, -26), (1, -46)],
+    'jaw':     [(0, 0), (.30, -6), (.40, -34), (.80, -34), (1, -36)],
+    'wspread': [(0, 0), (.30, .1), (.52, .45), (.78, .9), (1, 1.0)],
+    'wyaw':    [(0, -14), (.52, -10), (.78, 20), (1, 46)],
+    'wbeat':   [(0, -4), (.52, 8), (.78, 22), (1, 26)],
+    'wpitch':  [(0, 62), (.52, 40), (1, 14)],
+    'wcurl':   [(0, -6), (1, -10)],
+    'wstr':    [(0, .82), (.52, 1.3), (1, 2.1)],
+    'rx':      [(0, .34), (.52, .30), (.78, .22), (1, .12)],         # right hand: closes on the lower centre of the lens
+    'ry':      [(0, -.77), (.34, -.60), (.52, -1.90), (.78, -1.45), (1, -1.30)],
+    'rz':      [(0, .47), (.34, .70), (.52, .30), (.78, .95), (1, 1.18)],
+    'ax':      [(0, .34), (.52, .30), (1, .42)],
+    'ay':      [(0, -.77), (.34, -.60), (.52, -1.90), (.78, -1.50), (1, -1.28)],
+    'az':      [(0, .47), (.34, .70), (.52, .30), (.78, .85), (1, 1.08)],
+    'fx':      [(0, .26), (1, .30)],
+    'fy':      [(0, .40), (.34, .55), (.52, -.35), (.78, -.85), (1, -.90)],
+    'fz':      [(0, 0), (.34, .02), (.46, .30), (.62, .06), (1, 0)],
+}
+def crawl_grab(p, ph, f):
+    c = curves(f, CG)
+    p.l('Hips', y=c['hy'], z=c['hz'], raw=True); p.r('Hips', x=c['hips_x'])
+    p.spine(c['lean'], neck=c['neck'], head=c['head']); p.r('Jaw', x=c['jaw'])
+    p.legs(0, 0)
+    p.wings(c['wspread'], yaw=c['wyaw'], beat=c['wbeat'], pitch=c['wpitch'], curl=c['wcurl'], stretch=c['wstr'])
+def crawl_grab_ik(f, ph):
+    c = curves(f, CG)
+    for side, sg in (('Left', 1), ('Right', -1)):
+        two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * c['fx'], c['fy'], ANKLE + c['fz']), (sg * .7, -1.2 + c['hy'], .9)); plant(side + 'Foot', sg * 8)
+        k = ('a' if sg > 0 else 'r'); two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', (sg * c[k + 'x'], c[k + 'y'], c[k + 'z']), (sg * 1.2, .3 + c['hy'], .5))
+
 # (name, pose fn, seconds, loop, post-IK fn, floor rule): 'plant' keeps the lowest mesh point on z=0,
 # 'lift' only lifts it back above z=0 (airborne clips), None leaves the IK-planted feet alone.
 # 'skim' shifts the whole airborne clip by one constant so its lowest point over the clip is SKIM above the origin:
@@ -442,7 +551,11 @@ ANKLE = arm.bones['LeftFoot'].head_local.z           # rest ankle height (feet p
 CLIPS = [('Perch', perch, 3.2, True, perch_ik, None), ('Glide', glide, 2.0, True, None, 'skim'),
          ('Search', search, 2.6, True, search_ik, None), ('Dive', dive, 1.0, True, None, 'skim'),
          ('Stagger', stagger, 1.3, False, None, 'plant'), ('Death', death, 2.4, False, None, 'plant'),
-         ('Grab', grab, 0.9, False, None, 'skim'), ('Crawl', crawl, 1.4, True, crawl_ik, None)]
+         ('Grab', grab, 0.9, False, None, 'skim'), ('Crawl', crawl, 1.4, True, crawl_ik, None),
+         # F5: Mode 8 and 9 are authored grounded (lowest point on z=0 at every frame; GrabDrop adds its fall height on top).
+         ('GrabDrop', drop, DROP_SECONDS, False, drop_ik, 'plant'), ('GrabCrawl', crawl_grab, CRAWL_GRAB_SECONDS, False, crawl_grab_ik, 'plant')]
+NEW_FROM = 8                                           # CLIPS[NEW_FROM:] are the F5 clips
+LIFT = {'GrabDrop': drop_lift}                         # extra airborne lift added after the grounding rule
 DEFORM = [b.name for b in arm.bones]
 actions = {}; metrics = {}
 def lowest_over(fn, end, loop, ik):
@@ -453,12 +566,24 @@ def lowest_over(fn, end, loop, ik):
         if ik: ik(frame / end, ph)
         low = min(low, float(mesh_points()[:, 2].min()))
     return low
-for name, fn, seconds, loop, ik, floor in CLIPS:
+
+def chest_pitch_deg():
+    # hips joint -> neck joint on the posed skeleton: degrees forward of vertical (toward -Y, the camera side)
+    h = rig.pose.bones['Hips'].head; n = rig.pose.bones['neck'].head
+    return math.degrees(math.atan2(-(n.y - h.y), n.z - h.z))
+hand_groups = [g.index for g in body.vertex_groups if g.name in ('LeftHand', 'RightHand')]
+hand_verts = [v.index for v in me.vertices if sum(g.weight for g in v.groups if g.group in hand_groups) > .5]
+def claw_points():
+    return mesh_points()[hand_verts]
+if ONLY_NEW and RECEIPT.exists():
+    old_receipt = json.loads(RECEIPT.read_text()); metrics.update(old_receipt['clips'])
+RUN = CLIPS[NEW_FROM:] if ONLY_NEW else CLIPS
+for name, fn, seconds, loop, ik, floor in RUN:
     end = round(seconds * FPS)
     shift = (SKIM if floor == 'skim' else 0.0) - lowest_over(fn, end, loop, ik) if floor in ('skim', 'ground') else 0.0
     action = bpy.data.actions.new(name); action.use_fake_user = True; rig.animation_data.action = action
     if action.slots: rig.animation_data.action_slot = action.slots[0]
-    prev = {}; spans = []; tops = []; lows = []; reach = []; areas = []
+    prev = {}; spans = []; tops = []; lows = []; reach = []; areas = []; pitches = []; claw_reach = []
     for frame in range(0, end + 1):
         ph = (frame / end) % 1.0 if loop else frame / end; f = frame / end
         if loop and frame == end: ph = 0.0
@@ -468,6 +593,9 @@ for name, fn, seconds, loop, ik, floor in CLIPS:
         pts = mesh_points()
         if floor == 'plant':
             lift_hips(-float(pts[:, 2].min())); pts = mesh_points()
+        if name in LIFT:
+            lift_hips(LIFT[name](f)); pts = mesh_points()
+        pitches.append(chest_pitch_deg()); claws = claw_points(); claw_reach.append(float(-claws[:, 1].min()))
         spans.append(float(pts[:, 0].max() - pts[:, 0].min())); tops.append(float(pts[:, 2].max()))
         lows.append(float(pts[:, 2].min())); reach.append(float(-pts[:, 1].min()))
         if frame % 6 == 0 or frame == end: areas.append(membrane_area() / REST_MEMBRANE)
@@ -479,7 +607,7 @@ for name, fn, seconds, loop, ik, floor in CLIPS:
     actions[name] = (action, end, loop)
     metrics[name] = {'seconds': round(end / FPS, 3), 'loop': loop, 'hip_shift_m': round(shift, 3), 'span_m_min': round(min(spans), 3), 'span_m_max': round(max(spans), 3),
                      'top_m_max': round(max(tops), 3), 'lowest_z_min': round(min(lows), 3), 'forward_reach_m_max': round(max(reach), 3),
-                     'forward_reach_m_last': round(reach[-1], 3), 'membrane_area_ratio_min': round(min(areas), 3), 'membrane_area_ratio_last': round(areas[-1], 3)}
+                     'forward_reach_m_last': round(reach[-1], 3), 'claw_reach_m_last': round(claw_reach[-1], 3), 'chest_pitch_deg_last': round(pitches[-1], 1), 'chest_pitch_deg_max': round(max(pitches), 1), 'membrane_area_ratio_min': round(min(areas), 3), 'membrane_area_ratio_last': round(areas[-1], 3)}
     print('HC_CLIP', name, json.dumps(metrics[name]), flush=True)
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
@@ -516,6 +644,65 @@ def preview(directory):
             sc.render.filepath = str(directory / ('%s_%s_%s.png' % (label, ('%03d' % int(frac * 100)) if clip else 'rest', vname)))
             bpy.ops.render.render(write_still=True)
     rig.animation_data.action = None
+# ---------------------------------------------------------------- F5 proof renders (the player's camera; Workbench, no Unity)
+PROFILE_GRAB_REACH = 1.39; CAMERA_CLEARANCE = .6; EYE = 1.64; VFOV = 72.0     # CountClaudeProfile.GrabReach/CameraClearance, Investigator camera
+PROOF_W, PROOF_H = 2560, 1440
+def proof(directory):
+    from bpy_extras.object_utils import world_to_camera_view
+    directory.mkdir(parents=True, exist_ok=True)
+    sc = bpy.context.scene; sc.render.engine = 'BLENDER_WORKBENCH'
+    sc.display.shading.light = 'STUDIO'; sc.display.shading.color_type = 'TEXTURE'; sc.display.render_aa = '8'
+    sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGB'; sc.render.image_settings.compression = 100; sc.render.dither_intensity = 0
+    sc.world = bpy.data.worlds.new('proof'); sc.world.color = (.03, .035, .05)
+    cam = bpy.data.objects.new('proofcam', bpy.data.cameras.new('proofcam')); sc.collection.objects.link(cam); sc.camera = cam
+    cam.data.sensor_fit = 'VERTICAL'; cam.data.angle = D(VFOV); cam.data.clip_start = .04; cam.data.clip_end = 75
+    head_groups = [g.index for g in body.vertex_groups if g.name in ('Head', 'Jaw')]
+    head_verts = [v.index for v in me.vertices if sum(g.weight for g in v.groups if g.group in head_groups) > .5]
+    left = [v for v in hand_verts if me.vertices[v].co.x > 0]; right = [v for v in hand_verts if me.vertices[v].co.x <= 0]
+    results = {}
+    for clip, stem in (('GrabDrop', 'grab_drop'), ('GrabCrawl', 'grab_crawl')):
+        action, end, loop = actions[clip]; rig.animation_data.action = action
+        if action.slots: rig.animation_data.action_slot = action.slots[0]
+        standoff = PROFILE_GRAB_REACH + CAMERA_CLEARANCE
+        sc.frame_set(end); update()
+        target = Vector(mesh_points()[head_verts].mean(axis=0))                  # the camera looks at his face
+        cam.location = Vector((0, -standoff, EYE)); cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler(); update()
+        sc.render.resolution_x = PROOF_W; sc.render.resolution_y = PROOF_H; sc.render.resolution_percentage = 100
+        pts = mesh_points()
+        def project(co):
+            v = world_to_camera_view(sc, cam, Vector(co)); return v.x * PROOF_W, (1 - v.y) * PROOF_H, v.z
+        def hand_stats(idx):
+            px = [project(pts[i]) for i in idx]; px = [q for q in px if q[2] > .04]
+            xs = [q[0] for q in px]; ys = [q[1] for q in px]
+            if not xs: return None
+            cx = (min(xs) + max(xs)) / 2; cy = (min(ys) + max(ys)) / 2
+            return {'x': [round(min(xs)), round(max(xs))], 'y': [round(min(ys)), round(max(ys))], 'width_px': round(max(xs) - min(xs)),
+                    'centre_dist_px': round(math.hypot(cx - PROOF_W / 2, cy - PROOF_H / 2)), 'nearest_m': round(min(q[2] for q in px), 3)}
+        vis = [q for q in (project(c) for c in pts[::7]) if q[2] > .04]
+        hp = rig.pose.bones['Hips'].head; nk = rig.pose.bones['neck'].head
+        a = project(hp); b = project(nk)
+        results[clip] = {'camera': {'standoff_m': standoff, 'eye_m': EYE, 'vfov_deg': VFOV, 'look_at': [round(x, 3) for x in target]},
+                         'chest_pitch_deg': round(chest_pitch_deg(), 1), 'neck_to_hips_px': round(math.hypot(a[0] - b[0], a[1] - b[1])),
+                         'left_claw': hand_stats(left), 'right_claw': hand_stats(right),
+                         'mesh_forward_reach_m': round(float(-pts[:, 1].min()), 3), 'claw_reach_m': round(float(-pts[hand_verts][:, 1].min()), 3),
+                         'mesh_x_range_px': [round(min(q[0] for q in vis)), round(max(q[0] for q in vis))]}
+        for label, frame in (('pose', end), ('frame0', 0)):
+            sc.frame_set(frame); update()
+            sc.render.filepath = str(directory / ('%s_%s.png' % (stem, label)))
+            bpy.ops.render.render(write_still=True)
+        # side-view contact sheet (orthographic, from his right): frames 0, landing/lunge, 60%, final, for reading the motion
+        cam.data.type = 'ORTHO'; cam.data.ortho_scale = 5.6 if clip == 'GrabDrop' else 3.8; mid = 2.25 if clip == 'GrabDrop' else 1.0; cam.location = Vector((-9, -.6, mid)); cam.rotation_euler = (Vector((0, -.6, mid)) - cam.location).to_track_quat('-Z', 'Y').to_euler()
+        sc.render.resolution_x = 700; sc.render.resolution_y = 540
+        tiles = []
+        for fr in (0.0, DROP_LAND if clip == 'GrabDrop' else .34, .6 if clip == 'GrabDrop' else .52, .8, 1.0):
+            sc.frame_set(int(round(end * fr))); update(); path = str(directory / '_tile.png'); sc.render.filepath = path; bpy.ops.render.render(write_still=True)
+            im = bpy.data.images.load(path); arr = np.empty(im.size[0] * im.size[1] * 4, dtype=np.float32); im.pixels.foreach_get(arr); tiles.append(arr.reshape(im.size[1], im.size[0], 4)); bpy.data.images.remove(im)
+        sheet = np.concatenate(tiles, axis=1); out = bpy.data.images.new('sheet', sheet.shape[1], sheet.shape[0], alpha=True); out.pixels.foreach_set(sheet.reshape(-1)); out.filepath_raw = str(directory / (stem + '_side.png')); out.file_format = 'PNG'; out.save()
+        (directory / '_tile.png').unlink(missing_ok=True)
+        cam.data.type = 'PERSP'
+    (directory / 'grab_proof_measurements.json').write_text(json.dumps(results, indent=2) + '\n')
+    print('HC_PROOF', json.dumps(results), flush=True)
+
 if PREVIEW:
     preview(PREVIEW)
     for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
@@ -525,12 +712,18 @@ if PREVIEW:
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
 update()
-select_only(rig, body)
-bpy.ops.export_scene.fbx(filepath=str(OUT / 'Native/CountClaudeBody.fbx'), use_selection=True, object_types={'ARMATURE', 'MESH'},
-                         add_leaf_bones=False, bake_anim=False, axis_forward='-Z', axis_up='Y', path_mode='STRIP')
+if PROOF: proof(PROOF)
+rig.animation_data.action = None
+for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
+update()
+if not ONLY_NEW:
+    select_only(rig, body)
+    bpy.ops.export_scene.fbx(filepath=str(OUT / 'Native/CountClaudeBody.fbx'), use_selection=True, object_types={'ARMATURE', 'MESH'},
+                             add_leaf_bones=False, bake_anim=False, axis_forward='-Z', axis_up='Y', path_mode='STRIP')
 select_only(rig)
+known = {c[0] for c in CLIPS}
 for old in (OUT / 'Native').glob('CountClaude*.fbx'):
-    if old.stem[len('CountClaude'):] not in actions and old.stem != 'CountClaudeBody':
+    if old.stem[len('CountClaude'):] not in known and old.stem != 'CountClaudeBody':
         old.unlink(); Path(str(old) + '.meta').unlink(missing_ok=True)
 for name, (action, end, loop) in actions.items():
     rig.animation_data.action = action
@@ -539,11 +732,24 @@ for name, (action, end, loop) in actions.items():
     bpy.ops.export_scene.fbx(filepath=str(OUT / ('Native/CountClaude%s.fbx' % name)), use_selection=True, object_types={'ARMATURE'},
                              add_leaf_bones=False, bake_anim=True, bake_anim_use_all_actions=False, bake_anim_use_nla_strips=False,
                              bake_anim_simplify_factor=0, axis_forward='-Z', axis_up='Y', path_mode='STRIP')
-report = {'source': str(SOURCE.relative_to(ROOT)), 'head_top_m': HEAD_TOP, 'mesh_height_m': round(hi - lo, 4), 'triangles': triangles,
-          'vertices': len(me.vertices), 'bones': len(arm.bones), 'wing_vertices': wing_verts, 'membrane_faces': membrane_faces, 'flesh_faces': flesh_faces, 'body_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 0),
-          'membrane_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 1),
-          'flesh_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 2), 'rest_membrane_m2': round(REST_MEMBRANE, 3),
-          'rest_span_m': round(float(rest_pts[:, 0].max() - rest_pts[:, 0].min()), 3), 'shoulder_width_m': round(shoulder_width, 3),
-          'grab_reach_m': metrics['Grab']['forward_reach_m_last'], 'clips': metrics}
-(OUT / 'Native/CountClaude.json').write_text(json.dumps(report, indent=2) + '\n')
+MODE_OF = {c[0]: i for i, c in enumerate(CLIPS)}
+if ONLY_NEW and RECEIPT.exists():
+    report = json.loads(RECEIPT.read_text())
+else:
+    report = {'source': str(SOURCE.relative_to(ROOT)), 'head_top_m': HEAD_TOP, 'mesh_height_m': round(hi - lo, 4), 'triangles': triangles,
+              'vertices': len(me.vertices), 'bones': len(arm.bones), 'wing_vertices': wing_verts, 'membrane_faces': membrane_faces, 'flesh_faces': flesh_faces, 'body_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 0),
+              'membrane_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 1),
+              'flesh_tris': sum(len(pl.vertices) - 2 for pl in me.polygons if pl.material_index == 2), 'rest_membrane_m2': round(REST_MEMBRANE, 3),
+              'rest_span_m': round(float(rest_pts[:, 0].max() - rest_pts[:, 0].min()), 3), 'shoulder_width_m': round(shoulder_width, 3)}
+    report['grab_reach_m'] = metrics['Grab']['forward_reach_m_last']
+report['clips'] = {k: metrics[k] for k in sorted(metrics, key=lambda n: MODE_OF.get(n, 99))}
+# F5: forward reach of the furthest claw (hand-weighted vertices) from the origin at the final pose, and the Animator Mode of every clip.
+report['grab_drop_reach_m'] = metrics['GrabDrop']['claw_reach_m_last']; report['grab_crawl_reach_m'] = metrics['GrabCrawl']['claw_reach_m_last']
+report['grab_drop_mesh_reach_m'] = metrics['GrabDrop']['forward_reach_m_last']; report['grab_crawl_mesh_reach_m'] = metrics['GrabCrawl']['forward_reach_m_last']
+report['modes'] = [MODE_OF[c[0]] for c in CLIPS]
+report['mode_names'] = {str(MODE_OF[c[0]]): c[0] for c in CLIPS}
+RECEIPT.write_text(json.dumps(report, indent=2) + '\n')
+# Shipped in Resources so the player can detect Mode 8/9 (the receipt itself stays outside Resources).
+RUNTIME_MODES.parent.mkdir(parents=True, exist_ok=True)
+RUNTIME_MODES.write_text(json.dumps({k: report[k] for k in ('modes', 'mode_names', 'grab_reach_m', 'grab_drop_reach_m', 'grab_crawl_reach_m', 'grab_drop_mesh_reach_m', 'grab_crawl_mesh_reach_m')}, indent=2) + '\n')
 print('HC_BLENDER_EXPORT_PASS CountClaude', json.dumps(report), flush=True)
