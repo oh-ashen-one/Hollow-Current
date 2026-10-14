@@ -56,16 +56,14 @@ Both start the same way: take the instruments from the lantern cart in the gateh
 
 ## Known issues
 
-- **Throwables:** in the automated run neither the single throw nor the poltergeist moved a prop, so `HC_THROW=0`. Props may not fly in your run. The cause is being probed.
-- **Escape:** walking out over the bridge ends the case, and so does the winch at the gate once the bell is sealed. In the hostile return the bridge takes about 7 s to come down while he hunts.
-- **Missing voice line:** "contain" has no voice (`voice_cc_contain`). The card text still shows.
-- **Not checked automatically yet:** Long Night, the microphone, the rare whisper behind you, a held hiding-place door, and a relic moving after a death. The automated run cannot reach these.
+- **Bellwether bug fix for you to accept:** in both maps, the interaction ray now also finds an interactable that sits up to 12 cm behind the first thing it hits.
+  - Before this, the Bellwether hall coat cupboard could not be focused from some angles. Its hide trigger sits in the same plane as its solid lower door (added in `89dac7e` on `main`), and Bellwether's own automated route (`-hc-verify`) failed there. It passes now.
+  - Nothing else in Bellwether changed. The rules fuzz stays identical.
+- **Apparitions are rare in natural play:** one in a 10-minute run, so props rarely fly by themselves. Being looked into.
+- **Wings at the start of a no-tell hunt:** when a no-tell hunt starts, his wings can be heard as he takes off. That is the only audible change in its first seconds.
+- **Long Night:** the bell starts the hunt at once, by design.
 - **Sword:** the left hand does not hold the hilt yet.
-- **Rough edges:**
-  - The ledger and UI art are generated placeholders.
-  - Some textures are projected and mirrored on the Count.
-  - The castle portraits await Codex's paintings (see `docs/haunted-castle/CODEX_HANDOFF.md`).
-- **Bellwether:** the Bellwether map should play exactly as before. Its automated route has not been re-run on this build.
+- **Rough edges:** the ledger and UI art are generated placeholders, and the castle portraits await Codex's paintings.
 
 ## Where to write notes
 
@@ -73,40 +71,34 @@ Write in `docs/haunted-castle/playtest/OWNER_NOTES.md` (create it), or tell the 
 
 ## Build
 
-- **Commit:** `34a0de9` on branch `haunted-castle`. It is the combined player with both maps, built 2026-10-14 from `b5da27e` source.
-- **Window:** it opens as a 1920x1080 window and never full screen. If an earlier run left it full screen, the first launch switches it back.
-- **Since the last build:**
-  - **Dread:** an unseen meter rises in the dark and falls in the gatehouse and at the chapel fire.
-    - The journal shows it as a hand-drawn pulse line, never a number.
-    - A heartbeat follows it.
-  - **Hunts come on the dice once Dread is high, not on a timer.**
-    - One hunt in four has no warning at all.
-    - A dice warning can be a false alarm: candles strobe, the radio crackles, and nothing comes.
-    - A close apparition can turn into a hunt after a 1.5 s tell.
-  - **Lies above Dread 70:** the compass needle spins at nothing, and candles lean toward an empty doorway. Above Dread 90 a hiding-place door is held shut.
-  - **Count Claude between hunts:**
-    - He sits on perches you are not looking at, and moves only when you are not watching.
-    - Once per run he lands on the gate wall above the cart if you shelter too long.
-    - He learns where you like to be.
-  - **In hunts:**
-    - One time in three he crawls to your cupboard, breathes at the slats and leaves.
-    - If he saw you hide, he opens it.
-    - He speaks while he hunts. The torch dies for a second when he dives.
-    - Two new grabs: one dropping from above, one crawling from a door.
-  - **Hostile escape:** sealing the bell does not end the danger. He hunts you while the bridge comes down.
-  - **Castle scares:**
-    - Books fall, a knife leaves the orbit and sticks in the table, a bat crosses your torch, and the bell tolls once by itself.
-    - A silhouette crosses a moon window; a shape on the gallery is gone when you look.
-  - **Sound:** no house music in the castle; silence, wind and the heartbeat instead. A rare whisper may come from behind you once.
-  - **CASTLE NIGHT page in Field Settings:**
-    - **Long Night:** no warnings, darker start, two hiding places nailed shut.
-    - **Microphone:** opt-in, off by default. macOS asks for permission the first time.
-  - **The sarcophagus:** reading a ledger page aloud there names the relic's room, but it can wake him at once.
-  - **After a death:** the next relic may have moved.
-  - **New title screen** (castle key art, Cinzel type).
+- **Commit:** `a412df7` on `haunted-castle` (source `430a266`). It is the combined player with both maps.
+  - It opens as a 1920x1080 window, never full screen.
+  - Automated test runs no longer take your mouse.
+- **Since the last build (wave G and wave H fear fixes):**
+  - **No hunt "lamp":**
+    - The HUD objective, the music, the heartbeat and the instrument no longer flip when a hunt starts.
+    - The radio is unreliable during a hunt, and the countdown no longer shows a number.
+    - Recording evidence, the ear-trumpet, the journal, the brazier and the bell work the same in and out of a hunt.
+    - The instruments are disturbed only when he is close and in sight.
+  - **The dice and the timing:**
+    - Hunts can come at any Dread, even low.
+    - Hunt and recovery lengths vary, and a recovery can be cut short at high Dread.
+    - The heartbeat and the journal pulse follow a lagging, wobbling, sometimes lying "felt" Dread.
+  - **Hiding is fallible:**
+    - If he sees you hide, he comes and opens it, even with your torch off.
+    - At high Dread a near-miss can turn into an opening.
+  - **The escape:**
+    - Sealing the bell sets him loose. He swoops over the courtyard (the swoop now detours around the wall).
+    - The bridge is lethal.
+    - A dispatch card and voice announce it.
+  - **The scare layer:**
+    - It keeps going through hunts and recoveries (ambient beats).
+    - Silence is an active beat that ducks the wind, room tone and heartbeat.
+    - Lies include footsteps behind you and a phantom whisper.
+  - **The title screen:** the fog seam is fixed.
 - **Automated proof:** see `docs/haunted-castle/playtest/AUTO_RUN.md`.
-  - Escape, kill and a forced-dice fear run all complete in this build:
-    - Escape: 85.8 s.
-    - Kill: 95.6 s.
-    - Fear run: 266.1 s. A false warning, a no-tell hunt, a watched-hide grab, the gatehouse visit and the hostile return all occurred.
+  - Escape, Long Night and a natural (unforced) run all win.
+  - The forced-dice fear run proves: throws and the poltergeist, lies and silence, a false warning, a watched hide opened with the torch off, the swoop and the lethal bridge.
+  - Also proven: the low-Dread hunt, the near-miss with an open, the recovery cut, and death with a checkpoint retry.
+  - Bellwether's own route passes.
   - Great hall: 11.15 ms mean frame time at 1920x1080.

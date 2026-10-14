@@ -1,85 +1,100 @@
-# Automated castle playthroughs: wave F build
+# Automated castle playthroughs: waves G and H (windowed checklist, 2026-10-14)
 
 These are facts from the real combined player. The critic and the owner judge them.
 
-**Build:** `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, from `haunted-castle` source at `b5da27e`, baked and committed as `34a0de9`.
-- All of wave F is merged: hc/dread, hc/count11, hc/scares, hc/audio2, hc/grabs (`fef50da`), hc/title and hc/wallart (runtime patch applied).
-- The window is 1920x1080, not full screen.
-- Each run went through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-f0 -- "<app>/Contents/MacOS/Hollow Current" -logFile <log> -hc-playtest <dir> escape|kill|fear`.
-- Runs, all 2026-10-14:
+## How the runs were made
 
-| Run | Finished | Slot held |
-|---|---|---|
-| escape | 09:46 | 92.2 s |
-| kill | 09:48 | 101.7 s |
-| fear | 09:53 | 272.5 s |
+- **Launch:** every run went through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-f0 -- …`, one instance at a time, in a 1920x1080 window (never full screen).
+  - Rounds 2 and 3 used `open -g -W -n -a "Hollow Current.app" --args …` so the window opened behind. During the first such launch the front app stayed "Google Chrome" (`lsappinfo front`), and the run logged `HC_CURSOR free`.
+- **Driver:** `Assets/HollowCurrent/Runtime/Castle/PlaytestDriver.cs` sends input through `Investigator.TestInput` and teleports between stops. Unless a mode says otherwise, the investigator is invulnerable to the driver only: `blockedDeaths` counts grab frames that would have killed.
+- **Forcing:**
+  - `fear` forces dice queues (`ForceDice`, hc/rules3) and Dread, and logs each as `HC_PLAY_FORCED`.
+  - `siege` holds Dread at 82 or higher.
+  - `lowdread` holds Dread below the run's boundary.
+  - `natural` forces nothing.
+- **Logs (gitignored):** `/Users/midir/hollow-current-haunted-castle/.playtest-<name>.log` for the latest run, plus `.playtest-r1-*.log` and `.playtest-r2-*.log`.
+- **Screenshots:** `docs/haunted-castle/playtest/auto/<name>/`, with `r1_*` and `r2_*` for the earlier rounds.
 
-**Logs** are gitignored:
-- `/Users/midir/hollow-current-haunted-castle/.playtest-escape.log`
-- `/Users/midir/hollow-current-haunted-castle/.playtest-kill.log`
-- `/Users/midir/hollow-current-haunted-castle/.playtest-fear.log`
-
-**Screenshots** are 1920x1080 and also gitignored: `docs/haunted-castle/playtest/auto/{escape,kill,fear}/`.
-
-**Driver:** `Assets/HollowCurrent/Runtime/Castle/PlaytestDriver.cs`.
-- It sends input through `Investigator.TestInput` and teleports between stops.
-- The investigator is invulnerable to the driver only: a grab is counted as `blockedDeaths` instead of ending the run.
-- **Fear mode is not an organic playthrough:**
-  - It feeds queued values into the real rules engine through `Investigation.Dice` and raises Dread with `AddDread`. Each forced step is logged as `HC_PLAY_FORCED`.
-  - It calls the director's real `ThrowNearbyProp`, `CastleScares.Poltergeist` and `ScareDirector.Dread` methods.
-  - When the queue is empty, the dice return 0.99, so no unplanned hunt fires.
-
-## Results
-
-| Run | Result | Blockers | Driver-blocked grabs |
+| Round | Build (bake commit) | Source | What changed |
 |---|---|---|---|
-| escape | **WON**, 85.8 s | 0 | 0 |
-| kill | **WON, slain**, 95.6 s | 0 | 0 |
-| fear | **WON (escape)**, 266.1 s | 0 | 856 frames, from one watched-hide grab |
+| r1 | `3173015` | `40ec63d` | wave G merged, proof tooling |
+| r2 | `99a09c3` | `e1e360a` | wave H merged; N1, N4, N5, N9; rerun fixes; cursor rule |
+| r3 | `a412df7` | `430a266` | driver watched-hide timing; `HC_SCARE_SKIP` logs |
 
-- **Escape:**
-  - The bell starts a 9 s told warning, then the hunt (`HC_HUNT_START noTell=False`).
-  - The investigator hid in the Count's wardrobe with the torch off and was not grabbed.
-  - The near-miss rolled 0.47 against 0.33, so it did not trigger.
-  - The seal starts the hostile return (`HC_HUNT_START phase=Return noTell=True`). The bridge was down at 81.2 s and the run won at 85.8 s.
-- **Kill:**
-  - The sword was forged at 27.3 s; the hits landed at 40.3, 65.9 and 91.4 s.
-  - The torch failed for a second on two dives (`HC_TORCH_FAIL dive`).
-  - At the third hit `HC_COUNT_GRAB mode=8 why=airborne drop` was chosen, but no death was blocked (`blockedDeaths=0`).
+**Throwables check:** `python3 tools/check_throwables_scene.py` exits 0 on all three bakes (0 of 38 throwables batched).
 
-## Wave F proofs (fear run unless noted)
+## Proof table
 
-| Proof | Status | Evidence |
-|---|---|---|
-| False warning | **PASS** (forced dice) | `HC_WARNING false=True length=9.0`, then `HC_FALSE_WARNING ended phase=Disturbance`. Hunts stayed 0 to 0. Screenshot `fear/10_warning.png`. |
-| No-tell hunt | **PASS** (forced dice) | `HC_HUNT_START phase=Hunt noTell=True from=Disturbance`, with no Warning phase. Hidden, it was survived; closest approach 0.91 m. |
-| Near-miss | **NOT SEEN on this build** | The escape roll was 0.47 against 0.33. In the fear no-tell hunt `nearMissBegin=0`. An earlier build in this session (a full-screen run, log since overwritten) did log `HC_COUNT_NEARMISS begin/landed/hold doorDistance=0.50/leave` at the Count's wardrobe. |
-| Watched hide, door opened | **PASS** | `witnessed_hide seenBeforeHiding=True` at the ossuary niche. `HC_COUNT_GRAB mode=8 why=airborne drop ... witnessed=True`. The driver blocked 856 grab frames, so a real player dies here. |
-| Dread moves | **PASS** | It rose naturally from 0.17 to 0.58 in 8 s in a lit room. It reached 73.0 after a hunt with seen +15 and grab survived +20 (`HC_COUNT_DREAD`), fell in the gatehouse from 73.0 to 51.6, and fell again during the return. Forced jumps are logged separately. |
-| Hostile return | **PASS (approach), no kill** | `HC_HUNT_SPAWN hostileReturn=True`. The bridge now takes 7.2 s to lower. He came within 7.9 m while she waited at the gate, then dove on the crossing (`HC_TORCH_FAIL dive`); closest on the bridge 1.55 m. `grabsOnBridge=0`. |
-| Bridge ground (F2 risk) | **PASS** | The drawbridge has 3 child colliders. A ray down at z -3 hits `Drawbridge leaf` at y 0.00. |
-| Near-miss crawl through walls (F2 risk) | **Partial** | Over 176 + 14 ground moves in the two fear hunts, the wall linecast between consecutive positions hit 0 times. No near-miss crawl happened on this build, so that exact path is unchecked. |
-| Battlement visible from the courtyard (F2 risk) | **PASS (line of sight)** | `HC_PLAY_BATTLEMENT`: 90 of 90 outdoor NavMesh sample points have a clear line to the battlement head at (3.6, 8.9, 0.0). The farthest is 24.9 m. Not judged visually. |
-| Gatehouse visit | **PASS** | `HC_COUNT_GATEHOUSE landed` at (3.60, 7.50, 0.00) with `cc_stay`, after about 40 s in the gatehouse. Screenshot `fear/19_gatehouse_visit.png`. |
-| Throwables fly | **FAIL** | `ThrowNearbyProp` returned false and `Poltergeist()` threw 0, so the summary shows `HC_THROW=0`. The director listed all 38 throwables (`HC_THROWABLES director=38`). Cause unknown. `8485c6a` adds a per-candidate probe (`HC_PLAY_THROW_PROBE`: distance, angle, what the sight line hits) that is not built yet. |
-| Castle dread beats | **PASS** | `HC_SCARE_CASTLE` ×7: balustrade_shape, bat_pass, window_silhouette ×2, book_drop, bell_single, candle_gutter. |
-| Perch sightings between hunts | **PASS** | `HC_COUNT_PERCH moved` ×18 in the fear run, ×3 in escape and ×5 in kill. Every move was outside the view cone (viewAngle 130-145) or occluded. |
-| Hunt voices | **PASS** | `HC_COUNT_VOICE` ×10 in fear: hunt_hungry, hunt_run, hunt_found and stay. |
-| GrabDrop clip (F5) | **Selected** | `HC_COUNT_GRAB_STATE mode=8 GrabDrop=True`. The death presentation itself was not run, because the driver blocks deaths. |
-| Rare line `cc_listen`, Long Night, microphone, door held, death penalty | **NOT RUN** | The rare line is a one-in-three roll. Long Night needs `-hc-long-night`. The microphone is never enabled in automated runs, by design. Door held needs Dread 90 at a hide. The death penalty needs a death and a checkpoint retry. |
-| Bellwether `-hc-verify` route | **NOT RUN on this build** | Needs a window. |
-| Title captures at 2560x1440 and 1920x1080 against the mock | **NOT RUN** | Needs a window. The 2560x1440 one does not fit in a window on the 3440x1440 display, so `CaptureMode` falls back to full-screen-window for that run only. |
+| Proof | r1 | r2 / r3 (latest) | Evidence (latest) |
+|---|---|---|---|
+| **Escape** route | FAIL (5 blockers: recording suspended by through-wall interference, N4) | **WON 87 s, 0 blockers** (r2) | `.playtest-escape.log` |
+| **Kill** route | WON, slain (1 blocker, same N4) | not rerun | `.playtest-r1-kill.log` |
+| **Throw + poltergeist** (fear) | PASS: plate, poltergeist 10 | **PASS**: plate, poltergeist 11 (r3) | `HC_THROW prop=Throwable / Plate`, `flung=11` |
+| **Lies, silence and duck** (fear) | PASS: HC_LIE 6, HC_DUCK 3 | **PASS**: HC_LIE 10, HC_DUCK 7 (r3) | |
+| **False warning** (fear, forced dice) | PASS | **PASS** (r3) | `HC_WARNING false=True`, then `HC_FALSE_WARNING ended` |
+| **No-tell hunt, first 6 s** (fear, forced dice) | Partial (wing +0.6, 1 voice line) | **Partial** (r3) | See below |
+| **Watched hide, torch off, from a perch** | PASS (he was chasing) | **PASS** (r3; r2 missed it, driver timing) | See below |
+| **Near-miss with open** (siege) | **PASS** attempt 1 | not rerun | `HC_COUNT_NEARMISS begin … open=True openRoll=0.22 dread=87`, then `HC_COUNT_NEARMISS open=True` |
+| **Recovery cut short** (siege) | **PASS** attempt 1 | not rerun | `HC_PLAY_RECOVERY_CUT to=Warning` |
+| **Hostile return: swoop legs** | FAIL (`leg2clear=False`) | **PASS** (r2, r3) | `leg1=clear leg2=detour via (0.00, 8.65, 4.95)` |
+| **Hostile return: bridge is lethal** | FAIL (grab chosen 20×, no death) | **PASS** (r2: 11, r3: 31 blocked grabs on the bridge) | `grabsOnBridge=31` |
+| **Low-Dread hunt** | not run | **PASS** attempt 1 (r2) | A hunt 72 s into the low-Dread watch, at Dread 21.5 against `RunDreadMin` 43.7 |
+| **Death, then checkpoint retry** | **PASS** | not rerun | Deaths 1, penalty true, Dread 59.4, relic 0 moved (`HC_DEATH_PENALTY`, `HC_RELIC_MOVE`) |
+| **Long Night** | route FAIL (N4) | **WON** (r2) | `HC_NAIL_HIDES nailed=2`, no-tell hunt on the bell. The one blocker is the driver's expectation of a Warning, which Long Night does not have. |
+| **Bellwether `-hc-verify`** | FAIL (Raycast focus Hall coat cupboard) | **PASS** (r2) | `HC_NATIVE_ROUTE_PASS`, after the deliberate Bellwether ray fix in `e1e360a` |
+| **Natural run, no forcing** | not won (N4) | **WON** (r2) | r3 in progress when this was written |
+| **Missing audio** | 0 | 0 | `HC_MISSING_ART=0` in fear and natural |
 
-**Frame time, great hall:** the camera stands 3.5 m in front of the rune ring looking down the hall, for 10 s at a 1920x1080 window with the 90 fps cap.
+**No-tell hunt, first 6 s, detail (r3):**
+- Over 532 frames, nothing changed in the HUD goal, instrument line, house/hunt/safety music, breath, room tone, brazier state or card styling (`changedFrames=0`). There was no rim line and no smell line.
+- The only hunt voice line was `cc_hunt_hungry`, and it was held (`HC_COUNT_VOICE held … t=1.9 (first 8 s, not seen)`).
+- Heartbeat drift was 0.04: felt Dread following the driver's forced Dread.
+- The wing loop rose 0.60 because his first leg was `HC_COUNT_WINGS leg=search loudness=1.0` in both no-tell samples (r2 and r3). A silent first leg did occur, in the r3 told hunt (`leg=search loudness=0.0`), so it is possible but was not observed on a no-tell start.
 
-| Frames | Mean | p50 | p95 | p99 | Worst | Over 16.7 ms |
+**Watched hide, torch off, from a perch, detail (r3):**
+- `HC_COUNT_WITNESSED hide at` with `flight=Perched`, torch off.
+- `begin … open=True reason=watched (any Dread)`, then `landed crawl`, then `hold doorDistance=0.50 opens=True`.
+- Then `HC_COUNT_GRAB mode=8 why=hide opened (GrabDrop) hideEntrance=True witnessed=True torch=False` and `grab blocked reason=driver invulnerability`.
+
+## Natural run (r2, build 99a09c3): hunt timeline
+
+| t (s) | Phase | From | Threat from | Dread | Felt | Notes |
 |---|---|---|---|---|---|---|
-| 897 | 11.15 ms | 11.11 ms | 11.16 ms | 11.44 ms | 22.03 ms | 3 |
+| 104 | Hunt | Disturbance | Disturbance | 18.8 | 22.3 | No-tell. The first-hunt guarantee: below the boundary, before the first hunt |
+| 194 | Hunt | Disturbance | Disturbance | 28.7 | 18.8 | No-tell, below the boundary: the low-Dread roll |
+| 247 | Hunt | Warning | Recovery | 30.5 | 22.1 | Recovery roll |
+| 296 | Hunt | Disturbance | Disturbance | 68.3 | 47.7 | No-tell, dice |
+| 386 | Hunt | Warning | Recovery | 74.1 | 76.0 | |
+| 454 | Hunt | Warning | Recovery | 100.0 | 94.3 | |
+| 530 | Hunt | Warning | Recovery | 100.0 | 99.2 | |
+| 586 | Return | Containment | Containment | 93.9 | 74.4 | Hostile return |
 
-**Windowed launch (owner rule):** a plain launch of this build logged `HC_WINDOWED switched=True mode=Windowed fullScreen=False size=1920x1080 display=3440x1440`. The Unity prefs then read `Screenmanager Fullscreen mode = 3`, which is Windowed. Log: `/Users/midir/hollow-current-haunted-castle/.owner-launch.log`.
+- `escalated=False` on every hunt. The run's boundary was 49.9.
+- **Why Dread climbed:** the driver stood in the open, invulnerable. Every hunt he saw her (+15) and dove and missed (+20 "grab survived"). A real player would have died early. Dread ≥ 80 then allows Recovery rolls, so the late hunts come one Recovery after another. The guarantee fired once, at t=104; the rest is dice.
+- **Scare layer:** 16 `HC_AMBIENT` beats during Hunt, Recovery, Warning and Containment, and 21 `HC_SCARE_CASTLE` beats (window silhouette ×6, candle gutter ×6, book ×3, knife ×2, bat ×2, silence ×2, false candle ×1, balustrade ×1). Also 4 `HC_LIE` and 2 `HC_DUCK`.
+- **Apparitions are still rare:** 1 apparition in 10 minutes, so 0 natural throws or poltergeist, and 1 escalation try (`near=3.4 escalated=False`). The cause was unknown. `430a266` adds `HC_SCARE_SKIP reason=` lines and natural run r3 reads them.
 
-## Other findings
+## Frame time, great hall
 
-- `HC_MISSING_ART speech voice_cc_contain`: `Speak("contain")` has no clip. This is F4's area.
-- **Headless batchmode cannot run the driver:** it stalls at the first `WaitForEndOfFrame` screenshot, so every scripted run needs a window.
-- **Full-screen runs were closed from outside:** the earlier full-screen runs in this session quit within 3-11 s (`HC_APP_QUIT` with no `Quit()` call). Scripted runs now open a 1920x1080 window, and stray quit, retry and Escape keys are ignored in scripted runs.
+The camera stands 3.5 m in front of the rune ring looking down the hall, for 10 s at a 1920x1080 window with the 90 fps cap.
+
+| Round | Mean | p99 | Worst | Over 16.7 ms | Slot GPU busy (before / after run) |
+|---|---|---|---|---|---|
+| r1 | 11.12 ms | 11.34 ms | 17.58 ms | 1 | 0 / 28 % |
+| r2 | 11.12 ms | 11.32 ms | 18.09 ms | 1 | 25 / 0 % |
+| r3 | 11.15 ms | 11.49 ms | 18.07 ms | 3 | 0 / 26 % |
+
+## Captures for the blind critic
+
+In `docs/haunted-castle/rounds/r10/captures/`:
+- **Title (r2 build):**
+  - `S7_title_castle_1920x1080.png` and `S7_title_bellwether_1920x1080.png`.
+  - The 2560x1440 request does not fit a window on this 3440x1440 display. The largest window that fits is 2416x1359, giving screenshots of 2416x1292: `S7_title_castle_2416x1292.png` and `S7_title_bellwether_2416x1292.png`.
+  - `HC_TITLE_FONT cinzel=True` was logged.
+  - The fog is now one masked band, so the two strip seams the coordinator saw are gone.
+- **Full 1920x1080 set (r2 build):**
+  - `S1_great_hall.png` (the props on the tables).
+  - `S5_lord_perch.png` (the Count perched).
+  - `S6_lord_sheet.png` (the gatehouse with the Count).
+  - `H01-H10_hunt_dive.png` (a hunt).
+  - `S2_chapel_altar.png`, `S3_crypt.png`, `S4_exterior_sky.png` and `S8_journal_ledger.png`.

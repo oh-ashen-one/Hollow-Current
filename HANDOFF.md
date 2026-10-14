@@ -1,27 +1,27 @@
-# HANDOFF: piece F0 (integrator), Haunted Castle wave F (fear plan)
+# HANDOFF: piece F0 (integrator), Haunted Castle waves F, G and H (fear plan)
 
 Branch `haunted-castle` in `/Users/midir/hollow-current-haunted-castle` (main clone, pushed to origin). Model: Opus 5.5. Date 2026-10-14.
 
 **Merged, in order:**
-- hc/audio2 `0dc4e52`
-- hc/dread `49cadd2`
-- hc/scares `d50a54f`
-- hc/count11 `fc0175c`
-- hc/grabs `ae82eb3`, then `fef50da`
-- hc/title `3d9a17e`
-- hc/wallart `dab74a5`; `docs/haunted-castle/wallart_runtime.patch` is applied in `b5da27e`
+- **Wave F:** hc/audio2 `0dc4e52`, hc/dread `49cadd2`, hc/scares `d50a54f`, hc/count11 `fc0175c`, hc/grabs `ae82eb3` and `fef50da`, hc/title `3d9a17e`, hc/wallart `dab74a5` (patch applied in `b5da27e`), hc/throws `12e5961`.
+- **Wave G:** hc/scares2, hc/audio3, hc/count12, hc/rules2.
+- **Wave H:** hc/count13, hc/scares3, hc/rules3.
 
-Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md`: audio2, dread, scares, count11, grabs, title, wallart. Earlier rounds are in `docs/haunted-castle/handoffs/`.
+Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md`.
 
 ## State
 
 - **Build:** `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, with both maps.
-  - It is built from `b5da27e` source; the bake outputs are committed as `34a0de9`.
-  - Both bake receipts are current: Castle 5 maps, 196 probes, 17 reflections; Bellwether 4 maps, 124 probes, 9 reflections.
-  - `CountClaudeImport.Prepare` logged `HC_COUNTCLAUDE_PASS`, with 10 motions and the GrabDrop/GrabCrawl reaches 1.758/1.729.
-- **`python3 tools/check_source.py`:** PASS, 487 rules assertions. That includes 4 new ones for `Investigation.BeginNoTellHunt`.
-- **Playthroughs:** escape, kill and fear all WON on this build with 0 blockers. Evidence and the proof table are in `docs/haunted-castle/playtest/AUTO_RUN.md`; owner notes are in `docs/haunted-castle/PLAYTEST.md`.
-- **Unbuilt commit:** `8485c6a` (the playtest-driver throw probe) is committed but not built. It needs a castle re-bake and a build; the Bellwether receipt is unaffected.
+  - Built from source `430a266`; the bake outputs are committed as `a412df7`.
+  - It opens as a 1920x1080 window.
+  - Bake receipts are current: Castle 5 maps, 196 probes, 17 reflections; Bellwether 4 maps, 124 probes, 9 reflections.
+  - `check_throwables_scene.py` exits 0.
+- **Checks:**
+  - `check_source.py`: PASS, 970 assertions.
+  - `check_castle_scares.py`: PASS.
+  - `check_audio_keys.py`: OK.
+  - `bellwether_fuzz.py`: PASS.
+- **Proofs:** the windowed proof table is in `docs/haunted-castle/playtest/AUTO_RUN.md`; owner notes are in `docs/haunted-castle/PLAYTEST.md`.
 
 ## What F0 added, besides the merges
 
@@ -93,33 +93,51 @@ After the hc/rules2 merge:
 - `tools/check_castle_scares.py`: PASS.
 - `tools/check_audio_keys.py`: OK.
 
-## After the stream: in this order (needs a window and the GPU slot)
+## Wave H (r10b static critic `docs/haunted-castle/rounds/r10/CRITIC_STATIC_B.md`, 5/10) and the windowed checklist (2026-10-14)
 
-1. **Re-prepare and re-bake the castle:** `HouseLighting.PrepareAndBakeCastle` through `gpu_slot`.
-   - Then `python3 tools/check_throwables_scene.py` must exit 0. It exits 1 on the old `34a0de9` bake, where 38 of 38 throwables were static-batched.
-2. **Re-bake Bellwether:** `HouseLighting.PrepareAndBake`. Shared `.cs` changes stale its receipt.
-3. **Build:** `NativeBuild.BuildPreparedMacAll` (`-nographics`). The player is windowed at 1920x1080; check `HC_WINDOWED` on a plain launch.
-4. **Proof runs** (`-hc-playtest <dir> escape|kill|fear` plus targeted runs). Grep the logs for:
-   - [ ] **Throws:** `fear` with `HC_THROW` > 0 and `HC_THROW poltergeist` > 0. Natural play, with 2 or more evidence and at least 60 s in Disturbance, must also throw; otherwise `HC_THROW_SKIP reason=` explains why.
-   - [ ] **Near-miss:** runs end to end (`HC_COUNT_NEARMISS begin`, then hold, then leave), with a door rattle and `cc_hunt_smell` at the slats. At Dread ≥ 80 or in Long Night, at least one `open=True` with a crawl grab.
-   - [ ] **Watched hide:** with the **torch off**, while he is perched or travelling, ending in `HC_COUNT_WITNESSED`, then a door rattle, then `HC_COUNT_GRAB hideEntrance=True witnessed=True torch=False`.
-   - [ ] **No-tell hunt:** for its first 6 s, no change in the HUD goal, radio, instrument, music, heartbeat, wing loop (while perched), rim light or voice. Use a per-frame channel log; `BreakerOn` stays true.
-   - [ ] **Low-Dread hunt:** at Dread below `RunDreadMin`, for at least 10 minutes after the first hunt, at least one hunt starts.
-   - [ ] **Recovery hunt:** at Dread ≥ 80, a Recovery is cut short at least once. `HC_HUNT_START` and `HC_RECOVERY` lengths vary.
-   - [ ] **Hostile return:** `HC_COUNT_RETURN_SWOOP` with `leg1clear=True leg2clear=True`, then the dispatch card and `voice_cc_dispatch`, and only then a dive on the bridge.
-   - [ ] **Escalation:** `HC_ESCALATE escalated=True` at least once in natural play.
-   - [ ] **Silence beat:** `HC_SCARE_CASTLE silence ... duck=wired`, then `HC_DUCK`, with no hunt-state change within 6 s.
-   - [ ] **Missing audio:** no `HC_MISSING_ART` across a full run that includes radio presses before diagnosis.
-   - [ ] **`cc_listen`:** at most once per run (`HC_RARE_LINE` + `HC_LIE kind=phantom_listen` ≤ 1).
-   - [ ] **Heartbeat:** silent during a hunt at Dread 30; it follows FeltDread with a 20-30 s lag.
-   - [ ] **Bellwether `-hc-verify`:** `HC_NATIVE_ROUTE_PASS`, with the unchanged 95 / 9 / 38 / 32 cycle.
-   - [ ] **Title captures:** `-hc-capture <dir> -hc-capture-shots S7` at 2560x1440 (full-screen-window for that run only) and with `-hc-capture-size 1920x1080`. Compare against `rounds/r10/title_mock.png` and `title_mock_bellwether.png` within a 2 px offset, and check for `HC_TITLE_FONT cinzel=True`.
-   - [ ] **Long Night:** `-hc-long-night` with the escape route. `HC_NAIL_HIDES nailed=2`, no Warning, longer hunts.
-   - [ ] **Death and retry:** a real death, then the checkpoint retry. `HC_DEATH_PENALTY ... moved=True` and `HC_RELIC_MOVE`; Dread restarts at 60.
-5. **Frame time:** in the great hall at 1920x1080. The fear run logs `HC_PLAY_FRAMES great_hall`; the last value was 11.15 ms mean.
-6. **Blind critic round** on the new build, then update `docs/haunted-castle/playtest/AUTO_RUN.md` and `PLAYTEST.md`.
+**Merged:**
+- hc/count13 `98532bf` (`d57e1f0`)
+- hc/scares3 `632d859` (`05ee819`)
+- hc/rules3 `6c8cf9c` (`23a8d7b`, RulesTests conflict resolved keeping both sides)
+
+**F0 items:**
+- `feeeed6`: N1 held goal at the winch and on the radio; N4 line-of-sight interference during hunts only; N5 phase-blind castle actions; N9 swoop card 2 s after the sealed message.
+- `a9a7161`: the rules3 integrator diff (also N13), the claw volume hook, the 6-30 s post-Recovery gap and the 5 % decoy tells.
+- `4294323`: the cursor rule.
+- `e1e360a`:
+  - The Bellwether focus-ray fix.
+  - Castle chase contact decays instead of resetting, so the bridge is lethal.
+  - No hunt voice line in a hunt's first 8 s unless he has seen her.
+  - Castle scare rhythm: rests 35-70 s, appearances every 60-110 s, and the director runs in Recovery.
+  - Title fog as one masked band.
+- `430a266`: `HC_SCARE_SKIP` reasons and the driver's watched-hide timing.
+
+**Checks:**
+- `check_source.py`: 970 assertions.
+- `check_castle_scares.py`: PASS.
+- `check_audio_keys.py`: OK.
+- `bellwether_fuzz.py`: PASS (run after every merge).
+
+**Build:** `Builds/macOS/Hollow Current.app` from bake commit `a412df7` (source `430a266`). `check_throwables_scene.py` exits 0 on it.
+
+**Proof results:** in `docs/haunted-castle/playtest/AUTO_RUN.md`.
+
+| Status | Proofs |
+|---|---|
+| PASS | escape; Long Night; natural (won); throw + poltergeist; lies + silence + duck; false warning; watched hide with the torch off from a perch; near-miss with an open; Recovery cut; swoop legs clear; lethal bridge; low-Dread hunt; death + retry; Bellwether `-hc-verify` |
+| Partial | no-tell first 6 s: wing loop +0.6 on a full first leg in both samples; everything else unchanged |
+| Open | apparitions (1 in a natural 10 minutes, so no natural throws or escalation) |
+
+Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the blind critic.
+
+**Next:**
+1. Read the natural r3 `HC_SCARE_SKIP` reasons and fix the apparition starvation.
+2. Rerun kill, siege and death on the latest build: they passed only on r1.
+3. Run the blind critic round.
 
 ## Rules for the next integrator
+
+**Deliberate Bellwether change (for Hari to accept):** `Investigator` focus ray, in both maps (`e1e360a`). An interactable whose collider the same ray meets within 12 cm behind the first hit is focused. This fixes the coat cupboard: its hide trigger sits in the same plane as its solid lower door from `89dac7e` on `main`, which made `-hc-verify` fail. Bellwether rules are unchanged (fuzz identical).
 
 **Owner rules (2026-10-14):**
 - **Windowed only:** never fullscreen. Captures that cannot fit use the largest 16:9 window that does.
