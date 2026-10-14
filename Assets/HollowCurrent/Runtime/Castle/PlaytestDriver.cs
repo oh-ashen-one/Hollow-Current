@@ -8,7 +8,10 @@ using UnityEngine.AI;
 namespace HollowCurrent
 {
     // Opt-in automated playtest of the castle loop in the real player:
-    //   -hc-playtest <outdir> escape|kill
+    //   -hc-playtest <outdir> escape|kill|fear
+    // fear: the wave F proof run (FEAR_PLAN). It steers the real rules engine through Investigation.Dice and
+    // AddDread (logged as driver-forced) to get a false warning, a no-tell hunt, a told hunt it hides in while
+    // watched, the gatehouse visit and the hostile return, and calls the director's real throw/beat methods.
     // Drives the investigator through Investigator.TestInput (the same path as keyboard and
     // pad input: look, use, hold, fire, tool select, torch), teleporting between stops instead
     // of pathing. Logs every phase as HC_PLAY and saves a screenshot per phase into <outdir>.
@@ -32,6 +35,12 @@ namespace HollowCurrent
             }
         }
         Game game;FieldInput input;float start;int shot;
+        // fear mode: counts of HC_ log lines by prefix (Application.logMessageReceived), summarised at the end.
+        readonly Dictionary<string,int> tags=new Dictionary<string,int>();
+        static readonly string[] Tags={"HC_THROW ","HC_THROW poltergeist","HC_SCARE_CASTLE","HC_COUNT_PERCH moved","HC_COUNT_PERCH landed","HC_COUNT_NEARMISS begin","HC_COUNT_NEARMISS hold","HC_WARNING","HC_FALSE_WARNING","HC_HUNT_START","HC_HUNT_SPAWN hostileReturn=True","HC_COUNT_GATEHOUSE landed","HC_COUNT_VOICE","HC_TORCH_FAIL","HC_COUNT_DREAD","HC_COUNT_GRAB","HC_COUNT_LEARNED","HC_ESCALATE","HC_RARE_LINE","HC_DOOR_HELD"};
+        void OnLog(string message,string stack,LogType type){foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}}
+        int Tag(string t)=>tags.TryGetValue(t,out int n)?n:0;
+        void OnDestroy(){Application.logMessageReceived-=OnLog;}
         readonly List<string> blockers=new List<string>();
         public void Initialize(Game owner)
         {
@@ -42,7 +51,7 @@ namespace HollowCurrent
         void Log(string phase,string detail="")
         {
             var c=game.Case;var castle=game.Castle;
-            Debug.Log("HC_PLAY phase="+phase+" t="+(Time.realtimeSinceStartup-start).ToString("F1")+" case="+c.Phase+" evidence="+c.Evidence.Count+" notes="+c.Notes.Count+" survived="+c.Survived+
+            Debug.Log("HC_PLAY phase="+phase+" t="+(Time.realtimeSinceStartup-start).ToString("F1")+" case="+c.Phase+" dread="+c.Dread.ToString("F1")+" hunts="+c.Hunts+" evidence="+c.Evidence.Count+" notes="+c.Notes.Count+" survived="+c.Survived+
                 (castle?" relics="+castle.Forge.RelicCount+" sword="+castle.Forge.HasSword+" hits="+castle.Fight.Hits:"")+" blockedDeaths="+c.BlockedDeaths+(detail.Length>0?" "+detail:""));
         }
         void Blocker(string what){blockers.Add(what);Debug.Log("HC_PLAY_BLOCKER "+what);}
@@ -142,7 +151,8 @@ namespace HollowCurrent
             if(!game.Started)game.StartCase();
             game.Case.Invulnerable=true;
             input=new FieldInput();game.Player.TestInput=input;
-            yield return Step("begin_"+Mode);
+            yield return Step("begin_"+Mode,"rules="+game.Case.Rules.Name);
+            if(Mode=="fear"){Application.logMessageReceived+=OnLog;yield return Fear();yield break;}
             // Field kit from the lantern cart.
             yield return Use(Find(InteractKind.Kit),"field kit");
             if(!game.Case.Equipped)Blocker("kit not equipped");
@@ -175,8 +185,8 @@ namespace HollowCurrent
             yield return Use(Find(InteractKind.Anchor),"chapel bell (seal)",1.4f,true,13.5f);
             yield return Step("bell_sealed",game.Case.Phase.ToString());
             if(game.Case.Phase!=Phase.Return)Blocker("seal did not complete (progress "+game.Case.SealProgress.ToString("F2")+")");
-            yield return Wait(3.5f); // drawbridge lowers at 30 deg/s
             var bridge=game.World.Castle.Drawbridge;
+            {float until=Time.realtimeSinceStartup+12;yield return Wait(1);while(bridge&&bridge.Moving&&Time.realtimeSinceStartup<until)yield return null;}
             yield return Step("drawbridge_lowered","lowered="+(bridge&&bridge.Lowered)+" moving="+(bridge&&bridge.Moving));
             // Walk out over the bridge to the far bank.
             game.Player.Teleport(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);yield return Frames(3);
@@ -189,6 +199,164 @@ namespace HollowCurrent
                 game.Player.Teleport(game.World.Castle.DrawbridgeTrigger.center-Vector3.up*1.0f);yield return Frames(5);
             }
             yield return Finish();
+        }
+        // ---- fear mode ----------------------------------------------------------------------------------
+        readonly Queue<float> dice=new Queue<float>();
+        IEnumerator WaitFor(Func<bool> done,float seconds){float end=Time.realtimeSinceStartup+seconds;while(!done()&&Time.realtimeSinceStartup<end)yield return null;}
+        void ForceDread(float target,string why){var c=game.Case;float before=c.Dread;c.AddDread(target-c.Dread);Debug.Log("HC_PLAY_FORCED dread "+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" ("+why+")");}
+        Interactable FarHide()
+        {
+            Interactable hide=null;float far=0;
+            foreach(var h in game.World.HidingPlaces){if(!h||!h.gameObject.activeInHierarchy)continue;float d=Vector3.Distance(h.HidePoint,game.World.HunterSpawn);if(d>far){far=d;hide=h;}}
+            return hide;
+        }
+        IEnumerator Fear()
+        {
+            var c=game.Case;
+            // Driver-forced dice: queued values first, then 0.99 (no hunt, longest interval), so nothing random fires.
+            c.Dice=()=>dice.Count>0?dice.Dequeue():.99f;
+            yield return Use(Find(InteractKind.Kit),"field kit");
+            yield return Use(Find(InteractKind.Note,game.Book.ArrivalNoteTitle),"arrival letter");
+            game.Player.Teleport(new Vector3(0,.1f,10));yield return Frames(4);
+            yield return Step("entered",game.Case.Phase.ToString());
+            yield return Record(Evidence.Induction,game.World.Induction,1,"compass");
+            // 1. Dread moves on its own: 8 s inside.
+            float d0=c.Dread;yield return Wait(8);yield return Step("dread_natural","from="+d0.ToString("F2")+" to="+c.Dread.ToString("F2")+" lit="+(c.Dread-d0<.8f));
+            // 2. Great hall frame time (standing at the rune ring, looking down the hall at the table).
+            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,0.05f,hall.z-3.5f));input.Look=new Vector3(hall.x,1.2f,hall.z+4);yield return Wait(1);
+            var times=new List<float>();float end=Time.realtimeSinceStartup+10;while(Time.realtimeSinceStartup<end){yield return null;times.Add(Time.unscaledDeltaTime*1000);}
+            times.Sort();float sum=0;foreach(var t in times)sum+=t;
+            Debug.Log("HC_PLAY_FRAMES great_hall frames="+times.Count+" mean_ms="+(sum/times.Count).ToString("F2")+" p50_ms="+times[times.Count/2].ToString("F2")+" p95_ms="+times[(int)(times.Count*.95f)].ToString("F2")+" p99_ms="+times[(int)(times.Count*.99f)].ToString("F2")+" worst_ms="+times[times.Count-1].ToString("F2")+" over_16.7="+times.FindAll(t=>t>16.7f).Count+" screen="+Screen.width+"x"+Screen.height);
+            yield return Step("great_hall_frames");
+            // 3. Throwables: the director's real throw, then the poltergeist, facing the hall table.
+            var table=new Vector3(hall.x,.8f,hall.z+2.5f);StandNear(table,2.4f,0);yield return Frames(6);
+            bool threw=game.Scares.ThrowNearbyProp();yield return Wait(1.2f);yield return Step("throw","thrown="+threw+" prop="+(game.Scares.LastThrownProp?game.Scares.LastThrownProp.name:"none"));
+            int flung=game.CastleDread?game.CastleDread.Poltergeist():-1;yield return Wait(1.2f);yield return Step("poltergeist","flung="+flung);
+            // 4. Castle dread beats through ScareDirector.Dread (HC_SCARE_CASTLE).
+            for(int i=0;i<5;i++){game.Scares.Dread();yield return Wait(2.2f);}
+            yield return Step("castle_beats","scareCastle="+Tag("HC_SCARE_CASTLE"));
+            // 5. False warning: real dice path (interval 0 -> 2 s, hunt roll 0, no-tell roll 0.9, false-alarm roll 0).
+            if(c.Dread>=40)Blocker("dread reached 40 before the forced dice; queue alignment not guaranteed");
+            ForceDread(55,"enter the dice band for the false warning");
+            foreach(var v in new[]{0f,0f,.9f,0f})dice.Enqueue(v);
+            yield return WaitFor(()=>c.Phase==Phase.Warning,20);
+            yield return Step("warning","false="+c.FalseWarning+" length="+c.WarningLength.ToString("F1"));
+            if(!c.FalseWarning)Blocker("forced dice did not give a false warning (phase "+c.Phase+")");
+            int huntsBefore=c.Hunts;
+            yield return WaitFor(()=>c.Phase!=Phase.Warning,15);
+            yield return Step("false_warning_over","hunts "+huntsBefore+"->"+c.Hunts);
+            if(c.Phase==Phase.Hunt)yield return WaitFor(()=>c.Phase!=Phase.Hunt,45);
+            // 6. No-tell hunt while hidden with the torch off (near-miss chance 1 in 3).
+            var hide=FarHide();yield return Torch(false);
+            if(hide)yield return Use(hide,"hiding place "+hide.Label);
+            if(!game.Player.Hidden)Blocker("could not hide before the no-tell hunt");
+            yield return Step("hidden",hide?hide.name:"none");
+            foreach(var v in new[]{0f,0f})dice.Enqueue(v); // hunt roll 0, no-tell roll 0
+            yield return WaitFor(()=>c.Phase==Phase.Hunt,20);
+            yield return Step("no_tell_hunt","noTell="+c.NoTellHunt+" warningSeen="+(Tag("HC_WARNING")>1));
+            if(!c.NoTellHunt)Blocker("forced dice did not give a no-tell hunt");
+            yield return TrackHunt("no_tell");
+            if(game.Player.Hidden)yield return Press(i=>i.Use=true);
+            yield return Torch(true);
+            // 7. Told hunt; he sees her, then she hides in front of him (witnessed: he opens it, the driver blocks the grab).
+            yield return WaitFor(()=>c.Phase==Phase.Disturbance,40);
+            ForceDread(55,"keep the dice band for the second hunt");
+            foreach(var v in new[]{0f,.9f,.9f})dice.Enqueue(v); // hunt roll 0, no-tell 0.9, false alarm 0.9 -> told hunt
+            yield return WaitFor(()=>c.Phase==Phase.Warning||c.Phase==Phase.Hunt,20);
+            yield return Step("told_warning","false="+c.FalseWarning);
+            yield return WaitFor(()=>c.Phase==Phase.Hunt,12);
+            yield return Witnessed();
+            yield return TrackHunt("told");
+            if(game.Player.Hidden)yield return Press(i=>i.Use=true);
+            yield return Torch(true);
+            yield return WaitFor(()=>c.Phase==Phase.Disturbance||c.Phase==Phase.Recovery,5);
+            // 8. Battlement visibility from the courtyard, then the gatehouse visit (40 s inside after a survived hunt).
+            Battlement();
+            game.Player.Teleport(game.World.Spawn);input.Look=game.World.Castle.GatehouseBattlement+Vector3.up*1.2f;yield return Frames(4);
+            yield return Step("gatehouse_wait","inVan="+game.Player.InVan+" survived="+c.Survived);
+            yield return WaitFor(()=>Tag("HC_COUNT_GATEHOUSE landed")>0,60);
+            input.Look=game.Creature.HeadPosition;yield return Wait(1.5f);
+            yield return Step("gatehouse_visit","landed="+Tag("HC_COUNT_GATEHOUSE landed")+" count="+game.Creature.transform.position);
+            yield return Wait(4);
+            // 9. The rest of the case, then the hostile return over the bridge.
+            yield return Record(Evidence.Handprint,game.World.Print,2,"grave-ash lantern");
+            yield return Record(Evidence.Voice,game.World.Voice,3,"ear-trumpet");
+            foreach(var title in game.Book.NoteTitles)yield return Use(Find(InteractKind.Note,title),"ledger "+title);
+            if(c.Phase==Phase.Hunt||c.Phase==Phase.Warning||c.Phase==Phase.Recovery)yield return WaitFor(()=>c.Phase==Phase.Disturbance,80);
+            game.Journal=true;game.ApplyFocus();yield return Shot("journal_pulse");
+            bool solved=c.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd);game.Journal=false;game.ApplyFocus();
+            yield return Step("ledger_closed","conclude="+solved);
+            if(!solved)Blocker("reconstruction rejected (mysteryReady="+c.MysteryReady+")");
+            yield return Use(Find(InteractKind.Breaker),"chapel brazier");
+            yield return Use(Find(InteractKind.Anchor),"chapel bell (seal)",1.4f,true,13.5f);
+            yield return Step("bell_sealed",c.Phase+" huntActive="+c.HuntActive);
+            if(c.Phase!=Phase.Return||!c.HuntActive)Blocker("seal did not start the hostile return");
+            yield return HostileBridge();
+            yield return Finish();
+        }
+        // Follow a hunt to its end: closest approach, near-miss and a wall check on his ground (crawl) moves.
+        IEnumerator TrackHunt(string label)
+        {
+            var c=game.Case;float closest=99;int wallHits=0,groundSteps=0;Vector3 last=game.Creature.transform.position;
+            float end=Time.realtimeSinceStartup+60;
+            while(c.Phase==Phase.Hunt&&Time.realtimeSinceStartup<end)
+            {
+                var at=game.Creature.transform.position;closest=Mathf.Min(closest,Vector3.Distance(at,game.Player.transform.position));
+                bool grounded=at.y-World.FloorBelow(at.y)<.5f&&last.y-World.FloorBelow(last.y)<.5f;
+                if(grounded&&(at-last).sqrMagnitude>.0004f)
+                {
+                    groundSteps++;
+                    if(Physics.Linecast(last+Vector3.up*.35f,at+Vector3.up*.35f,out var hit,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)&&!hit.collider.transform.IsChildOf(game.Creature.transform)&&!(game.Creature.Actor&&hit.collider.transform.IsChildOf(game.Creature.Actor.transform)))
+                    {wallHits++;if(wallHits<=5)Debug.Log("HC_PLAY_WALL "+label+" from="+last+" to="+at+" hit="+hit.collider.name);}
+                }
+                last=at;yield return null;
+            }
+            yield return Step(label+"_hunt_over","closest="+closest.ToString("F2")+" nearMissBegin="+Tag("HC_COUNT_NEARMISS begin")+" nearMissHold="+Tag("HC_COUNT_NEARMISS hold")+" groundSteps="+groundSteps+" wallCrossings="+wallHits+" blockedDeaths="+c.BlockedDeaths);
+        }
+        IEnumerator Witnessed()
+        {
+            var c=game.Case;game.Player.Teleport(game.World.Spawn+Vector3.zero);
+            // Stand in the open on the hall floor with the torch on, wait until he sees her, then hide in the nearest cupboard.
+            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-4));yield return Torch(true);
+            float end=Time.realtimeSinceStartup+30;
+            while(c.Phase==Phase.Hunt&&!game.Creature.CanSeePlayer&&Time.realtimeSinceStartup<end){input.Look=game.Creature.HeadPosition;yield return null;}
+            Interactable near=null;float best=99;
+            foreach(var h in game.World.HidingPlaces){if(!h||!h.gameObject.activeInHierarchy)continue;float d=Vector3.Distance(h.HidePoint,game.Player.transform.position);if(d<best){best=d;near=h;}}
+            bool seen=game.Creature.CanSeePlayer;
+            if(near){game.Player.Hide(near);}
+            yield return Step("witnessed_hide","seenBeforeHiding="+seen+" hide="+(near?near.name:"none")+" distance="+best.ToString("F1"));
+        }
+        void Battlement()
+        {
+            var target=game.World.Castle.GatehouseBattlement+Vector3.up*1.4f;int tested=0,visible=0;Vector3 bestFrom=Vector3.zero;float bestD=0;
+            for(float x=-14;x<=14;x+=2)for(float z=-24;z<=28;z+=2)
+            {
+                if(!NavMesh.SamplePosition(new Vector3(x,0,z),out var hit,.6f,NavMesh.AllAreas)||Mathf.Abs(hit.position.y)>.4f)continue;
+                if(game.World.IsInside(hit.position)||game.World.IsSafe(hit.position))continue;
+                tested++;var eye=hit.position+Vector3.up*1.64f;
+                if(!Physics.Linecast(eye,target,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)){visible++;float d=Vector3.Distance(eye,target);if(d>bestD){bestD=d;bestFrom=eye;}}
+            }
+            Debug.Log("HC_PLAY_BATTLEMENT target="+target+" outdoorPoints="+tested+" withClearLine="+visible+(visible>0?" farthest="+bestFrom+" d="+bestD.ToString("F1"):""));
+        }
+        IEnumerator HostileBridge()
+        {
+            var c=game.Case;var bridge=game.World.Castle.Drawbridge;
+            int colliders=bridge?bridge.GetComponentsInChildren<Collider>().Length:0;
+            {float until=Time.realtimeSinceStartup+12;while(bridge&&bridge.Moving&&Time.realtimeSinceStartup<until)yield return null;}
+            var mid=game.World.Castle.DrawbridgeTrigger.center;
+            bool ground=Physics.Raycast(new Vector3(0,3,-3),Vector3.down,out var hit,8,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
+            yield return Step("drawbridge_lowered","colliders="+colliders+" groundHit="+(ground?hit.collider.name+"@"+hit.point.y.ToString("F2"):"none")+" count="+game.Creature.transform.position);
+            game.Player.Teleport(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);yield return Frames(3);
+            input.Move=new Vector2(0,1);float walk=Time.realtimeSinceStartup+14,closest=99;int blocked=c.BlockedDeaths;float nextLog=0;
+            while(Time.realtimeSinceStartup<walk&&c.Phase!=Phase.Won)
+            {
+                var at=game.Creature.transform.position;closest=Mathf.Min(closest,Vector3.Distance(at,game.Player.transform.position));
+                if(Time.realtimeSinceStartup>nextLog){nextLog=Time.realtimeSinceStartup+.5f;Debug.Log("HC_PLAY_BRIDGE player="+game.Player.transform.position+" count="+at+" huntActive="+c.HuntActive+" dist="+Vector3.Distance(at,game.Player.transform.position).ToString("F1"));}
+                yield return null;
+            }
+            Reset();
+            yield return Step("bridge_crossed","won="+(c.Phase==Phase.Won)+" closest="+closest.ToString("F2")+" grabsOnBridge="+(c.BlockedDeaths-blocked)+" far="+mid);
+            if(c.Phase!=Phase.Won){Blocker("bridge walk did not reach the far bank (at "+game.Player.transform.position+")");game.Player.Teleport(mid-Vector3.up*1.0f);yield return Frames(5);}
         }
         IEnumerator Relics()
         {
@@ -263,6 +431,7 @@ namespace HollowCurrent
             yield return Wait(1.5f);
             var c=game.Case;
             yield return Step(c.Phase==Phase.Won?(c.HunterSlain?"won_kill":"won_escape"):"not_won","goal="+c.Goal);
+            if(Mode=="fear"){var sb=new System.Text.StringBuilder();foreach(var t in Tags)sb.Append(t.Trim().Replace(' ','_')).Append('=').Append(Tag(t)).Append(' ');Debug.Log("HC_PLAY_SUMMARY "+sb+"dread="+c.Dread.ToString("F1")+" hunts="+c.Hunts);}
             Debug.Log("HC_PLAY_RESULT mode="+Mode+" won="+(c.Phase==Phase.Won)+" slain="+c.HunterSlain+" blockedDeaths="+c.BlockedDeaths+" blockers="+blockers.Count+(blockers.Count>0?" ["+string.Join(" | ",blockers)+"]":""));
             yield return Wait(1);Application.Quit();
         }
