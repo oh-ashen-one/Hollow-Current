@@ -390,6 +390,17 @@ def gore_membrane(n, rng, base):
     col = col * (1 - 0.5 * blot[..., None] * np.array([0.0, 0.6, 0.6])[None, None, :]) * (1 - 0.3 * v[..., None]) + np.array([0.45, 0.10, 0.10])[None, None, :] * 0.4 * v[..., None]
     return dict(albedo=mean_to(np.clip(col, 0, 1), base), height=norm01(0.5 * v + 0.3 * fine), ns=3.5, smooth=0.32 + 0.2 * v, metal=0.0, ao=1 - 0.15 * v)
 
+def moonstone(n, rng, base):
+    """Milky moonstone: pale blue-white body, drifting blue adularescent sheen, faint inclusions, faceted micro-relief."""
+    sheen = smoothstep(0.45, 0.75, fbm(n, rng, (1.4, 2.0, 2.8), (1, .7, .4)))
+    milk = fbm(n, rng, (1.2, 1.8), (1, .5)); fine = noise(n, 0.6, rng)
+    inc = np.clip(noise(n, 0.7, rng) - 0.78, 0, 1) * 3.0
+    col = np.array(base)[None, None, :] * (0.88 + 0.2 * (milk - .5))[..., None]
+    col = col * (1 - 0.35 * sheen[..., None]) + np.array([0.45, 0.62, 1.0])[None, None, :] * 0.35 * sheen[..., None]
+    col = col * (1 - 0.5 * inc[..., None]) + np.array([0.55, 0.52, 0.48])[None, None, :] * 0.2 * inc[..., None]
+    h = norm01(0.5 * milk + 0.3 * fine + 0.3 * sheen)
+    return dict(albedo=mean_to(np.clip(col, 0, 1), base), height=h, ns=4.5, smooth=0.55 + 0.3 * sheen - 0.15 * fine, metal=0.0, ao=1 - 0.2 * inc)
+
 def gore_wet(n, rng):
     """Blood overlay: RGB dark red, alpha = coverage with vertical drip runs. Tileable."""
     streak = noise(n, 2.3, rng, sx=0.35, sy=9.0)
@@ -646,6 +657,48 @@ def write_custom_shader(name, source):
         "fileFormatVersion: 2\nguid: %s\nShaderImporter:\n  externalObjects: {}\n  defaultTextures: []\n  nonModifiableTextures: []\n  preprocessorOverride: 0\n  userData: \n  assetBundleName: \n  assetBundleVariant: \n"
         % cc.guid(cc.rel_to_project(p)))
     return cc.guid(cc.rel_to_project(p))
+
+def write_shader_mat(name, shader_name, colors=None, texs=None, floats=None):
+    """Material using one of our custom shaders. texs = {prop: guid}; colors = {prop: (r,g,b,a)}; floats = {prop: v}."""
+    g = cc.guid(cc.rel_to_project(SHADERS / (shader_name + ".shader")))
+    tex = "".join(cc._tex_env(k, v) for k, v in (texs or {}).items())
+    cols = "".join("    - %s: {r: %s, g: %s, b: %s, a: %s}\n" % (k, *v) for k, v in (colors or {}).items())
+    fl = "".join("    - %s: %s\n" % (k, v) for k, v in (floats or {}).items())
+    path = cc.MATS / (name + ".mat")
+    path.write_text(f"""%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {{fileID: 0}}
+  m_PrefabInstance: {{fileID: 0}}
+  m_PrefabAsset: {{fileID: 0}}
+  m_Name: {name}
+  m_Shader: {{fileID: 4800000, guid: {g}, type: 3}}
+  m_Parent: {{fileID: 0}}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {{}}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+{tex}    m_Ints: []
+    m_Floats:
+{fl}    m_Colors:
+{cols}  m_BuildTextureStacks: []
+  m_AllowLocking: 1
+""")
+    Path(str(path) + ".meta").write_text(
+        "fileFormatVersion: 2\nguid: %s\nNativeFormatImporter:\n  externalObjects: {}\n  mainObjectFileID: 2100000\n  userData: \n  assetBundleName: \n  assetBundleVariant: \n"
+        % cc.guid(cc.rel_to_project(path)))
 
 def write_flame_mat():
     """Castle_Flame: HDR orange through the unlit CastleEmissive shader (guid derived from its path)."""
@@ -932,6 +985,7 @@ def main():
         "Castle_GoreSkin": lambda r, b: gore_skin(n, r, b),
         "Castle_GoreFlesh": lambda r, b: gore_flesh(n, r, b),
         "Castle_GoreMembrane": lambda r, b: gore_membrane(n, r, b),
+        "Castle_Moonstone": lambda r, b: moonstone(n, r, b),
     }
     for i, (name, fn) in enumerate(gens.items()):
         rng = np.random.default_rng(1000 + i)
@@ -939,6 +993,11 @@ def main():
         r = fn(rng, base)
         # cloth: trilinear + 8x aniso so the 8 px weave cannot crawl or stripe at grazing angles (S5 banners, round 7)
         g = save_set(name, r, n, filter_mode=2 if name == "Castle_Oxblood" else 1, aniso=8 if name == "Castle_Oxblood" else None)
+        if name == "Castle_Moonstone":
+            write_shader_mat(name, "CastleLit", colors={"_Color": (1, 1, 1, 1), "_EmissionColor": (0.10, 0.17, 0.38, 1)},
+                             texs={"_MainTex": g["albedo"], "_BumpMap": g["normal"], "_MaskTex": g["mask"]}, floats={"_BumpScale": 1, "_FillAmount": 1})
+            print("texture", name, n)
+            continue
         em = None
         bump = 1.0
         if name == "Castle_Blood":
@@ -971,6 +1030,7 @@ def main():
     write_custom_shader("CastleGore", GORE_SHADER)
     write_custom_shader("CastleEmissive", EMISSIVE_SHADER)
     write_flame_mat()
+    write_shader_mat("Castle_RuneGlow", "CastleEmissive", colors={"_Color": (0.25, 0.60, 1.6, 1)})
     write_decals()
     fog_noise(512, np.random.default_rng(80))
     (SHADERS / "CastleFogLayer.shader").write_text(FOG_SHADER)

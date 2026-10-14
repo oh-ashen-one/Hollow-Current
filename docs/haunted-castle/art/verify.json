@@ -419,6 +419,16 @@
   ],
   "tris": 1188
  },
+ "MoonstoneSword": {
+  "bytes": 57564,
+  "parts": 1,
+  "size": [
+   0.282,
+   0.071,
+   1.102
+  ],
+  "tris": 1648
+ },
  "ObservatoryWindow": {
   "bytes": 23612,
   "parts": 1,
@@ -508,6 +518,36 @@
    0.96
   ],
   "tris": 410
+ },
+ "RelicBlade": {
+  "bytes": 37884,
+  "parts": 1,
+  "size": [
+   0.044,
+   0.94,
+   0.014
+  ],
+  "tris": 838
+ },
+ "RelicHilt": {
+  "bytes": 40028,
+  "parts": 1,
+  "size": [
+   0.282,
+   0.259,
+   0.071
+  ],
+  "tris": 802
+ },
+ "RelicMoonstone": {
+  "bytes": 27788,
+  "parts": 1,
+  "size": [
+   0.214,
+   0.189,
+   0.19
+  ],
+  "tris": 350
  },
  "ReliquaryBox": {
   "bytes": 20332,

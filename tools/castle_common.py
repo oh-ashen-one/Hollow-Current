@@ -39,6 +39,8 @@ MATERIALS = {
     "Castle_Canvas":     ((1.00, 1.00, 1.00), 0.08, 0.0, False),  # portrait painting (Portrait.png) + canvas weave normal
     "Castle_Blood":      ((0.22, 0.012, 0.02), 0.95, 0.0, True),  # liquid: moat + crypt channel (scrolling normal in CastleArt/shader)
     "Castle_SunWindow":  ((1.00, 1.00, 1.00), 0.55, 0.0, False),  # painted-over sun window above the chapel altar
+    "Castle_RuneGlow":   ((0.25, 0.55, 1.00), 0.30, 0.0, False),  # emissive blue engraving (unlit CastleEmissive shader)
+    "Castle_Moonstone":  ((0.74, 0.80, 0.92), 0.70, 0.0, True),   # milky stone, soft blue emission (CastleLit shader + textures)
     "Castle_Flame":      ((1.00, 0.62, 0.22), 0.00, 0.0, False),  # emissive
 }
 
@@ -267,6 +269,6 @@ NOMINAL = {
     "LongTable": (6.6, .95, 1.4), "DiningTable": (5.6, .9, 1.6), "HighBackChair": (.6, 1.3, .6), "Throne": (1.0, 1.9, .9),
     "Fireplace": (2.6, 2.6, .9), "Sideboard": (2.6, 1.1, .6), "KitchenHearth": (2.8, 2.4, 1.0), "ButcherBlock": (1.5, .9, 1.0),
     "Cauldron": (1.0, .9, 1.0), "Bookshelf": (2.0, 3.0, .5), "ReadingTable": (2.0, .85, 1.0), "Lectern": (.7, 1.2, .6),
-    "Portrait": (.9, 1.3, .1), "StringCourse": (4.0, .24, .2), "Corbel": (.4, .58, .45), "GargoyleSpout": (.5, .62, 1.15), "TapestryPanel": (1.52, 2.7, .07), "CanopyBed": (2.4, 2.8, 2.6), "Orrery": (3.0, 2.8, 3.0), "Telescope": (1.0, 2.2, 2.4),
+    "Portrait": (.9, 1.3, .1), "StringCourse": (4.0, .24, .2), "Corbel": (.4, .58, .45), "GargoyleSpout": (.5, .62, 1.15), "TapestryPanel": (1.52, 2.7, .07), "MoonstoneSword": (.28, 1.10, .07), "RelicBlade": (.044, .0145, .94), "RelicHilt": (.28, .07, .26), "RelicMoonstone": (.21, .19, .19), "CanopyBed": (2.4, 2.8, 2.6), "Orrery": (3.0, 2.8, 3.0), "Telescope": (1.0, 2.2, 2.4),
     "Sarcophagus": (2.2, 1.2, 1.0), "CryptBridge": (1.4, .3, 1.2), "ReliquaryBox": (1.0, 1.0, .7), "Pedestal": (.6, 1.0, .6),
 }
