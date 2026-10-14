@@ -141,7 +141,9 @@ namespace HollowCurrent
             // S7: title screen with the map picker (Castle selected).
             game.SelectMap(MapId.Castle);
             yield return new WaitForSecondsRealtime(1);
-            yield return Shot("S7_title","(title screen)",Vector3.zero,Vector3.zero,"title with map picker");
+            // Blind critic r10 V9: in the combined player the case has already started here, so this is the gatehouse HUD, not the
+            // title (title captures come from -hc-capture-title). Named by content.
+            yield return Shot(game.Started?"S7_gatehouse_hud_case_start":"S7_title",game.Started?"(gameplay HUD)":"(title screen)",Vector3.zero,Vector3.zero,game.Started?"gatehouse HUD at case start (dispatch card)":"title with map picker");
             // World shots: no HUD, investigator input off, kit not collected (torch off).
             game.StartCase();ui.enabled=false;yield return null;yield return null;
             game.Player.enabled=false;

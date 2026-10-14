@@ -334,6 +334,8 @@ namespace HollowCurrent
             }
             Part(PrimitiveType.Capsule,Vector3.up*torso*.5f,new Vector3(.44f,torso*.5f,.3f));
             Part(PrimitiveType.Sphere,Vector3.up*(height-head*.5f),Vector3.one*head);
+            // Blind critic r10 V6: the debug figure never appears in captures or playtests (it stays for editor checks).
+            if(Game.ScriptedRun){root.SetActive(false);Debug.Log("HC_SCALE_REFERENCE hidden (scripted run)");}
             return root;
         }
 

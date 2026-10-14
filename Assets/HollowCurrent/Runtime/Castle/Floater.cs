@@ -155,8 +155,10 @@ namespace HollowCurrent
                 var rest=parent?parent.rotation*flameRest[i]:flameRest[i];
                 var to=lastTargetPosition-flame.position;to.y=0;
                 if(to.sqrMagnitude<1e-4f){flame.rotation=rest;continue;}
-                // Rotating up about cross(up, direction) tips the flame toward the direction.
-                flame.rotation=Quaternion.AngleAxis(degrees,Vector3.Cross(Vector3.up,to.normalized))*rest;
+                // Rotating up about cross(up, direction) tips the flame toward the direction. Capped and eased like CandleFlame
+                // (blind critic r10 V5): at most 22 deg, full within 3 m of the target, none beyond 8 m (false tells: full, capped).
+                float lean=Mathf.Min(CandleFlame.MaxLean,degrees)*(FalseActive?1:CandleFlame.LeanEase(to.magnitude));
+                flame.rotation=Quaternion.AngleAxis(lean,Vector3.Cross(Vector3.up,to.normalized))*rest;
             }
         }
     }

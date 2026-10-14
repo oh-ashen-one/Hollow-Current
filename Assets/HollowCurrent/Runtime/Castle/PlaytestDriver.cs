@@ -108,7 +108,12 @@ namespace HollowCurrent
                 StandNear(point,distance*.7f,Floor(point.y-.2f));yield return Frames(4);
             }
             bool focused=game.Player.Focus==item;
-            if(!focused)Blocker(what+": not focusable by the interaction ray (focus="+(game.Player.Focus?game.Player.Focus.Label:"none")+")");
+            if(!focused)
+            {
+                var v=game.Player.View.transform;string hitName=Physics.Raycast(v.position,v.forward,out var fh,2.7f)?fh.collider.name+"@"+fh.distance.ToString("F2"):"nothing";
+                Debug.Log("HC_PLAY focus_fail="+item.name+" hit="+hitName+" eye="+v.position+" forward="+v.forward);
+                Blocker(what+": not focusable by the interaction ray (focus="+(game.Player.Focus?game.Player.Focus.Label:"none")+", hit="+hitName+")");
+            }
             if(hold){input.UseHeld=true;float end=Time.realtimeSinceStartup+holdSeconds;while(Time.realtimeSinceStartup<end){yield return null;}Reset();yield break;}
             if(focused)yield return Press(i=>{i.Use=true;i.UseHeld=true;});else item.Use(game);
             yield return Frames(2);
@@ -178,7 +183,9 @@ namespace HollowCurrent
             // Ring the chapel bell: the bargain hears you; survive the hunt.
             yield return Use(Find(InteractKind.Anchor),"chapel bell");
             yield return Step("bell_rung",game.Case.Phase.ToString());
-            if(game.Case.Phase!=Phase.Warning)Blocker("bell did not start the warning (phase "+game.Case.Phase+")");
+            // Long Night (WarningSeconds 0) has no Warning: the bell starts the hunt at once ("He is already coming."), by design.
+            bool longNight=game.Case.Rules.WarningSeconds<=0;
+            if(longNight?game.Case.Phase!=Phase.Hunt:game.Case.Phase!=Phase.Warning)Blocker("bell did not start the "+(longNight?"hunt (Long Night)":"warning")+" (phase "+game.Case.Phase+")");
             if(Mode=="kill"){yield return Fight();yield return Finish();yield break;}
             yield return SurviveHunt();
             // Close the ledger: the journal reconstruction (same call as the journal's FILE RECONSTRUCTION).

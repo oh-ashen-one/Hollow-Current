@@ -59,7 +59,11 @@ namespace HollowCurrent
         // One quad per flame (core and halo in one sprite). The vertex stage builds it in the view plane of the rendering camera around the
         // wick (the object's origin), with the lean as a rigid rotation about the view axis: no CPU facing, no separate halo object.
         // FlameVertexWorld mirrors the shader line for line, for the self-tests. (vx, vy) = mesh vertex (x -0.9..0.9, y -0.4..1.4, y = 0 the wick).
-        public const float MaxLean=45f;
+        // Blind critic r10 V5: 51-57 deg on screen read as a rendering bug. At most 22 deg, eased by the flame's distance to what it
+        // leans toward: full within 3 m, none beyond 8 m (a false tell keeps the full lean so it still reads, capped the same).
+        public const float MaxLean=22f,LeanFullDistance=3f,LeanNoneDistance=8f;
+        public static float LeanEase(float distance)
+        {float k=Mathf.Clamp01((distance-LeanFullDistance)/(LeanNoneDistance-LeanFullDistance));return 1-k*k*(3-2*k);}
         public static Vector3 FlameVertexWorld(Vector3 pivot,Vector3 cameraPosition,float sx,float sy,float vx,float vy,Vector3 leanDirection,float sideHint,float degrees)
         {
             var view=(pivot-cameraPosition).normalized;
@@ -224,8 +228,8 @@ namespace HollowCurrent
                 float want=0;
                 if(floater&&floater.flameTarget&&floater.Bend01>.01f)
                 {
-                    want=Mathf.Min(MaxLean,floater.maxBendDegrees*floater.Bend01);
                     var toTarget=floater.flameTarget.position+Vector3.up*1.2f-billboard.position;
+                    want=Mathf.Min(MaxLean,floater.maxBendDegrees*floater.Bend01)*(Floater.FalseActive?1:LeanEase(toTarget.magnitude));
                     if(toTarget.sqrMagnitude>1e-4f)lastLeanDir=toTarget.normalized;
                 }
                 leanNow=Mathf.MoveTowards(leanNow,want,60f*Time.deltaTime);
