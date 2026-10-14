@@ -133,6 +133,29 @@ injected `Func<float> random` (default `null` = deterministic 0.5 so tests stay 
 `UnityEngine.Random.value`. `Investigation.Checkpoint` gains `Dread` and `Deaths`. `MysteryReady` and `Record`
 treat FalseWarning like Disturbance.
 
+**Investigation API, wave G additions (hc/rules2, critic r10 static #1-#3, #10, #12, #15)**:
+- `float FeltDread` (0–100, read-only): the only Dread reading a player-facing channel may use. It is `Dread` lagged
+  by a per-run time constant `FeltLagSeconds` (20–30 s, exponential), plus slow value noise of ±12 (one knot every
+  6 s, a pure hash seeded once per run, so it never consumes dice). While `Lies` is set it drifts toward calm
+  (`HuntRules.FeltCalm` = 12) instead of Dread. It never reads the run's boundary, so no heartbeat or pulse level
+  marks where the dice arm. Bellwether: always 0. The heartbeat (`Soundscape`) and the journal pulse (`Interface`)
+  must read `FeltDread`, never `Dread`, and must not add a threshold of their own (critic #2, #3).
+- `float RunDreadMin`: this run's boundary for the banded dice and the 240 s floor, drawn 30–50 at construction
+  (`HuntDreadMin` ± `HuntDreadMinSpread`) and kept through checkpoints. Diagnostics/logs only.
+- After the first hunt the dice roll at every Dread level: below `RunDreadMin` at a flat `LowDreadChance` (1/40) per
+  roll (critic #1).
+- `float CurrentHuntSeconds`, `float CurrentRecoverySeconds`: drawn per hunt (25–50 s, median 38) and per Recovery
+  (10–40 s, median 32). At Dread ≥ 80 the dice also roll in Recovery at 1/8 (`RecoveryDiceChance`). The castle no
+  longer says `RecoveryMessage` (`HuntRules.AnnounceRecovery` false). UI and dispatch text must read these values
+  or say nothing; never print 38, 32 or "nine seconds" for the castle (critic #10).
+- No-tell starts (dice, gamble `BeginNoTellHunt`, Long Night bell/escalation) leave `BreakerOn` unchanged; only a
+  told Warning cuts it (critic #12).
+- The first-hunt guarantee counts from the record that reaches two pieces of evidence, not from Disturbance entry
+  (critic #15).
+- Construction draws, castle only, in order: boundary, felt lag, noise seed (Bellwether draws nothing). Per hunt:
+  hunt length right after the tell rolls; recovery length when the hunt ends. Crossing `RunDreadMin` restarts the
+  dice interval, so a queued sequence starting with an interval roll still lines up after forcing Dread upward.
+
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;
 exposes `public bool Diving` (for the integrator's torch fail), `public event Action<string> Beat` with ids
