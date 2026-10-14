@@ -1,25 +1,50 @@
-# HANDOFF: F5 grabs (branch `hc/grabs`, Sonnet 5.5, 2026-10-13)
+# HANDOFF: piece 0 (integrator), Haunted Castle map plumbing
 
-Two new Count Claude clips in the existing Blender pipeline. Mesh and the eight older clips are unchanged (a full re-run reproduces every old clip metric exactly; old FBX were restored byte-for-byte from git, since the FBX writer stamps a timestamp). Unity not launched. No paid generation.
+Branch `haunted-castle` in `/Users/midir/hollow-current-haunted-castle` (main clone, pushed to origin). Model: Opus 5.5. Date 2026-10-13.
+Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/count `2a8c23a`, hc/layout `136b002`, hc/art `714ffe2` (round 2). Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md`.
 
-## Regenerate (idempotent, headless, about 90 s)
-    /Applications/Blender.app/Contents/MacOS/Blender -b -P tools/count_prepare.py -- --only-new --proof docs/haunted-castle/rounds/r10
-- `--only-new`: computes and exports only Mode 8 `GrabDrop` and Mode 9 `GrabCrawl` FBX, merges the receipt, leaves the mesh and older FBX alone.
-- No flags: full regeneration of all ten clips + mesh (then `git checkout` any FBX you did not mean to change).
-- `--proof DIR`: renders the proof images and `grab_proof_measurements.json`.
+## Verified (how)
+- `python3 tools/check_source.py`: PASS 388 rules assertions; runtime C# compiles against the macOS player and editor assemblies (now recursive: `Runtime/Castle/` is compiled).
+- Unity 6000.3.20f1, one instance at a time, every run through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-integrator` (logs `/Users/midir/hollow-current-haunted-castle/.*.log`, gitignored):
+  - `CountClaudeImport.Prepare` (nographics): HC_COUNTCLAUDE_PASS, 6 clips, 28 bones, prefab `Resources/Characters/CountClaude.prefab`.
+  - `NativeBuild.ValidateCastleGeometry` (nographics): HC_CASTLE_GEOMETRY_PASS, 9 contract points reachable from the gatehouse (crypt, reliquary, tower orrery, portrait closet), HC_CASTLE_HUNTER_PASS.
+  - `HouseLighting.PrepareAndBakeCastle` (graphics, batchmode): 4 lightmaps, 188 probes, 17 reflections; receipt `Art/LayoutData/CastleBake.json`.
+  - `NativeBuild.BuildPreparedMacCastle`: Succeeded, `Builds/macOS-Castle/Hollow Current Castle.app`. Headless player boot (`-batchmode -nographics`, then SIGTERM): HC_AUDIO_READY 75 clips, HC_READY, HC_STARTUP_READY, no exceptions; only `HC_MISSING_ART speech voice_cc_arrival`.
+  - Bellwether receipt was stale from the shared-source changes (BuildPreparedMac refused, loud message). Re-ran `PrepareAndBake`: same counts as shipped (4 / 124 / 9). `BuildPreparedMac` passed all geometry checks and built; headless boot HC_STARTUP_READY, 49 clips.
+  - `NativeBuild.BuildPreparedMacAll`: both maps in `Builds/macOS/Hollow Current.app` (Succeeded, ~899 MB).
+- Not verified: anything rendered or played (no captures, no input-driven run of the picker, map switch, forge, fight, stair loop or drawbridge). The critic/playtest owns that.
 
-## Clips (tools/count_prepare.py, tables `DROP` and `CG`)
-- `GrabDrop` (Mode 8, 1.6 s, holds last pose): starts with the lowest point 2.2 m above the origin, wings spread; falls in 0.5 s (constant acceleration), lands in a crouch, then lunges: hips pitched forward, chest pitched 61.3 deg toward the lens, jaw open (-36), right claw reaching to the lower centre of the lens, left claw out beside the face, wings spread forward (membrane area ratio >= 1.52 throughout). Grounded: lowest mesh point is z = 0 at the final pose (Mode 6 floats 0.10 m).
-- `GrabCrawl` (Mode 9, 1.4 s, holds last pose): from the Mode 7 crawl pose; coils, lunges 1.2 m forward low to the ground head first with the jaw open (frame 0.52), then rears up (chest 50.5 deg at the end, 76 deg max during the lunge) and the claws close on the lens. Grounded (lowest point z = 0 every frame). Wing area ratio min 0.84.
+## What exists (signatures other pieces code against)
+- `Core/MapId.cs`: `enum MapId { Bellwether, Castle }`; `MapCatalog.Get(MapId)` -> `MapInfo{SceneName, ScenePath, BakeReceiptPath, LightingSettingsPath, LayoutFolder, DisplayName, HunterName}`; `TryParse`, `TryFromSceneName`, `FromPreference`; PlayerPrefs key `hc.map`.
+- `Core/CaseBook.cs`: every per-map word (evidence names/ids, instrument names, note titles/ids/art, journal choices, dispatch/goal text, kill ending, relic text). `CaseBook.For(map)`. Correct journal answer uses the same enum slots for both maps (chapel bell = `AnchorKind.MusicBox`). Castle note titles `Ledger: the steward / the astronomer / the painter` with ids `cc_ledger_steward/orrery/portrait` (= `LedgerHints`).
+- `Core/Investigation.cs`: `new Investigation(CaseBook)`; `WinByKill()`, `HunterSlain`.
+- `Runtime/World.cs`: `Build(MapId)`, `LoadOrBuild(MapId)`, `Map`, instance `Spawn`, `HunterSpawn`, `AnchorFloor`, `PerchPoints`, `IsInside/IsSafe`, `CheckpointPosition`, `StepSurface`, `NavBounds`, `Castle` (`World.CastleSpots`, serializable copy of `CastleWorld.Points`), `CastleRoutePoints()`. Castle: CastleWorld's own NavMesh is removed and rebuilt by `World.BuildNavigation` (castle skips trigger colliders, includes MeshColliders); missing kit/winch/bell/brazier/altar/relic/ledger interactables are added as fallbacks.
+- `Runtime/HunterProfile.cs`: plain class, defaults = Split Grin; `SplitGrinProfile`; `HunterProfile.For(map)`; virtual `OnStagger(Presence)`, `OnDeath(Presence)`. `Presence.Profile`, `Presence.Stagger()`, `Presence.Defeat()`.
+- `Runtime/CastleRun.cs` (castle only, `Game.Castle`): owns `Forge`, `Fight`; altar hold -> `Forge.Tick` (Craft only via tick), strike = instrument button within 3.2 m / 55 deg during a hunt, `Fight.Killed` -> `Defeat` + `WinByKill`; props on CastleWorld anchors; AUDIO.md loops/one-shots.
+- `Runtime/MissingArt.cs`: castle-only magenta/silent placeholders (`MissingArt.Placeholders`), logged as `HC_MISSING_ART`.
+- `InteractKind` gained `Relic`, `Altar` (appended); `Interactable.RelicIndex`.
+- Editor entry points and receipt policy: README "Maps" table.
 
-## Receipt (`Art/Characters/CountClaude/Native/CountClaude.json`)
-`grab_drop_reach_m` 1.758, `grab_crawl_reach_m` 1.818 (furthest hand-weighted vertex, forward of origin, final pose; whole-mesh reach is the same, so nothing is nearer the lens than the claws), `modes` [0..9], `mode_names`, per-clip `claw_reach_m_last`, `chest_pitch_deg_last/max`. The same keys are copied to the shipped `Resources/Characters/CountClaude/CountClaudeModes.json` (new; Unity makes its `.meta`) so the player can detect Mode 8/9 with `Resources.Load<TextAsset>("Characters/CountClaude/CountClaudeModes")`; the receipt itself is not in Resources.
+## What each piece does next
+- Piece 2 (hc/art): merge takes your `Runtime/Castle/CastleArt.cs` over the layout stub (same `Place(string,Transform,Vector3,Quaternion)`). Commit `.meta` files for new assets (`CastleArt.cs.meta` already exists on haunted-castle: keep guid `git show haunted-castle:Assets/HollowCurrent/Runtime/Castle/CastleArt.cs.meta` or expect a meta conflict). Optional textures: `Resources/Castle/ClawScores`, `Resources/Castle/Ledger{Steward,Astronomer,Painter}`, `Resources/UI/BloodLedger/{Dialogue,Warning,Panel}` (currently magenta).
+- Piece 4b (Count behaviour): edit `Runtime/Castle/CountClaudeProfile.cs` (now a `HunterProfile` subclass with your values) and override `OnStagger/OnDeath`; perch/glide/dive needs new hooks in `Presence.cs` (piece 0 file): send requests. Read `Game.Castle.Fight` for `SpeedMultiplier/Retreating`.
+- Piece 6: add `voice_cc_arrival`, `voice_cc_kit`, `voice_cc_warning`, `voice_cc_return`, `voice_cc_contain`, `voice_cc_ending`, `voice_cc_hint_signal/trace/voice` (castle `Speak(id)` looks up `voice_cc_<id>`; `cc_*` ids as given).
+- Piece 1: notes you place are extra flavour unless titled as in `CaseBook.Castle.NoteTitles`; fallbacks currently sit near Compass/Voice/Altar points.
+- Every builder: after a shared-file change both receipts go stale; re-run the map's `PrepareAndBake*` before a prepared build.
 
-## Proof renders (`docs/haunted-castle/rounds/r10/`)
-Camera 1.99 m in front of the origin (GrabReach 1.39 + 0.6), eye 1.64 m, vFOV 72 (Investigator camera), aimed at the face centroid of the final pose, 2560x1440 Workbench: `grab_drop_pose.png`, `grab_crawl_pose.png`, `*_frame0.png` (same camera), `*_side.png` (orthographic side contact sheet, 5 frames), `grab_proof_measurements.json`. Measured by projecting the posed hand vertices (geometry, not pixels): GrabDrop right claw bbox 796 px wide, centre 477 px from frame centre (bbox includes the long fingers; the palm sits nearer); GrabCrawl right claw 913 px wide, centre 462 px. The far-side claw sits near the lower frame edge in both. Nearest hand point to the lens 0.36 m (drop) and 0.25 m (crawl). Frame 0 of GrabDrop is nearly empty from this camera: he starts 2.2 m up, above the view.
+## Round 2 (integrator)
+- Relic gating: silver blade = the reliquary box (trigger around the box art), shut until the grave-ash lantern is held on its claw-scores for 1 s; hilt at the orrery asset's socket (manifest notes.socket, assumes Blender x,y,z -> Unity x,z,y); moonstone on the pedestal behind the portrait door. Ledger pages speak the matching relic hint.
+- Far-bank escape: after the bell seal, once the drawbridge has lowered, entering `DrawbridgeTrigger` = `FinishAtVan`.
+- Doors: with the 1.5 m probe 17/23 castle doors could not open (0 degrees) and the rest stopped at 55. `Door.FitProbe` + hinge moved to the clearer wall face: all 23 open 80-175 degrees (`ValidateCastleGeometry` threshold 75 for the castle; Bellwether unchanged at 85).
+- Count sources moved to `Art/Characters/CountClaude`; castle `Speak("arrival")` -> `voice_cc_night` (also warning -> `cc_hunt_hungry`, return -> `cc_stay`).
+- Sky + moons wired (`CastleArt.ApplySkybox`, moons along `Pale/RedMoonDirection`, baked). `ImportYaw` left at 0.
+- Capture mode `-hc-capture <dir>` (`Runtime/Castle/CaptureMode.cs`); round 1 notes `docs/haunted-castle/rounds/r1/NOTES.md`.
+- Builds: `Builds/macOS-Castle/Hollow Current Castle.app`, `Builds/macOS/Hollow Current.app` (both maps); both boot headless.
 
-## What the integrator must do
-1. Run `CountClaudeImport.Prepare` (gpu_slot, nographics). Expect `HC_COUNTCLAUDE_GRABS drop=1.60s reach 1.758 crawl=1.40s reach 1.818 receipt modes=0,...,9` and `HC_COUNTCLAUDE_PASS ... 10 independent motions`. Commit the generated `CountClaudeGrabDrop.anim/.crawl.anim`, the controller change and the new `.fbx.meta`/`CountClaudeModes.json.meta`. If an FBX is missing, the import logs `HC_CHARACTER_CLIP_SKIPPED` and adds no state.
-2. Presence/profile (not my files): add `ModeGrabDrop=8`, `ModeGrabCrawl=9` (and `ModeCount=10`) to `CountClaudeProfile`; the camera stand-off for these must be the clip's own reach + clearance (`grab_drop_reach_m` + 0.6 = 2.36 m, `grab_crawl_reach_m` + 0.6 = 2.42 m), not the Mode 6 `GrabReach` 1.39 m; my proofs use 1.99 m, so at 2.36/2.42 m the claws are farther from the lens than in the proofs and read smaller. Use hover 0 for Modes 8/9 (grounded clips). GrabDrop's first frames are 2.2 m up with a 4.5 m top: ceilings clip him but he is out of view.
-3. `HearthboundActor.ModeFrames` is `new int[8]` (guarded, no throw); size it 10 to count Modes 8/9.
-4. Animator is unscaled time in the presentation already (Pose(mode,0,true)); both clips hold the last pose.
+## Open issues
+- `tools/audit_project.py` fails on its first, pre-existing check (`com.unity.inputsystem` is not a built-in package); the new scene checks pass when that loop is skipped.
+- `CastleDrawbridge` moved from `CastleWorld.cs` to its own file (Unity scene-serialization requirement); hc/layout edits must follow.
+- Relic gating, the far-bank escape and the forge/fight are compiled and engine-validated for reachability only; not input-playtested.
+- No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
+- `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
+- Not yet run: any rendered capture or input playtest of either map.

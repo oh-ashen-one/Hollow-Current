@@ -1028,13 +1028,14 @@ namespace HollowCurrent
         int ChooseGrab(out string why)
         {
             var player=Game.Player.transform.position;float above=Mathf.Max(dropHeight,transform.position.y-player.y);
-            if(count.ModeGrabDrop>=0&&above>=count.GrabDropMinHeight)
+            bool onFoot=actor.Mode==count.ModeCrawl||MustCrawl(transform.position);
+            // Integrator (hc/grabs review): GrabDrop is the default whenever he is airborne at grab time.
+            if(count.ModeGrabDrop>=0&&!onFoot)
             {
-                if(HasModeState(count.ModeGrabDrop,"GrabDrop")){why="drop from "+above.ToString("F1")+" m";return count.ModeGrabDrop;}
+                if(HasModeState(count.ModeGrabDrop,"GrabDrop")){why="airborne drop from "+above.ToString("F1")+" m";return count.ModeGrabDrop;}
                 why="drop wanted, no GrabDrop state";
             }
             else why="wing-wrap";
-            bool onFoot=actor.Mode==count.ModeCrawl||MustCrawl(transform.position);
             if(count.ModeGrabCrawl>=0&&onFoot)
             {
                 if(HasModeState(count.ModeGrabCrawl,"GrabCrawl")){why="on foot (crawl)";return count.ModeGrabCrawl;}
