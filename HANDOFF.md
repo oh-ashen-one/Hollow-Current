@@ -1,50 +1,87 @@
-# HANDOFF: piece 0 (integrator), Haunted Castle map plumbing
+# HANDOFF: piece F1 "rules" (hc/dread), wave F
 
-Branch `haunted-castle` in `/Users/midir/hollow-current-haunted-castle` (main clone, pushed to origin). Model: Opus 5.5. Date 2026-10-13.
-Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/count `2a8c23a`, hc/layout `136b002`, hc/art `714ffe2` (round 2). Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md`.
+Branch `hc/dread`, worktree `/Users/midir/hollow-current-haunted-castle/.wt/dread`, based on `haunted-castle` `fbd5807`. Model: Opus 5.5. Date 2026-10-13.
+FEAR_PLAN items delivered on the rules side: 1 (Dread), 2 (dice hunts), 3 (no-tell, false warning, escalation), 4 (hostile Return), 5 (Lies / DoorHeld thresholds), 6 (`HuntRules.LongNight`), 7 (Deaths, death penalty).
+
+## Files (only these were touched)
+- `/Users/midir/hollow-current-haunted-castle/.wt/dread/Assets/HollowCurrent/Core/HuntRules.cs` (+ `.meta`, fresh guid `5a69f4233c5840fba39887605eacdc47`): new.
+- `/Users/midir/hollow-current-haunted-castle/.wt/dread/Assets/HollowCurrent/Core/Investigation.cs`
+- `/Users/midir/hollow-current-haunted-castle/.wt/dread/Assets/HollowCurrent/Core/CaseBook.cs`: `Rules` field only (Bellwether book = `HuntRules.Bellwether`, Castle book = `HuntRules.Castle`).
+- `/Users/midir/hollow-current-haunted-castle/.wt/dread/Tests/RulesTests.cs`: appended `DreadRulesTests()` + one call line in `Main`; no existing line changed.
 
 ## Verified (how)
-- `python3 tools/check_source.py`: PASS 388 rules assertions; runtime C# compiles against the macOS player and editor assemblies (now recursive: `Runtime/Castle/` is compiled).
-- Unity 6000.3.20f1, one instance at a time, every run through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-integrator` (logs `/Users/midir/hollow-current-haunted-castle/.*.log`, gitignored):
-  - `CountClaudeImport.Prepare` (nographics): HC_COUNTCLAUDE_PASS, 6 clips, 28 bones, prefab `Resources/Characters/CountClaude.prefab`.
-  - `NativeBuild.ValidateCastleGeometry` (nographics): HC_CASTLE_GEOMETRY_PASS, 9 contract points reachable from the gatehouse (crypt, reliquary, tower orrery, portrait closet), HC_CASTLE_HUNTER_PASS.
-  - `HouseLighting.PrepareAndBakeCastle` (graphics, batchmode): 4 lightmaps, 188 probes, 17 reflections; receipt `Art/LayoutData/CastleBake.json`.
-  - `NativeBuild.BuildPreparedMacCastle`: Succeeded, `Builds/macOS-Castle/Hollow Current Castle.app`. Headless player boot (`-batchmode -nographics`, then SIGTERM): HC_AUDIO_READY 75 clips, HC_READY, HC_STARTUP_READY, no exceptions; only `HC_MISSING_ART speech voice_cc_arrival`.
-  - Bellwether receipt was stale from the shared-source changes (BuildPreparedMac refused, loud message). Re-ran `PrepareAndBake`: same counts as shipped (4 / 124 / 9). `BuildPreparedMac` passed all geometry checks and built; headless boot HC_STARTUP_READY, 49 clips.
-  - `NativeBuild.BuildPreparedMacAll`: both maps in `Builds/macOS/Hollow Current.app` (Succeeded, ~899 MB).
-- Not verified: anything rendered or played (no captures, no input-driven run of the picker, map switch, forge, fight, stair loop or drawbridge). The critic/playtest owns that.
+- `python3 tools/check_source.py` (with `INPUT_SYSTEM_REFERENCE=/Users/midir/hollow-current-haunted-castle/Library/ScriptAssemblies/Unity.InputSystem.dll`): PASS 483 assertions (396 existing, unchanged and passing, + 87 new); runtime and editor C# compile against player and editor assemblies. Unity not launched.
+- Mutation check: seven deliberate bugs (no-tell chance 0, Die ignoring hostile Return, Record blocked in false warning, floor clock not pausing below 40, penalty not applied, Bellwether timer gated by dread, MysteryReady ignoring false warning) each fail a named new assertion.
+- Bellwether byte-for-byte: differential fuzz, old `fbd5807` Core vs new Core, 4,000 seeds x 300 random operations (ticks, records, notes, conclude, power, seal, BeginWarning, Die, Invulnerable, FinishAtVan, WinByKill, save/restore same and fresh instance), state + messages + phase events logged each step: 1.2 M lines, identical SHA-1 `c70c9479...`. Harness: `/private/tmp/claude-501/-Users-midir/7e6a5e4e-3e3a-4250-94de-140e73836416/scratchpad/diff/Fuzz.cs` (scratch, not committed).
 
-## What exists (signatures other pieces code against)
-- `Core/MapId.cs`: `enum MapId { Bellwether, Castle }`; `MapCatalog.Get(MapId)` -> `MapInfo{SceneName, ScenePath, BakeReceiptPath, LightingSettingsPath, LayoutFolder, DisplayName, HunterName}`; `TryParse`, `TryFromSceneName`, `FromPreference`; PlayerPrefs key `hc.map`.
-- `Core/CaseBook.cs`: every per-map word (evidence names/ids, instrument names, note titles/ids/art, journal choices, dispatch/goal text, kill ending, relic text). `CaseBook.For(map)`. Correct journal answer uses the same enum slots for both maps (chapel bell = `AnchorKind.MusicBox`). Castle note titles `Ledger: the steward / the astronomer / the painter` with ids `cc_ledger_steward/orrery/portrait` (= `LedgerHints`).
-- `Core/Investigation.cs`: `new Investigation(CaseBook)`; `WinByKill()`, `HunterSlain`.
-- `Runtime/World.cs`: `Build(MapId)`, `LoadOrBuild(MapId)`, `Map`, instance `Spawn`, `HunterSpawn`, `AnchorFloor`, `PerchPoints`, `IsInside/IsSafe`, `CheckpointPosition`, `StepSurface`, `NavBounds`, `Castle` (`World.CastleSpots`, serializable copy of `CastleWorld.Points`), `CastleRoutePoints()`. Castle: CastleWorld's own NavMesh is removed and rebuilt by `World.BuildNavigation` (castle skips trigger colliders, includes MeshColliders); missing kit/winch/bell/brazier/altar/relic/ledger interactables are added as fallbacks.
-- `Runtime/HunterProfile.cs`: plain class, defaults = Split Grin; `SplitGrinProfile`; `HunterProfile.For(map)`; virtual `OnStagger(Presence)`, `OnDeath(Presence)`. `Presence.Profile`, `Presence.Stagger()`, `Presence.Defeat()`.
-- `Runtime/CastleRun.cs` (castle only, `Game.Castle`): owns `Forge`, `Fight`; altar hold -> `Forge.Tick` (Craft only via tick), strike = instrument button within 3.2 m / 55 deg during a hunt, `Fight.Killed` -> `Defeat` + `WinByKill`; props on CastleWorld anchors; AUDIO.md loops/one-shots.
-- `Runtime/MissingArt.cs`: castle-only magenta/silent placeholders (`MissingArt.Placeholders`), logged as `HC_MISSING_ART`.
-- `InteractKind` gained `Relic`, `Altar` (appended); `Interactable.RelicIndex`.
-- Editor entry points and receipt policy: README "Maps" table.
+## Final public API
+```csharp
+// HuntRules (Core/HuntRules.cs): plain data class, public fields
+public sealed class HuntRules {
+  public string Name;
+  public float TimedHuntSeconds; public int TimedHuntEvidence; public float HuntDreadMin;
+  public float FirstHuntSeconds, FirstHuntJitter; public int FirstHuntEvidence;
+  public float DiceIntervalMin, DiceIntervalMax, DiceChanceAt40, DiceChanceAt60, DiceChanceAt80, DiceEvidenceBonus;
+  public float WarningSeconds, HuntSeconds, RecoverySeconds, EscalationWarningSeconds;
+  public float NoTellChance, FalseWarningChance, EventEscalationChance;
+  public bool HostileReturn;
+  public bool UsesDread; public float DreadDarkRate, DreadInsideRate, DreadSafeRecovery, DreadStart;
+  public float DreadApparition, DreadThrow, DreadSeen, DreadGrabSurvived;   // suggested AddDread amounts: 12, 8, 15, 20
+  public float LieThreshold, DoorHeldThreshold;                              // 0 = never
+  public bool DeathPenalty; public float DeathDread;
+  public int NailedHides; public float PerchMinSeconds, PerchMaxSeconds;     // 0 = profile default
+  public float DiceChance(float dread, int evidence);
+  public HuntRules Clone();
+  public static HuntRules For(MapId map, bool longNight = false);            // Long Night only for the castle
+  public static readonly HuntRules Bellwether, Castle, LongNight;
+}
+// CaseBook
+public HuntRules Rules;
+// Investigation (Core/Investigation.cs), additions
+public Investigation(CaseBook book, Func<float> random = null, HuntRules rules = null); // rules null = book.Rules
+public HuntRules Rules { get; }
+public Func<float> Dice { get; set; }            // [0,1); null = deterministic 0.5
+public float Dread { get; }                      // 0-100, never in Goal
+public void AddDread(float amount);              // clamped; ignored when !Rules.UsesDread
+public void Tick(float dt, bool inside);         // = Tick(dt, inside, litNearby: true, inSafe: false)
+public void Tick(float dt, bool inside, bool litNearby, bool inSafe);
+public bool Lies { get; }                        // Dread >= LieThreshold (70)
+public bool DoorHeld { get; }                    // Dread >= DoorHeldThreshold (90)
+public bool FalseWarning { get; }                // this Warning ends back in Disturbance
+public bool NoTellHunt { get; }                  // this hunt had no Warning (set before Changed fires)
+public bool HuntActive { get; }                  // Phase Hunt, or Phase Return with HostileReturn
+public float WarningLength { get; }              // 9, or 1.5 after TryEscalate
+public bool TryEscalate();                       // call when an apparition lands within 4 m
+public int Deaths { get; }
+public bool DeathPenaltyApplied { get; }         // last restore applied the penalty: move the next relic/page
+public void RestoreCheckpoint(Checkpoint saved); // = RestoreCheckpoint(saved, afterDeath: true)
+public void RestoreCheckpoint(Checkpoint saved, bool afterDeath);
+// Checkpoint gains: public float Dread; public int Deaths;
+// Die(): now allowed whenever HuntActive (and increments Deaths).
+```
 
-## What each piece does next
-- Piece 2 (hc/art): merge takes your `Runtime/Castle/CastleArt.cs` over the layout stub (same `Place(string,Transform,Vector3,Quaternion)`). Commit `.meta` files for new assets (`CastleArt.cs.meta` already exists on haunted-castle: keep guid `git show haunted-castle:Assets/HollowCurrent/Runtime/Castle/CastleArt.cs.meta` or expect a meta conflict). Optional textures: `Resources/Castle/ClawScores`, `Resources/Castle/Ledger{Steward,Astronomer,Painter}`, `Resources/UI/BloodLedger/{Dialogue,Warning,Panel}` (currently magenta).
-- Piece 4b (Count behaviour): edit `Runtime/Castle/CountClaudeProfile.cs` (now a `HunterProfile` subclass with your values) and override `OnStagger/OnDeath`; perch/glide/dive needs new hooks in `Presence.cs` (piece 0 file): send requests. Read `Game.Castle.Fight` for `SpeedMultiplier/Retreating`.
-- Piece 6: add `voice_cc_arrival`, `voice_cc_kit`, `voice_cc_warning`, `voice_cc_return`, `voice_cc_contain`, `voice_cc_ending`, `voice_cc_hint_signal/trace/voice` (castle `Speak(id)` looks up `voice_cc_<id>`; `cc_*` ids as given).
-- Piece 1: notes you place are extra flavour unless titled as in `CaseBook.Castle.NoteTitles`; fallbacks currently sit near Compass/Voice/Altar points.
-- Every builder: after a shared-file change both receipts go stale; re-run the map's `PrepareAndBake*` before a prepared build.
+## Rules as built (castle)
+- Dread: inside dark +0.12/s, inside lit +0.05/s, `inSafe` -0.5/s (inSafe wins), outside unchanged. Starts 0 (Long Night 50).
+- Dice: only in Disturbance with Dread >= 40; next roll every 2-6 s (interval drawn from Dice); chance 1/12, 1/6, 1/4 by band [40,60), [60,80), [80,100], times (1 + 0.5 x records).
+- Floor: 240 s of Disturbance at Dread >= 40 since the last hunt forces one (clock pauses below 40; false warnings do not reset it).
+- First-hunt guarantee (added, see below): before any hunt, 95 s x (0.75..1.25 by roll) of Disturbance with >= 2 records forces one. Deterministic dice give exactly 95 s.
+- Spacing: dice and floor only run in Disturbance, so the next hunt is always >= 32 s (Recovery) after the last (tested over 600 s of certain dice).
+- Rolled or forced hunt: 25 % no Warning (`NoTellHunt`); dice hunts only: else 25 % false alarm (`FalseWarning`, 9 s, says WarningMessage, back to Disturbance). Bell (`BeginWarning`) always comes true. Long Night: no Warning ever, including the bell and escalation.
+- Escalation: `TryEscalate()` in Disturbance, 20 %: 1.5 s Warning with no dispatch line, then a hunt.
+- Hostile Return: completing the seal increments Hunts, sets NoTellHunt, `HuntActive` until `FinishAtVan`. No timeout.
+- Death penalty: a restore after death sets Dread 60, `Deaths` = max(current, saved + 1), `DeathPenaltyApplied`.
 
-## Round 2 (integrator)
-- Relic gating: silver blade = the reliquary box (trigger around the box art), shut until the grave-ash lantern is held on its claw-scores for 1 s; hilt at the orrery asset's socket (manifest notes.socket, assumes Blender x,y,z -> Unity x,z,y); moonstone on the pedestal behind the portrait door. Ledger pages speak the matching relic hint.
-- Far-bank escape: after the bell seal, once the drawbridge has lowered, entering `DrawbridgeTrigger` = `FinishAtVan`.
-- Doors: with the 1.5 m probe 17/23 castle doors could not open (0 degrees) and the rest stopped at 55. `Door.FitProbe` + hinge moved to the clearer wall face: all 23 open 80-175 degrees (`ValidateCastleGeometry` threshold 75 for the castle; Bellwether unchanged at 85).
-- Count sources moved to `Art/Characters/CountClaude`; castle `Speak("arrival")` -> `voice_cc_night` (also warning -> `cc_hunt_hungry`, return -> `cc_stay`).
-- Sky + moons wired (`CastleArt.ApplySkybox`, moons along `Pale/RedMoonDirection`, baked). `ImportYaw` left at 0.
-- Capture mode `-hc-capture <dir>` (`Runtime/Castle/CaptureMode.cs`); round 1 notes `docs/haunted-castle/rounds/r1/NOTES.md`.
-- Builds: `Builds/macOS-Castle/Hollow Current Castle.app`, `Builds/macOS/Hollow Current.app` (both maps); both boot headless.
+## Deviation to review
+The brief's castle values alone would break the existing castle test in `MapTests` (2 records, `Tick(95)`, expects a survived hunt) and would soft-lock the mystery (needs a hunt survived) when a player keeps Dread under 40. Added `FirstHuntSeconds/FirstHuntJitter/FirstHuntEvidence` (castle 95 / 0.25 / 2): it fires only before the first hunt and is jittered by the real dice. Set `FirstHuntSeconds=0` to drop it (the old castle test will then fail).
 
-## Open issues
-- `tools/audit_project.py` fails on its first, pre-existing check (`com.unity.inputsystem` is not a built-in package); the new scene checks pass when that loop is skipped.
-- `CastleDrawbridge` moved from `CastleWorld.cs` to its own file (Unity scene-serialization requirement); hc/layout edits must follow.
-- Relic gating, the far-bank escape and the forge/fight are compiled and engine-validated for reachability only; not input-playtested.
-- No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
-- `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
-- Not yet run: any rendered capture or input playtest of either map.
+## Requests for integrator (F0)
+1. `Game.cs`: `Case=new Investigation(CaseBook.For(Map), ()=>UnityEngine.Random.value, HuntRules.For(Map, longNightSetting));` and call `Case.Tick(dt, Player.Inside, litCandleWithin6m, inGatehouseOrAtChapelFire)`. Until this lands, a merged castle runs with deterministic 0.5 dice (first hunt at 95 s, dice only at Dread 80+ with 3 records) and Dread rising at the lit rate.
+2. Call `Case.AddDread(Case.Rules.DreadApparition / DreadThrow / DreadSeen / DreadGrabSurvived)` on those events; `Case.TryEscalate()` when an apparition lands within 4 m.
+3. Replace `Phase==Phase.Hunt` with `Case.HuntActive` where kills/visibility are decided (Presence castle branch is F2's).
+4. On `Changed(Phase.Warning)`: if `FalseWarning`, strobe lights + radio static but no hunter; if `WarningLength < 9` (escalation) there is no WarningMessage. On `Changed(Phase.Hunt)` with `NoTellHunt`: skip the warning presentation. `CastleRun` bell line says "Nine seconds"; in Long Night the bell starts the hunt at once.
+5. `DeathPenaltyApplied` after `RestoreCheckpoint`: move the next relic or ledger page (F3's `RelicAltPositions`).
+6. `Lies` / `DoorHeld` drive compass spin, phantom `cc_listen`, false candle tell, held hide door; `NailedHides`, `PerchMin/MaxSeconds` are data for Game / Presence.
+7. Interface "HUNTS SURVIVED" uses `Hunts`; the hostile Return now counts as a hunt.
+
+## Not done
+No runtime (Game, Presence, Interface, ScareDirector) wiring, no captures, no playtest: those belong to F0/F2/F3. Nothing rendered.
