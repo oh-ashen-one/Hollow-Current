@@ -43,10 +43,16 @@ namespace HollowCurrent
         // HuntSeconds / RecoverySeconds are the medians: each hunt draws its own length from
         // Min..Max (piecewise linear, a 0.5 roll gives exactly the median). Min == Max = fixed,
         // no roll is drawn. Investigation.CurrentHuntSeconds / CurrentRecoverySeconds hold the draw.
+        // WarningSeconds is also a median: every told or false Warning draws WarningSecondsMin..Max
+        // (Investigation.CurrentWarningSeconds), so a Warning's length never identifies a false alarm.
         public float WarningSeconds, HuntSeconds, RecoverySeconds;
+        public float WarningSecondsMin, WarningSecondsMax;
         public float HuntSecondsMin, HuntSecondsMax, RecoverySecondsMin, RecoverySecondsMax;
-        // Dice during Recovery: at Dread >= RecoveryDiceDread each roll hunts with this chance. 0 = off.
-        public float RecoveryDiceChance, RecoveryDiceDread;
+        // Dice during Recovery: at Dread >= RecoveryDiceDread each roll hunts with RecoveryDiceChance,
+        // below it with RecoveryLowChance. 0 = off.
+        public float RecoveryDiceChance, RecoveryDiceDread, RecoveryLowChance;
+        // After the first hunt, flat dice in Survey and Containment (no phase is a guaranteed refuge). 0 = off.
+        public float QuietPhaseChance;
         // Say Book.RecoveryMessage ("a quiet window") when a hunt ends. The castle stays silent.
         public bool AnnounceRecovery;
         // Tell before a hunt converted from a close apparition (TryEscalate).
@@ -71,8 +77,14 @@ namespace HollowCurrent
         public float DeathDread;
         // FeltDread: what the heartbeat / journal pulse may show. Dread lagged by a per-run time
         // constant FeltLagMin..Max seconds, plus slow noise of +-FeltNoise (one knot every
-        // FeltNoisePeriod s); while Lies it drifts toward FeltCalm instead. Never uses the boundary.
+        // FeltNoisePeriod s). Never uses the boundary and is not tied to Lies.
         public float FeltLagMin, FeltLagMax, FeltNoise, FeltNoisePeriod, FeltCalm;
+        // Felt lie episodes, scheduled from the run's noise seed (no dice): one starts every
+        // FeltEpisodeGapMin..Max s (start to start) and lasts FeltEpisodeMin..Max s. At Dread >= FeltCalmFrom
+        // it can drift toward FeltCalm; at Dread < FeltSpikeBelow it can drift up to FeltSpikeMin..Max;
+        // where both are possible the kind is a coin flip. FeltEpisodeGapMax 0 = no episodes.
+        public float FeltEpisodeGapMin, FeltEpisodeGapMax, FeltEpisodeMin, FeltEpisodeMax;
+        public float FeltCalmFrom, FeltSpikeBelow, FeltSpikeMin, FeltSpikeMax;
         // Hide spots nailed shut for this run (Game picks which).
         public int NailedHides;
         // Perch dwell between hunts for the hunter's runtime. 0 = the profile's default.
@@ -104,7 +116,9 @@ namespace HollowCurrent
             DiceIntervalMin=0,DiceIntervalMax=0,DiceChanceAt40=0,DiceChanceAt60=0,DiceChanceAt80=0,DiceEvidenceBonus=0,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=0,
             HuntSecondsMin=38,HuntSecondsMax=38,RecoverySecondsMin=32,RecoverySecondsMax=32,RecoveryDiceChance=0,RecoveryDiceDread=0,AnnounceRecovery=true,
+            WarningSecondsMin=9,WarningSecondsMax=9,RecoveryLowChance=0,QuietPhaseChance=0,
             FeltLagMin=0,FeltLagMax=0,FeltNoise=0,FeltNoisePeriod=0,FeltCalm=0,
+            FeltEpisodeGapMin=0,FeltEpisodeGapMax=0,FeltEpisodeMin=0,FeltEpisodeMax=0,FeltCalmFrom=0,FeltSpikeBelow=0,FeltSpikeMin=0,FeltSpikeMax=0,
             NoTellChance=0,FalseWarningChance=0,EventEscalationChance=0,HostileReturn=false,
             UsesDread=false,DreadDarkRate=0,DreadInsideRate=0,DreadSafeRecovery=0,DreadStart=0,
             DreadApparition=0,DreadThrow=0,DreadSeen=0,DreadGrabSurvived=0,
@@ -121,7 +135,9 @@ namespace HollowCurrent
             DiceIntervalMin=2,DiceIntervalMax=6,DiceChanceAt40=1f/12,DiceChanceAt60=1f/6,DiceChanceAt80=1f/4,DiceEvidenceBonus=.5f,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=1.5f,
             HuntSecondsMin=25,HuntSecondsMax=50,RecoverySecondsMin=10,RecoverySecondsMax=40,RecoveryDiceChance=1f/8,RecoveryDiceDread=80,AnnounceRecovery=false,
+            WarningSecondsMin=5,WarningSecondsMax=14,RecoveryLowChance=1f/16,QuietPhaseChance=1f/80,
             FeltLagMin=20,FeltLagMax=30,FeltNoise=12,FeltNoisePeriod=6,FeltCalm=12,
+            FeltEpisodeGapMin=200,FeltEpisodeGapMax=600,FeltEpisodeMin=20,FeltEpisodeMax=40,FeltCalmFrom=40,FeltSpikeBelow=60,FeltSpikeMin=65,FeltSpikeMax=85,
             NoTellChance=.25f,FalseWarningChance=.25f,EventEscalationChance=.2f,HostileReturn=true,
             UsesDread=true,DreadDarkRate=.12f,DreadInsideRate=.05f,DreadSafeRecovery=.5f,DreadStart=0,
             DreadApparition=12,DreadThrow=8,DreadSeen=15,DreadGrabSurvived=20,

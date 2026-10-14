@@ -236,7 +236,7 @@ static class RulesTests
 
         // Forced floor: 240 s at Dread >= 40 since the last hunt; the clock pauses below 40.
         var floor=StartOn(CaseBook.Castle,()=>.99f);floor.Record(Evidence.Induction);floor.AddDread(floor.RunDreadMin+5);
-        Assert(TickUntilLeaves(floor,Phase.Disturbance,300)==240&&floor.Phase==Phase.Warning&&!floor.FalseWarning&&floor.WarningLength==9,"floor forces a hunt after 240 s just above the run's boundary");
+        Assert(TickUntilLeaves(floor,Phase.Disturbance,300)==240&&floor.Phase==Phase.Warning&&!floor.FalseWarning&&floor.CurrentWarningSeconds>=5&&floor.CurrentWarningSeconds<=14,"floor forces a hunt after 240 s just above the run's boundary");
         var pause=StartOn(CaseBook.Castle,()=>.99f);pause.Record(Evidence.Induction);pause.AddDread(pause.RunDreadMin+5);
         Assert(TickUntilLeaves(pause,Phase.Disturbance,200)==200,"200 s above the boundary is not enough");pause.AddDread(-10);
         Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==100,"floor clock pauses below the boundary");pause.AddDread(10);
@@ -249,24 +249,24 @@ static class RulesTests
             Assert(TickUntilLeaves(first,Phase.Disturbance,200)==(int)pair[1]&&first.Dread==0,"first hunt guaranteed at "+pair[1]+" s for roll "+roll);
         }
 
-        // Spacing: below Dread 80 the next hunt never starts before that hunt's Recovery has passed.
+        // Recovery below Dread 80 is no longer a guaranteed window (wave H, N7): certain dice also hunt from Recovery.
         var spaced=StartOn(CaseBook.Castle,()=>.01f);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))spaced.Record(e);spaced.AddDread(79);
-        float now=0,lastEnd=-1,recLen=0;int hunts=0;bool gapOk=true;spaced.Changed+=p=>{if(p==Phase.Hunt){hunts++;if(lastEnd>=0&&now-lastEnd<recLen-.001f)gapOk=false;}if(p==Phase.Recovery){lastEnd=now;recLen=spaced.CurrentRecoverySeconds;}};
-        for(int i=0;i<1200;i++){spaced.Tick(.5f,false);now+=.5f;}
-        Assert(hunts>=5&&gapOk&&spaced.Hunts==hunts,"dice hunts repeat but never within the drawn recovery below Dread 80");
+        int hunts=0,fromRecovery=0;spaced.Changed+=p=>{if(p==Phase.Hunt){hunts++;if(spaced.ThreatFrom==Phase.Recovery)fromRecovery++;}};
+        for(int i=0;i<1200;i++)spaced.Tick(.5f,false);
+        Assert(hunts>=5&&fromRecovery>=1&&spaced.Hunts==hunts,"dice hunts repeat, some of them out of Recovery below Dread 80");
 
         // False warning: Warning that ends back in Disturbance; records and MysteryReady treat it like Disturbance.
         var q=new System.Collections.Generic.Queue<float>();var fw=StartOn(CaseBook.Castle,()=>q.Count>0?q.Dequeue():.99f);
         fw.Record(Evidence.Induction);fw.Record(Evidence.Handprint);fw.BeginWarning();Assert(fw.Phase==Phase.Warning&&!fw.FalseWarning,"bell summons are never false alarms");
-        fw.Tick(9,false);TickUntilLeaves(fw,Phase.Hunt,60);TickUntilLeaves(fw,Phase.Recovery,60);foreach(var title in CaseBook.Castle.NoteTitles)fw.Read(title);fw.AddDread(85);
+        TickUntilLeaves(fw,Phase.Warning,30);TickUntilLeaves(fw,Phase.Hunt,60);TickUntilLeaves(fw,Phase.Recovery,60);foreach(var title in CaseBook.Castle.NoteTitles)fw.Read(title);fw.AddDread(85);
         Assert(fw.Phase==Phase.Disturbance&&fw.Survived&&!fw.MysteryReady,"survived, two records: not ready");
         q.Enqueue(.5f);q.Enqueue(.1f);q.Enqueue(.9f);q.Enqueue(.1f); // interval, hunt roll, tell roll, false-alarm roll
         TickUntilLeaves(fw,Phase.Disturbance,30);
         Assert(fw.Phase==Phase.Warning&&fw.FalseWarning&&!fw.HuntActive&&fw.Hunts==1&&!fw.BreakerOn,"rolled false alarm: Warning that is not a hunt");
         Assert(fw.Record(Evidence.Voice)&&fw.MysteryReady,"false warning accepts records and keeps MysteryReady");
-        fw.Tick(8,false);Assert(fw.Phase==Phase.Warning&&fw.FalseWarning,"false alarm lasts the full warning");
+        float fwLen=fw.CurrentWarningSeconds;fw.Tick(fwLen-.5f,false);Assert(fw.Phase==Phase.Warning&&fw.FalseWarning,"false alarm lasts the full warning");
         fw.Tick(1,false);Assert(fw.Phase==Phase.Disturbance&&!fw.FalseWarning&&fw.Hunts==1&&fw.MysteryReady,"false alarm ends in Disturbance, no hunt, still ready");
-        fw.BeginWarning();Assert(!fw.MysteryReady&&!fw.FalseWarning,"a real Warning blocks the journal");fw.Tick(9,false);Assert(fw.Phase==Phase.Hunt&&fw.Hunts==2,"real Warning hunts");
+        fw.BeginWarning();Assert(!fw.MysteryReady&&!fw.FalseWarning,"a real Warning blocks the journal");TickUntilLeaves(fw,Phase.Warning,30);Assert(fw.Phase==Phase.Hunt&&fw.Hunts==2,"real Warning hunts");
 
         // Escalation: a close apparition becomes a hunt after a 1.5 s tell, with no dispatch line.
         Assert(!StartOn(CaseBook.Castle).TryEscalate(),"no escalation outside Disturbance");
@@ -313,8 +313,8 @@ static class RulesTests
     // A castle that has survived one bell hunt and is back in Disturbance at Dread 0.
     static Investigation AfterFirstHunt(Func<float> random)
     {
-        var c=StartOn(CaseBook.Castle,random);c.Record(Evidence.Induction);c.BeginWarning();c.Tick(9,false);
-        TickUntilLeaves(c,Phase.Hunt,60);TickUntilLeaves(c,Phase.Recovery,60);return c;
+        var c=StartOn(CaseBook.Castle,random);c.Record(Evidence.Induction);c.BeginWarning();TickUntilLeaves(c,Phase.Warning,30);
+        for(int t=0;t<900&&c.Phase!=Phase.Disturbance;t++)c.Tick(1,false);return c;
     }
     static void WaveGTests()
     {
@@ -341,7 +341,7 @@ static class RulesTests
 
         // #1 low-Dread "demon" roll: none before the first hunt (covered above), 1/40 per roll after it.
         Assert(TickUntilLeaves(AfterFirstHunt(()=>.99f),Phase.Disturbance,600)==600,"low roll above 1/40 never hunts");
-        var demon=AfterFirstHunt(()=>.02f);Assert(demon.Dread<demon.RunDreadMin&&TickUntilLeaves(demon,Phase.Disturbance,30)<10&&demon.Hunts==2,"low roll under 1/40 hunts at Dread 0 after the first hunt");
+        var demon=AfterFirstHunt(()=>.99f);demon.Dice=()=>.02f;Assert(demon.Dread<demon.RunDreadMin&&TickUntilLeaves(demon,Phase.Disturbance,30)<10&&demon.Hunts==2,"low roll under 1/40 hunts at Dread 0 after the first hunt");
         int sessions=0,withHunt=0;float waitSum=0;int waits=0;
         for(int seed=0;seed<400;seed++)
         {
@@ -351,7 +351,7 @@ static class RulesTests
         }
         float hitRate=withHunt/(float)sessions,meanWait=waitSum/Math.Max(1,waits);
         Console.WriteLine("WAVE_G low-Dread sessions="+sessions+" with_hunt_in_10min="+hitRate.ToString("F3")+" mean_wait_s="+meanWait.ToString("F1"));
-        Assert(sessions>=390&&hitRate>.9f&&meanWait>100&&meanWait<220,"Dread 0, 10 min after the first hunt: >90 % of sessions hunt, mean wait about 160 s");
+        Assert(sessions>=395&&hitRate>.9f&&meanWait>100&&meanWait<220,"Dread 0, 10 min after the first hunt: >90 % of sessions hunt, mean wait about 160 s");
         // Crossing the boundary restarts the schedule: the playtest driver's queued false warning still lines up.
         var q=new System.Collections.Generic.Queue<float>();var drv=AfterFirstHunt(()=>q.Count>0?q.Dequeue():.99f);
         drv.Tick(17,false);drv.AddDread(55-drv.Dread+Math.Max(0,drv.RunDreadMin-50));foreach(var v in new[]{0f,0f,.9f,0f})q.Enqueue(v);
@@ -361,7 +361,7 @@ static class RulesTests
         var hunt=new System.Collections.Generic.List<float>();var rec=new System.Collections.Generic.List<float>();bool endsOk=true;
         for(int seed=0;seed<1500;seed++)
         {
-            var c=StartOn(CaseBook.Castle,Seeded(5000+seed));c.Record(Evidence.Induction);c.BeginWarning();c.Tick(9,false);
+            var c=StartOn(CaseBook.Castle,Seeded(5000+seed));c.Record(Evidence.Induction);c.BeginWarning();TickUntilLeaves(c,Phase.Warning,30);
             float h=c.CurrentHuntSeconds;hunt.Add(h);c.Tick(h-.5f,false);if(c.Phase!=Phase.Hunt)endsOk=false;c.Tick(1,false);if(c.Phase!=Phase.Recovery)endsOk=false;
             float rr=c.CurrentRecoverySeconds;rec.Add(rr);c.Tick(rr-.5f,false);if(c.Phase!=Phase.Recovery)endsOk=false;c.Tick(1,false);if(c.Phase!=Phase.Disturbance)endsOk=false;
         }
@@ -373,21 +373,22 @@ static class RulesTests
         int fixedHunts=0;foreach(var h in hunt)if(Math.Abs(h-38)<.05f)fixedHunts++;Assert(fixedHunts<15,"38 s is no longer the hunt length");
         // Recovery dice at Dread >= 80.
         var rd=AfterFirstHunt(null);rd.BeginWarning();rd.Tick(9,false);rd.AddDread(85);rd.Tick(38,false);Assert(rd.Phase==Phase.Recovery,"setup: recovery at Dread 85");
-        var rq=new System.Collections.Generic.Queue<float>();var rdq=StartOn(CaseBook.Castle,()=>rq.Count>0?rq.Dequeue():.99f);rdq.Record(Evidence.Induction);rdq.BeginWarning();rdq.Tick(9,false);rdq.AddDread(85);
+        var rq=new System.Collections.Generic.Queue<float>();var rdq=StartOn(CaseBook.Castle,()=>rq.Count>0?rq.Dequeue():.99f);rdq.Record(Evidence.Induction);rdq.BeginWarning();TickUntilLeaves(rdq,Phase.Warning,30);rdq.AddDread(85);
         TickUntilLeaves(rdq,Phase.Hunt,60);Assert(rdq.Phase==Phase.Recovery&&rdq.CurrentRecoverySeconds>39,"setup: long recovery at Dread 85");
         foreach(var v in new[]{.5f,.1f,.9f,.1f})rq.Enqueue(v); // interval, recovery roll under 1/8, tell, false alarm
         int inRecovery=TickUntilLeaves(rdq,Phase.Recovery,60);Assert(inRecovery<10&&rdq.Phase==Phase.Warning&&rdq.FalseWarning,"1/8 dice roll fires inside Recovery at Dread 85");
-        rdq.Tick(9,false);Assert(rdq.Phase==Phase.Disturbance,"a false alarm from Recovery ends in Disturbance");
+        TickUntilLeaves(rdq,Phase.Warning,30);Assert(rdq.Phase==Phase.Disturbance,"a false alarm from Recovery ends in Disturbance");
         int cut=0,trials=0;
         for(int seed=0;seed<600;seed++)
         {
-            var c=StartOn(CaseBook.Castle,Seeded(9000+seed));c.Record(Evidence.Induction);c.BeginWarning();c.Tick(9,false);c.AddDread(90);
+            var c=StartOn(CaseBook.Castle,Seeded(9000+seed));c.Record(Evidence.Induction);c.BeginWarning();TickUntilLeaves(c,Phase.Warning,30);c.AddDread(90);
             TickUntilLeaves(c,Phase.Hunt,60);if(c.Phase!=Phase.Recovery)continue;trials++;float len=c.CurrentRecoverySeconds;int t=TickUntilLeaves(c,Phase.Recovery,60);if(t<len-.01f)cut++;
         }
         float cutRate=cut/(float)trials;Console.WriteLine("WAVE_G recovery_interrupted_at_dread90="+cutRate.ToString("F3")+" of "+trials);
         Assert(trials>550&&cutRate>.3f&&cutRate<.8f,"Recovery at Dread 90 is interrupted in a share of runs, not never");
-        int quietCut=0;for(int seed=0;seed<200;seed++){var c=StartOn(CaseBook.Castle,Seeded(9900+seed));c.Record(Evidence.Induction);c.BeginWarning();c.Tick(9,false);c.AddDread(79);TickUntilLeaves(c,Phase.Hunt,60);float len=c.CurrentRecoverySeconds;if(TickUntilLeaves(c,Phase.Recovery,60)<len-.01f)quietCut++;}
-        Assert(quietCut==0,"below Dread 80 Recovery is never interrupted");
+        int lowCut=0;for(int seed=0;seed<400;seed++){var c=StartOn(CaseBook.Castle,Seeded(9900+seed));c.Record(Evidence.Induction);c.BeginWarning();TickUntilLeaves(c,Phase.Warning,30);c.AddDread(79);TickUntilLeaves(c,Phase.Hunt,60);float len=c.CurrentRecoverySeconds;if(TickUntilLeaves(c,Phase.Recovery,60)<len-.01f)lowCut++;}
+        Console.WriteLine("WAVE_H recovery_interrupted_at_dread79="+(lowCut/400f).ToString("F3"));
+        Assert(lowCut>40&&lowCut<220,"below Dread 80 Recovery is interrupted now and then (1/16 per roll), not never");
         string castleSaid=null;var cm=StartOn(CaseBook.Castle);cm.Record(Evidence.Induction);cm.BeginWarning();cm.Tick(9,false);cm.Message+=m=>castleSaid=m;cm.Tick(38,false);
         Assert(cm.Phase==Phase.Recovery&&castleSaid==null,"castle recovery is not announced");
 
@@ -413,15 +414,15 @@ static class RulesTests
         for(int i=0;i<25;i++)step.Tick(1,false);Assert(Math.Abs(step.FeltDread-60*(1-(float)Math.Exp(-1)))<.3f,"lag: 63 % after one time constant (25 s at a 0.5 roll)");
         var lag0=StartOn(CaseBook.Castle,()=>0f,noiseless);var lag1=StartOn(CaseBook.Castle,()=>.99999f,noiseless);Assert(lag0.FeltLagSeconds==20&&lag1.FeltLagSeconds>29.99f,"lag drawn from 20-30 s");
         var felt=StartOn(CaseBook.Castle,Seeded(77));felt.AddDread(80);felt.Tick(1,false);Assert(felt.FeltDread<12+80*(1-(float)Math.Exp(-1/20f))+.1f,"one second after a jump FeltDread has barely moved");
-        var steady=StartOn(CaseBook.Castle,Seeded(78));steady.AddDread(50);for(int i=0;i<200;i++)steady.Tick(1,false);
+        var noEpisodes=HuntRules.Castle.Clone();noEpisodes.FeltEpisodeGapMax=0;
+        var steady=StartOn(CaseBook.Castle,Seeded(78),noEpisodes);steady.AddDread(50);for(int i=0;i<200;i++)steady.Tick(1,false);
         float fMin=100,fMax=0,maxStep=0,prev=steady.FeltDread;bool inBand=true;
         for(int i=0;i<1200;i++){steady.Tick(1,false);float f=steady.FeltDread;if(Math.Abs(f-50)>12.05f)inBand=false;fMin=Math.Min(fMin,f);fMax=Math.Max(fMax,f);maxStep=Math.Max(maxStep,Math.Abs(f-prev));prev=f;}
         Console.WriteLine("WAVE_G felt_at_dread50 min="+fMin.ToString("F1")+" max="+fMax.ToString("F1")+" max_step_per_s="+maxStep.ToString("F2"));
         Assert(inBand&&fMax-fMin>14&&fMin<44&&fMax>56,"noise: +-12 around a steady Dread, and it really moves");
         Assert(maxStep<6.5f,"noise is slow: under 6.5 per second");
-        var liar=StartOn(CaseBook.Castle,Seeded(79));liar.AddDread(85);for(int i=0;i<150;i++)liar.Tick(1,false);
-        Assert(liar.Lies&&liar.FeltDread<=HuntRules.Castle.FeltCalm+12.05f,"while Lies the pulse shows calm");
-        liar.AddDread(-25);for(int i=0;i<150;i++)liar.Tick(1,false);Assert(!liar.Lies&&Math.Abs(liar.FeltDread-60)<=12.6f,"after the lie the pulse follows Dread again");
+        var liar=StartOn(CaseBook.Castle,Seeded(79),noEpisodes);liar.AddDread(85);for(int i=0;i<150;i++)liar.Tick(1,false);
+        Assert(liar.Lies&&Math.Abs(liar.FeltDread-85)<=12.6f,"Lies no longer fades the pulse to calm (N6): it follows Dread outside episodes");
         var low30=HuntRules.Castle.Clone();low30.HuntDreadMin=30;var high50=HuntRules.Castle.Clone();high50.HuntDreadMin=50;
         var fa=StartOn(CaseBook.Castle,Seeded(80),low30);var fb=StartOn(CaseBook.Castle,Seeded(80),high50);bool same=fa.RunDreadMin!=fb.RunDreadMin;float rampStep=0,rp=fa.FeltDread;
         for(int i=0;i<300;i++){fa.AddDread(.4f);fb.AddDread(.4f);fa.Tick(1,false);fb.Tick(1,false);if(fa.Phase!=Phase.Disturbance||fa.FeltDread!=fb.FeltDread)same=same&&fa.Phase!=Phase.Disturbance;rampStep=Math.Max(rampStep,Math.Abs(fa.FeltDread-rp));rp=fa.FeltDread;}
