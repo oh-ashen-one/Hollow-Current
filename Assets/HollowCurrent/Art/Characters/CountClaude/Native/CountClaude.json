@@ -115,18 +115,28 @@
     "Grab": {
       "seconds": 0.9,
       "loop": false,
-      "hip_shift_m": 0.303,
-      "span_m_min": 3.121,
-      "span_m_max": 4.621,
-      "top_m_max": 2.913,
+      "hip_shift_m": -0.184,
+      "span_m_min": 2.552,
+      "span_m_max": 3.737,
+      "top_m_max": 2.426,
       "lowest_z_min": 0.1,
       "forward_reach_m_max": 1.386,
       "forward_reach_m_last": 1.385,
       "claw_reach_m_last": 1.385,
+      "stretched_edges_max": 249,
+      "stretched_edges_last": 249,
+      "edge_stretch_ratio_max": 23.19,
+      "wing_stretch_max": 1.6,
+      "limb_angle_max_deg": {
+        "UpLeg": 18,
+        "Leg": 30,
+        "Arm": 72,
+        "ForeArm": 10
+      },
       "chest_pitch_deg_last": 28.4,
       "chest_pitch_deg_max": 46.4,
-      "membrane_area_ratio_min": 2.086,
-      "membrane_area_ratio_last": 2.086
+      "membrane_area_ratio_min": 1.422,
+      "membrane_area_ratio_last": 1.422
     },
     "Crawl": {
       "seconds": 1.4,
@@ -139,6 +149,16 @@
       "forward_reach_m_max": 1.256,
       "forward_reach_m_last": 1.076,
       "claw_reach_m_last": 1.076,
+      "stretched_edges_max": 522,
+      "stretched_edges_last": 488,
+      "edge_stretch_ratio_max": 55.98,
+      "wing_stretch_max": 0.82,
+      "limb_angle_max_deg": {
+        "UpLeg": 119,
+        "Leg": 117,
+        "Arm": 93,
+        "ForeArm": 67
+      },
       "chest_pitch_deg_last": 67.2,
       "chest_pitch_deg_max": 67.2,
       "membrane_area_ratio_min": 0.838,
@@ -148,26 +168,27 @@
       "seconds": 1.6,
       "loop": false,
       "hip_shift_m": 0.0,
-      "span_m_min": 3.424,
-      "span_m_max": 5.067,
-      "top_m_max": 4.545,
+      "span_m_min": 3.316,
+      "span_m_max": 4.601,
+      "top_m_max": 4.722,
       "lowest_z_min": -0.0,
-      "forward_reach_m_max": 1.758,
-      "forward_reach_m_last": 1.758,
-      "claw_reach_m_last": 1.758,
-      "stretched_edges_max": 1113,
-      "stretched_edges_last": 1113,
-      "edge_stretch_ratio_max": 88.3,
+      "forward_reach_m_max": 1.615,
+      "forward_reach_m_last": 1.615,
+      "claw_reach_m_last": 1.615,
+      "stretched_edges_max": 545,
+      "stretched_edges_last": 545,
+      "edge_stretch_ratio_max": 56.24,
+      "wing_stretch_max": 1.6,
       "limb_angle_max_deg": {
-        "UpLeg": 115,
-        "Leg": 127,
-        "Arm": 118,
-        "ForeArm": 113
+        "UpLeg": 87,
+        "Leg": 82,
+        "Arm": 96,
+        "ForeArm": 52
       },
-      "chest_pitch_deg_last": 61.3,
-      "chest_pitch_deg_max": 61.3,
-      "membrane_area_ratio_min": 1.524,
-      "membrane_area_ratio_last": 1.929
+      "chest_pitch_deg_last": 55.3,
+      "chest_pitch_deg_max": 55.3,
+      "membrane_area_ratio_min": 1.403,
+      "membrane_area_ratio_last": 1.403
     },
     "GrabCrawl": {
       "seconds": 1.4,
@@ -183,6 +204,7 @@
       "stretched_edges_max": 586,
       "stretched_edges_last": 586,
       "edge_stretch_ratio_max": 75.49,
+      "wing_stretch_max": 1.6,
       "limb_angle_max_deg": {
         "UpLeg": 117,
         "Leg": 116,
@@ -195,9 +217,9 @@
       "membrane_area_ratio_last": 1.402
     }
   },
-  "grab_drop_reach_m": 1.758,
+  "grab_drop_reach_m": 1.615,
   "grab_crawl_reach_m": 1.729,
-  "grab_drop_mesh_reach_m": 1.758,
+  "grab_drop_mesh_reach_m": 1.615,
   "grab_crawl_mesh_reach_m": 1.729,
   "modes": [
     0,

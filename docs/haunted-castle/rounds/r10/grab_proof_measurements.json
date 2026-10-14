@@ -1,51 +1,124 @@
 {
-  "GrabDrop": {
+  "Grab": {
+    "wing_stretch_max": 1.6,
+    "shard_edges_max": 249,
+    "shard_edges_last": 249,
+    "limb_angle_max_deg": {
+      "UpLeg": 18,
+      "Leg": 30,
+      "Arm": 72,
+      "ForeArm": 10
+    },
     "camera": {
       "standoff_m": 1.9899999999999998,
       "eye_m": 1.64,
       "vfov_deg": 72.0,
       "look_at": [
         -0.009,
-        -1.271,
-        1.272
+        -0.535,
+        1.964
       ]
     },
-    "chest_pitch_deg": 61.3,
-    "neck_to_hips_px": 55,
+    "chest_pitch_deg": 28.4,
+    "neck_to_hips_px": 294,
     "left_claw": {
       "x": [
-        1857,
-        3084
+        1574,
+        2076
       ],
       "y": [
-        285,
-        948
+        1153,
+        1921
       ],
-      "width_px": 1226,
-      "centre_dist_px": 1195,
-      "nearest_m": 0.312
+      "width_px": 501,
+      "centre_dist_px": 982,
+      "nearest_m": 0.497
     },
     "right_claw": {
       "x": [
-        1128,
-        1924
+        479,
+        979
       ],
       "y": [
-        824,
-        1434
+        1152,
+        1921
       ],
-      "width_px": 796,
-      "centre_dist_px": 477,
-      "nearest_m": 0.396
+      "width_px": 499,
+      "centre_dist_px": 985,
+      "nearest_m": 0.504
     },
-    "mesh_forward_reach_m": 1.758,
-    "claw_reach_m": 1.758,
+    "mesh_forward_reach_m": 1.385,
+    "claw_reach_m": 1.385,
     "mesh_x_range_px": [
-      153,
-      3022
+      -67,
+      2881
+    ]
+  },
+  "GrabDrop": {
+    "wing_stretch_max": 1.6,
+    "shard_edges_max": 545,
+    "shard_edges_last": 545,
+    "limb_angle_max_deg": {
+      "UpLeg": 87,
+      "Leg": 82,
+      "Arm": 96,
+      "ForeArm": 52
+    },
+    "camera": {
+      "standoff_m": 1.9899999999999998,
+      "eye_m": 1.64,
+      "vfov_deg": 72.0,
+      "look_at": [
+        -0.009,
+        -0.858,
+        1.652
+      ]
+    },
+    "chest_pitch_deg": 55.3,
+    "neck_to_hips_px": 174,
+    "left_claw": {
+      "x": [
+        1254,
+        1891
+      ],
+      "y": [
+        1104,
+        2317
+      ],
+      "width_px": 636,
+      "centre_dist_px": 1033,
+      "nearest_m": 0.368
+    },
+    "right_claw": {
+      "x": [
+        1143,
+        1824
+      ],
+      "y": [
+        1177,
+        2114
+      ],
+      "width_px": 680,
+      "centre_dist_px": 948,
+      "nearest_m": 0.459
+    },
+    "mesh_forward_reach_m": 1.615,
+    "claw_reach_m": 1.615,
+    "mesh_x_range_px": [
+      350,
+      2236
     ]
   },
   "GrabCrawl": {
+    "wing_stretch_max": 1.6,
+    "shard_edges_max": 586,
+    "shard_edges_last": 586,
+    "limb_angle_max_deg": {
+      "UpLeg": 117,
+      "Leg": 116,
+      "Arm": 98,
+      "ForeArm": 53
+    },
     "camera": {
       "standoff_m": 1.9899999999999998,
       "eye_m": 1.64,
@@ -90,5 +163,15 @@
       344,
       2255
     ]
+  },
+  "mode7_crawl_baseline": {
+    "shard_edges_max": 522,
+    "limb_angle_max_deg": {
+      "UpLeg": 119,
+      "Leg": 117,
+      "Arm": 93,
+      "ForeArm": 67
+    },
+    "shard_edge_budget_115pct": 600
   }
 }
