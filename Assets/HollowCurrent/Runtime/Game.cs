@@ -81,7 +81,7 @@ namespace HollowCurrent
         // Castle fear plumbing: candle lights within 6 m count as lit (Dread rises slower), the gatehouse and
         // the lit chapel fire are where Dread falls.
         readonly List<Light> candleLights=new List<Light>();
-        bool candlesCached,litNearby,wasDiving,appliedLongNight;
+        bool candlesCached,litNearby,appliedLongNight;
         float litCheck;
         Vector3 chapelFire;bool hasChapelFire;
         Phase lastPhase;
@@ -127,6 +127,12 @@ namespace HollowCurrent
             SubtitleScale=Mathf.Clamp(PlayerPrefs.GetFloat("hc.subtitle-scale",1),.85f,1.3f);CardOpacity=Mathf.Clamp(PlayerPrefs.GetFloat("hc.card-opacity",.94f),.55f,1);
             Player.InvertY=PlayerPrefs.GetInt("hc.invert-y",0)!=0;Volume=Mathf.Clamp01(PlayerPrefs.GetFloat("hc.volume",.65f));Subtitles=PlayerPrefs.GetInt("hc.subtitles",1)!=0;HelpHints=PlayerPrefs.GetInt("hc.help",0)!=0;
             var entity=new GameObject("Presence senses and navigation");Creature=entity.AddComponent<Presence>();Creature.Initialize(this);
+            if(Map==MapId.Castle)
+            {
+                // Critic r10 #14: the torch fails in the last second of a dive (hc/count12's DiveLastSecond), not at its start.
+                Creature.DiveLastSecond+=()=>{Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL dive last second eta="+Creature.DiveEndsIn.ToString("F2"));};
+                Creature.Beat+=CountBeat;
+            }
             Scares=gameObject.AddComponent<ScareDirector>();Scares.Initialize(this);
             if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);gameObject.AddComponent<CastleAtmosphere>();gameObject.AddComponent<CastleLightTuning>();}
             if(Map==MapId.Castle)
@@ -331,9 +337,7 @@ namespace HollowCurrent
             litCheck-=dt;if(litCheck<=0){litCheck=.25f;litNearby=CandleWithin(6);}
             bool atFire=hasChapelFire&&Case.BreakerOn&&Vector3.Distance(Player.transform.position,chapelFire)<3;
             Case.Tick(dt,Player.Inside,litNearby,Player.InVan||atFire);
-            bool diving=(Creature&&Creature.Diving);
-            if(diving&&!wasDiving){Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL dive");}
-            wasDiving=diving;
+
         }
         // FEAR_PLAN item 7: after a death he has moved the next relic or ledger page (F3's RelicAltPositions).
         // The relic state lives in CastleRun.Forge, which a checkpoint reload rebuilds, so every relic is back in place:
@@ -343,6 +347,13 @@ namespace HollowCurrent
             int pick=(Case.Deaths+2)%3;
             bool moved=Castle&&Castle.MoveRelicToAlternate(pick);if(moved)MovedRelic=pick;
             Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F0")+" relic="+pick+" moved="+moved);
+        }
+        const string CastleReturnSwoop="Dispatch / He is out. He is over the courtyard. Get across that bridge.";
+        void CountBeat(string id)
+        {
+            // Critic r10 #34: the hostile return's dispatch card appears with his visible swoop over the courtyard.
+            // (A Game constant, not a CaseBook field: RulesTests require every CaseBook string on both maps.)
+            if(id=="return-swoop")Say(CastleReturnSwoop);
         }
         void CacheCandles()
         {
@@ -380,8 +391,9 @@ namespace HollowCurrent
                 bool escalation=Map==MapId.Castle&&Case.WarningLength<Case.Rules.WarningSeconds;
                 Scares?.Pulse(Player.transform.position+Player.transform.forward*3,escalation?Case.WarningLength:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)Sound.Speak("warning");
             }
-            // Castle hostile return (critic r10 #34): dispatch says he is free (cc_dispatch -> voice_cc_dispatch); Bellwether keeps "return".
-            if(phase==Phase.Return)Sound.Speak(Map==MapId.Castle&&Case.Rules.HostileReturn?"cc_dispatch":"return");
+            // Castle hostile return (critic r10 #34): the Count's swoop speaks cc_dispatch (voice_cc_dispatch) and raises the
+            // "return-swoop" beat, which shows the card (CountBeat). Bellwether keeps "return".
+            if(phase==Phase.Return&&!(Map==MapId.Castle&&Case.Rules.HostileReturn))Sound.Speak("return");
             // Castle: the sealed bell lowers the drawbridge for the escape.
             if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)
             {

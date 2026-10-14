@@ -435,7 +435,7 @@ namespace HollowCurrent
             for(int i=1;i<pts.Length;i++){var w=root.TransformPoint(pts[i]);legs.Append(" leg"+i+"clear="+Clear(i==1?transform.position:route[route.Count-1],w));route.Add(w);}
             var first=route[0]-transform.position;first.y=0;if(first.sqrMagnitude>.01f)transform.rotation=Quaternion.LookRotation(first);
             swooping=true;flight=Flight.Travel;travelToPerch=false;pendingPerch=-1;perchIndex=-1;speedNow=count.GlideTightSpeed;
-            Game.Sound.Speak("dispatch");RaiseBeat("return-swoop");
+            Game.Sound.Speak("cc_dispatch");RaiseBeat("return-swoop"); // voice_cc_dispatch (hc/audio3); Game shows the card on the beat
             Debug.Log("HC_COUNT_RETURN_SWOOP begin from="+transform.position+" to="+routeGoal+legs+" "+DiagnosticState);
             return true;
         }
