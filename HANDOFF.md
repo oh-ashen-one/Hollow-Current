@@ -48,3 +48,35 @@ Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/co
 - No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
 - `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
 - Not yet run: any rendered capture or input playtest of either map.
+
+---
+
+# Piece 4j — Count Claude round 10, live hunt AI (branch `hc/count10`, Opus 5.5)
+
+`check_source.py` PASS; Unity not launched; no import needed (Presence and profile only).
+
+## Root cause (from `.playtest-escape.log` / `.playtest-kill.log`)
+- **Escape run:** the investigator was hidden in the wardrobe with the torch off from before the hunt until it ended. By design
+  `CountSees()` is false then, and the Count started every hunt with `Memory.Clear()` and only a perch-to-perch route. He had
+  no knowledge of her and never went to her area, so no dive was possible. (The Bellwether hunter covers rooms; the Count only
+  hopped perches.)
+- **Kill run:** the driver struck him at the instant each hunt or retreat began (hits at 36.3, 58.8 and 83.4 s), leaving no
+  window for an attack.
+- **Code defect:** the perch sight ray started at his eye and could clip the rail or ledge he crouches on. Unverifiable from
+  these logs; fixed anyway.
+
+## Change
+- Hunt start: 1–2 s on the perch, then he glides to where the bell told him she is (a point 1.5–3 m from her, 3–5 m if hidden,
+  never the exact cupboard), lands and prowls. Line of sight under 14 m in the 80 deg cone gives the tell, then the dive (Mode 3),
+  the crawl through service doors (Mode 7) and the grab at 1.05 m (Mode 6).
+- At least one attack attempt per hunt: until he has dived, every 10 s he hears her again and searches near her.
+- The sight ray skips its first 0.5 m.
+- Log lines: `HC_COUNT_AI` once a second during a hunt (`state`, `pos`, `player`, `los`, `seen`, `dist`, `angle`, `hidden`,
+  `torch`, `memory`, `route`, `attacked`, `why=`), plus `HC_COUNT_HEARD`, `HC_COUNT_SEARCH`, `HC_COUNT_ROUTE` (no route) and the
+  existing `HC_COUNT_DIVE`.
+
+## Integrator steps
+Merge, rebuild the player (no Count import), re-run both scripted playthroughs and report the `HC_COUNT_*` lines. In the escape
+run (hidden, torch off) expect `HC_COUNT_HEARD` at hunt start, `HC_COUNT_SEARCH` within 2 s and again every 10 s, and
+`why=player hidden, torch off`. A run where she stays in the open should show `HC_COUNT_DIVE` within a few seconds of him
+reaching line of sight.
