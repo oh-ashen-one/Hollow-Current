@@ -43,6 +43,12 @@ namespace HollowCurrent
         public float PerchMinSeconds=6f, PerchMaxSeconds=14f;  // between hunts (scripted appearances)
         public float HuntPerchMinSeconds=2.5f, HuntPerchMaxSeconds=5f;
         public float PerchTellSeconds=.9f;                     // watches you this long from a perch before the dive
+        // Round 10 (playtest: no attack in two runs): the hunt starts with 1-2 s on the perch, then he glides to where the bell
+        // told him you are (a point HeardOffset m from you, never the exact cupboard). Until he has dived, he hears you again
+        // every AttackGuaranteeSeconds, so every hunt has at least one attack attempt.
+        public float HuntStartPerchMinSeconds=1f, HuntStartPerchMaxSeconds=2f;
+        public float HeardOffsetMin=1.5f, HeardOffsetMax=3f, HeardOffsetHiddenMin=3f, HeardOffsetHiddenMax=5f;
+        public float AttackGuaranteeSeconds=10f;
         public float PerchEyeHeight=1.3f, FlightEyeHeight=1.85f, PerchLookDown=25f;
         public float LedgeProbe=2.2f;                          // balustrade search distance in front of a perch point
         public float SearchLandSeconds=2.6f;                   // lands at a heard/last-seen spot and prowls (Mode 2)
