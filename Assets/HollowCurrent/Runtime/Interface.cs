@@ -140,8 +140,14 @@ namespace HollowCurrent
             if(Game.NoteBody!=null){Note();return;}
             if(Game.Journal){Journal();return;}
             if(Game.Paused){Settings(false);return;}
+            // Castle only (r12 critic): during a grab or kill presentation no prompt, hint, objective or instrument line is drawn;
+            // only captions stay. Bellwether never takes this path.
+            bool grabHidden=Game.Map==MapId.Castle&&Game.Creature&&(Game.Creature.GrabCamActive||Game.Creature.GrabInProgress);
+            if(grabHidden!=hudGrabHidden){hudGrabHidden=grabHidden;Debug.Log("HC_UI grab_hidden="+(grabHidden?"true":"false"));}
+            if(grabHidden){if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))SubtitleCard();return;}
             HUD();
         }
+        bool hudGrabHidden;
         void Panel(Rect r,Color c){var old=GUI.color;GUI.color=c.linear;GUI.DrawTexture(r,Texture2D.whiteTexture);GUI.color=old;}
         void Border(Rect r,Color c){Panel(new Rect(r.x,r.y,r.width,1),c);Panel(new Rect(r.x,r.yMax-1,r.width,1),c);Panel(new Rect(r.x,r.y,1,r.height),c);Panel(new Rect(r.xMax-1,r.y,1,r.height),c);}
         bool OnPaper(Vector2 point){foreach(var r in paperRegions)if(r.Contains(point))return true;return false;}
