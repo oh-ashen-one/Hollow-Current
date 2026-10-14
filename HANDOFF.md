@@ -76,6 +76,34 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
    - On the current `34a0de9` bake, `python3 tools/check_throwables_scene.py` exits 1: 38 of 38 throwables are batching-static.
    - It must exit 0 on the new bake before the throw proof is rerun. Expected log lines: `HC_THROW` or `HC_THROW_SKIP reason=`, and `HC_PLAY_THROW_PROBE`.
 
+## Wave G (static fixes from `docs/haunted-castle/rounds/r10/CRITIC_STATIC.md`, score 4/10)
+
+**Merged so far:** hc/scares2 `347060f` (merge `517da28`, wiring `c180914`). F0's own items are in `d655eda`.
+
+**Still to land:** hc/rules2, hc/count12, hc/audio3. When hc/rules2 lands, switch `Soundscape.FeltDread` to the direct property. When hc/count12 lands, wire its dive-end torch blackout hook.
+
+**Not yet built:** nothing from wave G is in a build. The castle must be **re-prepared and re-baked** first (`PrepareAndBakeCastle`, `PrepareAndBake`, then `BuildPreparedMacAll`), and `python3 tools/check_throwables_scene.py` must exit 0 on that bake.
+
+**Pure-Python checks:** `tools/check_source.py`, `tools/check_castle_scares.py`, and `tools/check_audio_keys.py` once hc/audio3 lands.
+
+### What the windowed run must prove (from CRITIC_STATIC.md)
+
+- [ ] A no-tell hunt shows no change in the HUD goal, radio, instrument, music, heartbeat, wing loop or voice for its first 6 s. Use a per-frame channel log over 20 forced hunts.
+- [ ] A Dread 0-39 session of at least 10 minutes after the first hunt contains at least one hunt. This needs hc/rules2's low-Dread roll; zero hunts is a fail.
+- [ ] A watched hide with the **torch off**, while he is perched or travelling, ends with the hide opened: `HC_COUNT_GRAB hideEntrance=True`, torch False.
+- [ ] A near-miss runs end to end (`HC_COUNT_NEARMISS begin`, then hold, then leave), with a door rattle and `cc_hunt_smell` heard at the slats.
+- [ ] `HC_THROW` > 0 and `HC_THROW poltergeist` > 0 **in natural play**, with 2 or more evidence and at least 60 s in Disturbance.
+- [ ] `HC_ESCALATE escalated=True` at least once in natural play.
+- [ ] No `HC_MISSING_ART` lines across a full run that includes radio presses before diagnosis.
+- [ ] `cc_listen` is heard at most once per run (`HC_RARE_LINE` + `HC_LIE kind=phantom_listen` ≤ 1).
+- [ ] The heartbeat is silent during a hunt at Dread 30, because it follows FeltDread, not the phase.
+- [ ] Bellwether: an unmodified 95/9/38/32 s cycle (`RulesTests` green). The title matches `title_mock_bellwether.png` within a 2 px offset at 2560x1440, and `HC_TITLE_FONT cinzel=True` is logged.
+- [ ] Hostile return: a death on the bridge is preceded by a telegraph the player can attribute (the dispatch line `SealedMessage`, plus `voice_cc_dispatch` from hc/audio3).
+- [ ] hc/scares2 additions:
+  - `HC_SCARE_CASTLE silence ... duck=wired` appears, and `HC_DUCK` follows it.
+  - `HC_LIE kind=footsteps_behind` fires only at Dread ≥ 70.
+  - No hunt-state change follows within 6 s of a silence.
+
 ## Rules for the next integrator
 
 - Unity is launched only through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-f0 -- ...`, one instance at a time; stop it with SIGTERM.
