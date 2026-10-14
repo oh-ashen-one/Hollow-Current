@@ -207,6 +207,23 @@ treat FalseWarning like Disturbance.
   immortal driver in the open at Dread 100, 10-minute `HuntShare` 28.5 % mean, p90 32.5 % (40.0 % p50 without the
   governor).
 
+**Investigation API, wave K additions (hc/rules6, r11 blind critic: sawtooth, no-tell only at high Dread, door-held never,
+lost bridge kill)**:
+- **Dread:** passive rise 0.03/s lit, 0.08/s dark (was 0.05/0.12); calm decay 0.3/s (was 0.15); above a total of 60
+  the decay also takes ambient Dread (`DreadDecayAllAbove`), so a careful player brings a high Dread down anywhere.
+- **No-tell:** a flat 0.35 roll on every rolled or forced hunt, independent of Dread (Long Night: every hunt).
+- **First hunt:** `Draw(60, 95, 240)` s after the second record (`FirstHuntMin/Max`), still guaranteed.
+- **Door held:** `TryDoorHeld()` per hide attempt rolls 1/6 at Dread ≥ 60 (injected dice); `DoorHeld` no longer
+  blankets every hide. Log `HC_DOOR_HELD`.
+- **Death first:** a `Die()` in the same tick as `FinishAtVan()` or `WinByKill()` (castle) replaces the win
+  (`DeathOverrodeWin`; `Changed` fires Won then Dead). With `FrameSource` (Game: `Time.frameCount`) "same tick" means
+  the same frame whatever the script order.
+- **Escalation:** 0.35 in Disturbance (was 0.2), 0.15 in Recovery once the grace has run out, never during the grace.
+- **Session models (2,000 seeds):** mortal share 0.163 mean / 0.224 p90, a quiet stretch ≥ 120 s after the first hunt in
+  93.6 % of runs, Dread at 480 s p90 44.6, a no-tell hunt below Dread 70 in 56.5 % of runs, first hunt 65–215 s after
+  the second record (p10–p90); the r11 driver (immortal, open, torch on) share 0.196 / 0.253, Dread at 480 s p50 59.7,
+  p90 87.6.
+
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;
 exposes `public bool Diving` (for the integrator's torch fail), `public event Action<string> Beat` with ids

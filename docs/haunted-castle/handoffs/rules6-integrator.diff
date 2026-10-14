@@ -1,0 +1,46 @@
+--- a/Assets/HollowCurrent/Runtime/Game.cs	2026-10-14 16:37:00
++++ b/Assets/HollowCurrent/Runtime/Game.cs	2026-10-14 16:37:00
+@@ -114,6 +114,9 @@
+             // Castle rules (HuntRules.Castle or the Long Night dial) and real dice; Bellwether is built exactly as before.
+             appliedLongNight=LongNight;
+             Case=Map==MapId.Castle?new Investigation(CaseBook.For(Map),()=>UnityEngine.Random.value,HuntRules.For(Map,LongNight)):new Investigation(CaseBook.For(Map));
++            // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
++            // order Presence, CastleRun and Game run in this frame.
++            if(Map==MapId.Castle)Case.FrameSource=()=>Time.frameCount;
+             Case.Message+=Say;Case.Changed+=PhaseChanged;
+             if(Map==MapId.Castle)Debug.Log("HC_RULES "+Case.Rules.Name+" dread="+Case.Dread.ToString("F0")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
+             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
+@@ -438,10 +441,18 @@
+                 World.Castle.Drawbridge.Lower();
+             }
+             if(phase==Phase.Containment)Sound.Speak("contain");
+-            if(phase==Phase.Won)Sound.Speak("ending");
++            // Castle: a same-frame grab can still turn Won into Dead (death first), so the win's audio waits one frame.
++            if(phase==Phase.Won){if(Map==MapId.Castle)StartCoroutine(CastleWinAudio());else Sound.Speak("ending");}
++            if(phase==Phase.Dead&&Case.DeathOverrodeWin)Debug.Log("HC_DEATH_OVER_WIN deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F1"));
+             if(phase==Phase.Return)Sound.Cue("containment_release",World.Anchor,.65f);
+-            if(phase==Phase.Won||phase==Phase.Dead){Sound.Cue(phase==Phase.Won?"evidence_filed":"capture",Player.transform.position,.65f);ApplyFocus();}
++            if(phase==Phase.Dead||phase==Phase.Won&&Map!=MapId.Castle){Sound.Cue(phase==Phase.Won?"evidence_filed":"capture",Player.transform.position,.65f);ApplyFocus();}
+         }
++        IEnumerator CastleWinAudio()
++        {
++            yield return null;
++            if(Case.Phase!=Phase.Won)yield break;
++            Sound.Speak("ending");Sound.Cue("evidence_filed",Player.transform.position,.65f);ApplyFocus();
++        }
+         IEnumerator RevealFirstRecord()
+         {
+             yield return new WaitForSeconds(UnityEngine.Random.Range(8f,14f));
+--- a/Assets/HollowCurrent/Runtime/Investigator.cs	2026-10-14 16:37:00
++++ b/Assets/HollowCurrent/Runtime/Investigator.cs	2026-10-14 16:37:00
+@@ -375,8 +375,8 @@
+             if(Game.Case.Phase==Phase.Briefing)return;
+             if(Game.Map==MapId.Castle)
+             {
+-                // Above the DoorHeld threshold something holds the door from inside (FEAR_PLAN item 5).
+-                if(Game.Case.DoorHeld){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name);return;}
++                // Wave K: from Dread 60, one hide attempt in six is held from inside (FEAR_PLAN item 5; injected dice).
++                if(Game.Case.TryDoorHeld()){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name+" dread="+Game.Case.Dread.ToString("F1")+" held="+Game.Case.DoorsHeld);return;}
+             }
+             Game.Creature.WitnessHide(spot.HidePoint);
+             hiding=spot;Hidden=true;Teleport(spot.HidePoint);

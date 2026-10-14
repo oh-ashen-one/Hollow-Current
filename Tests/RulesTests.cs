@@ -127,6 +127,7 @@ static class RulesTests
         WaveHTests();
         WaveITests();
         WaveJTests();
+        WaveKTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
@@ -183,6 +184,8 @@ static class RulesTests
     }
     // The castle with the wave I damping off (no event decay, no hunt cap, no post-hunt grace): for tests of the
     // Recovery dice mechanism itself, which the grace now mostly covers (WaveITests asserts the interplay).
+    // The castle without the wave K "decay above 60" (FeltDread mechanism tests that hold Dread at 85).
+    static HuntRules NoAllDecay(HuntRules from){var r=from.Clone();r.DreadDecayAllAbove=0;return r;}
     static HuntRules RecoveryMech(){var r=HuntRules.Castle.Clone();r.Name="Castle (wave I damping off)";r.GraceMin=0;r.GraceMax=0;r.DreadDecayRecovery=0;r.DreadDecayCalm=0;r.HuntDreadCap=0;r.GovernorGain=0;return r;}
     static Investigation StartOn(CaseBook book,Func<float> random=null,HuntRules rules=null){var c=new Investigation(book,random,rules);c.Equip();c.EnterHouse();return c;}
     static int TickUntilLeaves(Investigation c,Phase phase,int maxSeconds){int t=0;while(c.Phase==phase&&t<maxSeconds){c.Tick(1,false);t++;}return t;}
@@ -222,13 +225,13 @@ static class RulesTests
 
         // Dread accrual and clamping; never shown in Goal.
         var c=StartOn(CaseBook.Castle);Assert(c.Dread==0,"castle dread starts at 0");
-        c.Tick(10,true,false,false);Assert(Math.Abs(c.Dread-1.2f)<.001f,"dark inside rises 0.12/s");
-        c.Tick(10,true,true,false);Assert(Math.Abs(c.Dread-1.7f)<.001f,"lit inside rises 0.05/s");
-        c.Tick(10,false,false,false);Assert(Math.Abs(c.Dread-1.7f)<.001f,"outside the walls holds");
-        c.Tick(2,false,false,true);Assert(Math.Abs(c.Dread-.7f)<.001f,"safe zone falls 0.5/s");c.Tick(10,false,false,true);Assert(c.Dread==0,"dread floor 0");
+        c.Tick(10,true,false,false);Assert(Math.Abs(c.Dread-.8f)<.001f,"dark inside rises 0.08/s (wave K, was 0.12)");
+        c.Tick(10,true,true,false);Assert(Math.Abs(c.Dread-1.1f)<.001f,"lit inside rises 0.03/s (wave K, was 0.05)");
+        c.Tick(10,false,false,false);Assert(Math.Abs(c.Dread-1.1f)<.001f,"outside the walls holds");
+        c.Tick(2,false,false,true);Assert(Math.Abs(c.Dread-.1f)<.001f,"safe zone falls 0.5/s");c.Tick(10,false,false,true);Assert(c.Dread==0,"dread floor 0");
         c.AddDread(250);Assert(c.Dread==100,"dread ceiling 100");c.AddDread(-500);Assert(c.Dread==0,"AddDread clamps at 0");c.AddDread(float.NaN);Assert(c.Dread==0,"NaN dread ignored");
         string goal=c.Goal;c.AddDread(69.9f);Assert(!c.Lies&&!c.DoorHeld&&c.Goal==goal,"below 70 no lies; goal unchanged");
-        c.AddDread(.1f);Assert(c.Lies&&!c.DoorHeld,"lies from 70");c.AddDread(20);Assert(c.Lies&&c.DoorHeld&&c.Goal==goal&&!c.Goal.Contains("ead"),"door held from 90; dread never in Goal");
+        c.AddDread(.1f);Assert(c.Lies&&!c.DoorHeld,"lies from 70");c.AddDread(20);Assert(c.Lies&&!c.DoorHeld&&c.Goal==goal&&!c.Goal.Contains("ead"),"castle door-held is a per-attempt roll (wave K), never a blanket state; dread never in Goal");
 
         var r=HuntRules.Castle;
         Assert(Math.Abs(r.DiceChance(45,1)-.125f)<.0001f&&Math.Abs(r.DiceChance(65,1)-.25f)<.0001f&&Math.Abs(r.DiceChance(85,3)-.625f)<.0001f&&r.DiceChance(39.9f,3)==0,"dice chance by band times evidence");
@@ -254,10 +257,10 @@ static class RulesTests
         Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==40,"floor clock resumes where it stopped");
 
         // First-hunt guarantee: two records, deadline 95 s +-25 % by roll, independent of Dread.
-        foreach(var pair in new[]{new[]{.5f,95},new[]{0f,72},new[]{.99f,119}})
+        foreach(var pair in new[]{new[]{.5f,95},new[]{0f,60},new[]{.99f,238}}) // wave K: 60-240 s, median 95
         {
             float roll=pair[0];var first=StartOn(CaseBook.Castle,()=>roll);first.Record(Evidence.Induction);first.Record(Evidence.Handprint);
-            Assert(TickUntilLeaves(first,Phase.Disturbance,200)==(int)pair[1]&&first.Dread==0,"first hunt guaranteed at "+pair[1]+" s for roll "+roll);
+            Assert(TickUntilLeaves(first,Phase.Disturbance,300)==(int)pair[1]&&first.Dread==0,"first hunt guaranteed at "+pair[1]+" s for roll "+roll);
         }
 
         // Recovery below Dread 80 is no longer a guaranteed window (wave H, N7): certain dice also hunt from Recovery.
@@ -281,7 +284,7 @@ static class RulesTests
 
         // Escalation: a close apparition becomes a hunt after a 1.5 s tell, with no dispatch line.
         Assert(!StartOn(CaseBook.Castle).TryEscalate(),"no escalation outside Disturbance");
-        var calmEsc=StartOn(CaseBook.Castle);calmEsc.Record(Evidence.Induction);Assert(!calmEsc.TryEscalate()&&calmEsc.Phase==Phase.Disturbance,"0.5 roll does not escalate at 0.2");
+        var calmEsc=StartOn(CaseBook.Castle);calmEsc.Record(Evidence.Induction);Assert(!calmEsc.TryEscalate()&&calmEsc.Phase==Phase.Disturbance,"0.5 roll does not escalate (0.35 since wave K)");
         string said=null;var esc=StartOn(CaseBook.Castle,()=>.1f);esc.Record(Evidence.Induction);esc.Message+=m=>said=m;
         Assert(esc.TryEscalate()&&esc.Phase==Phase.Warning&&esc.WarningLength==1.5f&&!esc.FalseWarning&&said==null,"0.1 roll escalates into a silent 1.5 s Warning");
         Assert(!esc.TryEscalate(),"no escalation during a Warning");esc.Tick(1,false);Assert(esc.Phase==Phase.Warning,"tell still running at 1 s");
@@ -292,7 +295,7 @@ static class RulesTests
         ret.Tick(999,true);Assert(ret.Phase==Phase.Return&&ret.HuntActive,"hostile Return does not time out");
         ret.Die();Assert(ret.Phase==Phase.Dead&&ret.Deaths==1&&!ret.HuntActive,"dying on the bridge is a kill");
         var esc2=SealedCastle();esc2.Invulnerable=true;esc2.Die();Assert(esc2.Phase==Phase.Return&&esc2.BlockedDeaths==1,"playtest invulnerability still holds in Return");
-        esc2.Invulnerable=false;Assert(esc2.FinishAtVan()&&esc2.Phase==Phase.Won&&!esc2.HuntActive,"crossing the bridge wins");esc2.Die();Assert(esc2.Phase==Phase.Won&&esc2.Deaths==0,"no death after the win");
+        esc2.Invulnerable=false;Assert(esc2.FinishAtVan()&&esc2.Phase==Phase.Won&&!esc2.HuntActive,"crossing the bridge wins");esc2.Tick(.02f,false);esc2.Die();Assert(esc2.Phase==Phase.Won&&esc2.Deaths==0,"no death a tick after the win (same-tick deaths: WaveKTests)");
         var house=Start();house.Record(Evidence.Induction);house.Record(Evidence.Handprint);house.Record(Evidence.Voice);house.BeginWarning();house.Tick(9,false);house.Tick(38,false);Context(house);Correct(house);house.RestorePower();house.Seal(12,true,true);
         Assert(house.Phase==Phase.Return&&!house.HuntActive&&house.Hunts==1&&!house.NoTellHunt,"Bellwether Return stays safe");house.Die();Assert(house.Phase==Phase.Return&&house.Deaths==0,"Bellwether Return cannot kill");
 
@@ -432,7 +435,7 @@ static class RulesTests
         Console.WriteLine("WAVE_G felt_at_dread50 min="+fMin.ToString("F1")+" max="+fMax.ToString("F1")+" max_step_per_s="+maxStep.ToString("F2"));
         Assert(inBand&&fMax-fMin>14&&fMin<44&&fMax>56,"noise: +-12 around a steady Dread, and it really moves");
         Assert(maxStep<6.5f,"noise is slow: under 6.5 per second");
-        var liar=StartOn(CaseBook.Castle,Seeded(79),noEpisodes);liar.ForceDread(85);for(int i=0;i<150;i++)liar.Tick(1,false);
+        var liar=StartOn(CaseBook.Castle,Seeded(79),NoAllDecay(noEpisodes));liar.ForceDread(85);for(int i=0;i<150;i++)liar.Tick(1,false);
         Assert(liar.Lies&&Math.Abs(liar.FeltDread-85)<=12.6f,"Lies no longer fades the pulse to calm (N6): it follows Dread outside episodes");
         var low30=HuntRules.Castle.Clone();low30.HuntDreadMin=30;var high50=HuntRules.Castle.Clone();high50.HuntDreadMin=50;
         var fa=StartOn(CaseBook.Castle,Seeded(80),low30);var fb=StartOn(CaseBook.Castle,Seeded(80),high50);bool same=fa.RunDreadMin!=fb.RunDreadMin;float rampStep=0,rp=fa.FeltDread;
@@ -524,7 +527,7 @@ static class RulesTests
         int calmSeen=0,spikeSeen=0;
         for(int seed=0;seed<60;seed++){var m=StartOn(CaseBook.Castle,Seeded(60000+seed));m.ForceDread(50);string prev="none";for(int t=0;t<1300;t++){m.Tick(1,false);if(m.FeltEpisode!=prev&&m.FeltEpisode=="calm")calmSeen++;if(m.FeltEpisode!=prev&&m.FeltEpisode=="spike")spikeSeen++;prev=m.FeltEpisode;}}
         Assert(calmSeen>20&&spikeSeen>20,"at Dread 40-60 both calm and spike episodes happen");
-        bool onlyCalm=true,dipped=false,recovered=true;var hi=StartOn(CaseBook.Castle,Seeded(70));hi.ForceDread(85);float endAt=-1;
+        bool onlyCalm=true,dipped=false,recovered=true;var hi=StartOn(CaseBook.Castle,Seeded(70),NoAllDecay(HuntRules.Castle));hi.ForceDread(85);float endAt=-1;
         for(int t=0;t<3000;t++)
         {
             hi.Tick(1,false);if(hi.FeltEpisode=="spike")onlyCalm=false;if(hi.FeltEpisode=="calm"&&hi.FeltDread<55)dipped=true;
@@ -534,7 +537,7 @@ static class RulesTests
         bool onlySpike=true;float lowMax=0;var lo=StartOn(CaseBook.Castle,Seeded(71));lo.ForceDread(10);
         for(int t=0;t<3000;t++){lo.Tick(1,false);if(lo.FeltEpisode=="calm")onlySpike=false;lowMax=Math.Max(lowMax,lo.FeltDread);}
         Assert(onlySpike&&lowMax>35&&lo.Dread==10,"at Dread 10: false spikes lift the pulse well above Dread");
-        var calmFloor=StartOn(CaseBook.Castle,Seeded(72));calmFloor.ForceDread(85);float calmMin=100;for(int t=0;t<3000;t++){calmFloor.Tick(1,false);if(calmFloor.FeltEpisode=="none"&&t>150)calmMin=Math.Min(calmMin,calmFloor.FeltDread);}
+        var calmFloor=StartOn(CaseBook.Castle,Seeded(72),NoAllDecay(HuntRules.Castle));calmFloor.ForceDread(85);float calmMin=100;for(int t=0;t<3000;t++){calmFloor.Tick(1,false);if(calmFloor.FeltEpisode=="none"&&t>150)calmMin=Math.Min(calmMin,calmFloor.FeltDread);}
         Assert(calmFloor.Lies&&calmMin<85,"Lies alone no longer drags the pulse to a constant");
         var bEp=Start();for(int t=0;t<3000;t++)bEp.Tick(1,false);Assert(bEp.FeltEpisodes==0&&bEp.FeltEpisode=="none"&&bEp.FeltDread==0,"Bellwether has no felt episodes");
         var late=StartOn(CaseBook.Castle,Seeded(73));late.Record(Evidence.Induction);var lateSave=late.SaveCheckpoint();lateSave.Elapsed=5000;var lateBack=new Investigation(CaseBook.Castle,Seeded(74));lateBack.RestoreCheckpoint(lateSave,false);
@@ -561,14 +564,16 @@ static class RulesTests
     }
 
     // Wave I (blind critic r10 P3): Dread decay, per-hunt cap, post-hunt grace, HuntShare, and a 10-minute session model.
-    sealed class SessionResult{public float ShareAfterFirst,ShareRun,PinnedSeconds,FirstAt=-1;public int Hunts,LowStarts;public System.Collections.Generic.List<float> Gaps=new System.Collections.Generic.List<float>();}
+    sealed class SessionResult{public float ShareAfterFirst,ShareRun,PinnedSeconds,FirstAt=-1,DreadAt480=-1,MaxQuietAfterFirst,FirstDelayAfterSecondRecord=-1;public bool NoTellBelow70;public int Escalations,EscalationTries,Hunts,LowStarts,NoTellHunts,HuntStarts;public System.Collections.Generic.List<float> Gaps=new System.Collections.Generic.List<float>();}
     // Player model: lit inside (+0.05/s), dark for darkShare of the time (+0.12/s), a 20-40 s gatehouse visit every
     // 150-300 s of calm play (DreadRelief 3), evidence at 10-40 / 40-120 / 120-240 s, ledger read by 240 s, apparitions
     // every 60-110 s in Disturbance (+12, every second one throws +8, one in three lands close: TryEscalate). In a hunt
     // the player is seen in 60 % of hunts (DreadSeen once, +0.3/s for up to 8 s) and the hide fails in 30 % (grab survived +20).
     // immortal: the r11 runtime driver: invulnerable, standing in the open, Dread pinned at 100 (ForceDread at the start,
     // seen every hunt, a grab every hunt), never in the gatehouse.
-    static SessionResult Session(HuntRules rules,int seed,float darkShare,bool immortal=false)
+    // driver (wave K): the r11 natural route as measured: invulnerable, torch on, standing in the open, starting at Dread 0,
+    // seen every hunt and grabbed every hunt (the cap holds it to +25), never in the gatehouse.
+    static SessionResult Session(HuntRules rules,int seed,float darkShare,bool immortal=false,bool driver=false)
     {
         var res=new SessionResult();var dice=new Random(seed*31+7);var p=new Random(seed*17+3);
         var c=new Investigation(CaseBook.Castle,()=>(float)dice.NextDouble(),rules);c.Equip();c.EnterHouse();if(immortal)c.ForceDread(100);
@@ -578,7 +583,8 @@ static class RulesTests
         c.Changed+=ph=>{bool th=ph==Phase.Warning||ph==Phase.Hunt;
             if(th&&!inThreat){if(res.FirstAt<0)res.FirstAt=t;if(lastEnd>=0)res.Gaps.Add(t-lastEnd);inThreat=true;if(c.Dread<c.RunDreadMin)res.LowStarts++;}
             if(!th&&inThreat){inThreat=false;lastEnd=t;}
-            if(ph==Phase.Hunt){seenLeft=immortal?999:p.NextDouble()<.6?(float)(p.NextDouble()*8):0;seenGiven=false;grabGiven=false;grabAt=immortal?10:p.NextDouble()<.3?(float)(5+p.NextDouble()*20):-1;}};
+            if(ph==Phase.Hunt){res.HuntStarts++;if(c.NoTellHunt){res.NoTellHunts++;if(c.Dread<70)res.NoTellBelow70=true;}if(res.FirstDelayAfterSecondRecord<0&&evi>=2)res.FirstDelayAfterSecondRecord=t-ev[1];}
+            if(ph==Phase.Hunt){seenLeft=immortal||driver?999:p.NextDouble()<.6?(float)(p.NextDouble()*8):0;seenGiven=false;grabGiven=false;grabAt=immortal||driver?10:p.NextDouble()<.3?(float)(5+p.NextDouble()*20):-1;}};
         while(t<600)
         {
             t+=dt;
@@ -586,18 +592,21 @@ static class RulesTests
             if(t>240&&c.ContextCount<3)foreach(var n in CaseBook.Castle.NoteTitles)c.Read(n);
             darkSwitch-=dt;if(darkSwitch<=0){dark=p.NextDouble()<darkShare;darkSwitch=10+20*(float)p.NextDouble();}
             bool calm=c.Phase==Phase.Disturbance||c.Phase==Phase.Survey||c.Phase==Phase.Recovery;
-            if(gateLeft>0)gateLeft-=dt;else if(!immortal&&calm&&t>=nextGate){gateLeft=20+20*(float)p.NextDouble();nextGate=t+150+150*(float)p.NextDouble();}
+            if(gateLeft>0)gateLeft-=dt;else if(!immortal&&!driver&&calm&&t>=nextGate){gateLeft=20+20*(float)p.NextDouble();nextGate=t+150+150*(float)p.NextDouble();}
             bool safe=gateLeft>0;c.DreadRelief=safe?3:1;
             if(c.Phase==Phase.Hunt)
             {
                 if(seenLeft>0){seenLeft-=dt;c.AddDread(.3f*dt);if(!seenGiven){seenGiven=true;c.AddDread(c.Rules.DreadSeen);}}
                 if(grabAt>=0&&c.PhaseTime>=grabAt&&!grabGiven){grabGiven=true;c.AddDread(c.Rules.DreadGrabSurvived);}
             }
-            if(c.Phase==Phase.Disturbance&&t>=nextApp&&!safe){c.AddDread(c.Rules.DreadApparition);apps++;if(apps%2==0)c.AddDread(c.Rules.DreadThrow);if(p.NextDouble()<1/3.0)c.TryEscalate();nextApp=t+60+50*(float)p.NextDouble();}
+            if((c.Phase==Phase.Disturbance||c.Phase==Phase.Recovery)&&t>=nextApp&&!safe){c.AddDread(c.Rules.DreadApparition);apps++;if(apps%2==0)c.AddDread(c.Rules.DreadThrow);if(p.NextDouble()<1/3.0){res.EscalationTries++;if(c.TryEscalate())res.Escalations++;}nextApp=t+60+50*(float)p.NextDouble();}
             c.Tick(dt,!safe,!dark,safe);
             if(inThreat)threat+=dt;
             if(c.Dread>=95)res.PinnedSeconds+=dt;
+            if(res.DreadAt480<0&&t>=480)res.DreadAt480=c.Dread;
         }
+        foreach(var g in res.Gaps)res.MaxQuietAfterFirst=Math.Max(res.MaxQuietAfterFirst,g);
+        if(!inThreat&&lastEnd>=0)res.MaxQuietAfterFirst=Math.Max(res.MaxQuietAfterFirst,600-lastEnd);
         res.ShareAfterFirst=res.FirstAt<0?0:threat/(600-res.FirstAt);res.ShareRun=c.HuntShare;res.Hunts=c.Hunts;return res;
     }
     static float Quantile(System.Collections.Generic.List<float> v,float q){v.Sort();return v[Math.Min(v.Count-1,(int)(q*v.Count))];}
@@ -619,6 +628,86 @@ static class RulesTests
             +" | hunts/run="+(hunts/2000f).ToString("F1")+" starts_below_boundary="+low+"/"+threats+" dread>=95 s/run="+pinnedPerRun.ToString("F1");
     }
     // Wave J: pacing governor.
+    // Wave K: the r11 critic's natural-play test, as a 2,000-seed model for the mortal player and the r11 driver.
+    static string WaveKReport(string name,HuntRules rules,bool driver,out float shareMean,out float shareP90,out float quiet120,out float dread480P90,out float noTell70,out float delaySpread)
+    {
+        var share=new System.Collections.Generic.List<float>();var d480=new System.Collections.Generic.List<float>();var delay=new System.Collections.Generic.List<float>();var maxq=new System.Collections.Generic.List<float>();
+        int q120=0,nt70=0,ran=0,noTell=0,starts=0,esc=0,escTries=0;float sum=0;
+        for(int seed=0;seed<2000;seed++)
+        {
+            var r=Session(rules,seed,0,false,driver);ran++;share.Add(r.ShareRun);sum+=r.ShareRun;d480.Add(r.DreadAt480);maxq.Add(r.MaxQuietAfterFirst);
+            if(r.MaxQuietAfterFirst>=120)q120++;if(r.NoTellBelow70)nt70++;if(r.FirstDelayAfterSecondRecord>=0)delay.Add(r.FirstDelayAfterSecondRecord);noTell+=r.NoTellHunts;starts+=r.HuntStarts;esc+=r.Escalations;escTries+=r.EscalationTries;
+        }
+        shareMean=sum/ran;shareP90=Quantile(share,.9f);quiet120=q120/(float)ran;dread480P90=Quantile(d480,.9f);noTell70=nt70/(float)ran;delaySpread=Quantile(delay,.9f)-Quantile(delay,.1f);
+        return "WAVE_K "+name+" share(warning+hunt+return / 600 s) mean="+shareMean.ToString("F3")+" p50="+Quantile(share,.5f).ToString("F3")+" p90="+shareP90.ToString("F3")
+            +" | runs with a quiet stretch >=120 s after the first hunt="+quiet120.ToString("F3")+" (max quiet p50="+Quantile(maxq,.5f).ToString("F0")+" s)"
+            +" | Dread@480 p50="+Quantile(d480,.5f).ToString("F1")+" p90="+dread480P90.ToString("F1")+" max="+Quantile(d480,1f).ToString("F1")
+            +" | no-tell hunts "+noTell+"/"+starts+", runs with a no-tell hunt below Dread 70="+noTell70.ToString("F3")
+            +" | escalations "+esc+"/"+escTries+" close apparitions ("+(esc/(float)ran).ToString("F2")+" per run)"
+            +" | first hunt after 2nd record p10="+Quantile(delay,.1f).ToString("F0")+" p50="+Quantile(delay,.5f).ToString("F0")+" p90="+Quantile(delay,.9f).ToString("F0")+" s";
+    }
+    static void WaveKTests()
+    {
+        var r=HuntRules.Castle;
+        Assert(r.DreadInsideRate==.03f&&r.DreadDarkRate==.08f&&r.DreadDecayAllAbove==60&&r.NoTellChance==.35f&&r.FirstHuntMin==60&&r.FirstHuntMax==240&&r.DoorHeldThreshold==60&&Math.Abs(r.DoorHeldChance-1f/6)<1e-6f,"castle wave K values");
+        Assert(HuntRules.Bellwether.DreadDecayAllAbove==0&&HuntRules.Bellwether.DoorHeldChance==0&&HuntRules.Bellwether.FirstHuntMax==0,"Bellwether: no wave K changes");
+        // 1. Decay above 60 takes ambient Dread too.
+        var a=StartOn(CaseBook.Castle);a.Record(Evidence.Induction);a.ForceDread(90);a.Tick(50,false);Assert(Math.Abs(a.Dread-75)<.01f&&a.DreadEvent==0,"calm: ambient Dread above 60 decays 0.3/s");
+        a.Tick(1000,false);Assert(Math.Abs(a.Dread-60)<.01f,"and stops at 60");
+        var a2=StartOn(CaseBook.Castle);a2.Record(Evidence.Induction);a2.ForceDread(90);a2.DreadRelief=3;a2.Tick(10,false);Assert(Math.Abs(a2.Dread-81)<.01f,"relief speeds it up");
+        var a3=StartOn(CaseBook.Castle);a3.Record(Evidence.Induction);a3.ForceDread(50);a3.Tick(300,false);Assert(a3.Dread==50,"ambient Dread at or below 60 does not decay");
+        var a4=StartOn(CaseBook.Castle);a4.Record(Evidence.Induction);a4.ForceDread(70);a4.AddDread(20);a4.Tick(10,false);Assert(Math.Abs(a4.Dread-87)<.01f&&Math.Abs(a4.DreadEvent-17)<.01f,"event part decays first");
+        // 2. No-tell is a flat roll, independent of Dread.
+        foreach(var level in new[]{10f,45f,65f,95f})
+        {
+            int nt=0,n=0;
+            for(int seed=0;seed<1500;seed++){var c=StartOn(CaseBook.Castle,Seeded(80000+seed));c.Record(Evidence.Induction);c.Record(Evidence.Handprint);c.ForceDread(level);
+                for(int t=0;t<400&&c.Phase==Phase.Disturbance;t++){c.ForceDread(level);c.Tick(1,false);}if(c.Phase==Phase.Hunt||c.Phase==Phase.Warning&&!c.FalseWarning){n++;if(c.NoTellHunt)nt++;}}
+            Assert(n>1000&&Math.Abs(nt/(float)n-.35f/(1-.25f*.65f*0))<.05f||n>1000&&Math.Abs(nt/(float)n-.35f)<.06f,"no-tell share is about 35 % at Dread "+level);
+        }
+        var ln=StartOn(CaseBook.Castle,null,HuntRules.LongNight);ln.BeginWarning();Assert(ln.NoTellHunt,"Long Night: every hunt is no-tell");
+        // 3. First hunt 60-240 s after the second record.
+        var fd=new System.Collections.Generic.List<float>();
+        for(int seed=0;seed<1000;seed++){var c=StartOn(CaseBook.Castle,Seeded(81000+seed));c.Record(Evidence.Induction);c.Record(Evidence.Handprint);fd.Add(TickUntilLeaves(c,Phase.Disturbance,400));}
+        Assert(Quantile(fd,0)>=60&&Quantile(fd,0)<64&&Quantile(fd,1)<=241&&Quantile(fd,1)>230&&Quantile(fd,.9f)-Quantile(fd,.1f)>=60,"first hunt 60-240 s after the second record, spread >= 60 s");
+        // 5. Door held: a 1-in-6 roll per hide attempt at Dread >= 60.
+        int calls=0;var dh=StartOn(CaseBook.Castle,()=>{calls++;return 0f;});dh.Record(Evidence.Induction);dh.ForceDread(59);int before=calls;
+        Assert(!dh.TryDoorHeld()&&calls==before&&!dh.DoorHeld,"below 60: never held, no roll");dh.ForceDread(60);Assert(dh.TryDoorHeld()&&calls==before+1&&dh.DoorsHeld==1&&!dh.DoorHeld,"at 60: a roll under 1/6 holds the door");
+        int held=0;var dr=StartOn(CaseBook.Castle,Seeded(82000));dr.Record(Evidence.Induction);dr.ForceDread(75);for(int i=0;i<6000;i++)if(dr.TryDoorHeld())held++;
+        Assert(Math.Abs(held/6000f-1f/6)<.02f,"about one attempt in six is held");
+        int bcalls=0;var bdh=Start();bdh.Dice=()=>{bcalls++;return 0f;};Assert(!bdh.TryDoorHeld()&&bcalls==0&&!bdh.DoorHeld,"Bellwether: no door-held");
+        // Addendum: escalation 35 % in Disturbance, 15 % in Recovery after the grace, never during the grace.
+        int ok=0,tries=0;for(int seed=0;seed<3000;seed++){var c=StartOn(CaseBook.Castle,Seeded(83000+seed));c.Record(Evidence.Induction);tries++;if(c.TryEscalate())ok++;}
+        Assert(Math.Abs(ok/(float)tries-.35f)<.03f,"Disturbance: a close apparition escalates about 35 %");
+        int rok=0,rtries=0,inGrace=0;
+        for(int seed=0;seed<3000;seed++)
+        {
+            var c=StartOn(CaseBook.Castle,Seeded(84000+seed));c.Record(Evidence.Induction);c.BeginNoTellHunt();for(int t=0;t<60&&c.Phase==Phase.Hunt;t++)c.Tick(1,false);
+            if(c.Phase!=Phase.Recovery)continue;if(c.TryEscalate())inGrace++;c.ForceDread(c.Dread);rtries++;if(c.TryEscalate()){rok++;if(c.ThreatFrom!=Phase.Recovery||!c.EscalatedWarning)rok+=100000;}
+        }
+        Assert(inGrace==0,"never during the post-hunt grace");Assert(rtries>2500&&Math.Abs(rok/(float)rtries-.15f)<.03f,"Recovery after the grace: about 15 %, threat from Recovery, 1.5 s tell");
+        // 6. Death first: a death in the same tick as a win wins over it.
+        var w=SealedCastle();int phases=0;w.Changed+=_=>phases++;Assert(w.FinishAtVan()&&w.Phase==Phase.Won,"crossing wins");w.Die();
+        Assert(w.Phase==Phase.Dead&&w.Deaths==1&&w.DeathOverrodeWin&&phases==2,"a grab in the same tick as the crossing kills (Won, then Dead)");
+        var wi=SealedCastle();wi.Invulnerable=true;wi.FinishAtVan();wi.Die();Assert(wi.Phase==Phase.Won&&wi.BlockedDeaths==1,"the driver's invulnerability counts it as a blocked death");
+        var wd=SealedCastle();wd.Die();Assert(wd.Phase==Phase.Dead&&!wd.FinishAtVan(),"death before the crossing: no win");
+        var wt=SealedCastle();wt.FinishAtVan();wt.Tick(.016f,false);wt.Die();Assert(wt.Phase==Phase.Won&&wt.Deaths==0,"a tick later the win stands");
+        var wk=StartOn(CaseBook.Castle);wk.Record(Evidence.Induction);wk.BeginNoTellHunt();Assert(wk.WinByKill()&&wk.HunterSlain,"killing blow wins");wk.Die();
+        Assert(wk.Phase==Phase.Dead&&!wk.HunterSlain&&wk.Deaths==1,"a grab in the same tick as the killing blow kills");
+        int frame=10;var wf=SealedCastle();wf.FrameSource=()=>frame;wf.FinishAtVan();wf.Tick(.016f,false);wf.Die();
+        Assert(wf.Phase==Phase.Dead&&wf.DeathOverrodeWin,"with a frame source: a Case.Tick between the crossing and the grab in the same frame still lets death win");
+        var wf2=SealedCastle();wf2.FrameSource=()=>frame;wf2.FinishAtVan();frame++;wf2.Die();Assert(wf2.Phase==Phase.Won&&wf2.Deaths==0,"with a frame source: a grab one frame later does not undo the win");
+        var bwin=Start();bwin.Record(Evidence.Induction);bwin.Record(Evidence.Handprint);bwin.Record(Evidence.Voice);bwin.BeginWarning();bwin.Tick(9,false);bwin.Tick(38,false);Context(bwin);Correct(bwin);bwin.RestorePower();bwin.Seal(12,true,true);
+        bwin.FinishAtVan();bwin.Die();Assert(bwin.Phase==Phase.Won,"Bellwether: the win is final");
+        // 4. Natural play, 2,000 seeds: mortal player and the r11 driver.
+        string m=WaveKReport("mortal",HuntRules.Castle,false,out float sm,out float s90,out float q120,out float d90,out float nt70,out float spread);Console.WriteLine(m);
+        Assert(sm<=.22f&&s90<=.28f,"mortal: warning + hunt + return <= 22 % mean, p90 <= 28 %");
+        Assert(q120>=.9f,"mortal: a quiet stretch of 120 s or more after the first hunt in >= 90 % of runs");
+        Assert(d90<85,"mortal: Dread < 85 at 8 minutes (p90)");
+        Assert(nt70>=.4f&&spread>=60,"mortal: no-tell hunts below Dread 70 happen in many runs; first-hunt delay spread >= 60 s");
+        string dv=WaveKReport("r11 driver (immortal, open)",HuntRules.Castle,true,out float dm,out float dp90,out _,out float dd90,out _,out _);Console.WriteLine(dv);
+        Assert(dm<=.30f&&dp90<=.33f&&dd90<95,"r11 driver: share <= 0.30 mean, Dread < 95 at 8 minutes (p90)");
+    }
     static void WaveJTests()
     {
         var r=HuntRules.Castle;
@@ -664,18 +753,18 @@ static class RulesTests
     static void WaveITests()
     {
         var r=HuntRules.Castle;var b=HuntRules.Bellwether;
-        Assert(Math.Abs(r.DreadDecayRecovery-.4f)<1e-6f&&Math.Abs(r.DreadDecayCalm-.15f)<1e-6f&&r.DreadDecayFloor==20&&r.HuntDreadCap==25&&r.GraceMin==30&&r.GraceMax==90,"castle: decay 0.4/0.15 to 20, cap 25, grace 30-90 s");
+        Assert(Math.Abs(r.DreadDecayRecovery-.4f)<1e-6f&&Math.Abs(r.DreadDecayCalm-.3f)<1e-6f&&r.DreadDecayFloor==20&&r.HuntDreadCap==25&&r.GraceMin==30&&r.GraceMax==90,"castle: decay 0.4/0.3 (wave K, was 0.15) to 20, cap 25, grace 30-90 s");
         Assert(b.DreadDecayRecovery==0&&b.DreadDecayCalm==0&&b.HuntDreadCap==0&&b.GraceMax==0,"Bellwether: no wave I damping");
         var bw=Start();Hunt(bw);bw.Tick(38,true);Assert(bw.GraceSeconds==0&&bw.GraceRemaining==0,"Bellwether draws no grace");
 
         // 1. Event Dread decays; ambient Dread (darkness, time, ForceDread) does not.
         var d=StartOn(CaseBook.Castle);d.Record(Evidence.Induction);d.AddDread(30);Assert(Math.Abs(d.DreadEvent-30)<1e-4f,"AddDread is event Dread");
-        d.Tick(10,false);Assert(Math.Abs(d.Dread-28.5f)<.01f,"calm phases: event Dread decays 0.15/s");
+        d.Tick(10,false);Assert(Math.Abs(d.Dread-27)<.01f,"calm phases: event Dread decays 0.3/s");
         d.Tick(300,false);Assert(d.Dread==0&&d.DreadEvent==0,"before the first hunt event Dread decays to nothing");
         var amb=StartOn(CaseBook.Castle);amb.Record(Evidence.Induction);amb.Tick(100,true,false,false);float dark=amb.Dread;amb.Tick(300,false);
-        Assert(Math.Abs(dark-12)<.01f&&amb.Dread==dark&&amb.DreadEvent==0,"darkness builds Dread that time does not take away");
-        amb.Tick(10,false,false,true);Assert(Math.Abs(amb.Dread-7)<.01f,"the safe zone still lowers it 0.5/s");
-        var rel=StartOn(CaseBook.Castle);rel.Record(Evidence.Induction);rel.AddDread(30);rel.DreadRelief=3;rel.Tick(10,false);Assert(Math.Abs(rel.Dread-25.5f)<.01f,"DreadRelief 3 triples the decay");
+        Assert(Math.Abs(dark-8)<.01f&&amb.Dread==dark&&amb.DreadEvent==0,"darkness builds Dread that time does not take away (below 60)");
+        amb.Tick(10,false,false,true);Assert(Math.Abs(amb.Dread-3)<.01f,"the safe zone still lowers it 0.5/s");
+        var rel=StartOn(CaseBook.Castle);rel.Record(Evidence.Induction);rel.AddDread(30);rel.DreadRelief=3;rel.Tick(10,false);Assert(Math.Abs(rel.Dread-21)<.01f,"DreadRelief 3 triples the decay");
         var rec=StartOn(CaseBook.Castle);rec.Record(Evidence.Induction);rec.BeginWarning();TickUntilLeaves(rec,Phase.Warning,30);
         rec.AddDread(20);float inHunt=rec.Dread;rec.Tick(10,false);Assert(rec.Phase==Phase.Hunt&&rec.Dread==inHunt,"no decay during a hunt");
         for(int t=0;t<60&&rec.Phase==Phase.Hunt;t++)rec.Tick(1,false);rec.ForceDread(10);rec.AddDread(50);rec.Tick(10,false);
