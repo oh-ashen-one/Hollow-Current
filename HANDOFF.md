@@ -1,50 +1,37 @@
-# HANDOFF: piece 0 (integrator), Haunted Castle map plumbing
+# HANDOFF: piece F4 (audio), Haunted Castle fear wave
 
-Branch `haunted-castle` in `/Users/midir/hollow-current-haunted-castle` (main clone, pushed to origin). Model: Opus 5.5. Date 2026-10-13.
-Merged pieces: hc/forge `ec2c7fa`, hc/props `6d24e03`, hc/audio `d1ddd9b`, hc/count `2a8c23a`, hc/layout `136b002`, hc/art `714ffe2` (round 2). Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md`.
+Branch `hc/audio2` (worktree `/Users/midir/hollow-current-haunted-castle/.wt/audio2`), from `haunted-castle` @ fbd5807. Model: Sonnet 5.5. Date 2026-10-13. Cost: 0 (no paid generation).
 
-## Verified (how)
-- `python3 tools/check_source.py`: PASS 388 rules assertions; runtime C# compiles against the macOS player and editor assemblies (now recursive: `Runtime/Castle/` is compiled).
-- Unity 6000.3.20f1, one instance at a time, every run through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-integrator` (logs `/Users/midir/hollow-current-haunted-castle/.*.log`, gitignored):
-  - `CountClaudeImport.Prepare` (nographics): HC_COUNTCLAUDE_PASS, 6 clips, 28 bones, prefab `Resources/Characters/CountClaude.prefab`.
-  - `NativeBuild.ValidateCastleGeometry` (nographics): HC_CASTLE_GEOMETRY_PASS, 9 contract points reachable from the gatehouse (crypt, reliquary, tower orrery, portrait closet), HC_CASTLE_HUNTER_PASS.
-  - `HouseLighting.PrepareAndBakeCastle` (graphics, batchmode): 4 lightmaps, 188 probes, 17 reflections; receipt `Art/LayoutData/CastleBake.json`.
-  - `NativeBuild.BuildPreparedMacCastle`: Succeeded, `Builds/macOS-Castle/Hollow Current Castle.app`. Headless player boot (`-batchmode -nographics`, then SIGTERM): HC_AUDIO_READY 75 clips, HC_READY, HC_STARTUP_READY, no exceptions; only `HC_MISSING_ART speech voice_cc_arrival`.
-  - Bellwether receipt was stale from the shared-source changes (BuildPreparedMac refused, loud message). Re-ran `PrepareAndBake`: same counts as shipped (4 / 124 / 9). `BuildPreparedMac` passed all geometry checks and built; headless boot HC_STARTUP_READY, 49 clips.
-  - `NativeBuild.BuildPreparedMacAll`: both maps in `Builds/macOS/Hollow Current.app` (Succeeded, ~899 MB).
-- Not verified: anything rendered or played (no captures, no input-driven run of the picker, map switch, forge, fight, stair loop or drawbridge). The critic/playtest owns that.
+## Done (verified how)
+All 13 files exist in `Assets/HollowCurrent/Resources/CastleAudio/` with `.wav.meta` (importer settings copied from the other clips, fresh guids). Table is the output of `python3 -B tools/audio_castle_sfx.py --check`
+(own BS.1770 K-weighted loudness, cross-checked against ffmpeg `ebur128`: heartbeat/wind/door -30.0 both, chapel_bell_toll -29.88 vs -29.9). pyloudnorm is not installed.
 
-## What exists (signatures other pieces code against)
-- `Core/MapId.cs`: `enum MapId { Bellwether, Castle }`; `MapCatalog.Get(MapId)` -> `MapInfo{SceneName, ScenePath, BakeReceiptPath, LightingSettingsPath, LayoutFolder, DisplayName, HunterName}`; `TryParse`, `TryFromSceneName`, `FromPreference`; PlayerPrefs key `hc.map`.
-- `Core/CaseBook.cs`: every per-map word (evidence names/ids, instrument names, note titles/ids/art, journal choices, dispatch/goal text, kill ending, relic text). `CaseBook.For(map)`. Correct journal answer uses the same enum slots for both maps (chapel bell = `AnchorKind.MusicBox`). Castle note titles `Ledger: the steward / the astronomer / the painter` with ids `cc_ledger_steward/orrery/portrait` (= `LedgerHints`).
-- `Core/Investigation.cs`: `new Investigation(CaseBook)`; `WinByKill()`, `HunterSlain`.
-- `Runtime/World.cs`: `Build(MapId)`, `LoadOrBuild(MapId)`, `Map`, instance `Spawn`, `HunterSpawn`, `AnchorFloor`, `PerchPoints`, `IsInside/IsSafe`, `CheckpointPosition`, `StepSurface`, `NavBounds`, `Castle` (`World.CastleSpots`, serializable copy of `CastleWorld.Points`), `CastleRoutePoints()`. Castle: CastleWorld's own NavMesh is removed and rebuilt by `World.BuildNavigation` (castle skips trigger colliders, includes MeshColliders); missing kit/winch/bell/brazier/altar/relic/ledger interactables are added as fallbacks.
-- `Runtime/HunterProfile.cs`: plain class, defaults = Split Grin; `SplitGrinProfile`; `HunterProfile.For(map)`; virtual `OnStagger(Presence)`, `OnDeath(Presence)`. `Presence.Profile`, `Presence.Stagger()`, `Presence.Defeat()`.
-- `Runtime/CastleRun.cs` (castle only, `Game.Castle`): owns `Forge`, `Fight`; altar hold -> `Forge.Tick` (Craft only via tick), strike = instrument button within 3.2 m / 55 deg during a hunt, `Fight.Killed` -> `Defeat` + `WinByKill`; props on CastleWorld anchors; AUDIO.md loops/one-shots.
-- `Runtime/MissingArt.cs`: castle-only magenta/silent placeholders (`MissingArt.Placeholders`), logged as `HC_MISSING_ART`.
-- `InteractKind` gained `Relic`, `Altar` (appended); `Interactable.RelicIndex`.
-- Editor entry points and receipt policy: README "Maps" table.
+| file | rate | ch | dur s | bytes | peak dBFS | LUFS | seam |
+|---|---|---|---|---|---|---|---|
+| heartbeat_loop | 48000 | 1 | 6.92 | 664660 | -11.4 | -30.0 | |x[0]-x[-1]| 6 LSB vs p99 step 57 LSB |
+| wind_battlements_loop | 48000 | 1 | 10.00 | 960044 | -12.0 | -30.0 | |x[0]-x[-1]| 38 LSB vs p99 step 392 LSB |
+| door_rattle | 48000 | 1 | 2.50 | 240044 | -8.9 | -30.0 |  |
+| book_drop | 48000 | 1 | 0.60 | 57644 | -8.0 | -31.7 |  |
+| knife_stick | 48000 | 1 | 0.50 | 48044 | -8.0 | -31.2 |  |
+| bat_pass | 48000 | 1 | 1.20 | 115244 | -9.4 | -30.0 |  |
+| bell_single | 48000 | 1 | 3.00 | 288044 | -14.9 | -30.0 |  |
+| claw_steps_0 | 48000 | 1 | 0.30 | 28844 | -8.0 | -32.6 |  |
+| claw_steps_1 | 48000 | 1 | 0.30 | 28844 | -8.0 | -33.8 |  |
+| claw_steps_2 | 48000 | 1 | 0.30 | 28844 | -8.0 | -30.4 |  |
+| claw_steps_3 | 48000 | 1 | 0.30 | 28844 | -8.0 | -31.1 |  |
+| voice_cc_kit | 22050 | 1 | 9.63 | 424686 | -11.6 | -30.3 |  |
+| voice_cc_ending | 22050 | 1 | 10.42 | 459668 | -11.4 | -29.6 |  |
 
-## What each piece does next
-- Piece 2 (hc/art): merge takes your `Runtime/Castle/CastleArt.cs` over the layout stub (same `Place(string,Transform,Vector3,Quaternion)`). Commit `.meta` files for new assets (`CastleArt.cs.meta` already exists on haunted-castle: keep guid `git show haunted-castle:Assets/HollowCurrent/Runtime/Castle/CastleArt.cs.meta` or expect a meta conflict). Optional textures: `Resources/Castle/ClawScores`, `Resources/Castle/Ledger{Steward,Astronomer,Painter}`, `Resources/UI/BloodLedger/{Dialogue,Warning,Panel}` (currently magenta).
-- Piece 4b (Count behaviour): edit `Runtime/Castle/CountClaudeProfile.cs` (now a `HunterProfile` subclass with your values) and override `OnStagger/OnDeath`; perch/glide/dive needs new hooks in `Presence.cs` (piece 0 file): send requests. Read `Game.Castle.Fight` for `SpeedMultiplier/Retreating`.
-- Piece 6: add `voice_cc_arrival`, `voice_cc_kit`, `voice_cc_warning`, `voice_cc_return`, `voice_cc_contain`, `voice_cc_ending`, `voice_cc_hint_signal/trace/voice` (castle `Speak(id)` looks up `voice_cc_<id>`; `cc_*` ids as given).
-- Piece 1: notes you place are extra flavour unless titled as in `CaseBook.Castle.NoteTitles`; fallbacks currently sit near Compass/Voice/Altar points.
-- Every builder: after a shared-file change both receipts go stale; re-run the map's `PrepareAndBake*` before a prepared build.
+Notes: transients under 0.6 s are peak-capped at -8 dBFS, so they sit 1.5 to 3.8 LU under -30 LUFS (measured padded to 1 s). Loops are periodic by construction (circular FFT filtering, integer-cycle modulators, tail wrapped onto the start), so there is no seam to crossfade; the seam step is below the 99th-percentile sample step. Not listened to (no audio device in this session): checked by numbers and spectrograms only. The critic should listen.
+`wind_battlements_loop` is 10.0 s, not 11-12 s, to stay under 1 MB (960 KB).
+Voice lines (in `tools/voice-lines.json`, appended): `cc_kit` "Take them. The steward took them too. They did not help him." and `cc_ending` "Dawn. I had forgotten its colour. Go, and leave the door open." (works for both the kill sunrise and the drawbridge escape; `Game.cs` plays `Speak("ending")` on `Phase.Won`). Same `CASTLE_FX` chain as every other `voice_cc_*`; regenerating all `cc_` voices leaves the existing files byte-identical.
 
-## Round 2 (integrator)
-- Relic gating: silver blade = the reliquary box (trigger around the box art), shut until the grave-ash lantern is held on its claw-scores for 1 s; hilt at the orrery asset's socket (manifest notes.socket, assumes Blender x,y,z -> Unity x,z,y); moonstone on the pedestal behind the portrait door. Ledger pages speak the matching relic hint.
-- Far-bank escape: after the bell seal, once the drawbridge has lowered, entering `DrawbridgeTrigger` = `FinishAtVan`.
-- Doors: with the 1.5 m probe 17/23 castle doors could not open (0 degrees) and the rest stopped at 55. `Door.FitProbe` + hinge moved to the clearer wall face: all 23 open 80-175 degrees (`ValidateCastleGeometry` threshold 75 for the castle; Bellwether unchanged at 85).
-- Count sources moved to `Art/Characters/CountClaude`; castle `Speak("arrival")` -> `voice_cc_night` (also warning -> `cc_hunt_hungry`, return -> `cc_stay`).
-- Sky + moons wired (`CastleArt.ApplySkybox`, moons along `Pale/RedMoonDirection`, baked). `ImportYaw` left at 0.
-- Capture mode `-hc-capture <dir>` (`Runtime/Castle/CaptureMode.cs`); round 1 notes `docs/haunted-castle/rounds/r1/NOTES.md`.
-- Builds: `Builds/macOS-Castle/Hollow Current Castle.app`, `Builds/macOS/Hollow Current.app` (both maps); both boot headless.
+## Files
+- `tools/audio_castle_sfx.py` (generator + `--check`), `tools/voice-lines.json`, `docs/haunted-castle/AUDIO.md` (row per key: trigger, volume, distances), `docs/haunted-castle/ASSET_LOG.md` (appended, cost 0).
 
-## Open issues
-- `tools/audit_project.py` fails on its first, pre-existing check (`com.unity.inputsystem` is not a built-in package); the new scene checks pass when that loop is skipped.
-- `CastleDrawbridge` moved from `CastleWorld.cs` to its own file (Unity scene-serialization requirement); hc/layout edits must follow.
-- Relic gating, the far-bank escape and the forge/fight are compiled and engine-validated for reachability only; not input-playtested.
-- No Blood Ledger UI art (`Resources/UI/BloodLedger/*`) or ledger page art: magenta placeholders in the castle UI.
-- `GiantSkeleton` and other extra art (`BanquetTable`, `Banner`, ...) are not placed by the layout.
-- Not yet run: any rendered capture or input playtest of either map.
+## Requests for the integrator
+- `Soundscape.Speak("kit")` and `Speak("ending")` already map to `cc_kit` / `cc_ending`; nothing to change there. The new SFX are keyed by filename like the rest (`Cue("door_rattle",pos,.8f)` etc.), values in AUDIO.md.
+- `heartbeat_loop` is meant for a 2D source whose volume you ramp with Dread (AUDIO.md gives a curve); `claw_steps_0..3`: choose a random index, never the same twice running.
+
+## Not done / open
+- No paid clip is needed. If the critic finds the synthetic bat or claws too thin, a Higgsfield audio job would be the upgrade (not requested; needs the director's go-ahead).
