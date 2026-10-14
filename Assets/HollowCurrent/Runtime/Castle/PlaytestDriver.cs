@@ -165,6 +165,7 @@ namespace HollowCurrent
             if(Mode=="lowdread"){yield return LowDread();yield break;}
             if(Mode=="natural"){yield return Natural();yield break;}
             if(Mode=="death"){yield return Death();yield break;}
+            if(Mode=="huntcam"){yield return HuntCam();yield break;}
             // Field kit from the lantern cart.
             yield return Use(Find(InteractKind.Kit),"field kit");
             if(!game.Case.Equipped)Blocker("kit not equipped");
@@ -468,6 +469,35 @@ namespace HollowCurrent
             if(c.Phase!=Phase.Dead){Blocker("no death in 240 s");yield return Finish();yield break;}
             yield return Wait(Mathf.Max(1,game.Creature.Profile.CapturePresentationSeconds+1));
             deathRetried=true;Debug.Log("HC_PLAY phase=retry_checkpoint");game.RetryCheckpoint();
+        }
+        // huntcam: a NATURALLY triggered hunt seen from the player's eye (no dice or Dread forcing, no invulnerability). Two records,
+        // then she stands in the great hall, torch on, facing him; from the first frame of his dive, 10 screenshots ~0.2 s apart
+        // through the dive and the grab presentation. For the blind critic (pitch, close time, grab mode, claw size).
+        IEnumerator HuntCam()
+        {
+            var c=game.Case;c.Invulnerable=false;
+            yield return Opening(true);
+            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-3));yield return Torch(true);
+            float end=Time.realtimeSinceStartup+420;
+            while(!game.Creature.Diving&&c.Phase!=Phase.Dead&&Time.realtimeSinceStartup<end)
+            {
+                if(c.Phase==Phase.Hunt||c.Phase==Phase.Return)input.Look=game.Creature.HeadPosition;
+                yield return null;
+            }
+            if(!game.Creature.Diving&&c.Phase!=Phase.Dead){Blocker("no natural dive within 420 s (hunts="+c.Hunts+")");yield return Finish();yield break;}
+            Debug.Log("HC_PLAY huntcam dive_start t="+(Time.realtimeSinceStartup-start).ToString("F1")+" threatFrom="+c.ThreatFrom+" noTell="+c.NoTellHunt+" hunts="+c.Hunts+" "+game.Creature.DiagnosticState);
+            float diveStart=Time.realtimeSinceStartup;
+            for(int i=0;i<10;i++)
+            {
+                if(c.Phase!=Phase.Dead)input.Look=game.Creature.HeadPosition;
+                float d=Vector3.Distance(game.Creature.transform.position,game.Player.transform.position);
+                yield return Shot("hunt_natural_"+(i+1).ToString("00")+"_d"+d.ToString("F1")+"m_"+c.Phase);
+                Debug.Log("HC_PLAY huntcam frame="+(i+1)+" t_since_dive="+(Time.realtimeSinceStartup-diveStart).ToString("F2")+" distance="+d.ToString("F2")+" phase="+c.Phase+" mode="+(game.Creature.Actor?game.Creature.Actor.Mode:-1));
+                float next=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<next)yield return null;
+            }
+            yield return Wait(2);
+            Debug.Log("HC_PLAY_RESULT mode=huntcam won=False dead="+(c.Phase==Phase.Dead)+" hunts="+c.Hunts+" blockers="+blockers.Count);
+            yield return Wait(1);Application.Quit();
         }
         // Follow a hunt to its end: closest approach, near-miss and a wall check on his ground (crawl) moves.
         IEnumerator TrackHunt(string label)
