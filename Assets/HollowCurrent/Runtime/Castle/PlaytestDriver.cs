@@ -140,6 +140,15 @@ namespace HollowCurrent
             yield return Frames(6);
             if(tool==3){yield return Press(i=>i.Fire=true);yield return Wait(4.6f);}
             else{input.FireHeld=true;float end=Time.realtimeSinceStartup+4f;while(Time.realtimeSinceStartup<end&&!game.Case.Evidence.Contains(evidence))yield return null;Reset();}
+            // Wave K: an apparition's interference (or a close hunting Count) can suspend recording; wait it out once and retry.
+            if(!game.Case.Evidence.Contains(evidence)&&game.Player.Instrument.StartsWith("INTERFERENCE",StringComparison.Ordinal))
+            {
+                Debug.Log("HC_PLAY record_retry "+what+" after interference");
+                float until=Time.realtimeSinceStartup+20;while(game.Player.Instrument.StartsWith("INTERFERENCE",StringComparison.Ordinal)&&Time.realtimeSinceStartup<until)yield return null;
+                yield return Frames(6);
+                if(tool==3){yield return Press(i=>i.Fire=true);yield return Wait(4.6f);}
+                else{input.FireHeld=true;float end2=Time.realtimeSinceStartup+4f;while(Time.realtimeSinceStartup<end2&&!game.Case.Evidence.Contains(evidence))yield return null;Reset();}
+            }
             if(!game.Case.Evidence.Contains(evidence))Blocker(what+": evidence not recorded (instrument: "+game.Player.Instrument+")");
             yield return Step("evidence_"+evidence,game.Player.Instrument);
         }
