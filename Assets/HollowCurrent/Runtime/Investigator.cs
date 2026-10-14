@@ -44,6 +44,11 @@ namespace HollowCurrent
         FirstPersonHands workingHand,radioHand,leftHand;
         float equipPose=1;int priorTool=1;
         readonly Transform[] instrumentModels=new Transform[3];
+        // Castle: the forged moonstone sword replaces the held instrument (hc/sword pose).
+        Transform sword;float swing;
+        static readonly Vector3 SwordPosition=new Vector3(.24f,-.20f,.45f);
+        static readonly Quaternion SwordIdle=Quaternion.Euler(-62,8,-14),SwordStrike=Quaternion.Euler(-10,25,-40);
+        public bool SwordHeld=>sword&&sword.gameObject.activeSelf;
         Transform torchModel;
         Transform radioModel;
         TextMesh inductionReadout;
@@ -102,6 +107,14 @@ namespace HollowCurrent
             var fill=new GameObject("Soft field-kit bounce");fill.transform.SetParent(camera,false);fill.transform.localPosition=new Vector3(.03f,.05f,-.08f);
             var light=fill.AddComponent<Light>();light.type=LightType.Point;light.range=1.1f;light.intensity=.18f;light.color=new Color(.82f,.9f,1);light.cullingMask=1<<30;light.shadows=LightShadows.None;
         }
+        Transform MakeSword()
+        {
+            var t=(Transform)CastleArt.Place(CastleArt.Names.MoonstoneSword,View.transform,SwordPosition,SwordIdle);
+            foreach(var c in t.GetComponentsInChildren<Collider>())Destroy(c);
+            foreach(var r in t.GetComponentsInChildren<Renderer>()){r.gameObject.layer=30;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;}
+            t.gameObject.layer=30;Debug.Log("HC_SWORD_HELD renderers="+t.GetComponentsInChildren<Renderer>().Length);
+            return t;
+        }
         Light Lamp(string label,Color color,float angle,float range,float power)
         {
             var g=new GameObject(label);g.transform.SetParent(View.transform,false);g.transform.localPosition=new Vector3(.08f,-.05f,.04f);var l=g.AddComponent<Light>();l.type=LightType.Spot;l.color=color;l.spotAngle=angle;l.innerSpotAngle=angle*.6f;l.range=range;l.intensity=power;return l;
@@ -112,7 +125,17 @@ namespace HollowCurrent
             Torch.enabled=Game.Case.Equipped&&TorchOn&&!(Game.Scares&&Game.Scares.TorchFailed);Torch.intensity=.85f*Brightness;
             Ultraviolet.enabled=Game.Case.Equipped&&Tool==2&&!Hidden;
             hiddenVision.enabled=Hidden&&!Game.Modal;hiddenVision.intensity=.09f*Brightness;
-            heldTool.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden&&radioPose<=0);
+            bool swordOut=Game.Castle&&Game.Castle.Forge.HasSword&&Game.Case.Equipped&&!Game.Modal&&!Hidden;
+            if(swordOut&&!sword)sword=MakeSword();
+            if(sword)
+            {
+                sword.gameObject.SetActive(swordOut&&radioPose<=0);
+                if(FirePressed&&swing<=0)swing=.36f;
+                swing=Mathf.Max(0,swing-Time.deltaTime);float s=swing>.18f?(.36f-swing)/.18f:swing/.18f;
+                sword.localPosition=SwordPosition+new Vector3(0,Mathf.Sin(Time.time*(Moving?7:1.6f))*(Moving?.0035f:.001f),0);
+                sword.localRotation=Quaternion.Slerp(SwordIdle,SwordStrike,Mathf.SmoothStep(0,1,s));
+            }
+            heldTool.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden&&radioPose<=0&&!SwordHeld);
             radioModel.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden&&radioPose>0);
             torchModel.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden);
             leftHand.gameObject.SetActive(Game.Case.Equipped&&!Game.Modal&&!Hidden);

@@ -18,12 +18,15 @@ namespace HollowCurrent
     {
         public static string OutDir {get;private set;}
         public static string Mode {get;private set;}
+        // Kill run: seconds without strikes after he becomes hittable (-hc-playtest-window, default 3).
+        public static float StrikeWindow=3f;
         public static bool Requested
         {
             get
             {
                 if(OutDir!=null)return true;
                 var args=Environment.GetCommandLineArgs();
+                for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-playtest-window"&&float.TryParse(args[i+1],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var w))StrikeWindow=w;
                 for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-playtest"){OutDir=args[i+1];Mode=i+2<args.Length?args[i+2]:"escape";return true;}
                 return false;
             }
@@ -218,7 +221,7 @@ namespace HollowCurrent
             var castle=game.Castle;int rings=1;float limit=Time.realtimeSinceStartup+300,nextApproach=0;
             // Give him a window: no strike and no step towards him for the first 3 s after he becomes
             // hittable (a hunt starts or a retreat ends), so his own glide/dive/grab can play out.
-            const float Window=3f;float hittableSince=-1;int grabs=game.Case.BlockedDeaths;
+            float Window=StrikeWindow;float hittableSince=-1;int grabs=game.Case.BlockedDeaths;
             while(!castle.Fight.Dead&&Time.realtimeSinceStartup<limit)
             {
                 if(game.Case.BlockedDeaths>grabs){grabs=game.Case.BlockedDeaths;Debug.Log("HC_PLAY phase=grabbed t="+(Time.realtimeSinceStartup-start).ToString("F1")+" grabs="+grabs+" "+game.Creature.DiagnosticState);}

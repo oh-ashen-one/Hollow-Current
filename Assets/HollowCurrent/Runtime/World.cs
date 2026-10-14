@@ -227,8 +227,19 @@ namespace HollowCurrent
                         Object.DestroyImmediate(claws.GetComponent<Collider>());claws.GetComponent<Renderer>().sharedMaterial=Materials["uvtrace"];claws.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
                         claws.SetActive(false);
                     }
-                    else relic=Interact("Relic / "+book.RelicNames[i],relics[i]+Vector3.up*.08f,new Vector3(.3f,.16f,.3f),"brass",InteractKind.Relic,book.RelicNames[i],"");
+                    else
+                    {
+                        relic=Interact("Relic / "+book.RelicNames[i],relics[i]+Vector3.up*.08f,new Vector3(.3f,.16f,.3f),"brass",InteractKind.Relic,book.RelicNames[i],"");
+                        relic.GetComponent<Renderer>().enabled=false;relic.GetComponent<Collider>().isTrigger=true;
+                    }
                     relic.RelicIndex=i;
+                    // Relic meshes (hc/sword): blade on the reliquary box floor along its long axis,
+                    // hilt in the orrery socket, moonstone on the portrait-closet pedestal.
+                    string[] art={CastleArt.Names.RelicBlade,CastleArt.Names.RelicHilt,CastleArt.Names.RelicMoonstone};
+                    Vector3 at=relics[i];float yaw=0;
+                    if(i==0&&box&&ArtBounds(box,out var rb)){at=new Vector3(rb.center.x,rb.min.y+.06f,rb.center.z);yaw=rb.size.x>rb.size.z?90:0;}
+                    var mesh=(GameObject)CastleArt.Place(art[i],Root,at,yaw);
+                    if(mesh){foreach(var c in mesh.GetComponentsInChildren<Collider>())Object.DestroyImmediate(c);relic.Art=mesh;}
                 }
             }
             var anchors=new[]{Castle.Compass,Castle.Voice,Castle.AltarPosition};

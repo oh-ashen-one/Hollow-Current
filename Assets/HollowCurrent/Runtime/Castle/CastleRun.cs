@@ -65,7 +65,7 @@ namespace HollowCurrent
             if(Forge.Found((Relic)item.RelicIndex))
             {
                 Game.Say(Game.Book.RelicFound[item.RelicIndex]);Game.Sound.Cue("evidence_filed",item.transform.position,.5f);
-                item.gameObject.SetActive(false);
+                item.gameObject.SetActive(false);if(item.Art)item.Art.SetActive(false);
             }
         }
         // DESIGN.md: ring the chapel bell, the bargain hears you, survive the hunt, then the

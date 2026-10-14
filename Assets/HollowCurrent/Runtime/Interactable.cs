@@ -14,6 +14,8 @@ namespace HollowCurrent
         public Light Circuit;
         // Kind Relic: 0 silver blade, 1 hallowed hilt, 2 moonstone (Forge.Relic order).
         public int RelicIndex=-1;
+        // Kind Relic: the visible relic mesh (hidden together with the interactable when taken).
+        public GameObject Art;
         public void Use(Game game)
         {
             switch(Kind)
