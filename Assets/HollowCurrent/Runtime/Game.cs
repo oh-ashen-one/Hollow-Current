@@ -387,9 +387,9 @@ namespace HollowCurrent
             {
                 // False warnings strobe and radio like real ones (Investigation never turns them into a hunt);
                 // no-tell hunts skip the Warning phase, so nothing here strobes or speaks for them.
-                if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" length="+Case.WarningLength.ToString("F1")+" dread="+Case.Dread.ToString("F1"));
+                if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" escalated="+Case.EscalatedWarning+" length="+Case.CurrentWarningSeconds.ToString("F1")+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1"));
                 if(previous==Phase.Warning&&phase!=Phase.Hunt&&!Case.Terminal)Debug.Log("HC_FALSE_WARNING ended phase="+phase);
-                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" huntSeconds="+Case.CurrentHuntSeconds.ToString("F1")+" breaker="+Case.BreakerOn+" hunts="+Case.Hunts);
+                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" huntSeconds="+Case.CurrentHuntSeconds.ToString("F1")+" breaker="+Case.BreakerOn+" hunts="+Case.Hunts);
                 if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             }
             Creature?.PhaseChanged(phase);
@@ -398,8 +398,8 @@ namespace HollowCurrent
             if(phase==Phase.Warning)
             {
                 // Castle escalation (a 1.5 s tell after a close apparition) strobes but has no dispatch line.
-                bool escalation=Map==MapId.Castle&&Case.WarningLength<Case.Rules.WarningSeconds;
-                Scares?.Pulse(Player.transform.position+Player.transform.forward*3,escalation?Case.WarningLength:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)Sound.Speak("warning");
+                bool escalation=Map==MapId.Castle&&Case.EscalatedWarning; // wave H: told/false warnings are drawn 5-14 s
+                Scares?.Pulse(Player.transform.position+Player.transform.forward*3,Map==MapId.Castle?Case.CurrentWarningSeconds:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)Sound.Speak("warning");
             }
             // Castle hostile return (critic r10 #34): the Count's swoop speaks cc_dispatch (voice_cc_dispatch) and raises the
             // "return-swoop" beat, which shows the card (CountBeat). Bellwether keeps "return".

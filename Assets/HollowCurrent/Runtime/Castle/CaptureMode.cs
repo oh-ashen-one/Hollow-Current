@@ -284,7 +284,7 @@ namespace HollowCurrent
             // The investigator's view tracks him; shot k is taken at CaptureClock = k.
             e=new Vector3(0,1.64f,15.6f);var origin=new Vector3(4.6f,0,26.8f);t=new Vector3(1.5f,1.6f,24f);Place(e,t);Torch(true);
             game.Case.Equip();game.Case.EnterHouse();game.Case.Record(Evidence.Induction);game.Case.Record(Evidence.Handprint);
-            game.Case.BeginWarning();game.Creature.SetHuntOrigin(origin);game.Case.Tick(9.05f,true);
+            game.Case.BeginWarning();game.Creature.SetHuntOrigin(origin);game.Case.Tick(game.Case.CurrentWarningSeconds+.05f,true); // wave H: warnings are drawn 5-14 s
             Log("hunt phase="+game.Case.Phase+" "+game.Creature.DiagnosticState);
             // The warning-phase scare mist (ScareDirector.Pulse, 2.8 s lifetime) spawns 3 m ahead.
             yield return new WaitForSecondsRealtime(3f);

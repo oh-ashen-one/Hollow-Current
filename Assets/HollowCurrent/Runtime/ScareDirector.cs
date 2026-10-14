@@ -60,7 +60,7 @@ namespace HollowCurrent
             {
                 previousPhase=game.Case.Phase;
                 if(previousPhase==Phase.Warning||previousPhase==Phase.Hunt)rhythm.Rest(90);
-                if(previousPhase==Phase.Recovery){rhythm.Rest(65);next=30;}
+                if(previousPhase==Phase.Recovery){rhythm.Rest(65);next=IsCastle?Random.Range(6f,30f):30f;} // castle: the post-hunt gap is not a clock (hc/scares3)
             }
             if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment)return;
             // Reserve the approach to a natural hunt for dread, not a competing
@@ -94,7 +94,18 @@ namespace HollowCurrent
             }
         }
         // Castle dread beats: the whole tick (silence roll, lies, peripheral sightings, Beat) lives in CastleScares.DreadTick (hc/scares2).
-        bool CastleBeat()=>Castle&&Castle.DreadTick();
+        bool CastleBeat()
+        {
+            if(!Castle)return false;
+            // Wave H: one dread tick in 20 below the Lies threshold is a false candle tell or false compass too, so seeing one
+            // is not proof of Dread >= 70.
+            if(!game.Case.Lies&&Random.value<.05f)
+            {
+                if(Random.value<.5f&&Castle.FalseCandleTell()){Debug.Log("HC_LIE kind=false_candle decoy=True dread="+game.Case.Dread.ToString("F0"));return true;}
+                if(game.Player.Tool==1&&game.Case.Equipped){Castle.FalseCompassReading();Debug.Log("HC_LIE kind=false_compass decoy=True dread="+game.Case.Dread.ToString("F0"));return true;}
+            }
+            return Castle.DreadTick();
+        }
         public bool Trigger(bool firstBasement=false)
         {
             if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;

@@ -211,6 +211,15 @@ namespace HollowCurrent
         readonly Queue<float> dice=new Queue<float>();
         IEnumerator WaitFor(Func<bool> done,float seconds){float end=Time.realtimeSinceStartup+seconds;while(!done()&&Time.realtimeSinceStartup<end)yield return null;}
         void ForceDread(float target,string why){var c=game.Case;float before=c.Dread;c.AddDread(target-c.Dread);Debug.Log("HC_PLAY_FORCED dread "+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" ("+why+")");}
+        // Dice steps: Investigation.ForceDread sets Dread and restarts the dice schedule, so the queue always
+        // begins with an interval roll: [interval, hunt roll, tell roll, false-alarm roll (dice only),
+        // warning length (told/false), hunt length (when the hunt starts)]. Holds for any RunDreadMin (30-50)
+        // and any Dread at Disturbance entry (RulesTests WaveH "driver queues line up").
+        void ForceDice(string why,params float[] queue)
+        {
+            var c=game.Case;float before=c.Dread;c.ForceDread(Mathf.Max(55,c.RunDreadMin+5));foreach(var v in queue)dice.Enqueue(v);
+            Debug.Log("HC_PLAY_FORCED dread "+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" boundary="+c.RunDreadMin.ToString("F1")+" queue="+string.Join(",",queue)+" ("+why+")");
+        }
         Interactable FarHide()
         {
             Interactable hide=null;float far=0;
@@ -255,10 +264,8 @@ namespace HollowCurrent
             // 4. Castle dread beats through ScareDirector.Dread (HC_SCARE_CASTLE).
             for(int i=0;i<5;i++){game.Scares.Dread();yield return Wait(2.2f);}
             yield return Step("castle_beats","scareCastle="+Tag("HC_SCARE_CASTLE"));
-            // 5. False warning: real dice path (interval 0 -> 2 s, hunt roll 0, no-tell roll 0.9, false-alarm roll 0).
-            if(c.Dread>=c.RunDreadMin)Blocker("dread reached the run boundary "+c.RunDreadMin.ToString("F1")+" before the forced dice; queue alignment not guaranteed");
-            ForceDread(Mathf.Max(55,c.RunDreadMin+5),"enter the dice band for the false warning (boundary "+c.RunDreadMin.ToString("F1")+")");
-            foreach(var v in new[]{0f,0f,.9f,0f})dice.Enqueue(v);
+            // 5. False warning: real dice path (interval 0 -> 2 s, hunt roll 0, no-tell roll 0.9, false-alarm roll 0, warning length 0.5 -> 9 s).
+            ForceDice("false warning",0f,0f,.9f,0f,.5f);
             yield return WaitFor(()=>c.Phase==Phase.Warning,20);
             yield return Step("warning","false="+c.FalseWarning+" length="+c.WarningLength.ToString("F1"));
             if(!c.FalseWarning)Blocker("forced dice did not give a false warning (phase "+c.Phase+")");
@@ -271,7 +278,8 @@ namespace HollowCurrent
             if(hide)yield return Use(hide,"hiding place "+hide.Label);
             if(!game.Player.Hidden)Blocker("could not hide before the no-tell hunt");
             yield return Step("hidden",hide?hide.name:"none");
-            foreach(var v in new[]{0f,0f})dice.Enqueue(v); // hunt roll 0, no-tell roll 0
+            yield return WaitFor(()=>c.Phase==Phase.Disturbance,60);
+            ForceDice("no-tell hunt",0f,0f,0f,.5f); // interval 0, hunt roll 0, no-tell roll 0, hunt length 0.5 -> 38 s
             StartCoroutine(ChannelWatch("no_tell"));
             yield return WaitFor(()=>c.Phase==Phase.Hunt,20);
             yield return Step("no_tell_hunt","noTell="+c.NoTellHunt+" warningSeen="+(Tag("HC_WARNING")>1));
@@ -281,10 +289,7 @@ namespace HollowCurrent
             yield return Torch(true);
             // 7. Told hunt; he sees her, then she hides in front of him (witnessed: he opens it, the driver blocks the grab).
             yield return WaitFor(()=>c.Phase==Phase.Disturbance,50); // recoveries are 10-40 s
-            // Entering Disturbance clears the dice timer; let the first tick draw its interval before queueing.
-            yield return Frames(3);
-            ForceDread(Mathf.Max(55,c.RunDreadMin+5),"keep the dice band for the second hunt");
-            foreach(var v in new[]{0f,.9f,.9f})dice.Enqueue(v); // hunt roll 0, no-tell 0.9, false alarm 0.9 -> told hunt
+            ForceDice("told hunt",0f,0f,.9f,.9f,.5f,.5f); // interval 0, hunt 0, no-tell 0.9, false alarm 0.9, warning 9 s, hunt 38 s
             yield return WaitFor(()=>c.Phase==Phase.Warning||c.Phase==Phase.Hunt,20);
             yield return Step("told_warning","false="+c.FalseWarning);
             if(c.Phase!=Phase.Warning&&c.Phase!=Phase.Hunt)Blocker("forced dice did not give the told hunt");

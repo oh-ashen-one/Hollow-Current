@@ -208,7 +208,7 @@ namespace HollowCurrent
             if(!clawTracking||!grounded){clawLast=at;clawTracking=grounded;return;}
             if(Vector3.ProjectOnPlane(at-clawLast,Vector3.up).magnitude<.5f)return;
             clawLast=at;int next=clawIndex<0?UnityEngine.Random.Range(0,4):UnityEngine.Random.Range(0,3);if(clawIndex>=0&&next>=clawIndex)next++;clawIndex=next;
-            Cue("claw_steps_"+clawIndex,at,hunting?.8f:.05f);ClawStepCount++;
+            Cue("claw_steps_"+clawIndex,at,game.Creature.ClawStepVolume); // one distance curve in and out of hunts (hc/count13 N3)ClawStepCount++;
         }
         void Update()
         {
