@@ -95,6 +95,17 @@ namespace HollowCurrent
         // DESIGN.md: ring the chapel bell, the bargain hears you, survive the hunt, then the
         // ledger can be closed. With the sword, ringing it calls him back for the fight. During
         // containment the bell is the seal (held, Investigation.Seal), not a summons.
+        // Integrator (r11 critic: "a grab in the same frame as the win counted as neither"): death resolves before the win. A grab
+        // under way when she reaches the far bank kills her (or, under the driver's invulnerability, counts as a blocked death).
+        public bool ResolveDeathBeforeWin()
+        {
+            var c=Game.Case;
+            if(!Game.Creature||!Game.Creature.GrabInProgress||!c.HuntActive)return false;
+            int blocked=c.BlockedDeaths;c.Die();
+            bool died=c.Phase==Phase.Dead;
+            Debug.Log("HC_DEATH frame="+Time.frameCount+" beat_win=true died="+died+" blocked="+(c.BlockedDeaths>blocked)+" "+Game.Creature.DiagnosticState);
+            return died;
+        }
         public void RingBell()
         {
             var c=Game.Case;var phase=c.Phase;
@@ -216,7 +227,7 @@ namespace HollowCurrent
                 else{revealHold=0;claws.SetActive(false);}
             }
             // Far bank: crossing the lowered drawbridge after the bell is sealed escapes (same as the winch).
-            if(phase==Phase.Return&&spots.Drawbridge&&spots.Drawbridge.Lowered&&!spots.Drawbridge.Moving&&spots.DrawbridgeTrigger.Contains(player.transform.position+Vector3.up*.5f))Game.Case.FinishAtVan();
+            if(phase==Phase.Return&&spots.Drawbridge&&spots.Drawbridge.Lowered&&!spots.Drawbridge.Moving&&spots.DrawbridgeTrigger.Contains(player.transform.position+Vector3.up*.5f)){if(ResolveDeathBeforeWin())return;Game.Case.FinishAtVan();}
             // Strike: the instrument button with the sword, at the visible hunter, during a hunt.
             if(Forge.HasSword&&player.FirePressed&&hunting&&Fight.CanBeHit)
             {

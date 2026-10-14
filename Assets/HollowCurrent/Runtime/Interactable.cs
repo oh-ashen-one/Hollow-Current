@@ -27,7 +27,7 @@ namespace HollowCurrent
                 case InteractKind.LightSwitch: game.ToggleCircuit(Circuit,transform.position);break;
                 case InteractKind.Breaker: game.Case.RestorePower();game.Sound.Cue("switch",transform.position);break;
                 case InteractKind.Van:
-                    if(!game.Case.FinishAtVan())game.ShowNote(game.Book.FinishNoteTitle,game.HeldGoal()+game.Book.FinishNoteSuffix);break; // castle: held goal (critic r10b N1)
+                    if(game.Castle&&game.Castle.ResolveDeathBeforeWin())break;if(!game.Case.FinishAtVan())game.ShowNote(game.Book.FinishNoteTitle,game.HeldGoal()+game.Book.FinishNoteSuffix);break; // castle: held goal (critic r10b N1)
                 case InteractKind.Relic: if(game.Castle)game.Castle.TakeRelic(this);break;
                 case InteractKind.Altar: if(game.Castle)game.Castle.AltarHint();break;
                 // Castle crypt (FEAR_PLAN item 18, the cursed reading): CastleRun.Sarcophagus() once hc/count11 lands.

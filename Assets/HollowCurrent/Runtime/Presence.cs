@@ -1274,6 +1274,9 @@ namespace HollowCurrent
         float huntClock,returnHearClock,dropHeight;
         bool sawPlayer;
         int grabMode=-1;
+        // Integrator (r11 critic, lost kill): a castle grab under way (contact building toward GrabSeconds). A win checked in the same
+        // frame resolves this death first.
+        public bool GrabInProgress=>count!=null&&huntOn&&contact>0&&grabMode>=0;
         Vector3? lastSeen;                 // item 14: survives between hunts, but ages out (r10b N8)
         float lastSeenAt;bool lastSeenSighted;
         // r10b N8: heard places go stale after MemoryHeardSeconds, seen ones (incl. a watched hide) after MemorySeenSeconds

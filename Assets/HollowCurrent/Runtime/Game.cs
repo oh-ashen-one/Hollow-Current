@@ -160,6 +160,9 @@ namespace HollowCurrent
             // Complete startup allocations while the loading presentation is
             // visible, instead of collecting that garbage on entering the house.
             yield return null;yield return new WaitForEndOfFrame();
+            // r11 critic (verify: one 35.9 ms frame at Bellwether's first Warning, 409 s in, basement): compile the shader variants in
+            // memory during the loading screen instead of on first use. Performance only; no gameplay change.
+            Shader.WarmupAllShaders();
             GC.Collect();LoadingProgress=1;yield return new WaitForEndOfFrame();
             Loading=false;
             if(restoreCheckpoint&&checkpoints.TryGetValue(Map,out var checkpoint))
