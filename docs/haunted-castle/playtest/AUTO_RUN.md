@@ -1,4 +1,54 @@
-# Automated castle playthroughs: waves G and H (windowed checklist, 2026-10-14)
+# Automated castle playthroughs: waves G-I (windowed checklist, 2026-10-14)
+
+## Round 4 (latest): build `fff0de7` (source `a290313`; waves G, H and I merged, hc/grabs2 clips imported)
+
+**How it was run:**
+- Every run went through `gpu_slot` with `open -g -W -n`, in a 1920x1080 window, with `HC_CURSOR free` logged.
+- Logs: `/Users/midir/hollow-current-haunted-castle/.playtest-<name>.log`. Earlier rounds are in `.playtest-r1-*`, `-r2-*` and `-r3-*`.
+- Screenshots: `docs/haunted-castle/playtest/auto/<name>/`.
+
+**Build checks:**
+- `check_throwables_scene.py` exits 0.
+- `HC_COUNT_MODES bound=` lists `8:GrabDrop=1 9:GrabCrawl=1`.
+- `HC_COUNTCLAUDE_GRABS`: drop reach 1.615, crawl reach 1.729.
+
+| Proof | Result | Evidence |
+|---|---|---|
+| Escape | **WON**, 0 blockers | |
+| Kill | **WON, slain**, 0 blockers | |
+| Long Night | **WON**, 0 blockers | The driver now expects the bell to start the hunt |
+| Death + checkpoint retry | **PASS** | Deaths 1, penalty applied, Dread 58.9, relic 0 moved |
+| Siege: near-miss with an open | **PASS**, attempt 1 | `open=True openRoll=0.05 chance=0.25 dread=100` |
+| Siege: Recovery cut | **PASS**, attempt 1 | `HC_PLAY_RECOVERY_CUT to=Warning`, after the logged driver grace clear |
+| Natural (no forcing, 8.7 min): won | **WON**, 0 blockers, 0 blocked deaths | |
+| Natural: hunt share | **PASS** | Final `huntShare=0.273`. Note: 0.41 right after the first hunt |
+| Natural: Recovery grace | **PASS** | `HC_RECOVERY grace=` 32.7 / 86.6 / 84.4 |
+| Natural: event Dread decays | **PASS** | `event=` 29.7 → 23.5 → 19.0 between hunts 2 and 3 |
+| Natural: apparitions | **PASS** | 4 (`HC_SCARE visible=4`) |
+| Natural: escalation | **PASS** | `HC_ESCALATE near=3.1 escalated=True` once |
+| Natural: unforced throws | **FAIL** | 0. The two throw attempts logged `HC_THROW_SKIP summary candidates=38 far=38`: every throwable was more than 6 m from her when the apparition came |
+| Natural huntcam: dive close | **PASS** | `HC_COUNT_DIVE close_s=1.38 from=7.92 to=1.00 speed=5.2` |
+| Natural huntcam: grab mode | **PASS** | `HC_COUNT_GRAB mode=9 height=0.24 reason=came in low`, then death |
+| Natural huntcam: flight pitch | Partial | Logged pitch 35-62 deg (`HC_COUNT_POSE`). Slow travel sits at 35 (target 38) |
+| Fear run (forced dice) | **INVALID** | A real gamepad disconnect (`HC_GAMEPAD_DISCONNECTED`, ×3) paused the game mid-run. The no-tell / told / watched-hide / lies steps then failed, so no-tell first-leg silent, the 6 s channel log and `wallCrossings` were **not proven on this build**. Throw (plate) and poltergeist (11) ran before the pause and passed |
+| `HC_COUNT_WING_CLAMP` | not seen | No line in any run |
+| Bellwether `-hc-verify` | **FAIL** | `Native 1920x1080 output`: the window opened at 1022x579. Scripted verify keeps the last saved window size; it does not set 1920x1080 |
+| Candle lean ≤ 22 deg on screen | Partial | S1: 2-4 deg. S5: 23-25 deg on screen (world lean capped at 22, perspective adds 1-3) |
+| No scale figure in S6 | **PASS** | `HC_SCALE_REFERENCE hidden` |
+| Title, Cinzel | **PASS** | `HC_TITLE_FONT cinzel=True`, both sizes |
+
+**Captures:** `docs/haunted-castle/rounds/r11/captures/`.
+- Titles: `S7_title_{castle,bellwether}_{1920x1080,2416x1292}.png`. The 2416x1292 pair is the largest window that fits the 3440x1440 display.
+- Scenes: `S1_great_hall`, `S5_lord_perch`, `S6_lord_sheet` (no figure), `H01-H10`, `S2-S4`, `S7_gatehouse_hud_case_start` and `S8`.
+- Natural hunt from her eye: `hunt_natural/06-15_hunt_natural_*`. Ten frames through a naturally triggered dive (7.9 m to 1.0 m in 1.38 s) and the GrabCrawl kill.
+
+**Frame time, great hall at 1920x1080** (fear run, measured before the pause):
+
+| Mean | p99 | Worst | Over 16.7 ms | Slot GPU busy before / after |
+|---|---|---|---|---|
+| 11.14 ms | 11.53 ms | 17.45 ms | 2 | 100 % / 14 %, another GPU load was present at launch |
+
+## Earlier rounds (r1-r3)
 
 These are facts from the real combined player. The critic and the owner judge them.
 

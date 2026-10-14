@@ -12,7 +12,7 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
 ## State
 
 - **Build:** `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, with both maps.
-  - Built from source `430a266`; the bake outputs are committed as `a412df7`.
+  - Built from source `a290313`; the bake outputs are committed as `fff0de7`. The hc/grabs2 clips are imported.
   - It opens as a 1920x1080 window.
   - Bake receipts are current: Castle 5 maps, 196 probes, 17 reflections; Bellwether 4 maps, 124 probes, 9 reflections.
   - `check_throwables_scene.py` exits 0.
@@ -119,7 +119,7 @@ After the hc/rules2 merge:
 - `check_audio_keys.py`: OK.
 - `bellwether_fuzz.py`: PASS (run after every merge).
 
-**Build:** `Builds/macOS/Hollow Current.app` from bake commit `a412df7` (source `430a266`). `check_throwables_scene.py` exits 0 on it.
+**Build:** `Builds/macOS/Hollow Current.app` from bake commit `fff0de7` (source `a290313`). `check_throwables_scene.py` exits 0 on it.
 
 **Proof results:** in `docs/haunted-castle/playtest/AUTO_RUN.md`.
 
@@ -205,6 +205,23 @@ From the blind critic's room findings (V1-V4):
 2. **Great hall:** the draped giant skeleton is only a small rib fragment. Make it ≥ 30 % of frame width, and add banners and tall lancet windows with both moons.
 3. **Exterior:** the castle is a trapezoid box with five cones over a black void. Put it on a rock with a spire cluster, mountains, trees and bats, and replace the flat red moat.
 4. **Chapel:** the palette is inverted (warm amber instead of cold blue), the candles are 3-5x scale, and the stained glass is missing. Make it cold, add the broken stained glass and true-scale candles, and add the font.
+
+## Round 4 proof results (build `fff0de7`), open items
+
+Full table in AUTO_RUN.md.
+
+| Status | Proofs |
+|---|---|
+| PASS | escape; kill; Long Night; death + retry; siege (near-miss open, Recovery cut); natural (won, huntShare 0.273, grace 33-87 s, event Dread decays, 4 apparitions, 1 escalation); huntcam (close in 1.38 s, mode 9 grab) |
+| FAIL | `-hc-verify` (window 1022x579); natural unforced throws (every throwable more than 6 m away) |
+| INVALID | the fear run (a real gamepad disconnect paused it) |
+| Partial | pitch 35 at slow travel; S5 candle lean 23-25 deg on screen |
+
+**Fixes not yet started (the coordinator asked for the report first):**
+1. Scripted runs should ignore real pad connect/disconnect, so it cannot pause the game.
+2. `-hc-verify` should set a 1920x1080 window at start.
+3. Natural throws: place or seek throwables near where apparitions land.
+4. Then rerun fear and `-hc-verify`.
 
 ## Rules for the next integrator
 
