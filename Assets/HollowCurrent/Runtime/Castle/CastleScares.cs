@@ -39,7 +39,83 @@ namespace HollowCurrent
         static Material silhouetteMaterial;
         static Texture2D wingTexture,figureTexture;
 
-        public void Initialize(Game owner){game=owner;}
+        public void Initialize(Game owner){game=owner;ResetRun();}
+
+        // ---- per-run budgets and cooldowns (r11: bell_single fired 9 times in 18 minutes) -------------------------------------------------
+        // Every beat, lie and ambient pick has an entry: at most Max uses per run, at least Gap seconds between two uses of the same beat,
+        // and no beat twice in a row. Beat selection is weighted away from recently used beats (see Weight). A refused beat returns false
+        // and the caller falls through to the next, so a budget never makes a tick silent by itself.
+        sealed class BeatBudget
+        {
+            public readonly int Max;public readonly float Gap;public int Used;public float Last=-1e9f;
+            public BeatBudget(int max,float gap){Max=max;Gap=gap;}
+        }
+        // key => (max per run, seconds between repeats). The bell is a rare false tell; peripheral and lie beats are capped too.
+        static readonly Dictionary<string,int[]> BudgetTable=new Dictionary<string,int[]>
+        {
+            {"book_drop",new[]{6,90}},{"knife_stick",new[]{4,90}},{"bat_pass",new[]{6,90}},{"bell_single",new[]{2,240}},{"candle_gutter",new[]{6,90}},
+            {"silence",new[]{8,90}},{"poltergeist",new[]{3,150}},{"window_silhouette",new[]{8,90}},{"balustrade_shape",new[]{3,180}},
+            {"false_candle_tell",new[]{5,90}},{"false_compass",new[]{4,120}},{"phantom_listen",new[]{1,100000}},{"footsteps_behind",new[]{6,90}},
+        };
+        readonly Dictionary<string,BeatBudget> budgets=new Dictionary<string,BeatBudget>();
+        string lastKey="",pickNote="direct";
+        // Clears every budget (a new run). Initialize calls it.
+        public void ResetRun()
+        {
+            budgets.Clear();
+            foreach(var pair in BudgetTable)budgets[pair.Key]=new BeatBudget(pair.Value[0],pair.Value[1]);
+            lastKey="";ListenPlayed=false;
+        }
+        bool Can(string key)
+        {
+            if(key==lastKey)return false; // never twice in a row
+            return !budgets.TryGetValue(key,out var b)||b.Used<b.Max&&Time.time-b.Last>=b.Gap;
+        }
+        void Spend(string key)
+        {
+            lastKey=key;
+            if(budgets.TryGetValue(key,out var b)){b.Used++;b.Last=Time.time;}
+        }
+        // "pick=<how> budget=<used>/<max> gap=<s> since=<s since the previous use or ->", the suffix of every beat and lie log line.
+        string BudgetText(string key,float since)
+        {
+            if(!budgets.TryGetValue(key,out var b))return "pick="+pickNote+" budget=none";
+            return "pick="+pickNote+" budget="+b.Used+"/"+b.Max+" gap="+b.Gap.ToString("F0")+" since="+(since>1e6f?"-":since.ToString("F0"));
+        }
+        float SinceLast(string key)=>budgets.TryGetValue(key,out var b)?Time.time-b.Last:0;
+        // Relative weight of a beat for the next pick: 0 when refused; never used = 1.25; otherwise it recovers with the time since its last
+        // use (240 s to full) and shrinks as its budget is used up.
+        float Weight(string key)
+        {
+            if(!Can(key))return 0;
+            if(!budgets.TryGetValue(key,out var b))return 1;
+            float recency=b.Used==0?1.25f:Mathf.Clamp((Time.time-b.Last)/240f,.12f,1f);
+            return recency*(1-.5f*b.Used/b.Max);
+        }
+        static readonly string[] BeatKeys={"book_drop","knife_stick","bat_pass","bell_single","candle_gutter"};
+        // Draws beat indices (into BeatKeys) without replacement, each by Weight; `from` limits the candidates.
+        List<int> WeightedOrder(int[] from,out List<float> weights,out float total)
+        {
+            var order=new List<int>();weights=new List<float>();var pool=new List<int>(from);var w=new List<float>();total=0;
+            foreach(int i in pool){float x=Weight(BeatKeys[i]);w.Add(x);total+=x;}
+            float firstTotal=total;
+            while(pool.Count>0)
+            {
+                float sum=0;foreach(float x in w)sum+=x;
+                if(sum<=0)break;
+                float r=Random.value*sum,acc=0;int pick=w.Count-1;
+                for(int k=0;k<w.Count;k++){acc+=w[k];if(r<=acc&&w[k]>0){pick=k;break;}}
+                order.Add(pool[pick]);weights.Add(w[pick]);pool.RemoveAt(pick);w.RemoveAt(pick);
+            }
+            total=firstTotal;return order;
+        }
+        bool Try(int index,string note)
+        {
+            pickNote=note;
+            bool ok=TryBeat(index);
+            pickNote="direct";
+            return ok;
+        }
 
         bool Ready=>game&&game.Player&&game.Player.View&&game.World!=null&&game.World.Root;
         Transform Root=>game.World.Root;
@@ -60,7 +136,14 @@ namespace HollowCurrent
                 return phase==Phase.Warning||phase==Phase.Hunt||phase==Phase.Recovery||phase==Phase.Containment||phase==Phase.Return;
             }
         }
-        void Log(string beat){LastBeat=beat;Beats++;Debug.Log("HC_SCARE_CASTLE "+beat);}
+        void Log(string beat)
+        {
+            string key=beat.Split(' ')[0];
+            float since=SinceLast(key);
+            Spend(key);
+            LastBeat=key;Beats++;
+            Debug.Log("HC_SCARE_CASTLE "+beat+" "+BudgetText(key,since));
+        }
 
         void Update()
         {
@@ -91,12 +174,17 @@ namespace HollowCurrent
         {
             if(!Active)return false;
             float r=Random.value;
-            if(game.Case.Lies&&r<.2f&&FootstepsBehind())return true;
-            if(r<.4f&&WindowSilhouette())return true;
-            if(r<.55f&&BalustradeShape())return true;
-            int roll=Random.Range(0,4);
-            for(int i=0;i<4;i++)
-                if(TryBeat(new[]{0,1,2,4}[(roll+i)%4]))return true;
+            pickNote="ambient";
+            bool done=false;
+            if(game.Case.Lies&&r<.2f&&FootstepsBehind())done=true;
+            // tell-safe: only the window silhouette is withheld in Hunt itself (it reads as the Count); every other ambient beat still fires there.
+            else if(r<.4f&&game.Case.Phase!=Phase.Hunt&&WindowSilhouette())done=true;
+            else if(r<.55f&&BalustradeShape())done=true;
+            pickNote="direct";
+            if(done)return true;
+            var order=WeightedOrder(new[]{0,1,2,4},out var weights,out float total);
+            for(int i=0;i<order.Count;i++)
+                if(Try(order[i],"ambient weighted w="+weights[i].ToString("F2")+"/"+total.ToString("F2")+" rank="+(i+1)))return true;
             return false;
         }
 
@@ -119,11 +207,15 @@ namespace HollowCurrent
         public bool Beat(bool allowSilence=true)
         {
             if(!Active)return false;
-            if(allowSilence&&Random.value<SilenceChance)return Silence();
-            int roll=Random.Range(0,5);
-            for(int i=0;i<5;i++)
-                if(TryBeat((roll+i)%5))return true;
-            return Silence();
+            if(allowSilence&&Random.value<SilenceChance&&Can("silence"))
+            {
+                pickNote="silence_roll chance="+SilenceChance.ToString("F2");var ok=Silence();pickNote="direct";if(ok)return true;
+            }
+            var order=WeightedOrder(new[]{0,1,2,3,4},out var weights,out float total);
+            for(int i=0;i<order.Count;i++)
+                if(Try(order[i],"weighted w="+weights[i].ToString("F2")+"/"+total.ToString("F2")+" rank="+(i+1)))return true;
+            pickNote="fallback";var silent=Silence();pickNote="direct";
+            return silent;
         }
         bool TryBeat(int index)
         {
@@ -141,7 +233,7 @@ namespace HollowCurrent
         // Nothing else happens. The wind, room tone and heartbeat duck to 10 % through Soundscape.DuckBed, so the quiet is audible.
         public bool Silence()
         {
-            if(!Ready)return false;
+            if(!Ready||!Can("silence"))return false;
             float seconds=Random.Range(6f,10f);
             silenceUntil=Time.time+seconds;
             if(DuckBed!=null)DuckBed(seconds,.1f);
@@ -154,18 +246,28 @@ namespace HollowCurrent
         public bool DreadTick()
         {
             if(!Active)return false;
-            if(Random.value<SilenceChance)return Silence();
+            if(Random.value<SilenceChance&&Can("silence"))
+            {
+                pickNote="tick silence_roll chance="+SilenceChance.ToString("F2");var ok=Silence();pickNote="direct";if(ok)return true;
+            }
+            pickNote="tick";
+            bool done=TickChoice();
+            pickNote="direct";
+            return done||Beat(false);
+        }
+        bool TickChoice()
+        {
             if(game.Case.Lies)
             {
                 if(Random.value<1f/3&&FalseCandleTell())return true;
-                if(game.Player.Tool==1&&game.Case.Equipped&&Random.value<.5f){FalseCompassReading();return true;}
+                if(game.Player.Tool==1&&game.Case.Equipped&&Random.value<.5f&&FalseCompassReading())return true;
                 if(Random.value<.5f&&Lie())return true;
             }
             else if(Random.value<.12f&&FootstepsBehind(true))return true; // decoy: steps behind also happen below the lie threshold (critic N11)
             float r=Random.value;
             if(r<.2f&&WindowSilhouette())return true;
             if(r<.35f&&BalustradeShape())return true;
-            return Beat(false);
+            return false;
         }
 
         // ---- item 5 lies that need no equipment: phantom ear-trumpet and footsteps behind ---------------------------------------------
@@ -182,19 +284,20 @@ namespace HollowCurrent
         // The ear-trumpet's whisper without the ear-trumpet: cc_listen from behind and above the player, once per run.
         public bool PhantomListen()
         {
-            if(!LieAllowed||ListenPlayed||!game.Case.Lies)return false;
+            if(!LieAllowed||ListenPlayed||!game.Case.Lies||!Can("phantom_listen"))return false;
             var view=Eye;var back=Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=game.Player.transform.forward;back.Normalize();
             var at=view.position-back*2f+Vector3.up*1.5f;
             if(Physics.Raycast(view.position,Vector3.up,out var ceiling,1.6f,OcclusionMask,QueryTriggerInteraction.Ignore))at.y=Mathf.Min(at.y,ceiling.point.y-.2f);
             ListenPlayed=true;
             game.Sound.Speak("cc_listen",at);
-            Debug.Log("HC_LIE kind=phantom_listen at="+at.ToString("F1")+" dread="+game.Case.Dread.ToString("F0"));
+            float since=SinceLast("phantom_listen");Spend("phantom_listen");
+            Debug.Log("HC_LIE kind=phantom_listen at="+at.ToString("F1")+" dread="+game.Case.Dread.ToString("F0")+" "+BudgetText("phantom_listen",since));
             return true;
         }
         // Four or five claw steps (they always finish: nothing stops them on a phase change) 3-5 m behind the player, each farther away than the last, then nothing there.
         public bool FootstepsBehind(bool decoy=false)
         {
-            if(!LieAllowed||Time.time<footstepsCooldown||(!decoy&&!game.Case.Lies))return false;
+            if(!LieAllowed||Time.time<footstepsCooldown||(!decoy&&!game.Case.Lies)||!Can("footsteps_behind"))return false;
             var player=game.Player.transform.position;var view=Eye;
             var back=-Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=-game.Player.transform.forward;back.Normalize();
             foreach(float angle in new[]{0f,20f,-20f,40f,-40f})foreach(float distance in new[]{4f,3.4f,4.8f,3f})
@@ -206,7 +309,8 @@ namespace HollowCurrent
                 if(Physics.Linecast(player+Vector3.up,hit.position+Vector3.up,OcclusionMask,QueryTriggerInteraction.Ignore))continue; // no wall between
                 footstepsCooldown=Time.time+60;
                 StartCoroutine(Footsteps(hit.position,flat.normalized));
-                Debug.Log("HC_LIE kind=footsteps_behind at="+hit.position.ToString("F1")+" distance="+flat.magnitude.ToString("F1")+" decoy="+decoy+" dread="+game.Case.Dread.ToString("F0"));
+                float since=SinceLast("footsteps_behind");Spend("footsteps_behind");
+                Debug.Log("HC_LIE kind=footsteps_behind at="+hit.position.ToString("F1")+" distance="+flat.magnitude.ToString("F1")+" decoy="+decoy+" dread="+game.Case.Dread.ToString("F0")+" "+BudgetText("footsteps_behind",since));
                 return true;
             }
             return false;
@@ -223,6 +327,44 @@ namespace HollowCurrent
                 index=(index+1+Random.Range(0,3))%4;
                 yield return new WaitForSeconds(Random.Range(.5f,.7f));
             }
+        }
+
+        // ---- escalation: an apparition within range tries to become a hunt (critic r11: 0 of 8) ---------------------------------------------
+        // ScareDirector.Trigger calls this instead of Investigation.TryEscalate. Root cause of 8/8 failures: TryEscalate needs Phase ==
+        // Disturbance and GraceRemaining == 0, and the director now lands apparitions 20-40 s after a Recovery starts, i.e. inside the 30-90 s
+        // post-hunt grace (and sometimes still in Recovery); the rest is the 20 % roll (0.8^8 = 17 % even with every gate open). The log
+        // carried no reason. This logs one: reason=ok|roll|grace|phase_<p>|range|rules_off|terminal. When the attempt is blocked by design
+        // (grace, Recovery, Survey) its roll is spent on a payoff instead (50 %): a poltergeist throw, else a candle gutter, else a bat.
+        public bool Escalate(float near)
+        {
+            var c=game.Case;float chance=c.Rules.EventEscalationChance;
+            string reason,substitute="none";bool escalated=false;
+            if(chance<=0)reason="rules_off";
+            else if(c.Terminal)reason="terminal";
+            else if(near>=EscalateRange)reason="range";
+            // tell-safe: this mirrors the hunt-conversion rule itself (Disturbance and no post-hunt grace, as Investigation.TryEscalate); it gates
+            // whether a hunt can start, not a scare effect, and a blocked attempt still pays off below, so the apparition is never bare.
+            else if(c.Phase==Phase.Disturbance&&c.GraceRemaining<=0)
+            {
+                escalated=c.TryEscalate();
+                reason=escalated?"ok":"roll";
+            }
+            else
+            {
+                // tell-safe: only names the blocking reason for the log.
+                reason=c.Phase!=Phase.Disturbance?"phase_"+c.Phase:"grace";
+                // tell-safe: the substitute fires in whatever phase the apparition came in, so a blocked escalation is not visible as a missing effect.
+                if(Active&&Random.value<.5f)
+                {
+                    pickNote="escalation_payoff";
+                    if(Poltergeist()>0)substitute="poltergeist";
+                    else if(CandleGutter())substitute="candle_gutter";
+                    else if(BatPass())substitute="bat_pass";
+                    pickNote="direct";
+                }
+            }
+            Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated+" reason="+reason+" phase="+c.Phase+" grace="+c.GraceRemaining.ToString("F0")+" chance="+chance.ToString("F2")+" substitute="+substitute);
+            return escalated;
         }
 
         // ---- the apparition point (fear plan 3, critic #27) ------------------------------------------------------------------------
@@ -251,7 +393,7 @@ namespace HollowCurrent
         // ---- a book drops from the nearest floating book pile ------------------------------------------------------------------
         public bool BookDrop()
         {
-            if(!Ready)return false;
+            if(!Ready||!Can("book_drop"))return false;
             var player=game.Player.transform.position;
             Transform book=null;Floater owner=null;Transform pile=null;float best=14f*14f;
             foreach(var floater in Floater.All)
@@ -288,7 +430,7 @@ namespace HollowCurrent
         KnifeOrbit orbit;
         public bool KnifeStick()
         {
-            if(!Ready)return false;
+            if(!Ready||!Can("knife_stick"))return false;
             if(!orbit)orbit=FindFirstObjectByType<KnifeOrbit>();
             if(!orbit||orbit.ActiveKnives==0)return false;
             var player=game.Player.transform.position;var centre=orbit.transform.position;
@@ -335,7 +477,7 @@ namespace HollowCurrent
         // ---- a giant bat crosses the torch beam three metres ahead -----------------------------------------------------------------
         public bool BatPass()
         {
-            if(!Ready)return false;
+            if(!Ready||!Can("bat_pass"))return false;
             var eye=Eye;var forward=Vector3.ProjectOnPlane(eye.forward,Vector3.up);
             if(forward.sqrMagnitude<.05f)forward=game.Player.transform.forward;
             forward.Normalize();
@@ -359,7 +501,7 @@ namespace HollowCurrent
         // ---- the chapel bell tolls once by itself (a false tell: this is not the summons) ---------------------------------------
         public bool BellToll()
         {
-            if(!Ready)return false;
+            if(!Ready||!Can("bell_single"))return false;
             Vector3 anchor;
             var spots=game.World.Castle;
             if(spots!=null)anchor=spots.Anchor;
@@ -392,7 +534,7 @@ namespace HollowCurrent
         // ---- a candle cluster near the player gutters ----------------------------------------------------------------------------
         public bool CandleGutter()
         {
-            if(!Ready)return false;
+            if(!Ready||!Can("candle_gutter"))return false;
             var player=game.Player.transform.position;
             CandleFlame seed=null;float best=7f*7f;
             foreach(var flame in CandleFlame.All)
@@ -440,6 +582,7 @@ namespace HollowCurrent
         public int Poltergeist()
         {
             if(!Ready||game.Modal){Debug.Log("HC_THROW_SKIP reason=not_ready source=poltergeist ready="+Ready+" modal="+(Ready&&game.Modal));return 0;}
+            if(!Can("poltergeist")){Debug.Log("HC_THROW_SKIP reason=budget source=poltergeist "+BudgetText("poltergeist",SinceLast("poltergeist")));return 0;}
             var eye=Eye;var player=game.Player.transform.position;
             var candidates=new List<Throwable>(Throwable.All);
             int thrown=0;Vector3 sum=Vector3.zero;var skips=new Dictionary<string,int>();
@@ -477,7 +620,7 @@ namespace HollowCurrent
         // periphery (25 to 70 degrees off the view centre, clear line, within 18 m). False when no window qualifies.
         public bool WindowSilhouette()
         {
-            if(!Active||silhouetteBusy)return false;
+            if(!Active||silhouetteBusy||!Can("window_silhouette"))return false;
             var eye=Eye;var root=Root;
             var options=new List<CastleWindowDef>();
             foreach(var w in CastleLayout.Windows)
@@ -522,7 +665,7 @@ namespace HollowCurrent
         bool shapeArmed;GameObject shape;float shapeAge,shapeArmedTime,shapeFade;Vector3 shapeChest;Material shapeMaterial;
         public bool BalustradeShape()
         {
-            if(!Active||shape||shapeArmed||!OnHallFloor())return false;
+            if(!Active||shape||shapeArmed||!OnHallFloor()||!Can("balustrade_shape"))return false;
             shapeArmed=true;shapeArmedTime=0;
             return true;
         }
@@ -591,7 +734,7 @@ namespace HollowCurrent
         // Every candle flame leans toward an empty doorway 6 to 10 m from the player for 4 s, then relaxes.
         public bool FalseCandleTell()
         {
-            if(!Ready||game.Modal)return false;
+            if(!Ready||game.Modal||!Can("false_candle_tell"))return false;
             var player=game.Player.transform.position;
             var options=new List<Vector3>();
             foreach(var door in CastleLayout.Doors)
@@ -613,11 +756,13 @@ namespace HollowCurrent
             Log("false_candle_tell");return true;
         }
         // Lets the integrator's compass needle spin at nothing for 3 s.
-        public void FalseCompassReading()
+        public bool FalseCompassReading()
         {
+            if(!Ready||!Can("false_compass"))return false;
             FalseCompass=true;falseCompassTimer=3f;
             Debug.Log("HC_LIE kind=false_compass");
             Log("false_compass");
+            return true;
         }
 
         // ---- generated textures ----------------------------------------------------------------------------------------------------
