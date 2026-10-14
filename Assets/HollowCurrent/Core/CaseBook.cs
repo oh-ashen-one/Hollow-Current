@@ -45,6 +45,8 @@ namespace HollowCurrent
         public string KillHero, KillBody, KillFooter, AltarLabel, AltarHint, SwordForged, HitLanded;
         public string[] RelicNames, RelicFound, RelicHints;
         public string BladeSealed, BellRung;
+        // Hunt and dread rules for this map (HuntRules.Bellwether = the shipped house's constants).
+        public HuntRules Rules;
 
         public string EvidenceName(Evidence e)=>EvidenceNames[(int)e];
         public string EvidenceId(Evidence e)=>EvidenceIds[(int)e];
@@ -63,6 +65,7 @@ namespace HollowCurrent
         public static readonly CaseBook Bellwether=new CaseBook
         {
             Map=MapId.Bellwether,
+            Rules=HuntRules.Bellwether,
             EvidenceNames=new[]{"Induction","Handprint","Voice"},
             EvidenceIds=new[]{"induction","handprint","voice"},
             InstrumentNames=new[]{"INDUCTION READER","ULTRAVIOLET","EVP RECORDER"},
@@ -133,6 +136,7 @@ namespace HollowCurrent
         public static readonly CaseBook Castle=new CaseBook
         {
             Map=MapId.Castle,
+            Rules=HuntRules.Castle,
             EvidenceNames=new[]{"Compass","Claw-scores","Whisper"},
             EvidenceIds=new[]{"compass","lantern","trumpet"},
             InstrumentNames=new[]{"HOLLOW COMPASS","GRAVE-ASH LANTERN","VELLUM EAR-TRUMPET"},
