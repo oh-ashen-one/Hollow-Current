@@ -121,6 +121,7 @@ static class RulesTests
         Assert(!FrameStatistics.Measure(new float[0]).meets_60_fps_floor,"no rendered samples cannot pass performance");
         ForgeAndFightTests();
         MapTests();
+        DreadRulesTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
@@ -158,5 +159,140 @@ static class RulesTests
         var slay=new Investigation(CaseBook.Castle);slay.Equip();slay.EnterHouse();Assert(slay.WinByKill()&&slay.Phase==Phase.Won&&slay.HunterSlain,"slaying the Count wins");Assert(!slay.WinByKill(),"kill win is terminal once");
         var lost=Start();Hunt(lost);lost.Die();Assert(!lost.WinByKill()&&!lost.HunterSlain,"no kill win after death");
         Assert(CaseBook.Castle.AnchorChoices[(int)AnchorKind.MusicBox]=="The chapel bell"&&CaseBook.Castle.NoteIds[0]=="cc_ledger_steward","castle anchor and ledger ids");
+    }
+
+    // Piece F1: per-map HuntRules, Dread, dice hunts, broken tells, hostile Return, death penalty (Core/HuntRules.cs).
+    static Investigation StartOn(CaseBook book,Func<float> random=null,HuntRules rules=null){var c=new Investigation(book,random,rules);c.Equip();c.EnterHouse();return c;}
+    static int TickUntilLeaves(Investigation c,Phase phase,int maxSeconds){int t=0;while(c.Phase==phase&&t<maxSeconds){c.Tick(1,false);t++;}return t;}
+    static Investigation SealedCastle()
+    {
+        var c=StartOn(CaseBook.Castle);c.Record(Evidence.Induction);c.Record(Evidence.Handprint);c.Record(Evidence.Voice);
+        c.BeginWarning();c.Tick(9,false);c.Tick(38,false);foreach(var title in CaseBook.Castle.NoteTitles)c.Read(title);
+        Correct(c);c.RestorePower();c.Seal(12,true,true);return c;
+    }
+    static string Trace(Func<float> random)
+    {
+        var c=StartOn(CaseBook.Bellwether,random);var log=new System.Text.StringBuilder();c.Changed+=p=>log.Append(p).Append('@').Append(c.Elapsed.ToString("R")).Append(';');
+        c.Record(Evidence.Induction);for(int i=0;i<400;i++){c.Tick(.5f,i%3!=0);c.AddDread(5);if(i==80)c.Record(Evidence.Handprint);if(i==300)c.TryEscalate();}
+        log.Append(c.Phase).Append(c.Hunts).Append(c.Dread).Append(c.Lies).Append(c.DoorHeld).Append(c.NoTellHunt).Append(c.FalseWarning);return log.ToString();
+    }
+    static void DreadRulesTests()
+    {
+        var b=HuntRules.Bellwether;
+        Assert(CaseBook.Bellwether.Rules==b&&CaseBook.Castle.Rules==HuntRules.Castle&&new Investigation().Rules==b&&new Investigation(CaseBook.Castle).Rules==HuntRules.Castle,"each book carries its map's rules");
+        Assert(b.TimedHuntSeconds==95&&b.TimedHuntEvidence==2&&b.WarningSeconds==9&&b.HuntSeconds==38&&b.RecoverySeconds==32,"Bellwether keeps 95/9/38/32 with two records");
+        Assert(!b.UsesDread&&b.DiceIntervalMax==0&&b.FirstHuntSeconds==0&&b.HuntDreadMin==0&&b.NoTellChance==0&&b.FalseWarningChance==0&&b.EventEscalationChance==0&&!b.HostileReturn&&!b.DeathPenalty&&b.LieThreshold==0&&b.DoorHeldThreshold==0&&b.NailedHides==0,"Bellwether has no dread, dice, broken tells, lies, hostile return or death penalty");
+        Assert(HuntRules.For(MapId.Bellwether,true)==b&&HuntRules.For(MapId.Castle)==HuntRules.Castle&&HuntRules.For(MapId.Castle,true)==HuntRules.LongNight,"Long Night dial applies to the castle only");
+
+        // The shared Hunt helper behaves identically under both books (castle: first-hunt guarantee at 95 s).
+        foreach(var book in new[]{CaseBook.Bellwether,CaseBook.Castle})
+        {
+            var h=StartOn(book);Hunt(h);Assert(h.HuntActive&&!h.NoTellHunt&&!h.FalseWarning&&h.Hunts==1&&!h.BreakerOn,book.Map+": helper hunt is a told hunt");
+            h.Tick(37,true);Assert(h.Phase==Phase.Hunt,book.Map+": hunt lasts 38 s");h.Tick(1,true);Assert(h.Phase==Phase.Recovery&&h.Survived&&!h.HuntActive,book.Map+": hunt ends at 38 s");
+            h.Tick(31,true);Assert(h.Phase==Phase.Recovery,book.Map+": recovery protected");h.Tick(1,true);Assert(h.Phase==Phase.Disturbance,book.Map+": recovery ends at 32 s");
+        }
+        // Bellwether never consults chance and ignores dread: identical traces whatever the dice return.
+        string calm=Trace(null);Assert(calm==Trace(()=>0f)&&calm==Trace(()=>.99f),"Bellwether trace is independent of the dice");
+        var bell=StartOn(CaseBook.Bellwether,()=>0f);bell.Record(Evidence.Induction);bell.Record(Evidence.Handprint);
+        Assert(TickUntilLeaves(bell,Phase.Disturbance,200)==95&&bell.Phase==Phase.Warning&&!bell.FalseWarning&&!bell.NoTellHunt,"Bellwether: timed hunt at exactly 95 s even with aggressive dice");
+        var flat=StartOn(CaseBook.Bellwether);flat.Record(Evidence.Induction);flat.AddDread(80);flat.Tick(100,true,false,false);flat.Tick(100,false,false,true);
+        Assert(flat.Dread==0&&!flat.Lies&&!flat.DoorHeld&&!flat.TryEscalate()&&flat.Phase==Phase.Disturbance,"Bellwether: no dread, no lies, no escalation");
+
+        // Dread accrual and clamping; never shown in Goal.
+        var c=StartOn(CaseBook.Castle);Assert(c.Dread==0,"castle dread starts at 0");
+        c.Tick(10,true,false,false);Assert(Math.Abs(c.Dread-1.2f)<.001f,"dark inside rises 0.12/s");
+        c.Tick(10,true,true,false);Assert(Math.Abs(c.Dread-1.7f)<.001f,"lit inside rises 0.05/s");
+        c.Tick(10,false,false,false);Assert(Math.Abs(c.Dread-1.7f)<.001f,"outside the walls holds");
+        c.Tick(2,false,false,true);Assert(Math.Abs(c.Dread-.7f)<.001f,"safe zone falls 0.5/s");c.Tick(10,false,false,true);Assert(c.Dread==0,"dread floor 0");
+        c.AddDread(250);Assert(c.Dread==100,"dread ceiling 100");c.AddDread(-500);Assert(c.Dread==0,"AddDread clamps at 0");c.AddDread(float.NaN);Assert(c.Dread==0,"NaN dread ignored");
+        string goal=c.Goal;c.AddDread(69.9f);Assert(!c.Lies&&!c.DoorHeld&&c.Goal==goal,"below 70 no lies; goal unchanged");
+        c.AddDread(.1f);Assert(c.Lies&&!c.DoorHeld,"lies from 70");c.AddDread(20);Assert(c.Lies&&c.DoorHeld&&c.Goal==goal&&!c.Goal.Contains("ead"),"door held from 90; dread never in Goal");
+
+        var r=HuntRules.Castle;
+        Assert(Math.Abs(r.DiceChance(45,1)-.125f)<.0001f&&Math.Abs(r.DiceChance(65,1)-.25f)<.0001f&&Math.Abs(r.DiceChance(85,3)-.625f)<.0001f&&r.DiceChance(39.9f,3)==0,"dice chance by band times evidence");
+
+        // Dice hunts occur / do not occur by band (one record: no first-hunt guarantee; dread held outside).
+        var low=StartOn(CaseBook.Castle,()=>0f);low.Record(Evidence.Induction);low.AddDread(39.9f);
+        Assert(TickUntilLeaves(low,Phase.Disturbance,300)==300&&low.Hunts==0,"below 40 Dread: no dice, no floor, even with a certain roll");
+        var band=StartOn(CaseBook.Castle,()=>.2f);band.Record(Evidence.Induction);band.AddDread(45);
+        Assert(TickUntilLeaves(band,Phase.Disturbance,90)==90&&band.Hunts==0,"40-60 band: 0.125 chance never beats a 0.2 roll");
+        band.AddDread(20);int waited=TickUntilLeaves(band,Phase.Disturbance,30);
+        Assert(waited<=7&&band.Phase==Phase.Hunt&&band.NoTellHunt&&band.HuntActive&&band.Hunts==1&&!band.BreakerOn,"60-80 band: 0.25 chance beats 0.2; the 0.2 tell roll makes it a no-tell hunt");
+        Assert(!band.Record(Evidence.Voice),"no-tell hunt still blocks records");
+        var high=StartOn(CaseBook.Castle);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))high.Record(e);high.AddDread(85);
+        Assert(TickUntilLeaves(high,Phase.Disturbance,30)<10&&high.Phase==Phase.Warning&&!high.FalseWarning&&!high.NoTellHunt,"80+ band with three records: deterministic 0.5 roll hunts, after a real Warning");
+        high.Tick(9,false);Assert(high.Phase==Phase.Hunt&&high.Hunts==1,"rolled Warning becomes a hunt after 9 s");
+
+        // Forced floor: 240 s at Dread >= 40 since the last hunt; the clock pauses below 40.
+        var floor=StartOn(CaseBook.Castle,()=>.99f);floor.Record(Evidence.Induction);floor.AddDread(45);
+        Assert(TickUntilLeaves(floor,Phase.Disturbance,300)==240&&floor.Phase==Phase.Warning&&!floor.FalseWarning&&floor.WarningLength==9,"floor forces a hunt after 240 s at Dread 45");
+        var pause=StartOn(CaseBook.Castle,()=>.99f);pause.Record(Evidence.Induction);pause.AddDread(45);
+        Assert(TickUntilLeaves(pause,Phase.Disturbance,200)==200,"200 s at Dread 45 is not enough");pause.AddDread(-10);
+        Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==100,"floor clock pauses below 40");pause.AddDread(10);
+        Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==40,"floor clock resumes where it stopped");
+
+        // First-hunt guarantee: two records, deadline 95 s +-25 % by roll, independent of Dread.
+        foreach(var pair in new[]{new[]{.5f,95},new[]{0f,72},new[]{.99f,119}})
+        {
+            float roll=pair[0];var first=StartOn(CaseBook.Castle,()=>roll);first.Record(Evidence.Induction);first.Record(Evidence.Handprint);
+            Assert(TickUntilLeaves(first,Phase.Disturbance,200)==(int)pair[1]&&first.Dread==0,"first hunt guaranteed at "+pair[1]+" s for roll "+roll);
+        }
+
+        // Spacing: with certain dice the next hunt never starts before Recovery (32 s) has passed.
+        var spaced=StartOn(CaseBook.Castle,()=>.01f);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))spaced.Record(e);spaced.AddDread(100);
+        float now=0,lastEnd=-1;int hunts=0;bool gapOk=true;spaced.Changed+=p=>{if(p==Phase.Hunt){hunts++;if(lastEnd>=0&&now-lastEnd<32)gapOk=false;}if(p==Phase.Recovery)lastEnd=now;};
+        for(int i=0;i<1200;i++){spaced.Tick(.5f,false);now+=.5f;}
+        Assert(hunts>=5&&gapOk&&spaced.Hunts==hunts,"dice hunts repeat but never within the 32 s recovery");
+
+        // False warning: Warning that ends back in Disturbance; records and MysteryReady treat it like Disturbance.
+        var q=new System.Collections.Generic.Queue<float>();var fw=StartOn(CaseBook.Castle,()=>q.Count>0?q.Dequeue():.99f);
+        fw.Record(Evidence.Induction);fw.Record(Evidence.Handprint);fw.BeginWarning();Assert(fw.Phase==Phase.Warning&&!fw.FalseWarning,"bell summons are never false alarms");
+        fw.Tick(9,false);fw.Tick(38,false);fw.Tick(32,false);foreach(var title in CaseBook.Castle.NoteTitles)fw.Read(title);fw.AddDread(85);
+        Assert(fw.Phase==Phase.Disturbance&&fw.Survived&&!fw.MysteryReady,"survived, two records: not ready");
+        q.Enqueue(.5f);q.Enqueue(.1f);q.Enqueue(.9f);q.Enqueue(.1f); // interval, hunt roll, tell roll, false-alarm roll
+        TickUntilLeaves(fw,Phase.Disturbance,30);
+        Assert(fw.Phase==Phase.Warning&&fw.FalseWarning&&!fw.HuntActive&&fw.Hunts==1&&!fw.BreakerOn,"rolled false alarm: Warning that is not a hunt");
+        Assert(fw.Record(Evidence.Voice)&&fw.MysteryReady,"false warning accepts records and keeps MysteryReady");
+        fw.Tick(8,false);Assert(fw.Phase==Phase.Warning&&fw.FalseWarning,"false alarm lasts the full warning");
+        fw.Tick(1,false);Assert(fw.Phase==Phase.Disturbance&&!fw.FalseWarning&&fw.Hunts==1&&fw.MysteryReady,"false alarm ends in Disturbance, no hunt, still ready");
+        fw.BeginWarning();Assert(!fw.MysteryReady&&!fw.FalseWarning,"a real Warning blocks the journal");fw.Tick(9,false);Assert(fw.Phase==Phase.Hunt&&fw.Hunts==2,"real Warning hunts");
+
+        // Escalation: a close apparition becomes a hunt after a 1.5 s tell, with no dispatch line.
+        Assert(!StartOn(CaseBook.Castle).TryEscalate(),"no escalation outside Disturbance");
+        var calmEsc=StartOn(CaseBook.Castle);calmEsc.Record(Evidence.Induction);Assert(!calmEsc.TryEscalate()&&calmEsc.Phase==Phase.Disturbance,"0.5 roll does not escalate at 0.2");
+        string said=null;var esc=StartOn(CaseBook.Castle,()=>.1f);esc.Record(Evidence.Induction);esc.Message+=m=>said=m;
+        Assert(esc.TryEscalate()&&esc.Phase==Phase.Warning&&esc.WarningLength==1.5f&&!esc.FalseWarning&&said==null,"0.1 roll escalates into a silent 1.5 s Warning");
+        Assert(!esc.TryEscalate(),"no escalation during a Warning");esc.Tick(1,false);Assert(esc.Phase==Phase.Warning,"tell still running at 1 s");
+        esc.Tick(.5f,false);Assert(esc.Phase==Phase.Hunt&&!esc.NoTellHunt&&esc.Hunts==1,"escalated hunt starts at 1.5 s");
+
+        // Hostile Return: a hunt until the bridge is crossed; Die works; FinishAtVan still wins.
+        var ret=SealedCastle();Assert(ret.Phase==Phase.Return&&ret.HuntActive&&ret.NoTellHunt&&ret.Hunts==2,"castle Return is a tell-less hunt");
+        ret.Tick(999,true);Assert(ret.Phase==Phase.Return&&ret.HuntActive,"hostile Return does not time out");
+        ret.Die();Assert(ret.Phase==Phase.Dead&&ret.Deaths==1&&!ret.HuntActive,"dying on the bridge is a kill");
+        var esc2=SealedCastle();esc2.Invulnerable=true;esc2.Die();Assert(esc2.Phase==Phase.Return&&esc2.BlockedDeaths==1,"playtest invulnerability still holds in Return");
+        esc2.Invulnerable=false;Assert(esc2.FinishAtVan()&&esc2.Phase==Phase.Won&&!esc2.HuntActive,"crossing the bridge wins");esc2.Die();Assert(esc2.Phase==Phase.Won&&esc2.Deaths==0,"no death after the win");
+        var house=Start();house.Record(Evidence.Induction);house.Record(Evidence.Handprint);house.Record(Evidence.Voice);house.BeginWarning();house.Tick(9,false);house.Tick(38,false);Context(house);Correct(house);house.RestorePower();house.Seal(12,true,true);
+        Assert(house.Phase==Phase.Return&&!house.HuntActive&&house.Hunts==1&&!house.NoTellHunt,"Bellwether Return stays safe");house.Die();Assert(house.Phase==Phase.Return&&house.Deaths==0,"Bellwether Return cannot kill");
+
+        // Death penalty: a restore after a death counts it and restarts Dread at 60 (castle only).
+        var dying=StartOn(CaseBook.Castle);dying.Record(Evidence.Induction);dying.Record(Evidence.Handprint);dying.AddDread(20);var save=dying.SaveCheckpoint();
+        Assert(save.Dread==20&&save.Deaths==0,"checkpoint stores Dread and Deaths");dying.BeginWarning();dying.Tick(9,false);dying.Die();Assert(dying.Phase==Phase.Dead&&dying.Deaths==1,"death counted");
+        var back=new Investigation(CaseBook.Castle);back.RestoreCheckpoint(save);
+        Assert(back.Phase==Phase.Disturbance&&back.Evidence.Count==2&&back.Dread==60&&back.Deaths==1&&back.DeathPenaltyApplied,"fresh restore after death: Dread 60, death counted, penalty flagged");
+        dying.RestoreCheckpoint(save);Assert(dying.Dread==60&&dying.Deaths==1&&dying.DeathPenaltyApplied,"same-instance restore does not double count");
+        var save2=back.SaveCheckpoint();Assert(save2.Deaths==1&&save2.Dread==60,"deaths carry into later checkpoints");var again=new Investigation(CaseBook.Castle);again.RestoreCheckpoint(save2);Assert(again.Deaths==2,"second death counted");
+        var quiet=new Investigation(CaseBook.Castle);quiet.RestoreCheckpoint(save,false);Assert(quiet.Dread==20&&quiet.Deaths==0&&!quiet.DeathPenaltyApplied,"restore without a death keeps saved Dread");
+        var bsave=Start();bsave.Record(Evidence.Induction);var bs=bsave.SaveCheckpoint();var bback=new Investigation();bback.RestoreCheckpoint(bs);
+        Assert(bback.Dread==0&&!bback.DeathPenaltyApplied&&bback.Deaths==1&&bback.Phase==Phase.Disturbance,"Bellwether restore: no penalty");
+
+        // Long Night: no Warning phase, Dread starts at 50, 50 s hunts, 2-5 s perches, two hides nailed.
+        var ln=HuntRules.LongNight;
+        Assert(ln.WarningSeconds==0&&ln.DreadStart==50&&ln.HuntSeconds==50&&ln.PerchMinSeconds==2&&ln.PerchMaxSeconds==5&&ln.NailedHides==2,"Long Night values");
+        Assert(ln.UsesDread&&ln.HostileReturn&&ln.DeathPenalty&&ln.TimedHuntSeconds==r.TimedHuntSeconds&&ln.DiceIntervalMin==r.DiceIntervalMin&&ln.LieThreshold==70&&r.WarningSeconds==9&&r.HuntSeconds==38&&r.DreadStart==0,"Long Night is the castle with the dial; castle untouched");
+        var night=StartOn(CaseBook.Castle,null,ln);Assert(night.Rules==ln&&night.Dread==50,"Long Night starts at Dread 50");
+        night.BeginWarning();Assert(night.Phase==Phase.Hunt&&night.NoTellHunt&&night.Hunts==1,"Long Night: even the bell has no Warning");
+        night.Tick(49,false);Assert(night.Phase==Phase.Hunt,"Long Night hunt lasts 50 s");night.Tick(1,false);Assert(night.Phase==Phase.Recovery,"Long Night hunt ends at 50 s");
+        var night2=StartOn(CaseBook.Castle,null,ln);night2.Record(Evidence.Induction);night2.Record(Evidence.Handprint);
+        Assert(TickUntilLeaves(night2,Phase.Disturbance,200)==95&&night2.Phase==Phase.Hunt&&night2.NoTellHunt,"Long Night first hunt arrives with no Warning");
     }
 }
