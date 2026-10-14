@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace HollowCurrent
 {
@@ -16,6 +17,17 @@ namespace HollowCurrent
         public int Beats {get;private set;}
         public string LastBeat {get;private set;}
         public int Thrown {get;private set;}
+        // Silence is an active beat: the integrator wires this to Soundscape.DuckBed(float seconds,float depth) (ducks wind, room tone and
+        // heartbeat to `depth` over 1 s, holds, restores over 3 s): `CastleDread.DuckBed=Sound.DuckBed;` in Game. Null = the beat still logs.
+        public System.Action<float,float> DuckBed;
+        public bool Silent=>Time.time<silenceUntil;
+        // cc_listen is heard at most once per run: the phantom ear-trumpet line sets this, and Soundscape's rare line should skip when it is
+        // set and call MarkListenPlayed() when it plays (see the scares2 handoff).
+        public bool ListenPlayed {get;private set;}
+        public void MarkListenPlayed(){ListenPlayed=true;}
+        // Apparition escalation range: ScareDirector.Trigger accepts an apparition closer than this as a hunt candidate (was 4 m).
+        public const float EscalateRange=5.5f;
+        float silenceUntil,footstepsCooldown;
 
         const int OcclusionMask=~((1<<2)|(1<<30)); // same occlusion mask as ScareDirector
         Game game;
@@ -54,16 +66,26 @@ namespace HollowCurrent
         // ===================================================================================================================
         // Item 15: dread beats (no sting, no card)
         // ===================================================================================================================
-        // Picks one castle dread beat; one roll in six is plain silence. A beat that cannot happen here (no book pile, no knife, no bell
-        // or candles near the player) falls through to the next, and the last resort is silence. Returns false only when not Calm.
-        public bool Beat()
+        // Picks one castle dread beat. Silence is an active beat (see Silence); its chance is one in six and rises to 0.30-0.45 once Dread
+        // reaches 60, the zone where a dice hunt is likely, so that silence is not itself a tell. A beat that cannot happen here (no book pile,
+        // no knife, no bell or candles near the player) falls through to the next, and the last resort is silence. Returns false only when
+        // not Calm. DreadTick passes allowSilence=false because it has rolled silence already.
+        public float SilenceChance
+        {
+            get
+            {
+                float dread=game&&game.Case!=null?game.Case.Dread:0;
+                return dread<60?1f/6:Mathf.Lerp(.30f,.45f,Mathf.Clamp01((dread-60)/40));
+            }
+        }
+        public bool Beat(bool allowSilence=true)
         {
             if(!Calm)return false;
-            int roll=Random.Range(0,6);
-            if(roll<5)
-                for(int i=0;i<5;i++)
-                    if(TryBeat((roll+i)%5))return true;
-            Log("silence");return true;
+            if(allowSilence&&Random.value<SilenceChance)return Silence();
+            int roll=Random.Range(0,5);
+            for(int i=0;i<5;i++)
+                if(TryBeat((roll+i)%5))return true;
+            return Silence();
         }
         bool TryBeat(int index)
         {
@@ -75,6 +97,115 @@ namespace HollowCurrent
                 case 3:return BellToll();
                 default:return CandleGutter();
             }
+        }
+
+        // ---- silence: the bed drops out for 6-10 s ---------------------------------------------------------------------------------
+        // Nothing else happens. The wind, room tone and heartbeat duck to 10 % through Soundscape.DuckBed, so the quiet is audible.
+        public bool Silence()
+        {
+            if(!Ready)return false;
+            float seconds=Random.Range(6f,10f);
+            silenceUntil=Time.time+seconds;
+            if(DuckBed!=null)DuckBed(seconds,.1f);
+            Log("silence seconds="+seconds.ToString("F1")+" duck="+(DuckBed!=null?"wired":"unwired")+" dread="+game.Case.Dread.ToString("F0"));
+            return true;
+        }
+
+        // ---- one castle dread tick (the whole of ScareDirector.CastleBeat) ------------------------------------------------------------
+        // Order: silence roll, lies (Dread >= LieThreshold), peripheral sightings, then Beat. Returns false only when not Calm.
+        public bool DreadTick()
+        {
+            if(!Calm)return false;
+            if(Random.value<SilenceChance)return Silence();
+            if(game.Case.Lies)
+            {
+                if(Random.value<1f/3&&FalseCandleTell())return true;
+                if(game.Player.Tool==1&&game.Case.Equipped&&Random.value<.5f){FalseCompassReading();return true;}
+                if(Random.value<.5f&&Lie())return true;
+            }
+            float r=Random.value;
+            if(r<.2f&&WindowSilhouette())return true;
+            if(r<.35f&&BalustradeShape())return true;
+            return Beat(false);
+        }
+
+        // ---- item 5 lies that need no equipment: phantom ear-trumpet and footsteps behind ---------------------------------------------
+        bool LieAllowed=>Calm&&!game.Case.HuntActive&&game.Case.Phase!=Phase.Return&&game.Case.Phase!=Phase.Containment;
+        // Picks the phantom cc_listen (once per run) or footsteps behind; false when neither can happen now.
+        public bool Lie()
+        {
+            if(!LieAllowed)return false;
+            bool listenFirst=Random.value<.4f;
+            if(listenFirst)return PhantomListen()||FootstepsBehind();
+            return FootstepsBehind()||PhantomListen();
+        }
+        // The ear-trumpet's whisper without the ear-trumpet: cc_listen from behind and above the player, once per run.
+        public bool PhantomListen()
+        {
+            if(!LieAllowed||ListenPlayed||game.Case.Dread<game.Case.Rules.LieThreshold)return false;
+            var view=Eye;var back=Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=game.Player.transform.forward;back.Normalize();
+            var at=view.position-back*2f+Vector3.up*1.5f;
+            if(Physics.Raycast(view.position,Vector3.up,out var ceiling,1.6f,OcclusionMask,QueryTriggerInteraction.Ignore))at.y=Mathf.Min(at.y,ceiling.point.y-.2f);
+            ListenPlayed=true;
+            game.Sound.Speak("cc_listen",at);
+            Debug.Log("HC_LIE kind=phantom_listen at="+at.ToString("F1")+" dread="+game.Case.Dread.ToString("F0"));
+            return true;
+        }
+        // Four or five claw steps 3-5 m behind the player, each farther away than the last, then nothing there.
+        public bool FootstepsBehind()
+        {
+            if(!LieAllowed||Time.time<footstepsCooldown||game.Case.Dread<game.Case.Rules.LieThreshold)return false;
+            var player=game.Player.transform.position;var view=Eye;
+            var back=-Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=-game.Player.transform.forward;back.Normalize();
+            foreach(float angle in new[]{0f,20f,-20f,40f,-40f})foreach(float distance in new[]{4f,3.4f,4.8f,3f})
+            {
+                var desired=player+Quaternion.Euler(0,angle,0)*back*distance;
+                if(!NavMesh.SamplePosition(desired,out var hit,1,NavMesh.AllAreas)||Mathf.Abs(hit.position.y-player.y)>.6f)continue;
+                var flat=hit.position-player;flat.y=0;
+                if(flat.magnitude<3f||flat.magnitude>5f)continue;
+                if(Physics.Linecast(player+Vector3.up,hit.position+Vector3.up,OcclusionMask,QueryTriggerInteraction.Ignore))continue; // no wall between
+                footstepsCooldown=Time.time+60;
+                StartCoroutine(Footsteps(hit.position,flat.normalized));
+                Debug.Log("HC_LIE kind=footsteps_behind at="+hit.position.ToString("F1")+" distance="+flat.magnitude.ToString("F1")+" dread="+game.Case.Dread.ToString("F0"));
+                return true;
+            }
+            return false;
+        }
+        IEnumerator Footsteps(Vector3 start,Vector3 away)
+        {
+            int index=Random.Range(0,4);
+            for(int step=0;step<5;step++)
+            {
+                if(!LieAllowed)yield break; // a hunt or a menu ends it
+                var at=start+away*(.6f*step);
+                if(NavMesh.SamplePosition(at,out var hit,.8f,NavMesh.AllAreas))at=hit.position;
+                game.Sound.Cue("claw_steps_"+index,at,.55f);
+                index=(index+1+Random.Range(0,3))%4;
+                yield return new WaitForSeconds(Random.Range(.5f,.7f));
+            }
+        }
+
+        // ---- the apparition point (fear plan 3, critic #27) ------------------------------------------------------------------------
+        // The castle's version of ScareDirector.VisiblePoint: the same tests (nav floor, clear torso and head lines, body clearance, inside the
+        // 44 degree cone), but 3.4 m is tried first and 4.6 m replaces 4.8, so an apparition lands inside EscalateRange in open halls.
+        public bool ApparitionPoint(out Vector3 point)
+        {
+            point=Vector3.zero;
+            if(!Ready)return false;
+            var view=Eye;var forward=Vector3.ProjectOnPlane(view.forward,Vector3.up).normalized;
+            if(forward.sqrMagnitude<.1f)forward=game.Player.transform.forward;
+            var player=game.Player.transform.position;
+            foreach(float angle in new[]{24f,-24f,0f,38f,-38f})foreach(float distance in new[]{3.4f,4.6f,6f})
+            {
+                var desired=player+Quaternion.Euler(0,angle,0)*forward*distance;
+                if(!NavMesh.SamplePosition(desired,out var hit,1,NavMesh.AllAreas)||Mathf.Abs(hit.position.y-player.y)>.6f)continue;
+                var candidate=hit.position;var eye=candidate+Vector3.up*1.65f;
+                if(Vector3.Distance(candidate,player)<2.8f||Vector3.Angle(view.forward,eye-view.position)>44)continue;
+                if(Physics.Linecast(view.position,eye,OcclusionMask,QueryTriggerInteraction.Ignore)||Physics.Linecast(view.position,candidate+Vector3.up*.8f,OcclusionMask,QueryTriggerInteraction.Ignore))continue;
+                if(Physics.CheckCapsule(candidate+Vector3.up*.4f,candidate+Vector3.up*1.7f,.28f,OcclusionMask,QueryTriggerInteraction.Ignore))continue;
+                point=candidate;return true;
+            }
+            return false;
         }
 
         // ---- a book drops from the nearest floating book pile ------------------------------------------------------------------
@@ -268,7 +399,7 @@ namespace HollowCurrent
         // fan. Returns how many left their place. The integrator calls this one apparition in six instead of ScareDirector.ThrowNearbyProp.
         public int Poltergeist()
         {
-            if(!Ready||game.Modal)return 0;
+            if(!Ready||game.Modal){Debug.Log("HC_THROW_SKIP reason=not_ready source=poltergeist ready="+Ready+" modal="+(Ready&&game.Modal));return 0;}
             var eye=Eye;var player=game.Player.transform.position;
             var candidates=new List<Throwable>(Throwable.All);
             int thrown=0;Vector3 sum=Vector3.zero;var skips=new Dictionary<string,int>();
@@ -436,13 +567,16 @@ namespace HollowCurrent
                 options.Add(point);
             }
             if(options.Count==0)return false;
-            Floater.FalseTarget(options[Random.Range(0,options.Count)],4f);
+            var target=options[Random.Range(0,options.Count)];
+            Floater.FalseTarget(target,4f);
+            Debug.Log("HC_LIE kind=false_candle at="+target.ToString("F1"));
             Log("false_candle_tell");return true;
         }
         // Lets the integrator's compass needle spin at nothing for 3 s.
         public void FalseCompassReading()
         {
             FalseCompass=true;falseCompassTimer=3f;
+            Debug.Log("HC_LIE kind=false_compass");
             Log("false_compass");
         }
 
