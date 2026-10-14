@@ -47,7 +47,11 @@ namespace HollowCurrent
         // Castle: the forged moonstone sword replaces the held instrument (hc/sword pose).
         Transform sword;float swing;
         static readonly Vector3 SwordPosition=new Vector3(.24f,-.20f,.45f);
-        static readonly Quaternion SwordIdle=Quaternion.Euler(-62,8,-14),SwordStrike=Quaternion.Euler(-10,25,-40);
+        // The FBX export maps Blender Z (blade) to Unity +Y and the flat faces to +-Z, so pose by
+        // blade direction and face normal in camera space: idle rises up and forward-left with the
+        // rune face toward the view; the strike sweeps it down and across to the left.
+        Quaternion SwordIdle,SwordStrike; // set in MakeSword (no Unity math in field initialisers)
+        static Quaternion SwordPose(Vector3 blade,Vector3 face){blade.Normalize();return Quaternion.LookRotation(Vector3.ProjectOnPlane(face,blade).normalized,blade);}
         public bool SwordHeld=>sword&&sword.gameObject.activeSelf;
         Transform torchModel;
         Transform radioModel;
@@ -109,6 +113,7 @@ namespace HollowCurrent
         }
         Transform MakeSword()
         {
+            SwordIdle=SwordPose(new Vector3(-.22f,.80f,.56f),new Vector3(.35f,0,-1));SwordStrike=SwordPose(new Vector3(-.75f,.05f,.66f),new Vector3(0,1,-.35f));
             var t=(Transform)CastleArt.Place(CastleArt.Names.MoonstoneSword,View.transform,SwordPosition,SwordIdle);
             foreach(var c in t.GetComponentsInChildren<Collider>())Destroy(c);
             foreach(var r in t.GetComponentsInChildren<Renderer>()){r.gameObject.layer=30;r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;}

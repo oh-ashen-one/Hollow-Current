@@ -221,10 +221,10 @@ namespace HollowCurrent
             var castle=game.Castle;int rings=1;float limit=Time.realtimeSinceStartup+300,nextApproach=0;
             // Give him a window: no strike and no step towards him for the first 3 s after he becomes
             // hittable (a hunt starts or a retreat ends), so his own glide/dive/grab can play out.
-            float Window=StrikeWindow;float hittableSince=-1;int grabs=game.Case.BlockedDeaths;
+            float Window=StrikeWindow;float hittableSince=-1;int grabs=game.Case.BlockedDeaths;float lastGrabLog=-9; // one line per grab burst (invulnerability re-grabs every frame)
             while(!castle.Fight.Dead&&Time.realtimeSinceStartup<limit)
             {
-                if(game.Case.BlockedDeaths>grabs){grabs=game.Case.BlockedDeaths;Debug.Log("HC_PLAY phase=grabbed t="+(Time.realtimeSinceStartup-start).ToString("F1")+" grabs="+grabs+" "+game.Creature.DiagnosticState);}
+                if(game.Case.BlockedDeaths>grabs&&Time.realtimeSinceStartup-lastGrabLog>1f){grabs=game.Case.BlockedDeaths;lastGrabLog=Time.realtimeSinceStartup;Debug.Log("HC_PLAY phase=grabbed t="+(Time.realtimeSinceStartup-start).ToString("F1")+" blockedFrames="+grabs+" "+game.Creature.DiagnosticState);}
                 bool hittable=game.Case.Phase==Phase.Hunt&&castle.Fight.CanBeHit;
                 if(!hittable)hittableSince=-1;else if(hittableSince<0){hittableSince=Time.realtimeSinceStartup;Debug.Log("HC_PLAY window t="+(hittableSince-start).ToString("F1")+" hold strikes "+Window+" s");}
                 bool windowOpen=hittable&&Time.realtimeSinceStartup-hittableSince<Window;
