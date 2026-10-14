@@ -198,6 +198,13 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 - [ ] Every `HC_RECOVERY` line has a `grace=` of 30-90 s, and no dice hunt starts inside a grace (bell and gamble excepted).
 - [ ] Event Dread decays: `HC_RULES event=` falls between hunts, faster in the gatehouse.
 
+## Art pass merged (round 7, build `ac43efa`)
+
+- hc/art-exterior merged as `d904e77`, hc/art-props as `415eb9d` (conflicts in `ASSET_LOG.md` and `tools/castle_verify.py` kept both sides).
+- New capture mode: `-hc-capture <dir> -hc-capture-art exterior|props`. The capture window is resized back to the requested size before every shot.
+- Results and capture list: `docs/haunted-castle/playtest/AUTO_RUN.md`, "Round 7". Captures are local in `rounds/r12/captures/art/`.
+- Open: the exterior group is turned 180 degrees (`HC_EXTERIOR_AXIS`); 7 portraits wait for Codex; one 118.9 ms crypt hitch; the watched-hide grab camera took the hide-open path this run, skull off-screen at t 0.01.
+
 ## Round 11 art pass (next wave, after the fear loop is proven)
 
 From the blind critic's room findings (V1-V4):

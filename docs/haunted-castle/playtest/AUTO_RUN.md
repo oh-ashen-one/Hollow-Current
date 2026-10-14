@@ -1,6 +1,28 @@
 # Automated castle playthroughs: waves G-K (windowed checklist, 2026-10-14)
 
-## Round 6 (latest): wave K, build `253372f`
+## Round 7 (latest): art pass, build `ac43efa`
+
+The build is source `ac43efa`: hc/art-exterior (`d904e77`) and hc/art-props (`415eb9d`) merged, the `-hc-capture-art exterior|props` capture mode, and the capture window now resized back to the requested size before every shot. Castle bake: 7 lightmaps, 196 probes, 17 reflections. All runs used `gpu_slot`, `open -g`, a 1920x1080 window and `HC_INPUT scripted=true`. The owner's display changed during the round (3840x2160, then 3440x1440), and an outside resize spoiled the first exterior set; it was recaptured at 1920x1080.
+
+| Proof | Result | Evidence |
+|---|---|---|
+| Fear run on the art build | **WON**, 0 blockers | `HC_PLAY_RESULT mode=fear won=True blockedDeaths=1 blockers=0` |
+| Fear: no-tell first leg silent | **PASS** | `HC_COUNT_LEG first=silent reason=notell`; `changedFrames=0 wingMaxDelta=0.000 rimLines=0 smellLines=0` |
+| Fear: watched-hide grab camera | **Changed from r6, not proven** | This run took `kind=hide-open` (mode 7, then 8): at t 0.01 the skull is behind the camera (`eyeToSkull=0.40`, off-screen); at 0.30 it is centred, `claw_px=139 claw_ok=False`; then `end reason=blocked` by the driver's invulnerability |
+| Battlement line of sight | **PASS**, same as r11 | `HC_PLAY_BATTLEMENT outdoorPoints=90 withClearLine=90` |
+| Great hall frame time with the skeleton | mean 11.14 ms, p99 11.50 ms, worst 17.29 ms, 2 frames over 16.7 ms | `HC_PLAY_FRAMES great_hall frames=898` |
+| Crypt frame time with the hand-roots | mean 11.57 ms, p99 15.24 ms, **max 118.89 ms** | `HC_CAPTURE FRAMETIME crypt frames=529` (one hitch, cause not found) |
+| Exterior kit | 6 pieces, 30 renderers, render only | Bake log `HC_EXTERIOR_KIT`. Also `HC_EXTERIOR_AXIS keep centre local z -19.5 (expected +19.5): group turned 180 degrees` |
+| Missing art | 7 portrait textures | `HC_MISSING_ART texture Castle/Portraits/Portrait_*` (Codex wall-art job, not delivered yet) |
+
+**Captures** in `rounds/r12/captures/art/` (gitignored, local only):
+- `full/`: S1-S8 and H01-H10 (hunt dive).
+- `exterior/`: 9 views from the art-exterior handoff, all 1920x1080, plus `capture_art_exterior.json`.
+- `props/`: `hall_skull_from_east`, `hall_west_end_skull`, `hall_table_books`, `crypt_ceiling`, plus `capture_art_props.json`.
+
+Factual notes for the critic (no verdict): exterior stone reads flat dark blue under moonlight and warm tan under courtyard lights; window glows and the gate arch are flat yellow fills; the star discs are large and soft; the white moon is partly behind the keep in `courtyard_keep` and clipped by a tower in `bridge_keep`; a green band sits low in the sky in S4; `battlement_out` and `gate_out_S6` average 12 and 11 of 255 brightness. In S1 the skeleton ribs show between the left piers; the skull is not clear from the west end; books float in S1 but are hard to see in `hall_table_books`. The chapel floating candles are still large in S2.
+
+## Round 6: wave K, build `253372f`
 
 The build is source `8a953e9`: hc/rules6, count16, scares4 and audio4 merged, plus F0's death-before-win. Batch 5 ran on `0236fa4` (source `782c856`); verify and fear were rerun on `253372f`. All runs went through `gpu_slot` with `open -g`, a 1920x1080 window and `HC_INPUT scripted=true`.
 
