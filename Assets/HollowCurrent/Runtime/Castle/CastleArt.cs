@@ -37,6 +37,10 @@ namespace HollowCurrent
             // round 5 detail kit (origin = centre of the back face on the wall, base at z 0, front +Z at yaw 0)
             // round 9 weapon art (own mesh): sword origin = centre of the grip, blade +Z; relics lie flat, origin = centre, base on z 0
             public const string MoonstoneSword = "MoonstoneSword", RelicBlade = "RelicBlade", RelicHilt = "RelicHilt", RelicMoonstone = "RelicMoonstone";
+            // round 12 (hc/art-props, tools/castle_props_r12.py): modelled hand-roots, root collar, open/closed books, carved relic niches
+            public const string HandRoot0 = "HandRoot0", HandRoot1 = "HandRoot1", HandRoot2 = "HandRoot2", HandRoot3 = "HandRoot3", HandRoot4 = "HandRoot4", HandRoot5 = "HandRoot5", RootCrown = "RootCrown";
+            public const string FloatingBookSmall = "FloatingBookSmall", FloatingBookLarge = "FloatingBookLarge", BookClosedSmall = "BookClosedSmall", BookClosed = "BookClosed", BookClosedLarge = "BookClosedLarge";
+            public const string RelicSocketBlade = "RelicSocketBlade", RelicSocketHilt = "RelicSocketHilt", RelicSocketMoon = "RelicSocketMoon";
             public const string StringCourse = "StringCourse", Corbel = "Corbel", GargoyleSpout = "GargoyleSpout", TapestryPanel = "TapestryPanel";
         }
 
@@ -53,7 +57,10 @@ namespace HollowCurrent
             Names.FloorTile, Names.StairFlight, Names.GreatDoor, Names.ServiceDoor, Names.Door, Names.BanquetTable, Names.StoneFont,
             Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains,
             Names.StringCourse, Names.Corbel, Names.GargoyleSpout, Names.TapestryPanel,
-            Names.MoonstoneSword, Names.RelicBlade, Names.RelicHilt, Names.RelicMoonstone
+            Names.MoonstoneSword, Names.RelicBlade, Names.RelicHilt, Names.RelicMoonstone,
+            Names.HandRoot0, Names.HandRoot1, Names.HandRoot2, Names.HandRoot3, Names.HandRoot4, Names.HandRoot5, Names.RootCrown,
+            Names.FloatingBookSmall, Names.FloatingBookLarge, Names.BookClosedSmall, Names.BookClosed, Names.BookClosedLarge,
+            Names.RelicSocketBlade, Names.RelicSocketHilt, Names.RelicSocketMoon
         };
 
         // The Blender FBX -> Unity axis conversion could not be verified without launching Unity. Authoring assumes the standard
@@ -108,6 +115,12 @@ namespace HollowCurrent
             { "Castle_Flame", new Spec(new Color(1f, .62f, .22f), 0f, 0f, true) },
             { "Castle_RuneGlow", new Spec(new Color(.25f, .55f, 1f), .3f, 0f, true, new Color(.25f, .6f, 1.6f)) },
             { "Castle_Moonstone", new Spec(new Color(.74f, .80f, .92f), .7f, 0f, true, new Color(.10f, .17f, .38f)) },
+            // round 12 (hc/art-props); textures from tools/castle_r12_textures.py
+            { "Castle_BookLeatherA", new Spec(new Color(.34f, .07f, .08f), .26f, 0f) }, { "Castle_BookLeatherB", new Spec(new Color(.15f, .10f, .08f), .30f, 0f) },
+            { "Castle_BookLeatherC", new Spec(new Color(.12f, .20f, .17f), .22f, 0f) }, { "Castle_BookPages", new Spec(new Color(.66f, .58f, .42f), .08f, 0f) },
+            { "Castle_GiltWorn", new Spec(new Color(.66f, .50f, .20f), .45f, .85f) }, { "Castle_RootBark", new Spec(new Color(.27f, .21f, .16f), .22f, 0f) },
+            { "Castle_RootFlesh", new Spec(new Color(.56f, .51f, .47f), .34f, 0f) }, { "Castle_BoneGrime", new Spec(new Color(.60f, .56f, .46f), .26f, 0f) },
+            { "Castle_NicheStone", new Spec(new Color(.20f, .21f, .26f), .30f, 0f) },
         };
 
         // ---- upgraded surfaces (round 2, hc/look) ---------------------------------------------------------------
@@ -384,6 +397,9 @@ namespace HollowCurrent
                 if (r.name.StartsWith("Flame", StringComparison.Ordinal)) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             }
         }
+
+        // The prop material for castle material `name` (the same one Place gives FBX parts), for swapping a slot at runtime.
+        public static Material Named(string name) => GetMaterial(name);
 
         static Material GetMaterial(string name)
         {

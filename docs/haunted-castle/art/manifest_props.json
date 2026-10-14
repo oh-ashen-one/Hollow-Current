@@ -382,52 +382,6 @@
   ],
   "tris": 2002
  },
- "FloatingBook": {
-  "budget": 3000,
-  "bytes": 17932,
-  "file": "Assets/HollowCurrent/Resources/Castle/FloatingBook.fbx",
-  "materials": [
-   "Castle_Oxblood",
-   "Castle_Paper"
-  ],
-  "max": [
-   0.2004,
-   0.1425,
-   0.024
-  ],
-  "min": [
-   -0.2004,
-   -0.1425,
-   -0.076
-  ],
-  "notes": {},
-  "parts": {
-   "FloatingBook": {
-    "max": [
-     0.2004,
-     0.1425,
-     0.024
-    ],
-    "min": [
-     -0.2004,
-     -0.1425,
-     -0.076
-    ],
-    "size": [
-     0.4008,
-     0.285,
-     0.1
-    ],
-    "tris": 60
-   }
-  },
-  "size": [
-   0.4008,
-   0.285,
-   0.1
-  ],
-  "tris": 60
- },
  "Fountain": {
   "budget": 3000,
   "bytes": 22572,
@@ -472,52 +426,6 @@
    1.78
   ],
   "tris": 280
- },
- "GiantSkeleton": {
-  "budget": 15000,
-  "bytes": 185036,
-  "file": "Assets/HollowCurrent/Resources/Castle/GiantSkeleton.fbx",
-  "materials": [
-   "Castle_Bone",
-   "Castle_BlackStone"
-  ],
-  "max": [
-   2.0615,
-   5.9014,
-   3.4354
-  ],
-  "min": [
-   -2.0445,
-   -6.0032,
-   0.0506
-  ],
-  "notes": {},
-  "parts": {
-   "GiantSkeleton": {
-    "max": [
-     2.0615,
-     5.9014,
-     3.4354
-    ],
-    "min": [
-     -2.0445,
-     -6.0032,
-     0.0506
-    ],
-    "size": [
-     4.106,
-     11.9045,
-     3.3848
-    ],
-    "tris": 4890
-   }
-  },
-  "size": [
-   4.106,
-   11.9045,
-   3.3848
-  ],
-  "tris": 4890
  },
  "MoonstoneSword": {
   "budget": 3000,

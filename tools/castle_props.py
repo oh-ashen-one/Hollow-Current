@@ -494,8 +494,10 @@ def relic_moonstone():
 
 BUILDERS = [
     ("Pew", pew, 3000), ("BanquetTable", banquet_table, 3000), ("Altar", altar, 3000), ("StoneFont", stone_font, 3000),
-    ("Sarcophagus", sarcophagus, 3000), ("GiantSkeleton", giant_skeleton, 15000), ("Candelabra", candelabra, 3000),
-    ("FloatingBook", floating_book, 3000), ("Portrait", portrait_frame, 3000), ("Bookshelf", bookshelf, 3000),
+    ("Sarcophagus", sarcophagus, 3000), ("Candelabra", candelabra, 3000),
+    # GiantSkeleton and FloatingBook moved to tools/castle_props_r12.py (round 12, hc/art-props); giant_skeleton() and floating_book() here are the
+    # retired round-4 versions, kept only for history.
+    ("Portrait", portrait_frame, 3000), ("Bookshelf", bookshelf, 3000),
     ("Orrery", orrery, 3000), ("Fountain", dead_fountain, 3000), ("DeadTree", dead_tree, 3000), ("Banner", banner, 3000),
     ("MoonstoneSword", moonstone_sword, 3000), ("RelicBlade", relic_blade, 3000), ("RelicHilt", relic_hilt, 3000), ("RelicMoonstone", relic_moonstone, 3000),
 ]

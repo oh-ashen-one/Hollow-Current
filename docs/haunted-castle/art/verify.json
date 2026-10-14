@@ -49,6 +49,36 @@
   ],
   "tris": 72
  },
+ "BookClosed": {
+  "bytes": 20396,
+  "parts": 1,
+  "size": [
+   0.221,
+   0.14,
+   0.035
+  ],
+  "tris": 118
+ },
+ "BookClosedLarge": {
+  "bytes": 21036,
+  "parts": 1,
+  "size": [
+   0.339,
+   0.21,
+   0.057
+  ],
+  "tris": 142
+ },
+ "BookClosedSmall": {
+  "bytes": 20476,
+  "parts": 1,
+  "size": [
+   0.159,
+   0.101,
+   0.025
+  ],
+  "tris": 118
+ },
  "Bookshelf": {
   "bytes": 51148,
   "parts": 1,
@@ -270,14 +300,34 @@
   "tris": 220
  },
  "FloatingBook": {
-  "bytes": 17932,
+  "bytes": 27900,
   "parts": 1,
   "size": [
-   0.401,
-   0.285,
-   0.1
+   0.419,
+   0.353,
+   0.15
   ],
-  "tris": 60
+  "tris": 310
+ },
+ "FloatingBookLarge": {
+  "bytes": 30604,
+  "parts": 1,
+  "size": [
+   0.553,
+   0.466,
+   0.204
+  ],
+  "tris": 342
+ },
+ "FloatingBookSmall": {
+  "bytes": 28972,
+  "parts": 1,
+  "size": [
+   0.302,
+   0.258,
+   0.112
+  ],
+  "tris": 310
  },
  "FloorTile": {
   "bytes": 15596,
@@ -320,14 +370,14 @@
   "tris": 128
  },
  "GiantSkeleton": {
-  "bytes": 185036,
+  "bytes": 418028,
   "parts": 1,
   "size": [
-   4.106,
-   11.905,
-   3.385
+   3.012,
+   12.113,
+   2.983
   ],
-  "tris": 4890
+  "tris": 12412
  },
  "GreatDoor": {
   "bytes": 31948,
@@ -358,6 +408,66 @@
    4.5
   ],
   "tris": 244
+ },
+ "HandRoot0": {
+  "bytes": 137004,
+  "parts": 1,
+  "size": [
+   1.08,
+   0.336,
+   1.417
+  ],
+  "tris": 3647
+ },
+ "HandRoot1": {
+  "bytes": 137436,
+  "parts": 1,
+  "size": [
+   0.919,
+   0.49,
+   1.575
+  ],
+  "tris": 3665
+ },
+ "HandRoot2": {
+  "bytes": 138444,
+  "parts": 1,
+  "size": [
+   1.12,
+   0.413,
+   2.001
+  ],
+  "tris": 3699
+ },
+ "HandRoot3": {
+  "bytes": 135548,
+  "parts": 1,
+  "size": [
+   0.849,
+   0.471,
+   2.137
+  ],
+  "tris": 3639
+ },
+ "HandRoot4": {
+  "bytes": 136924,
+  "parts": 1,
+  "size": [
+   1.095,
+   0.361,
+   2.537
+  ],
+  "tris": 3657
+ },
+ "HandRoot5": {
+  "bytes": 139084,
+  "parts": 1,
+  "size": [
+   0.812,
+   0.568,
+   1.805
+  ],
+  "tris": 3731
  },
  "HighBackChair": {
   "bytes": 17244,
@@ -549,6 +659,36 @@
   ],
   "tris": 350
  },
+ "RelicSocketBlade": {
+  "bytes": 26668,
+  "parts": 2,
+  "size": [
+   0.22,
+   0.66,
+   0.313
+  ],
+  "tris": 262
+ },
+ "RelicSocketHilt": {
+  "bytes": 30732,
+  "parts": 2,
+  "size": [
+   0.44,
+   0.5,
+   0.313
+  ],
+  "tris": 500
+ },
+ "RelicSocketMoon": {
+  "bytes": 53260,
+  "parts": 2,
+  "size": [
+   0.4,
+   0.4,
+   0.313
+  ],
+  "tris": 1268
+ },
  "ReliquaryBox": {
   "bytes": 20332,
   "parts": 1,
@@ -558,6 +698,16 @@
    0.98
   ],
   "tris": 92
+ },
+ "RootCrown": {
+  "bytes": 33884,
+  "parts": 1,
+  "size": [
+   0.671,
+   0.527,
+   1.014
+  ],
+  "tris": 672
  },
  "RoseWindow": {
   "bytes": 37948,
