@@ -27,6 +27,18 @@ namespace HollowCurrent
             Rules = rules ?? Book.Rules ?? HuntRules.Bellwether;
             Dice = random;
             Dread = Rules.UsesDread ? Clamp(Rules.DreadStart) : 0;
+            RunDreadMin = Rules.HuntDreadMin;
+            CurrentHuntSeconds = Rules.HuntSeconds;
+            CurrentRecoverySeconds = Rules.RecoverySeconds;
+            // Per-run draws, castle only, in this order (Bellwether draws nothing):
+            // 1 boundary, 2 felt lag, 3 felt noise seed.
+            if (Rules.UsesDread)
+            {
+                if (Rules.HuntDreadMinSpread > 0) RunDreadMin = Rules.HuntDreadMin + Rules.HuntDreadMinSpread * (2 * Roll() - 1);
+                FeltLagSeconds = Rules.FeltLagMax > Rules.FeltLagMin ? Rules.FeltLagMin + (Rules.FeltLagMax - Rules.FeltLagMin) * Roll() : Rules.FeltLagMin;
+                if (Rules.FeltNoise > 0) feltSeed = (uint)(Roll() * 16777216f);
+                feltBase = Dread;
+            }
         }
         public Phase Phase { get; private set; } = Phase.Briefing;
         public readonly HashSet<Evidence> Evidence = new HashSet<Evidence>();
@@ -58,9 +70,25 @@ namespace HollowCurrent
         public bool DeathPenaltyApplied { get; private set; }
         // Seconds the current Warning lasts (WarningSeconds, or EscalationWarningSeconds).
         public float WarningLength { get; private set; }
-        float huntClock;              // floor clock: Disturbance time with Dread >= HuntDreadMin since the last hunt
+        // This hunt's length and this Recovery's length (drawn when each starts; Bellwether 38 / 32).
+        // UI and dispatch text must read these, never print a fixed number.
+        public float CurrentHuntSeconds { get; private set; }
+        public float CurrentRecoverySeconds { get; private set; }
+        // This run's Dread boundary for the banded dice and the floor (castle 30-50). Diagnostics
+        // only: never drive a player-facing channel from it.
+        public float RunDreadMin { get; private set; }
+        // What the player may feel: Dread lagged by FeltLagSeconds (20-30 s per run), with slow
+        // +-12 noise, drifting to calm while Lies. 0-100. Drive heartbeat and journal pulse from
+        // this, never from Dread. Always 0 when the map has no dread.
+        public float FeltDread => Rules.UsesDread ? Clamp(feltBase + Rules.FeltNoise * FeltNoiseAt(Elapsed)) : 0;
+        public float FeltLagSeconds { get; private set; }
+        float feltBase;               // lagged Dread (or calm while Lies), before noise
+        uint feltSeed;                // per-run noise seed
+        float huntClock;              // floor clock: Disturbance time with Dread >= RunDreadMin since the last hunt
         float diceTimer = float.NaN;  // seconds to the next dice roll; NaN = not yet drawn
-        float firstHuntAt = -1;       // first-hunt deadline in Disturbance; -1 = not yet drawn
+        bool diceHigh;                // the running dice timer belongs to the banded (true) or low-Dread (false) roll
+        float firstHuntAt = -1;       // first-hunt deadline; -1 = not yet drawn
+        float firstHuntClock;         // Disturbance time since the FirstHuntEvidence-th record (before any hunt)
         public int ContextCount => (Notes.Contains(Book.NoteTitles[0])?1:0)+(Notes.Contains(Book.NoteTitles[1])?1:0)+(Notes.Contains(Book.NoteTitles[2])?1:0);
         public bool MysteryReady => Evidence.Count==3&&ContextCount==3&&Survived&&!Diagnosed&&!Terminal&&(Phase!=Phase.Warning||FalseWarning)&&Phase!=Phase.Hunt;
         public bool Terminal => Phase == Phase.Dead || Phase == Phase.Won;
@@ -76,8 +104,9 @@ namespace HollowCurrent
             public int Hunts,WrongDiagnoses;
             public float Dread;
             public int Deaths;
+            public float RunDreadMin = -1;
         }
-        public Checkpoint SaveCheckpoint()=>new Checkpoint {Evidence=new List<Evidence>(Evidence).ToArray(),Notes=new List<string>(Notes).ToArray(),Equipped=Equipped,BreakerOn=BreakerOn,Diagnosed=Diagnosed,Survived=Survived,Elapsed=Elapsed,Hunts=Hunts,WrongDiagnoses=WrongDiagnoses,Dread=Dread,Deaths=Deaths};
+        public Checkpoint SaveCheckpoint()=>new Checkpoint {Evidence=new List<Evidence>(Evidence).ToArray(),Notes=new List<string>(Notes).ToArray(),Equipped=Equipped,BreakerOn=BreakerOn,Diagnosed=Diagnosed,Survived=Survived,Elapsed=Elapsed,Hunts=Hunts,WrongDiagnoses=WrongDiagnoses,Dread=Dread,Deaths=Deaths,RunDreadMin=RunDreadMin};
         // A restore follows a death unless afterDeath is false (the game only offers it on the
         // lost screen). After a death Deaths counts it, and with Rules.DeathPenalty Dread
         // restarts at Rules.DeathDread and DeathPenaltyApplied is set.
@@ -90,6 +119,8 @@ namespace HollowCurrent
             Deaths=Math.Max(Deaths,saved.Deaths+(afterDeath?1:0));
             DeathPenaltyApplied=afterDeath&&Rules.DeathPenalty&&Rules.UsesDread;
             Dread=!Rules.UsesDread?0:DeathPenaltyApplied?Clamp(Rules.DeathDread):Clamp(saved.Dread);
+            if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
+            feltBase=Dread;firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
             Set(!Equipped?Phase.Briefing:Diagnosed?Phase.Containment:Evidence.Count>0?Phase.Disturbance:Phase.Survey);
         }
@@ -150,43 +181,79 @@ namespace HollowCurrent
             {
                 if (inSafe) Dread = Clamp(Dread - Rules.DreadSafeRecovery * dt);
                 else if (inside) Dread = Clamp(Dread + (litNearby ? Rules.DreadInsideRate : Rules.DreadDarkRate) * dt);
+                float target = Lies ? Rules.FeltCalm : Dread;
+                feltBase += (target - feltBase) * (FeltLagSeconds > 0 ? 1 - (float)Math.Exp(-dt / FeltLagSeconds) : 1);
             }
             if (Phase == Phase.Disturbance) TickDisturbance(dt);
             else if (Phase == Phase.Warning && PhaseTime >= WarningLength)
             {
-                if (FalseWarning) { FalseWarning = false; Set(Phase.Disturbance); }
+                if (FalseWarning) { FalseWarning = false; Set(Diagnosed ? Phase.Containment : Phase.Disturbance); }
                 else StartHunt(false);
             }
-            else if (Phase == Phase.Hunt && PhaseTime >= Rules.HuntSeconds)
+            else if (Phase == Phase.Hunt && PhaseTime >= CurrentHuntSeconds)
             {
                 Survived = true;
+                CurrentRecoverySeconds = Rules.RecoverySecondsMax > Rules.RecoverySecondsMin ? HuntRules.Draw(Rules.RecoverySecondsMin, Rules.RecoverySeconds, Rules.RecoverySecondsMax, Roll()) : Rules.RecoverySeconds;
                 Set(Phase.Recovery);
-                Say(Book.RecoveryMessage);
+                if (Rules.AnnounceRecovery) Say(Book.RecoveryMessage);
             }
-            else if (Phase == Phase.Recovery && PhaseTime >= Rules.RecoverySeconds)
+            else if (Phase == Phase.Recovery)
             {
-                Set(Diagnosed ? Phase.Containment : Phase.Disturbance);
+                if (PhaseTime >= CurrentRecoverySeconds) Set(Diagnosed ? Phase.Containment : Phase.Disturbance);
+                else TickRecoveryDice(dt);
             }
+        }
+        // Recovery is not a guaranteed quiet window at high Dread.
+        void TickRecoveryDice(float dt)
+        {
+            if (Rules.RecoveryDiceChance <= 0 || Rules.DiceIntervalMax <= 0 || Dread < Rules.RecoveryDiceDread) return;
+            if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
+            diceTimer -= dt;
+            if (diceTimer > 0) return;
+            if (Roll() < Rules.RecoveryDiceChance) { StartThreat(true); return; }
+            diceTimer = NextDiceInterval();
+        }
+        // Smooth value noise in [-1,1], one knot every FeltNoisePeriod seconds (pure hash, no Random).
+        float FeltNoiseAt(float t)
+        {
+            if (Rules.FeltNoise <= 0 || Rules.FeltNoisePeriod <= 0) return 0;
+            float x = t / Rules.FeltNoisePeriod;
+            int i = (int)Math.Floor(x);
+            float f = x - i, s = f * f * (3 - 2 * f);
+            float a = Knot(feltSeed, i), b = Knot(feltSeed, i + 1);
+            return a + (b - a) * s;
+        }
+        static float Knot(uint seed, int i)
+        {
+            uint h = seed ^ unchecked((uint)i * 0x9E3779B9u);
+            h ^= h >> 16; h = unchecked(h * 0x7feb352du); h ^= h >> 15; h = unchecked(h * 0x846ca68bu); h ^= h >> 16;
+            return h / 4294967295f * 2 - 1;
         }
         void TickDisturbance(float dt)
         {
-            bool dreadful = Dread >= Rules.HuntDreadMin;
+            bool dreadful = Dread >= RunDreadMin;
             if (dreadful) huntClock += dt;
+            // Crossing the boundary restarts the roll schedule for the new kind of roll.
+            if (dreadful != diceHigh) { diceHigh = dreadful; diceTimer = float.NaN; }
             // Timed hunt: Bellwether's 95 s timer, the castle's 240 s floor.
             if (Rules.TimedHuntSeconds > 0 && dreadful && huntClock >= Rules.TimedHuntSeconds && Evidence.Count >= Rules.TimedHuntEvidence) { StartThreat(false); return; }
-            // First-hunt guarantee so the mystery cannot stall at low Dread.
+            // First-hunt guarantee so the mystery cannot stall at low Dread. Its clock starts at the
+            // record that reaches FirstHuntEvidence, so a slow player gets the full delay too.
             if (Rules.FirstHuntSeconds > 0 && Hunts == 0 && Evidence.Count >= Rules.FirstHuntEvidence)
             {
+                firstHuntClock += dt;
                 if (firstHuntAt < 0) firstHuntAt = Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
-                if (PhaseTime >= firstHuntAt) { StartThreat(false); return; }
+                if (firstHuntClock >= firstHuntAt) { StartThreat(false); return; }
             }
-            // Dice-roll hunts while Dread is high enough.
-            if (Rules.DiceIntervalMax > 0 && dreadful)
+            // Dice-roll hunts: banded at or above the run's boundary, a flat low roll below it after the first hunt.
+            bool low = !dreadful && Hunts > 0 && Rules.LowDreadChance > 0;
+            if (Rules.DiceIntervalMax > 0 && (dreadful || low))
             {
                 if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
                 diceTimer -= dt;
                 if (diceTimer > 0) return;
-                if (Roll() < Rules.DiceChance(Dread, Evidence.Count)) { StartThreat(true); return; }
+                float chance = dreadful ? Rules.DiceChance(Dread, Evidence.Count, RunDreadMin) : Rules.LowDreadChance;
+                if (Roll() < chance) { StartThreat(true); return; }
                 diceTimer = NextDiceInterval();
             }
         }
@@ -200,7 +267,8 @@ namespace HollowCurrent
         // A rolled or forced hunt: no-tell, false alarm (dice only) or a normal Warning.
         void StartThreat(bool fromDice)
         {
-            if (Rules.WarningSeconds <= 0 || Rules.NoTellChance > 0 && Roll() < Rules.NoTellChance) { BreakerOn = false; StartHunt(true); return; }
+            // No-tell starts leave BreakerOn alone: the brazier and room tone must not announce them.
+            if (Rules.WarningSeconds <= 0 || Rules.NoTellChance > 0 && Roll() < Rules.NoTellChance) { StartHunt(true); return; }
             bool falseAlarm = fromDice && Rules.FalseWarningChance > 0 && Roll() < Rules.FalseWarningChance;
             Warn(Rules.WarningSeconds, falseAlarm, true);
         }
@@ -218,6 +286,7 @@ namespace HollowCurrent
             Hunts++;
             FalseWarning = false;
             NoTellHunt = noTell;
+            CurrentHuntSeconds = Rules.HuntSecondsMax > Rules.HuntSecondsMin ? HuntRules.Draw(Rules.HuntSecondsMin, Rules.HuntSeconds, Rules.HuntSecondsMax, Roll()) : Rules.HuntSeconds;
             Set(Phase.Hunt);
         }
         // Castle rules only (UsesDread): a hunt that starts now with no Warning (the sarcophagus gamble, item 18).
@@ -226,7 +295,6 @@ namespace HollowCurrent
         {
             if (!Rules.UsesDread || Terminal) return false;
             if (Phase != Phase.Survey && Phase != Phase.Disturbance && Phase != Phase.Recovery) return false;
-            BreakerOn = false;
             StartHunt(true);
             return true;
         }
@@ -234,7 +302,7 @@ namespace HollowCurrent
         {
             if (Terminal || Phase == Phase.Return || Phase == Phase.Containment) return;
             // Summons (the bell) always come true. Long Night has no Warning phase.
-            if (Rules.WarningSeconds <= 0) { BreakerOn = false; StartHunt(true); return; }
+            if (Rules.WarningSeconds <= 0) { StartHunt(true); return; }
             Warn(Rules.WarningSeconds, false, true);
         }
         // Game calls this when an apparition lands within 4 m. With EventEscalationChance it
@@ -243,7 +311,7 @@ namespace HollowCurrent
         {
             if (Rules.EventEscalationChance <= 0 || Terminal || Phase != Phase.Disturbance) return false;
             if (Roll() >= Rules.EventEscalationChance) return false;
-            if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) { BreakerOn = false; StartHunt(true); }
+            if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) StartHunt(true);
             else Warn(Rules.EscalationWarningSeconds, false, false);
             return true;
         }
@@ -285,7 +353,7 @@ namespace HollowCurrent
             if (next == Phase.Hunt || next == Phase.Return) huntClock = 0;
             if (next != Phase.Warning) FalseWarning = false;
             if (next != Phase.Hunt && next != Phase.Return) NoTellHunt = false;
-            if (next == Phase.Disturbance) { diceTimer = float.NaN; firstHuntAt = -1; }
+            if (next == Phase.Disturbance || next == Phase.Recovery) diceTimer = float.NaN;
             Phase = next; PhaseTime = 0; Changed?.Invoke(next);
         }
         void Say(string value) => Message?.Invoke(value);

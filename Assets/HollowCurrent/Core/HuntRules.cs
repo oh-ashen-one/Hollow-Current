@@ -17,8 +17,13 @@ namespace HollowCurrent
         // (false warnings do not reset it). 0 = dice only.
         public float TimedHuntSeconds;
         public int TimedHuntEvidence;
-        // Dread needed for dice rolls and for the floor clock to run (Bellwether 0 = always).
-        public float HuntDreadMin;
+        // Dread needed for the banded dice and for the floor clock to run (Bellwether 0 = always).
+        // Each run draws its own boundary from HuntDreadMin +- HuntDreadMinSpread (castle 30-50),
+        // so no fixed Dread level is provably safe (Investigation.RunDreadMin).
+        public float HuntDreadMin, HuntDreadMinSpread;
+        // After the first hunt the dice also roll below the run's boundary at this flat chance
+        // per roll (the "demon" roll; castle 1/40). 0 = below the boundary is safe.
+        public float LowDreadChance;
 
         // First-hunt guarantee: before any hunt, FirstHuntSeconds of Disturbance with at
         // least FirstHuntEvidence records forces one, so the mystery (which needs a hunt
@@ -35,7 +40,15 @@ namespace HollowCurrent
         public float DiceChanceAt40, DiceChanceAt60, DiceChanceAt80, DiceEvidenceBonus;
 
         // Phase lengths. WarningSeconds 0 = no Warning phase at all (every hunt is tell-less).
+        // HuntSeconds / RecoverySeconds are the medians: each hunt draws its own length from
+        // Min..Max (piecewise linear, a 0.5 roll gives exactly the median). Min == Max = fixed,
+        // no roll is drawn. Investigation.CurrentHuntSeconds / CurrentRecoverySeconds hold the draw.
         public float WarningSeconds, HuntSeconds, RecoverySeconds;
+        public float HuntSecondsMin, HuntSecondsMax, RecoverySecondsMin, RecoverySecondsMax;
+        // Dice during Recovery: at Dread >= RecoveryDiceDread each roll hunts with this chance. 0 = off.
+        public float RecoveryDiceChance, RecoveryDiceDread;
+        // Say Book.RecoveryMessage ("a quiet window") when a hunt ends. The castle stays silent.
+        public bool AnnounceRecovery;
         // Tell before a hunt converted from a close apparition (TryEscalate).
         public float EscalationWarningSeconds;
         // Dice and forced hunts: chance the hunt starts with no Warning. Dice hunts only:
@@ -56,18 +69,26 @@ namespace HollowCurrent
         // On a checkpoint restore after a death, Dread restarts at DeathDread.
         public bool DeathPenalty;
         public float DeathDread;
+        // FeltDread: what the heartbeat / journal pulse may show. Dread lagged by a per-run time
+        // constant FeltLagMin..Max seconds, plus slow noise of +-FeltNoise (one knot every
+        // FeltNoisePeriod s); while Lies it drifts toward FeltCalm instead. Never uses the boundary.
+        public float FeltLagMin, FeltLagMax, FeltNoise, FeltNoisePeriod, FeltCalm;
         // Hide spots nailed shut for this run (Game picks which).
         public int NailedHides;
         // Perch dwell between hunts for the hunter's runtime. 0 = the profile's default.
         public float PerchMinSeconds, PerchMaxSeconds;
 
         // Dice chance for one roll at this Dread and evidence count (0 below HuntDreadMin).
-        public float DiceChance(float dread,int evidence)
+        public float DiceChance(float dread,int evidence)=>DiceChance(dread,evidence,HuntDreadMin);
+        // Banded chance with this run's boundary (bands: [boundary,60), [60,80), [80,100]).
+        public float DiceChance(float dread,int evidence,float boundary)
         {
-            if(DiceIntervalMax<=0||dread<HuntDreadMin)return 0;
+            if(DiceIntervalMax<=0||dread<boundary)return 0;
             float band=dread>=80?DiceChanceAt80:dread>=60?DiceChanceAt60:DiceChanceAt40;
             return band*(1+DiceEvidenceBonus*Math.Max(0,evidence));
         }
+        // Piecewise-linear draw: roll 0 -> min, 0.5 -> median, 1 -> max.
+        public static float Draw(float min,float median,float max,float roll)=>roll<.5f?min+(median-min)*(roll/.5f):median+(max-median)*((roll-.5f)/.5f);
         public HuntRules Clone()=>(HuntRules)MemberwiseClone();
 
         // The rules a map plays with. The Long Night dial applies to the castle only.
@@ -78,10 +99,12 @@ namespace HollowCurrent
         public static readonly HuntRules Bellwether=new HuntRules
         {
             Name="Bellwether",
-            TimedHuntSeconds=95,TimedHuntEvidence=2,HuntDreadMin=0,
+            TimedHuntSeconds=95,TimedHuntEvidence=2,HuntDreadMin=0,HuntDreadMinSpread=0,LowDreadChance=0,
             FirstHuntSeconds=0,FirstHuntJitter=0,FirstHuntEvidence=0,
             DiceIntervalMin=0,DiceIntervalMax=0,DiceChanceAt40=0,DiceChanceAt60=0,DiceChanceAt80=0,DiceEvidenceBonus=0,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=0,
+            HuntSecondsMin=38,HuntSecondsMax=38,RecoverySecondsMin=32,RecoverySecondsMax=32,RecoveryDiceChance=0,RecoveryDiceDread=0,AnnounceRecovery=true,
+            FeltLagMin=0,FeltLagMax=0,FeltNoise=0,FeltNoisePeriod=0,FeltCalm=0,
             NoTellChance=0,FalseWarningChance=0,EventEscalationChance=0,HostileReturn=false,
             UsesDread=false,DreadDarkRate=0,DreadInsideRate=0,DreadSafeRecovery=0,DreadStart=0,
             DreadApparition=0,DreadThrow=0,DreadSeen=0,DreadGrabSurvived=0,
@@ -93,10 +116,12 @@ namespace HollowCurrent
         public static readonly HuntRules Castle=new HuntRules
         {
             Name="Castle",
-            TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,
+            TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/40,
             FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,
             DiceIntervalMin=2,DiceIntervalMax=6,DiceChanceAt40=1f/12,DiceChanceAt60=1f/6,DiceChanceAt80=1f/4,DiceEvidenceBonus=.5f,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=1.5f,
+            HuntSecondsMin=25,HuntSecondsMax=50,RecoverySecondsMin=10,RecoverySecondsMax=40,RecoveryDiceChance=1f/8,RecoveryDiceDread=80,AnnounceRecovery=false,
+            FeltLagMin=20,FeltLagMax=30,FeltNoise=12,FeltNoisePeriod=6,FeltCalm=12,
             NoTellChance=.25f,FalseWarningChance=.25f,EventEscalationChance=.2f,HostileReturn=true,
             UsesDread=true,DreadDarkRate=.12f,DreadInsideRate=.05f,DreadSafeRecovery=.5f,DreadStart=0,
             DreadApparition=12,DreadThrow=8,DreadSeen=15,DreadGrabSurvived=20,
@@ -105,12 +130,12 @@ namespace HollowCurrent
         };
 
         // Field Settings "Long Night" dial on the castle (FEAR_PLAN item 6): no Warning
-        // phase, Dread starts at 50, 50 s hunts, 2-5 s perches, two hide spots nailed shut.
+        // phase, Dread starts at 50, hunts 40-60 s (median 50), 2-5 s perches, two hide spots nailed shut.
         public static readonly HuntRules LongNight=MakeLongNight();
         static HuntRules MakeLongNight()
         {
             var r=Castle.Clone();
-            r.Name="Long Night";r.WarningSeconds=0;r.DreadStart=50;r.HuntSeconds=50;
+            r.Name="Long Night";r.WarningSeconds=0;r.DreadStart=50;r.HuntSeconds=50;r.HuntSecondsMin=40;r.HuntSecondsMax=60;
             r.PerchMinSeconds=2;r.PerchMaxSeconds=5;r.NailedHides=2;r.FalseWarningChance=0;
             return r;
         }
