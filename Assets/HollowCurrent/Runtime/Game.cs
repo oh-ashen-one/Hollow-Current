@@ -349,7 +349,13 @@ namespace HollowCurrent
             }
             if(phase==Phase.Return)Sound.Speak("return");
             // Castle: the sealed bell lowers the drawbridge for the escape.
-            if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)World.Castle.Drawbridge.Lower();
+            if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)
+            {
+                // Hostile return (FEAR_PLAN item 4): the bridge takes the whole chain clip to come down (landing thud at ~7.2 s),
+                // so the escape is a wait under the hunt, not a 3 s formality.
+                if(Case.Rules.HostileReturn)World.Castle.Drawbridge.DegreesPerSecond=CastleDrawbridge.RaisedAngle/7.2f;
+                World.Castle.Drawbridge.Lower();
+            }
             if(phase==Phase.Containment)Sound.Speak("contain");
             if(phase==Phase.Won)Sound.Speak("ending");
             if(phase==Phase.Return)Sound.Cue("containment_release",World.Anchor,.65f);

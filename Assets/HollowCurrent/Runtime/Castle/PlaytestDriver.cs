@@ -229,7 +229,11 @@ namespace HollowCurrent
             Debug.Log("HC_PLAY_FRAMES great_hall frames="+times.Count+" mean_ms="+(sum/times.Count).ToString("F2")+" p50_ms="+times[times.Count/2].ToString("F2")+" p95_ms="+times[(int)(times.Count*.95f)].ToString("F2")+" p99_ms="+times[(int)(times.Count*.99f)].ToString("F2")+" worst_ms="+times[times.Count-1].ToString("F2")+" over_16.7="+times.FindAll(t=>t>16.7f).Count+" screen="+Screen.width+"x"+Screen.height);
             yield return Step("great_hall_frames");
             // 3. Throwables: the director's real throw, then the poltergeist, facing the hall table.
-            var table=new Vector3(hall.x,.8f,hall.z+2.5f);StandNear(table,2.4f,0);yield return Frames(6);
+            // Stand 2.2 m from the hall-floor throwable nearest the rune ring, facing it.
+            Transform target=null;float tBest=99;
+            foreach(var th in Throwable.All){if(!th)continue;var tp=th.transform.position;if(tp.y<-.5f||tp.y>2)continue;float dd=Vector3.Distance(tp,hall);if(dd<tBest){tBest=dd;target=th.transform;}}
+            if(target){StandNear(target.position,2.2f,0);input.Look=target.position;}else Blocker("no Throwable on the hall floor");
+            yield return Frames(6);
             bool threw=game.Scares.ThrowNearbyProp();yield return Wait(1.2f);yield return Step("throw","thrown="+threw+" prop="+(game.Scares.LastThrownProp?game.Scares.LastThrownProp.name:"none"));
             int flung=game.CastleDread?game.CastleDread.Poltergeist():-1;yield return Wait(1.2f);yield return Step("poltergeist","flung="+flung);
             // 4. Castle dread beats through ScareDirector.Dread (HC_SCARE_CASTLE).
@@ -260,10 +264,13 @@ namespace HollowCurrent
             yield return Torch(true);
             // 7. Told hunt; he sees her, then she hides in front of him (witnessed: he opens it, the driver blocks the grab).
             yield return WaitFor(()=>c.Phase==Phase.Disturbance,40);
+            // Entering Disturbance clears the dice timer; let the first tick draw its interval before queueing.
+            yield return Frames(3);
             ForceDread(55,"keep the dice band for the second hunt");
             foreach(var v in new[]{0f,.9f,.9f})dice.Enqueue(v); // hunt roll 0, no-tell 0.9, false alarm 0.9 -> told hunt
             yield return WaitFor(()=>c.Phase==Phase.Warning||c.Phase==Phase.Hunt,20);
             yield return Step("told_warning","false="+c.FalseWarning);
+            if(c.Phase!=Phase.Warning&&c.Phase!=Phase.Hunt)Blocker("forced dice did not give the told hunt");
             yield return WaitFor(()=>c.Phase==Phase.Hunt,12);
             yield return Witnessed();
             yield return TrackHunt("told");
@@ -342,11 +349,22 @@ namespace HollowCurrent
         {
             var c=game.Case;var bridge=game.World.Castle.Drawbridge;
             int colliders=bridge?bridge.GetComponentsInChildren<Collider>().Length:0;
-            {float until=Time.realtimeSinceStartup+12;while(bridge&&bridge.Moving&&Time.realtimeSinceStartup<until)yield return null;}
+            // Wait at the inner gate (as a player must) while the bridge comes down and he hunts; walk when it is down
+            // and either he is within 8 m or 20 s have passed.
+            game.Player.Teleport(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);
+            float waitStart=Time.realtimeSinceStartup,waitClosest=99,nextWaitLog=0;
+            while(Time.realtimeSinceStartup-waitStart<20&&c.Phase==Phase.Return)
+            {
+                float dist=Vector3.Distance(game.Creature.transform.position,game.Player.transform.position);waitClosest=Mathf.Min(waitClosest,dist);
+                if(Time.realtimeSinceStartup>nextWaitLog){nextWaitLog=Time.realtimeSinceStartup+1;Debug.Log("HC_PLAY_BRIDGE_WAIT t="+(Time.realtimeSinceStartup-waitStart).ToString("F1")+" moving="+(bridge&&bridge.Moving)+" count="+game.Creature.transform.position+" dist="+dist.ToString("F1")+" blocked="+c.BlockedDeaths);}
+                if(bridge&&!bridge.Moving&&dist<8)break;
+                yield return null;
+            }
+            Debug.Log("HC_PLAY_BRIDGE_WAIT done seconds="+(Time.realtimeSinceStartup-waitStart).ToString("F1")+" closest="+waitClosest.ToString("F1")+" lowerSeconds="+(bridge?CastleDrawbridge.RaisedAngle/bridge.DegreesPerSecond:0).ToString("F1"));
             var mid=game.World.Castle.DrawbridgeTrigger.center;
             bool ground=Physics.Raycast(new Vector3(0,3,-3),Vector3.down,out var hit,8,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
             yield return Step("drawbridge_lowered","colliders="+colliders+" groundHit="+(ground?hit.collider.name+"@"+hit.point.y.ToString("F2"):"none")+" count="+game.Creature.transform.position);
-            game.Player.Teleport(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);yield return Frames(3);
+            input.Look=new Vector3(0,1.6f,-20);yield return Frames(3);
             input.Move=new Vector2(0,1);float walk=Time.realtimeSinceStartup+14,closest=99;int blocked=c.BlockedDeaths;float nextLog=0;
             while(Time.realtimeSinceStartup<walk&&c.Phase!=Phase.Won)
             {
