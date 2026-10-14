@@ -1,5 +1,30 @@
 # Automated castle playthrough (both endings)
 
+**Latest run: build `22370f1` (count10 live hunt + hc/sword).**
+
+**Kill driver changes:**
+- The driver does not strike, or step towards him, for 3 s after he becomes hittable (hunt start or end of a retreat). It logs `HC_PLAY window`.
+- `-hc-playtest-window <s>` changes the window.
+- Grabs that driver invulnerability blocked are logged as `HC_PLAY phase=grabbed`, one line per burst.
+
+**Escape: WON in 82.8 s.**
+- One blocker: the wardrobe was not focusable from the stand point (seen before), so the driver used it directly.
+- Hunt: `HC_COUNT_HEARD` x4 and `HC_COUNT_SEARCH` x4. He left the perch, glided to the bell's guess and searched near her.
+- Closest approach: 0.7 m from the hidden investigator.
+- No dive or grab. Every `HC_COUNT_AI` line says `why=player hidden, torch off`.
+
+**Kill: WON in 94.5 s, 0 blockers.**
+- Hits at 39.4, 64.9 and 90.4 s, each 3.0 s after the window opened.
+- Hunt 2: `HC_COUNT_DIVE` (mode 1→Chase), then a grab (mode 6) at 63.4 s, 1.0–1.3 m from the investigator.
+  - Driver invulnerability blocked it for 132 frames (`blockedDeaths=132`).
+  - **A real player would have died at 63.4 s.** The run went on only because of the driver's invulnerability.
+- Hunts 1 and 3 had no dive.
+- **Sword:** `HC_SWORD_HELD renderers=1` after the forge. The blade with its blue rune line and the red grip show in the bottom-right of `kill/15_sword_forged.png` to `kill/19_hit_3.png`, and the instrument is hidden.
+
+**Previous run, build `abfa1a2` (count10, before the sword):** both endings won.
+- Escape: 0 blockers; closest approach 0.9 m; no dive (hidden).
+- Kill: hits at 39.3, 64.8 and 90.3 s; 0 dives and 0 grabs; closest approach 1.6 m.
+
 **Latest re-run, build `080b3e1` (count9 + flames9 merged):**
 - Escape WON in 82.8 s, 0 blockers. The wardrobe was focused normally this time.
 - Kill WON in 87.5 s, 0 blockers; hits at 36.3, 58.8 and 83.4 s.

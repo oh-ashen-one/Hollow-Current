@@ -56,8 +56,8 @@ Both start the same way: take the instruments from the lantern cart in the gateh
 
 ## Known issues
 
-- **The Count is too passive:** in the automated runs he stayed on his balcony perch for whole hunts and did not grab an investigator standing next to him. The hunt may feel toothless; this is being fixed.
-- **No sword model:** after forging you still hold the current instrument; the strike works but shows no blade.
+- **Hiding:** while you hide with the torch off he searches close by (0.7 m in the automated run) but does not attack.
+- **Sword:** the left hand does not hold the hilt yet.
 - **Rough edges:** ledger and UI art are generated placeholders, and some textures are projected and mirrored on the Count.
 - **Escape:** walking out over the bridge ends the case; the winch at the gate also ends it once the bell is sealed.
 - **Bellwether:** the Bellwether map is unchanged; pick it on the title screen to compare.
@@ -68,8 +68,11 @@ Write in `docs/haunted-castle/playtest/OWNER_NOTES.md` (create it), or tell the 
 
 ## Build
 
-- **Commit:** `080b3e1` on branch `haunted-castle` (combined player, both maps, built 2026-10-13).
+- **Commit:** `22370f1` on branch `haunted-castle` (combined player, both maps, built 2026-10-13).
 - **Since the first automated run:**
-  - The Count's materials are now mapped to the right parts of the model: membrane wings, body albedo and flesh (count9).
-  - Candle flames are new and stay rigid on their wicks (flames9).
-- **Automated proof:** both endings complete in this exact build (escape 82.8 s, kill 87.5 s, 0 blockers). See `docs/haunted-castle/playtest/AUTO_RUN.md`.
+  - The Count's materials now map to the right parts of the model (count9).
+  - New candle flames stay rigid on their wicks (flames9).
+  - Live hunt (count10): the bell tells him roughly where you are. He leaves the perch within about 2 s, glides there and searches, and dives when he sees you within 14 m.
+  - After the forge, the moonstone sword replaces the held instrument and swings on a strike (hc/sword).
+  - The three relics are real meshes: blade in the reliquary box, hilt in the orrery socket, moonstone on the portrait-closet pedestal.
+- **Automated proof:** both endings complete in this exact build (escape 82.8 s, kill 94.5 s). In the kill run he dove and grabbed the investigator once; only driver invulnerability let the run continue. See `docs/haunted-castle/playtest/AUTO_RUN.md`.
