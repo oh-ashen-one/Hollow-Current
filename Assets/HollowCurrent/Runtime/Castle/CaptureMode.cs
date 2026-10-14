@@ -115,6 +115,49 @@ namespace HollowCurrent
             Log(id+" "+texture.width+"x"+texture.height+" "+file);
             Destroy(texture);
         }
+        // -hc-capture-art exterior|props: extra art-review views (castle-local = world coordinates), eye -> target at the player's
+        // 72 deg FOV, plus a frame-time sample at the crypt view for props. Used with the normal full capture for S1-S4.
+        static string ArtSet{get{var a=Environment.GetCommandLineArgs();for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-capture-art")return a[i+1];return null;}}
+        IEnumerator ArtRun(string set)
+        {
+            game.StartCase();ui.enabled=false;yield return null;yield return null;game.Player.enabled=false;game.Player.View.fieldOfView=72;
+            var views=new List<(string id,Vector3 eye,Vector3 target)>();
+            if(set=="exterior")
+            {
+                views.Add(("bridge_gate",new Vector3(0,1.7f,-4.2f),new Vector3(0,5.2f,3)));
+                views.Add(("bridge_keep",new Vector3(0,1.7f,-6.1f),new Vector3(0,16,19.5f)));
+                views.Add(("bridge_left",new Vector3(-1.2f,1.7f,-3.5f),new Vector3(-14,4.5f,3)));
+                views.Add(("gate_out_S6",new Vector3(.4f,1.3f,5.6f),new Vector3(.4f,3,-16)));
+                views.Add(("courtyard_keep",new Vector3(0,1.64f,7),new Vector3(0,20,19.5f)));
+                views.Add(("courtyard_wall",new Vector3(3,1.64f,11.5f),new Vector3(-.8f,9,3)));
+                views.Add(("courtyard_east",new Vector3(-4,1.64f,9),new Vector3(6,8,5)));
+                views.Add(("battlement_out",new Vector3(3.6f,9,-.4f),new Vector3(.5f,3,-14)));
+                views.Add(("battlement_in",new Vector3(3.6f,9,.4f),new Vector3(0,9,16)));
+            }
+            else
+            {
+                views.Add(("hall_skull_from_east",new Vector3(2,1.64f,12),new Vector3(-4.5f,1,16.8f)));
+                views.Add(("hall_west_end_skull",new Vector3(-1.5f,1.64f,25),new Vector3(-4.5f,1,16.8f)));
+                views.Add(("hall_table_books",new Vector3(1.5f,1.64f,21),new Vector3(0,.8f,23.5f)));
+                views.Add(("crypt_ceiling",new Vector3(0,-1.56f,20),new Vector3(0,-.2f,23)));
+            }
+            foreach(var v in views)
+            {
+                Place(v.eye,v.target);yield return new WaitForSecondsRealtime(1.5f);
+                yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
+                if(v.id=="crypt_ceiling")
+                {
+                    var samples=new List<float>();float end=Time.realtimeSinceStartup+6;
+                    while(Time.realtimeSinceStartup<end){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
+                    samples.Sort();float sum=0;foreach(var x in samples)sum+=x;
+                    Log("FRAMETIME crypt frames="+samples.Count+" mean="+(sum/samples.Count).ToString("F2")+"ms p99="+samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.99f))].ToString("F2")+"ms max="+samples[samples.Count-1].ToString("F2")+"ms");
+                }
+            }
+            File.WriteAllText(Path.Combine(Directory,"capture_art_"+set+".json"),"{\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");
+            Log("ART DONE "+set+" "+entries.Count+" entries");
+            Game.RestoreOwnerWindow();yield return null;yield return null;
+            Application.Quit();
+        }
         // The investigator's flashlight as in play (Investigator input is off in capture).
         void Torch(bool on){var l=game.Player.Torch;l.enabled=on;l.intensity=.85f*game.Player.Brightness;}
         static string V(Vector3 v)=>v.x.ToString("F2")+","+v.y.ToString("F2")+","+v.z.ToString("F2");
@@ -137,6 +180,7 @@ namespace HollowCurrent
         {
             while(game.Loading)yield return null;
             var warm=Time.realtimeSinceStartup+3;while(Time.realtimeSinceStartup<warm)yield return null;
+            if(ArtSet!=null){yield return ArtRun(ArtSet);yield break;}
             Log("screen "+Screen.width+"x"+Screen.height+" quality="+QualitySettings.names[QualitySettings.GetQualityLevel()]+" aa="+QualitySettings.antiAliasing+" shadows="+QualitySettings.shadowResolution+"/"+QualitySettings.shadowDistance+" targetFps="+Application.targetFrameRate+" vsync="+QualitySettings.vSyncCount);
             // S7: title screen with the map picker (Castle selected).
             game.SelectMap(MapId.Castle);
