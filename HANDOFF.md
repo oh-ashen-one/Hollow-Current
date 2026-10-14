@@ -97,6 +97,7 @@ After the hc/rules2 merge:
 
 **Merged:**
 - hc/count13 `98532bf` (`d57e1f0`)
+- hc/count14 `a9d6e40` (merge below; handoff `docs/haunted-castle/handoffs/count14.md`)
 - hc/scares3 `632d859` (`05ee819`)
 - hc/rules3 `6c8cf9c` (`23a8d7b`, RulesTests conflict resolved keeping both sides)
 
@@ -140,7 +141,7 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
    - `HC_THROW` or `HC_SCARE_CASTLE poltergeist` in natural play.
    - `HC_ESCALATE escalated=True` at least once (rerun up to 3 times).
    - Few `HC_SCARE_SKIP reason=rhythm canSurprise=False` lines.
-3. **Fear run:** no-tell first 6 s with `changedFrames=0`. Report the first wing leg; a silent leg is possible.
+3. **Fear run:** no-tell first 6 s with `changedFrames=0` and **no-tell first leg silent**. Expect `HC_COUNT_LEG first=silent reason=` (hc/count14: no-tell and hostile-return hunts always fly a silent first leg, then a silent or soft second leg; the breath one-shot is held for 8 s unless seen), with `wingMaxDelta` near 0.
 4. **Kill, siege (near-miss open, Recovery cut) and death + retry:** these passed only on the r1 build; rerun them on the current build.
 5. **Bellwether `-hc-verify`:** `HC_NATIVE_ROUTE_PASS` again, after the director change (shared file).
 6. **Title captures:** at 1920x1080 and at the largest window, to confirm the fog band.
