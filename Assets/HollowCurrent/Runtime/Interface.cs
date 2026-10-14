@@ -222,26 +222,29 @@ namespace HollowCurrent
             if(clicked)Game.Sound.UI();
             return clicked;
         }
+        // Title (piece T1): full-bleed key art, left-aligned type, two map cards and three actions.
+        // Drawing lives in TitleScreen; layout, input and controller focus live here.
         void Title()
         {
-            Backdrop();Brand();Card(new Rect(45,145,705,650));Track(80,176,"AN ORIGINAL INVESTIGATION");
-            Label(74,213,650,200,"Hollow\nCurrent",hero);Label(82,424,640,52,Book.TitleName,heading);
-            Label(82,476,640,64,Book.Tagline);
-            // BEGIN is registered first so a controller lands on it; the picker sits above.
-            if(Action(80,617,440,62,"BEGIN INVESTIGATION","ENTER",true))Game.BeginInvestigation();
-            for(int i=0;i<MapCatalog.All.Count;i++)
-            {
-                var map=MapCatalog.All[i];bool chosen=Game.SelectedMap==map.Id;var tab=new Rect(80+i*325,550,310,50);
-                if(Game.MapAvailable(map.Id)){if(Action(tab.x,tab.y,tab.width,tab.height,chosen?"•  "+map.DisplayName:map.DisplayName,"",chosen,false,chosen,"map/"+map.Id))Game.SelectMap(map.Id);continue;}
-                // A map whose scene is not in this player: a parchment tab with dark ink
-                // (readable, not focusable), never an empty disabled bar.
-                TextureFrame(tab,paperPanel,new Color(1,1,1,.97f));Border(tab,line);
-                var ink=button.normal.textColor;var size=button.fontSize;button.normal.textColor=paperInk;button.fontSize=17;button.padding.left=22;button.padding.right=22;
-                GUI.Label(new Rect(tab.x,tab.y-7,tab.width,tab.height),map.DisplayName,button);button.normal.textColor=ink;button.fontSize=size;
-                var oldSmall=small.normal.textColor;small.normal.textColor=oxblood;GUI.Label(new Rect(tab.x+22,tab.y+26,tab.width-30,20),"not in this build",small);small.normal.textColor=oldSmall;
-            }
-            if(Action(80,700,270,46,"FIELD SETTINGS","S",false,true)){Game.Paused=true;Game.ApplyFocus();}
-            if(Action(355,700,300,46,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
+            var screen=GetComponent<TitleScreen>();if(!screen)screen=gameObject.AddComponent<TitleScreen>();
+            screen.Prepare(serif);var book=Book;
+            screen.Backdrop(artworkMaterial,BackdropFor(book),(int)Game.SelectedMap);
+            // Brand: two tracked lines only.
+            screen.Tracked("HOLLOW CURRENT",80,44,12,3,new Color(ink.r,ink.g,ink.b,.6f),false);
+            screen.Tracked("FIELD INVESTIGATION OFFICE",80,62,12,3,new Color(muted.r,muted.g,muted.b,.6f),false);
+            // Type block.
+            screen.Tracked("HOLLOW",80,78,96,10,ink);
+            float titleWidth=screen.Tracked("CURRENT",80,168,96,10,ink);
+            Panel(new Rect(80,280,titleWidth,1),copper);
+            screen.Tracked(book.TitleName,80,296,34,2.5f,ink);
+            if(titleTagline==null)titleTagline=new GUIStyle(body){fontStyle=FontStyle.Italic};
+            titleTagline.normal.textColor=new Color(ink.r,ink.g,ink.b,.7f);
+            Label(80,350,640,64,book.Tagline,titleTagline);
+            // BEGIN is registered first so a controller lands on it; the map cards sit above it on screen.
+            if(TitleBegin(screen,new Rect(80,668,680,60)))Game.BeginInvestigation();
+            for(int i=0;i<MapCatalog.All.Count;i++)TitleCard(screen,MapCatalog.All[i],new Rect(80+i*350,440,330,185));
+            if(TitleLink(screen,80,766,"FIELD SETTINGS","FIELD SETTINGS")){Game.Paused=true;Game.ApplyFocus();}
+            if(TitleLink(screen,310,766,"EXIT TO DESKTOP","EXIT TO DESKTOP"))Game.Quit();
             Footer("1 / 2 choose map   ·   WASD move   ·   Mouse look   ·   E interact   ·   Headphones suggested");
         }
         void Loading()
@@ -489,6 +492,66 @@ namespace HollowCurrent
             if(Game.HelpHints)Label(365,869,855,25,PadInput.Active?(ps?"× INTERACT   △ JOURNAL   L2 RADIO   L3 SPRINT   ○ CROUCH":"A INTERACT   Y JOURNAL   LT RADIO   LS SPRINT   B CROUCH"):"E INTERACT   J JOURNAL   R RADIO   SHIFT SPRINT   CTRL CROUCH",hudTiny);
             if(p.Stamina<.99f){Panel(new Rect(44,878,220,2),line);Panel(new Rect(44,878,220*p.Stamina,2),copper);}
             if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt((Game.Map==MapId.Castle?(Game.Case.WarningLength>0?Game.Case.WarningLength:Game.Case.Rules.WarningSeconds):9)-Game.Case.PhaseTime)),center);
+        }
+        // ---- Title helpers (piece T1) ----
+        GUIStyle titleTagline;
+        // Hit test, focus and controller activation for a title control; the same ids and rules as Action().
+        bool TitleHit(Rect rect,string controlId,out bool hover,out bool focus)
+        {
+            string id="hc-ui/"+controlId;Register(id,rect);
+            bool padFocus=PadInput.Active&&focusedId==id;
+            focus=(!PadInput.Active&&GUI.GetNameOfFocusedControl()==id)||padFocus;
+            hover=!PadInput.Active&&rect.Contains(Event.current.mousePosition)&&GUI.enabled;
+            GUI.SetNextControlName(id);bool clicked=GUI.Button(rect,GUIContent.none,GUIStyle.none);
+            if(PadInput.Active)clicked=false;
+            if(ConsumeControllerAction(id,GUI.enabled,Event.current.type==EventType.Layout))clicked=true;
+            if(clicked)Game.Sound.UI();
+            return clicked;
+        }
+        void TitleFrame(Rect r,Color c,float t)
+        {Panel(new Rect(r.x,r.y,r.width,t),c);Panel(new Rect(r.x,r.yMax-t,r.width,t),c);Panel(new Rect(r.x,r.y,t,r.height),c);Panel(new Rect(r.xMax-t,r.y,t,r.height),c);}
+        bool TitleBegin(TitleScreen screen,Rect r)
+        {
+            bool clicked=TitleHit(r,"BEGIN INVESTIGATION",out bool hover,out bool focus);
+            Panel(r,new Color(copper.r,copper.g,copper.b,hover||focus?.3f:.18f));Border(r,copper);
+            screen.Tracked("BEGIN INVESTIGATION",r.x+26,r.center.y-screen.LineBox(20)/2,20,2.6f,Color.white);
+            string key=PadInput.Active?(focus?PadInput.Prompt("ENTER"):""):"ENTER";
+            if(key.Length>0)
+            {
+                var cap=new Rect(r.xMax-66,r.y+(r.height-24)/2,48,24);Border(cap,line);
+                var old=keyStyle.normal.textColor;keyStyle.normal.textColor=ink;GUI.Label(cap,key,keyStyle);keyStyle.normal.textColor=old;
+            }
+            return clicked;
+        }
+        // Plain text action: tracked caps, a thin copper underline on hover or focus.
+        bool TitleLink(TitleScreen screen,float x,float centerY,string text,string controlId)
+        {
+            float width=screen.Measure(text,16,2.2f);
+            bool clicked=TitleHit(new Rect(x-10,centerY-20,width+20,40),controlId,out bool hover,out bool focus);
+            bool lit=hover||focus;
+            screen.Tracked(text,x,centerY-screen.LineBox(16)/2,16,2.2f,lit?ink:new Color(ink.r,ink.g,ink.b,.78f));
+            if(lit)Panel(new Rect(x,centerY+11,width,1),copper);
+            return clicked;
+        }
+        // A map card: cropped art, shade, the map name; copper frame and full brightness when chosen.
+        void TitleCard(TitleScreen screen,MapInfo map,Rect r)
+        {
+            bool available=Game.MapAvailable(map.Id),chosen=Game.SelectedMap==map.Id,hover=false,focus=false;
+            if(available&&TitleHit(r,"map/"+map.Id,out hover,out focus))Game.SelectMap(map.Id);
+            float brightness=!available?.55f:chosen?1f:hover||focus?.8f:.6f;
+            var art=BackdropFor(CaseBook.For(map.Id));
+            if(art)screen.CardArt(artworkMaterial,r,art,TitleScreen.CropFor(map.Id),brightness);
+            else Panel(r,new Color(.05f,.06f,.07f));
+            // A map not in this build: drained of colour (a neutral veil) and labelled.
+            if(!available)Panel(r,new Color(.2f,.2f,.2f,.6f));
+            int size=18;string name=map.DisplayName;
+            while(size>13&&screen.Measure(name,size,1.6f)>r.width-32)size--;
+            float nameY=r.yMax-(available?16:36)-screen.LineBox(size);
+            screen.Tracked(name,r.x+16,nameY,size,1.6f,new Color(ink.r,ink.g,ink.b,available?1f:.8f));
+            if(!available)screen.Tracked("not in this build",r.x+16,r.yMax-14-screen.LineBox(12,false),12,1.2f,copper,false);
+            if(chosen)TitleFrame(r,copper,2);
+            else if(focus)TitleFrame(r,new Color(copper.r,copper.g,copper.b,.7f),1);
+            else Border(r,new Color(line.r,line.g,line.b,.45f));
         }
     }
 }
