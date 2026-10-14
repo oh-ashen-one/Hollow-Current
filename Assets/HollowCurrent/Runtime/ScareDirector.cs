@@ -65,7 +65,9 @@ namespace HollowCurrent
             if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment)return;
             // Reserve the approach to a natural hunt for dread, not a competing
             // loud apparition. The nine-second hunt warning remains intact.
-            bool approachingHunt=game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55;
+            // Bellwether's 95 s timer reserve. The castle hunts on dice, so this gate would starve its apparitions, throws,
+            // poltergeists and escalations for the rest of Disturbance (critic r10 #26).
+            bool approachingHunt=!IsCastle&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55;
             if(!basement&&game.Player.transform.position.y< -2.5f&&!approachingHunt&&rhythm.CanSurprise)
             {
                 if(Trigger(true)){basement=true;BasementFlashes++;}
@@ -112,7 +114,7 @@ namespace HollowCurrent
         {
             if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
             if(!firstBasement&&!rhythm.AppearanceDue)return false;
-            if(game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false;
+            if(!IsCastle&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false; // Bellwether only (critic r10 #26)
             if(!VisiblePoint(out var point)){if(!firstBasement)Dread();return false;}
             bool rush=!firstBasement&&Events%3==2;
             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true))return false;

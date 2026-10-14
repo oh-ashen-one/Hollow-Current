@@ -301,11 +301,27 @@ namespace HollowCurrent
         public void RadioHint()
         {
             if(radioCooldown>0)return;radioCooldown=8;
-            if(Scares&&Scares.Interference){Sound.Speak("whisper");Say(Book.RadioInterference);return;}
-            if(Case.Phase==Phase.Hunt||Case.Phase==Phase.Warning){Say(Book.RadioHunt);Sound.Speak("warning");return;}
+            if(Map==MapId.Castle)
+            {
+                // Critic r10 #8/#30: the castle radio is no hunt detector and no cc_listen source. During interference, or a
+                // Warning/hunt half the time, it gives only static; otherwise a hint (in a hunt, a random one).
+                bool danger=Case.Phase==Phase.Warning||Case.HuntActive;
+                if(Scares&&Scares.Interference||danger&&UnityEngine.Random.value<.5f){Sound.Cue("radio",Player.transform.position,.45f);Say(Book.RadioInterference);return;}
+                if(danger&&!Case.Diagnosed){CastleHint(UnityEngine.Random.Range(0,3));return;}
+            }
+            else
+            {
+                if(Scares&&Scares.Interference){Sound.Speak("whisper");Say(Book.RadioInterference);return;}
+                if(Case.Phase==Phase.Hunt||Case.Phase==Phase.Warning){Say(Book.RadioHunt);Sound.Speak("warning");return;}
+            }
             if(Case.Diagnosed){Say("Dispatch / "+Case.Goal);Sound.Speak(Case.Phase==Phase.Return?"return":"contain");return;}
             string hint=!Case.Evidence.Contains(Evidence.Induction)?"hint_signal":!Case.Evidence.Contains(Evidence.Handprint)?"hint_trace":"hint_voice";
             Say("Dispatch / "+(hint=="hint_signal"?Book.HintSignal:hint=="hint_trace"?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
+        }
+        void CastleHint(int which)
+        {
+            string hint=which==0?"hint_signal":which==1?"hint_trace":"hint_voice";
+            Say("Dispatch / "+(which==0?Book.HintSignal:which==1?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
         }
         // Castle: dread-aware tick (HuntRules.Castle: dice hunts, lies, hostile return) and the
         // torch failing for a second when he dives.
@@ -364,7 +380,8 @@ namespace HollowCurrent
                 bool escalation=Map==MapId.Castle&&Case.WarningLength<Case.Rules.WarningSeconds;
                 Scares?.Pulse(Player.transform.position+Player.transform.forward*3,escalation?Case.WarningLength:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)Sound.Speak("warning");
             }
-            if(phase==Phase.Return)Sound.Speak("return");
+            // Castle hostile return (critic r10 #34): dispatch says he is free (voice_cc_dispatch); Bellwether keeps "return".
+            if(phase==Phase.Return)Sound.Speak(Map==MapId.Castle&&Case.Rules.HostileReturn?"dispatch":"return");
             // Castle: the sealed bell lowers the drawbridge for the escape.
             if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)
             {
@@ -390,15 +407,18 @@ namespace HollowCurrent
             var direction=Creature.Actor.Head.position-Player.View.transform.position;
             if(direction.sqrMagnitude>.04f)Player.View.transform.rotation=Quaternion.Slerp(Player.View.transform.rotation,Quaternion.LookRotation(direction),Time.unscaledDeltaTime*3);
         }
+        // In the castle, or choosing it on the title (its CASTLE NIGHT page is open to the player).
+        bool CastleSession=>Map==MapId.Castle||!Started&&SelectedMap==MapId.Castle;
         public void SavePreferences()
         {
             if(!Player)return;
             bool changed=!Mathf.Approximately(PlayerPrefs.GetFloat("hc.subtitle-scale",-1),SubtitleScale)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.card-opacity",-1),CardOpacity)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.sensitivity",-1),Player.Sensitivity)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.brightness",-1),Player.Brightness)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.volume",-1),Volume)||PlayerPrefs.GetInt("hc.invert-y",-1)!=(Player.InvertY?1:0)||PlayerPrefs.GetInt("hc.subtitles",-1)!=(Subtitles?1:0)||PlayerPrefs.GetInt("hc.help",-1)!=(HelpHints?1:0)
-                ||!Automated&&(PlayerPrefs.GetInt(LongNightKey,0)!=(LongNight?1:0)||PlayerPrefs.GetInt(MicKey,0)!=(MicEnabled?1:0)||!Mathf.Approximately(PlayerPrefs.GetFloat(MicThresholdKey,.02f),MicThreshold));
+                ||!Automated&&CastleSession&&(PlayerPrefs.GetInt(LongNightKey,0)!=(LongNight?1:0)||PlayerPrefs.GetInt(MicKey,0)!=(MicEnabled?1:0)||!Mathf.Approximately(PlayerPrefs.GetFloat(MicThresholdKey,.02f),MicThreshold));
             if(!changed)return;
             PlayerPrefs.SetFloat("hc.subtitle-scale",SubtitleScale);PlayerPrefs.SetFloat("hc.card-opacity",CardOpacity);PlayerPrefs.SetFloat("hc.sensitivity",Player.Sensitivity);PlayerPrefs.SetFloat("hc.brightness",Player.Brightness);PlayerPrefs.SetFloat("hc.volume",Volume);
             PlayerPrefs.SetInt("hc.invert-y",Player.InvertY?1:0);PlayerPrefs.SetInt("hc.subtitles",Subtitles?1:0);PlayerPrefs.SetInt("hc.help",HelpHints?1:0);
-            if(!Automated){PlayerPrefs.SetInt(LongNightKey,LongNight?1:0);PlayerPrefs.SetInt(MicKey,MicEnabled?1:0);PlayerPrefs.SetFloat(MicThresholdKey,MicThreshold);}
+            // Castle settings are written from castle sessions only (critic r10 #25).
+            if(!Automated&&CastleSession){PlayerPrefs.SetInt(LongNightKey,LongNight?1:0);PlayerPrefs.SetInt(MicKey,MicEnabled?1:0);PlayerPrefs.SetFloat(MicThresholdKey,MicThreshold);}
             PlayerPrefs.Save();
         }
         public void Quit(){SavePreferences();if(Automated)Debug.Log("HC_QUIT_CALLED "+Environment.StackTrace);Application.Quit();}

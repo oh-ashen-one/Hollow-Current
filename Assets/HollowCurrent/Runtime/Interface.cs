@@ -239,7 +239,9 @@ namespace HollowCurrent
             screen.Tracked(book.TitleName,80,296,34,2.5f,ink);
             if(titleTagline==null)titleTagline=new GUIStyle(body){fontStyle=FontStyle.Italic};
             titleTagline.normal.textColor=new Color(ink.r,ink.g,ink.b,.7f);
-            Label(80,350,640,64,book.Tagline,titleTagline);
+            // Fixed 23.5 design-px line pitch, as in the approved mock (critic r10 #41), instead of the font's line height.
+            var taglineLines=book.Tagline.Split('\n');
+            for(int i=0;i<taglineLines.Length;i++)Label(80,350+i*23.5f,640,30,taglineLines[i],titleTagline);
             // BEGIN is registered first so a controller lands on it; the map cards sit above it on screen.
             if(TitleBegin(screen,new Rect(80,668,680,60)))Game.BeginInvestigation();
             for(int i=0;i<MapCatalog.All.Count;i++)TitleCard(screen,MapCatalog.All[i],new Rect(80+i*350,440,330,185));
@@ -297,7 +299,8 @@ namespace HollowCurrent
             if(Action(80,760,340,44,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
             if(settingsPage==2&&!CastleScreen)settingsPage=0;
             string nextPage=settingsPage==0?"DIALOGUE DISPLAY":settingsPage==1&&CastleScreen?"CASTLE NIGHT":"CONTROLS & AUDIO";
-            if(Action(80,544,340,42,nextPage,"",false,false,settingsPage!=0,"settings-page"))settingsPage=settingsPage==0?1:settingsPage==1&&CastleScreen?2:0;
+            // Bellwether keeps its label-derived controller ids (critic r10 #24); only the castle's three-page cycle uses a fixed id.
+            if(Action(80,544,340,42,nextPage,"",false,false,settingsPage!=0,CastleScreen?"settings-page":null))settingsPage=settingsPage==0?1:settingsPage==1&&CastleScreen?2:0;
             Card(new Rect(520,173,1000,635));
             if(settingsPage==2){CastleSettings();return;}
             if(settingsPage==1)
@@ -342,13 +345,25 @@ namespace HollowCurrent
             }
             Footer("Field rules for the castle. Preferences are kept between cases.");
         }
-        // The journal's pulse: a hand-drawn ink trace whose rate and height follow Dread (with +-2 of slow
-        // noise). Never a number (FEAR_PLAN item 1).
+        // Castle (critic r10 #4): the HUD goal does not flip to the hunt goal. Through Hunt and Recovery it keeps the calm goal,
+        // with the hunt-survived state frozen at the hunt's start.
+        bool goalSurvived;
+        string HudGoal()
+        {
+            var c=Game.Case;
+            if(Game.Map!=MapId.Castle)return c.Goal;
+            if(c.Phase!=Phase.Hunt&&c.Phase!=Phase.Recovery||!c.Equipped){goalSurvived=c.Survived;return c.Goal;}
+            var b=Book;
+            if(c.Evidence.Count==3)return !goalSurvived?b.GoalReacting:c.ContextCount<3?b.GoalNeedContext:b.GoalReconstruct;
+            return b.GoalDefault;
+        }
+        // The journal's pulse: a hand-drawn ink trace whose rate and height follow FeltDread (critic r10 #3: +-12 slow noise,
+        // no hunt floor; hc/rules2's FeltDread lags and lies). Never a number (FEAR_PLAN item 1).
         void PulseLine(Rect r)
         {
             if(Event.current.type!=EventType.Repaint)return;
             float t=Time.unscaledTime;
-            float dread=Mathf.Clamp(Game.Case.Dread+(Mathf.PerlinNoise(t*.35f,.5f)*2-1)*2,0,100);
+            float dread=Mathf.Clamp(Soundscape.FeltDread(Game.Case)+(Mathf.PerlinNoise(t*.35f,.5f)*2-1)*12,0,100);
             float rate=.9f+dread*.022f; // beats per second: 0.9 calm to 3.1 at the edge
             float height=r.height*(.18f+dread*.0042f);
             float baseline=r.center.y;
@@ -463,7 +478,8 @@ namespace HollowCurrent
             }
             dialogueText.fontSize=Mathf.RoundToInt(24*Game.SubtitleScale);
             float height=Mathf.Clamp(dialogueText.CalcHeight(new GUIContent(dialogueBody),460)/.53f,125,245);
-            bool danger=Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference||Game.Map==MapId.Castle&&Game.Case.HuntActive;
+            // Castle (critic r10 #14): cards do not turn to danger styling for a hunt; only a Warning or real interference does.
+            bool danger=Game.Map==MapId.Castle?Game.Case.Phase==Phase.Warning||Game.Scares.Interference:Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference;
             float fade=Mathf.Clamp01(Game.SubtitleTime/.4f);
             Dialogue(new Rect(495,858-height,610,height),dialogueSpeaker,dialogueBody,danger,fade);
         }
@@ -474,7 +490,7 @@ namespace HollowCurrent
         void HUD()
         {
             if(shownRecords!=Game.Case.Evidence.Count){shownRecords=Game.Case.Evidence.Count;recordLabel=Book.CaseTag+" / "+shownRecords+" RECORDS";}
-            Track(42,24,"OBJECTIVE",ink);Rule(42,53,320);Track(660,24,"HOLLOW CURRENT",ink);Rule(660,53,285);Label(42,63,690,70,Game.Case.Goal,hudGoal);
+            Track(42,24,"OBJECTIVE",ink);Rule(42,53,320);Track(660,24,"HOLLOW CURRENT",ink);Rule(660,53,285);Label(42,63,690,70,HudGoal(),hudGoal);
             Label(1290,28,268,28,Location(),rightBody);Panel(new Rect(1355,62,200,1),copper);Label(1290,73,268,24,recordLabel,rightBody);
             Panel(new Rect(798,448,4,4),new Color(.8f,.8f,.7f,.7f));var p=Game.Player;
             string use=PadInput.Active?(PadInput.Current.PlayStation?"[×] ":"[A] "):"[E] ",torch=PadInput.Active?(PadInput.Current.PlayStation?"[□] ":"[X] "):"[F] ";
@@ -491,7 +507,8 @@ namespace HollowCurrent
             KeyPill(1315,840,PadInput.Active?(ps?"□":"X"):"F","FLASHLIGHT");
             if(Game.HelpHints)Label(365,869,855,25,PadInput.Active?(ps?"× INTERACT   △ JOURNAL   L2 RADIO   L3 SPRINT   ○ CROUCH":"A INTERACT   Y JOURNAL   LT RADIO   LS SPRINT   B CROUCH"):"E INTERACT   J JOURNAL   R RADIO   SHIFT SPRINT   CTRL CROUCH",hudTiny);
             if(p.Stamina<.99f){Panel(new Rect(44,878,220,2),line);Panel(new Rect(44,878,220*p.Stamina,2),copper);}
-            if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt((Game.Map==MapId.Castle?(Game.Case.WarningLength>0?Game.Case.WarningLength:Game.Case.Rules.WarningSeconds):9)-Game.Case.PhaseTime)),center);
+            // Castle: a non-numeric cue only (critic r10 #14); Bellwether keeps its countdown.
+            if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,Game.Map==MapId.Castle?"SIGNAL COLLAPSING":"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt(9-Game.Case.PhaseTime)),center);
         }
         // ---- Title helpers (piece T1) ----
         GUIStyle titleTagline;

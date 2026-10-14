@@ -21,6 +21,11 @@ namespace HollowCurrent
         readonly List<Vector3> windows=new List<Vector3>();
         bool rareLine,rareDone;float rareAt=-1;
         Vector3 clawLast;bool clawTracking;int clawIndex=-1;
+        // Per-run offset on the heartbeat curve (critic r10 #2): +-8 felt Dread, so silence never reads as an exact threshold.
+        float heartbeatOffset;
+        // Active silence (DuckBed): envelope 1 -> depth over 1 s, hold, back to 1 over 3 s; scales wind, room tone, heartbeat.
+        float duckDepth=1,duckHold,duckClock=-1,duckLevel=1;
+        float roomBase,windBase,heartBase;
         public float HeartbeatVolume=>heartbeat?heartbeat.volume:0;
         public float WindVolume=>wind?wind.volume:0;
         public int ClawStepCount {get;private set;}
@@ -62,7 +67,7 @@ namespace HollowCurrent
                 foreach(var l in game.World.WindowLights)if(l)windows.Add(l.transform.position);
                 foreach(var w in game.World.Root.GetComponentsInChildren<WindowMoon>(true))windows.Add(w.transform.position);
                 // One run in three may hear the rare line once (rolled now, played after the first hunt).
-                rareLine=UnityEngine.Random.value<1f/3;
+                rareLine=UnityEngine.Random.value<1f/3;heartbeatOffset=UnityEngine.Random.Range(-8f,8f);
                 Debug.Log("HC_CASTLE_MIX heartbeat="+clips.ContainsKey("heartbeat_loop")+" wind="+clips.ContainsKey("wind_battlements_loop")+" windows="+windows.Count+" rareLine="+rareLine);
             }
             var basement=new GameObject("Basement acoustic volume");basement.transform.SetParent(transform);basement.transform.position=new Vector3(0,-2,7);
@@ -78,11 +83,41 @@ namespace HollowCurrent
             if(!clips.ContainsKey(name)){MissingArt.Report("audio",name);clips[name]=MissingArt.Silence;}
             var a=Loop(name,0);a.ignoreListenerPause=false;return a;
         }
-        // Dread 40 -> 0, 60 -> 0.15, 80 -> 0.35, 100 -> 0.55 (AUDIO.md heartbeat curve).
+        // Felt Dread 20 -> 0, 45 -> 0.15, 70 -> 0.35, 100 -> 0.55 (AUDIO.md levels; the curve starts at 20 after critic r10 #2) and is
+        // shifted by the per-run offset. No hunt floor: the heartbeat follows the felt reading only (#39).
         public static float HeartbeatForDread(float dread)
         {
-            if(dread<=40)return 0;if(dread<=60)return Mathf.Lerp(0,.15f,(dread-40)/20);if(dread<=80)return Mathf.Lerp(.15f,.35f,(dread-60)/20);
-            return Mathf.Lerp(.35f,.55f,Mathf.Clamp01((dread-80)/20));
+            if(dread<=20)return 0;if(dread<=45)return Mathf.Lerp(0,.15f,(dread-20)/25);if(dread<=70)return Mathf.Lerp(.15f,.35f,(dread-45)/25);
+            return Mathf.Lerp(.35f,.55f,Mathf.Clamp01((dread-70)/30));
+        }
+        // Investigation.FeltDread (hc/rules2: lagged, noisy, lying 0-100) once merged; the true Dread until then.
+        static Func<Investigation,float> felt;static bool feltResolved;
+        public static float FeltDread(Investigation c)
+        {
+            if(!feltResolved)
+            {
+                feltResolved=true;var p=typeof(Investigation).GetProperty("FeltDread");
+                if(p!=null&&p.PropertyType==typeof(float))felt=(Func<Investigation,float>)Delegate.CreateDelegate(typeof(Func<Investigation,float>),p.GetGetMethod());
+                Debug.Log("HC_FELT_DREAD source="+(felt!=null?"FeltDread":"Dread"));
+            }
+            return felt!=null?felt(c):c.Dread;
+        }
+        // Contract for F3 (critic r10 #38): an active silence. Ducks wind, room tone and heartbeat to `depth` over 1 s, holds for
+        // `seconds`, restores over 3 s. Castle only.
+        public void DuckBed(float seconds,float depth)
+        {
+            if(!castle)return;
+            duckDepth=Mathf.Clamp01(depth);duckHold=Mathf.Max(0,seconds);duckClock=0;
+            Debug.Log("HC_DUCK seconds="+duckHold.ToString("F1")+" depth="+duckDepth.ToString("F2"));
+        }
+        float DuckEnvelope(float dt)
+        {
+            if(duckClock<0)return 1;
+            duckClock+=dt;
+            if(duckClock<1)return Mathf.Lerp(1,duckDepth,duckClock);
+            if(duckClock<1+duckHold)return duckDepth;
+            if(duckClock<4+duckHold)return Mathf.Lerp(duckDepth,1,(duckClock-1-duckHold)/3);
+            duckClock=-1;return 1;
         }
         public void Speak(string id,Vector3? location=null)
         {
@@ -91,7 +126,7 @@ namespace HollowCurrent
             AudioClip clip;
             if(castle)
             {
-                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":id=="arrival"?"cc_night":id=="warning"?"cc_hunt_hungry":id=="return"?"cc_stay":"cc_"+id;
+                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":id=="arrival"?"cc_night":id=="warning"?"cc_hunt_hungry":id=="return"?"cc_stay":id=="dispatch"?"cc_dispatch":"cc_"+id;
                 if(!clips.TryGetValue("voice_"+key,out clip)){MissingArt.Report("speech","voice_"+key);return;}
             }
             else if(!clips.TryGetValue("voice_"+id,out clip))throw new InvalidOperationException("Missing speech "+id);
@@ -136,14 +171,16 @@ namespace HollowCurrent
             var a=voices[index];a.Stop();speechUntil[index]=0;a.transform.position=position;a.clip=clip;a.volume=volume;a.pitch=pitch;
             filters[index].cutoffFrequency=22000;filters[index].enabled=true;a.Play();PlayedCues++;return index;
         }
-        void CastleMix(float dt,float bed,bool hunting,bool tellHeld,bool terminal)
+        void CastleMix(float dt,float bed,bool hunting,bool terminal)
         {
-            var p=game.Player;float dread=game.Case.Dread;
-            float beat=terminal||!game.Started?0:Mathf.Max(HeartbeatForDread(dread),hunting&&!tellHeld?.5f:0)*bed;
-            heartbeat.volume=Mathf.MoveTowards(heartbeat.volume,beat,dt*.55f); // ~1 s ramp
+            var p=game.Player;float dread=FeltDread(game.Case)+heartbeatOffset;
+            duckLevel=DuckEnvelope(dt);
+            float beat=terminal||!game.Started?0:HeartbeatForDread(dread)*bed;
+            heartBase=Mathf.MoveTowards(heartBase,beat,dt*.55f); // ~1 s ramp
+            heartbeat.volume=heartBase*duckLevel;
             float nearWindow=99;foreach(var w in windows)nearWindow=Mathf.Min(nearWindow,Vector3.Distance(p.transform.position,w));
             float air=!game.Started||terminal?0:!p.Inside?.15f:nearWindow<2.5f?.10f:0;
-            wind.volume=Mathf.MoveTowards(wind.volume,air*bed,dt*.25f);
+            windBase=Mathf.MoveTowards(windBase,air*bed,dt*.25f);wind.volume=windBase*duckLevel;
             RareLine(hunting);
             ClawSteps(hunting);
         }
@@ -184,17 +221,18 @@ namespace HollowCurrent
             duck=Mathf.MoveTowards(duck,speaking?.22f:1,dt*(speaking?5f:.75f));
             bool quiet=game.Loading||game.Paused||game.Journal||game.NoteBody!=null;
             bool hunting=game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||castle&&game.Case.HuntActive;
-            // A no-tell hunt gives no audio tell for its first seconds: the first sign is him.
-            bool tellHeld=castle&&game.Case.NoTellHunt&&game.Case.Phase==Phase.Hunt&&game.Case.PhaseTime<4;
             bool safe=!game.Started||(game.Player.InVan&&!hunting&&!game.Scares.Interference);
             bool terminal=game.Case.Terminal;
             float bed=game.Loading||terminal?0:quiet?.16f:1;
+            // Castle (critic r10 #13/#37): no music in the gatehouse or in hunts; the title keeps the safety theme.
+            if(castle&&game.Started)safe=false;
             safeMusic.volume=Mathf.MoveTowards(safeMusic.volume,safe?.32f*bed*duck:0,dt*.25f);
             // The castle has no house music (silence is the bed) and caps the hunt music at 0.15.
             houseMusic.volume=Mathf.MoveTowards(houseMusic.volume,!safe&&!hunting&&!castle?.28f*bed*duck:0,dt*.25f);
-            huntMusic.volume=Mathf.MoveTowards(huntMusic.volume,!safe&&hunting&&!tellHeld?(castle?.15f:.38f)*bed*duck:0,dt*.35f);
-            if(castle)CastleMix(dt,bed,hunting,tellHeld,terminal);
-            float breathLevel=game.Started&&!game.Modal&&game.Player.Hidden&&hunting?.28f*duck:0;
+            huntMusic.volume=Mathf.MoveTowards(huntMusic.volume,!safe&&hunting&&!castle?.38f*bed*duck:0,dt*.35f);
+            if(castle)CastleMix(dt,bed,hunting,terminal);
+            // Castle: she breathes whenever she hides, so the breath never marks a hunt (critic r10 #1).
+            float breathLevel=game.Started&&!game.Modal&&game.Player.Hidden&&(hunting||castle)?.28f*duck:0;
             playerBreath.volume=Mathf.MoveTowards(playerBreath.volume,breathLevel,dt*.35f);
             if(safeMusic.volume+houseMusic.volume+huntMusic.volume>.02f&&game.Volume>0)MusicFrames++;
             if(safeMusic.volume>.02f)MusicMask|=1;if(houseMusic.volume>.02f)MusicMask|=2;if(huntMusic.volume>.02f)MusicMask|=4;
@@ -203,7 +241,8 @@ namespace HollowCurrent
             if(!game.Loading&&game.Started&&((game.Journal&&!lastJournal)||(game.NoteBody!=null&&game.NoteBody!=lastNote)))UI();
             lastJournal=game.Journal;lastNote=game.NoteBody;
             rain.volume=Mathf.MoveTowards(rain.volume,game.Player.Inside?.035f:game.Player.InVan?.10f:.20f,Time.unscaledDeltaTime*.25f);
-            room.volume=Mathf.MoveTowards(room.volume,game.Player.Inside&&game.Case.BreakerOn?.24f:0,Time.unscaledDeltaTime*.25f);
+            if(castle){roomBase=Mathf.MoveTowards(roomBase,game.Player.Inside&&game.Case.BreakerOn?.24f:0,Time.unscaledDeltaTime*.25f);room.volume=roomBase*duckLevel;}
+            else room.volume=Mathf.MoveTowards(room.volume,game.Player.Inside&&game.Case.BreakerOn?.24f:0,Time.unscaledDeltaTime*.25f);
             occlusionTime-=Time.unscaledDeltaTime;if(occlusionTime>0)return;occlusionTime=.12f;
             for(int i=0;i<voices.Count;i++)
             {

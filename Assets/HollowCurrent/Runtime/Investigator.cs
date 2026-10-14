@@ -295,13 +295,23 @@ namespace HollowCurrent
         }
         void OnDestroy()=>StopMicrophone();
         void OnApplicationQuit()=>StopMicrophone();
+        // Bellwether: interference for the whole Warning and Hunt. Castle (critic r10 #9): proximity, not phase: only within about
+        // 12 m of the Count (or during a scare's own interference), in any phase.
+        bool Interfered()
+        {
+            if(Game.Map!=MapId.Castle)return Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference;
+            if(Game.Scares.Interference)return true;
+            var actor=Game.Creature?Game.Creature.Actor:null;
+            return actor&&actor.gameObject.activeInHierarchy&&Vector3.Distance(actor.transform.position,transform.position)<12;
+        }
         void UseEquipment(float dt)
         {
             UpdateNeedle();
             if(NeedleSpinning&&Tool==1)inductionReadout.text=InductionLevels[Game.Scares.FalseReading];
-            if(Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference)inductionReadout.text=InductionLevels[Game.Scares.FalseReading];
+            bool interfered=Interfered();
+            if(interfered)inductionReadout.text=InductionLevels[Game.Scares.FalseReading];
             if(!Game.Case.Equipped||Hidden){Game.World.Trace.gameObject.SetActive(false);return;}
-            if(Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference)
+            if(interfered)
             {
                 Capture=0;evp=0;Instrument="INTERFERENCE · RECORDING SUSPENDED · BREAK LINE OF SIGHT";
                 Game.World.Trace.gameObject.SetActive(false);return;

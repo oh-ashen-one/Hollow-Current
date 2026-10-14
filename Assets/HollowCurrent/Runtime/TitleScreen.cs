@@ -32,6 +32,7 @@ namespace HollowCurrent
         {
             if(fallback)return;
             fallback=serif;display=Resources.Load<Font>(DisplayFontPath);
+            Debug.Log("HC_TITLE_FONT cinzel="+(display!=null)+" path="+DisplayFontPath); // critic r10 #42
             if(!display)display=serif;
         }
         public bool HasDisplayFont=>display&&display!=fallback;
