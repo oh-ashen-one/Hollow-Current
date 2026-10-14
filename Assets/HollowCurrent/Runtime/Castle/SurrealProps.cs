@@ -280,6 +280,26 @@ namespace HollowCurrent
             return eyes;
         }
 
+        // Pupils only, for a portrait that is already framed and painted (the Castle Portrait.fbx: front +Z, canvas centre `canvasCentre`
+        // in its local space, canvas width x height metres). Same pupil layout and travel as MakePortraitEyes.
+        public static PortraitEyes AttachPupils(Transform portrait,Vector3 canvasCentre,float width,float height,Transform target=null)
+        {
+            var eyes=portrait.gameObject.AddComponent<PortraitEyes>();
+            var back=Quaternion.Euler(0,180,0);
+            var pupils=new Transform[2];
+            float size=width*.045f;
+            for(int i=0;i<2;i++)
+            {
+                float side=i==0?-1:1;
+                var p=NewRenderer("Pupil",portrait,canvasCentre+new Vector3(side*PortraitEyeU*width,(PortraitEyeV-.5f)*height,.004f),back,CentreQuad,new[]{PupilMaterial},false);
+                p.transform.localScale=new Vector3(size,size,1);
+                pupils[i]=p.transform;
+            }
+            eyes.pupils=pupils;eyes.target=target;
+            eyes.maxOffset=width*.018f;
+            return eyes;
+        }
+
         // ---- stair loop ----
         // A trigger volume of `size` metres centred on localPosition (its floor
         // sits size.y/2 below). Armed is false until the game arms it. It lives on
