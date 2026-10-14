@@ -52,43 +52,43 @@
       "vfov_deg": 72.0,
       "look_at": [
         -0.009,
-        -1.167,
-        1.513
+        -0.788,
+        1.65
       ]
     },
-    "chest_pitch_deg": 50.5,
-    "neck_to_hips_px": 151,
+    "chest_pitch_deg": 46.0,
+    "neck_to_hips_px": 193,
     "left_claw": {
       "x": [
-        1601,
-        2740
+        1426,
+        2449
       ],
       "y": [
-        1135,
-        2669
+        1099,
+        2468
       ],
-      "width_px": 1139,
-      "centre_dist_px": 1480,
-      "nearest_m": 0.245
+      "width_px": 1023,
+      "centre_dist_px": 1250,
+      "nearest_m": 0.256
     },
     "right_claw": {
       "x": [
-        1151,
-        2064
+        1059,
+        1771
       ],
       "y": [
-        852,
-        1239
+        1229,
+        2363
       ],
-      "width_px": 913,
-      "centre_dist_px": 462,
-      "nearest_m": 0.363
+      "width_px": 712,
+      "centre_dist_px": 1085,
+      "nearest_m": 0.345
     },
-    "mesh_forward_reach_m": 1.818,
-    "claw_reach_m": 1.818,
+    "mesh_forward_reach_m": 1.729,
+    "claw_reach_m": 1.729,
     "mesh_x_range_px": [
-      88,
-      2943
+      344,
+      2255
     ]
   }
 }
