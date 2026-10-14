@@ -30,7 +30,7 @@ namespace HollowCurrent
         public bool CanSeePlayer {get;private set;}
         public void Initialize(Game game)
         {
-            Game=game;Profile=HunterProfile.For(game.Map);count=Profile as CountClaudeProfile;
+            Game=game;Profile=HunterProfile.For(game.Map);count=Profile as CountClaudeProfile;count?.ApplyReceipt(); // castle: grab reaches from CountClaudeModes.json (hc/grabs2)
             var prefab=Resources.Load<GameObject>(Profile.ModelResource);
             if(!prefab&&Profile.AllowPlaceholderModel){silhouette=PlaceholderModel();actor=silhouette.GetComponent<HearthboundActor>();Debug.LogWarning("HC_HUNTER_PLACEHOLDER missing "+Profile.ModelResource);}
             else

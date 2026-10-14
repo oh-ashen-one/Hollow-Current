@@ -20,7 +20,7 @@ namespace HollowCurrent
         // GrabDrop when he was at least this far above the player (height decays at GrabDropHeightDecay m/s, so it means
         // "he came down on you", not "he once flew past high up"). Reaches from F5's receipt (grab_drop_reach_m /
         // grab_crawl_reach_m); until it lands they equal the wing-wrap reach so the camera stand-off rule holds.
-        public float GrabDropMinHeight=2f, GrabDropHeightDecay=1f, GrabDropReach=1.758f, GrabCrawlReach=1.729f; // receipt grab_drop_reach_m / grab_crawl_reach_m (hc/grabs)
+        public float GrabDropMinHeight=2f, GrabDropHeightDecay=1f, GrabDropReach=1.615f, GrabCrawlReach=1.729f; // fallbacks; ApplyReceipt reads CountClaudeModes.json (hc/grabs2: drop 1.615) // receipt grab_drop_reach_m / grab_crawl_reach_m (hc/grabs)
         // Mode 7 Crawl, a stooped four-limbed knuckle-walk (top 1.75 m) under 2.0 m lintels. Used on foot at service
         // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.33 m + margin).
         public int ModeCrawl=ModeCrawlId;
@@ -164,6 +164,26 @@ namespace HollowCurrent
         // Item 4, hostile return (F1 HuntActive in Phase Return): short perch, no perch tell, straight-glide speed everywhere
         // he can fly, and he hears her again every ReturnHearSeconds.
         public float ReturnPerchSeconds=.4f, ReturnHearSeconds=3f;
+
+        // Integrator (hc/grabs2): the grab reaches come from the shipped receipt Resources/Characters/CountClaude/CountClaudeModes.json
+        // (F5's tools/count_prepare.py writes it), so a re-posed clip changes the camera stand-off without a code edit. The field
+        // defaults above are only the fallback when the file is missing.
+        [System.Serializable] sealed class Receipt{public float grab_reach_m,grab_drop_reach_m,grab_crawl_reach_m;}
+        static bool reachLogged;
+        public void ApplyReceipt()
+        {
+            try
+            {
+                var text=UnityEngine.Resources.Load<UnityEngine.TextAsset>("Characters/CountClaude/CountClaudeModes");
+                if(!text)return;
+                var r=UnityEngine.JsonUtility.FromJson<Receipt>(text.text);
+                if(r.grab_reach_m>0)GrabReach=r.grab_reach_m;
+                if(r.grab_drop_reach_m>0)GrabDropReach=r.grab_drop_reach_m;
+                if(r.grab_crawl_reach_m>0)GrabCrawlReach=r.grab_crawl_reach_m;
+                if(!reachLogged){reachLogged=true;UnityEngine.Debug.Log("HC_COUNT_REACH receipt grab="+GrabReach.ToString("F3")+" drop="+GrabDropReach.ToString("F3")+" crawl="+GrabCrawlReach.ToString("F3")+" standOff drop="+StandOffFor(ModeGrabDropId).ToString("F2")+" crawl="+StandOffFor(ModeGrabCrawlId).ToString("F2"));}
+            }
+            catch(System.Exception e){UnityEngine.Debug.LogWarning("HC_COUNT_REACH receipt unreadable: "+e.Message);}
+        }
 
         public CountClaudeProfile()
         {
