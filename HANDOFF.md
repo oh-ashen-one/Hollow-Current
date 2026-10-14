@@ -147,6 +147,41 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 6. **Title captures:** at 1920x1080 and at the largest window, to confirm the fog band.
 7. **Blind critic round** on the captures and logs.
 
+## Wave I (blind critic `docs/haunted-castle/rounds/r10/CRITIC_BLIND.md`, 4.5)
+
+**F0 (`6a2e0d4`, code only, not built):**
+- **Candle lean:** at most 22 deg, eased by distance to the Count (full within 3 m, none beyond 8 m), in CandleFlame and Floater. False tells keep the full lean, also capped at 22 deg.
+- **Scale-reference figure:** hidden in scripted runs.
+- **S7 capture:** named by content (`S7_gatehouse_hud_case_start` vs the title captures).
+- **Driver:** expects Long Night's bell to start the hunt (by design: "He is already coming."), and logs `HC_PLAY focus_fail=` with the hit object.
+
+**4(a), compass not recording (r1 kill and r1 natural):**
+- Cause: wave G #9 interference. Any Count within 12 m, through walls and between hunts, suspended recording ("INTERFERENCE · RECORDING SUSPENDED").
+- Fixed by N4 in `feeeed6`: interference now needs a hunt, under 12 m, and line of sight. r2 natural recorded all three, and r2/r3 escape and fear had 0 blockers.
+
+**Pending:**
+- hc/count15 (hunt readability) and hc/rules4 (Dread decay, per-hunt cap, post-hunt grace, hunt share ≤ 30 %).
+- When hc/rules4 lands: wire `DreadRelief` (gatehouse 3x, within 4 m of the chapel fire 2x, else 1x).
+
+**Windowed proof lines to add (wave I):**
+- [ ] Candle lean ≤ 22 deg on screen in S1/S5 (`HC_LEAN_CHECK`).
+- [ ] No scale-reference figure in S6 (`HC_SCALE_REFERENCE hidden`).
+- [ ] hc/count15:
+  - Flight pitch readable.
+  - Dive close time logged.
+  - Grab mode 8/9 shown.
+  - `wallCrossings=0` in every hunt.
+  - The wing tip has no crumple in H09/H10.
+- [ ] hc/rules4: hunt share ≤ 30 % of a natural run, Dread decays, and a post-hunt grace exists. Read `HC_HUNT_START` / `HC_RECOVERY` timelines.
+
+## Round 11 art pass (next wave, after the fear loop is proven)
+
+From the blind critic's room findings (V1-V4):
+1. **Crypt:** the ceiling hand-roots are tan cubes with stick fingers. Make them organic roots/hands, plus coffin niches and a carved sarcophagus.
+2. **Great hall:** the draped giant skeleton is only a small rib fragment. Make it ≥ 30 % of frame width, and add banners and tall lancet windows with both moons.
+3. **Exterior:** the castle is a trapezoid box with five cones over a black void. Put it on a rock with a spire cluster, mountains, trees and bats, and replace the flat red moat.
+4. **Chapel:** the palette is inverted (warm amber instead of cold blue), the candles are 3-5x scale, and the stained glass is missing. Make it cold, add the broken stained glass and true-scale candles, and add the font.
+
 ## Rules for the next integrator
 
 **Deliberate Bellwether change (for Hari to accept):** `Investigator` focus ray, in both maps (`e1e360a`). An interactable whose collider the same ray meets within 12 cm behind the first hit is focused. This fixes the coat cupboard: its hide trigger sits in the same plane as its solid lower door from `89dac7e` on `main`, which made `-hc-verify` fail. Bellwether rules are unchanged (fuzz identical).
