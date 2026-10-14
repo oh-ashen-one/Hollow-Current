@@ -40,7 +40,7 @@ namespace HollowCurrent
                 if(!actor||actor.BoneCount<Profile.MinimumBones)throw new System.InvalidOperationException("Apparition is not a verified skinned rig");
             }
             agent=gameObject.AddComponent<NavMeshAgent>();agent.radius=Profile.AgentRadius;agent.height=Profile.AgentHeight;agent.speed=Profile.Speed;agent.angularSpeed=Profile.AngularSpeed;agent.acceleration=Profile.Acceleration;agent.stoppingDistance=Profile.StoppingDistance;
-            if(count!=null){CountRimLight();CountGoreMaterials();}
+            if(count!=null){CountRimLight();CountGoreMaterials();CacheRig();}
             silhouette.gameObject.SetActive(false);agent.enabled=false;
         }
         // Magenta stand-in (no rig, no animator controller) so a map runs before its hunter art lands.
@@ -65,7 +65,7 @@ namespace HollowCurrent
             silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeSearch);presentationRemaining=seconds;Appearances++;Game.Sound.Cue("apparition",point+Vector3.up,.85f);return true;
         }
         // End a staged appearance immediately (capture tooling, scripted beats).
-        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;choreo=false;RestoreHiddenFloaters();if(silhouette)silhouette.localRotation=Quaternion.identity;if(silhouette)silhouette.gameObject.SetActive(false);}
+        public void Dismiss(){presentationRemaining=0;fakeRush=false;staged=false;choreo=false;RestoreHiddenFloaters();if(silhouette){silhouette.localRotation=Quaternion.identity;if(count!=null)silhouette.localPosition=Vector3.zero;silhouette.gameObject.SetActive(false);}}
         public void FacePlayer()
         {
             var delta=Game.Player.transform.position-transform.position;delta.y=0;
@@ -359,7 +359,7 @@ namespace HollowCurrent
                 // camera stays CameraClearance outside the mesh while it keeps animating (unscaled time). Mode 6 wing-wrap unless
                 // the hunt chose GrabDrop (8) or GrabCrawl (9) and the controller has them (item 17).
                 huntOn=false;route.Clear();SetRim(count.RimLightScale);
-                int mode=grabMode>=0?grabMode:ChooseGrab(out _);
+                int mode=grabMode>=0?grabMode:ChooseGrab(false,out _,out _);
                 capturePresentation=true;presentationRemaining=Profile.CapturePresentationSeconds;
                 var player=Game.Player.transform.position;var towards=player-transform.position;towards.y=0;
                 if(towards.sqrMagnitude<.01f)towards=transform.forward;towards.Normalize();
@@ -389,7 +389,7 @@ namespace HollowCurrent
             // Quiet start (r10 rerun: the wing loop jumped +0.6 at take-off in both sampled no-tell hunts): a no-tell or hostile-return
             // hunt flies its first leg silent and its second at most soft, and plays no one-shot for 8 s unless he has seen her.
             quietHunt=Game.Case.NoTellHunt||HostileReturn;quietReason=HostileReturn?"return":"notell";quietLeg=0;quietSeen=false;quietHeldLogged=false;
-            gateStage=0;huntClock=0;seenThisHunt=false;chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
+            gateStage=0;huntClock=0;seenThisHunt=false;grabSurvivedThisHunt=false;pendingVoice=null;guaranteeNext=Random.Range(count.AttackGuaranteeMin,count.AttackGuaranteeMax);chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
             silhouette.gameObject.SetActive(true);SetRim(count.RimLightScale);
             int best=keepPerch?perchIndex:-1;
             if(best<0)
@@ -423,7 +423,7 @@ namespace HollowCurrent
         {
             var at=lastSeen.Value;Memory.Observe(at.x,at.y,at.z);searchedAt=new Vector3(9999,9999,9999);
             Debug.Log("HC_COUNT_LEARNED first glide to last known "+at+" (player now "+player+", "+Vector3.Distance(at,player).ToString("F1")+" m away) hostileReturn="+HostileReturn+" "+DiagnosticState);
-            RaiseBeat("learned");
+            // r10 blind P1: no beat (and no audio) at hunt start; the learned glide is log-only.
         }
         // r10 #34: the hostile return is announced. Dispatch speaks (integrator: the CaseBook card on Beat "return-swoop") and he
         // swoops visibly down across the courtyard and out over the gate wall, harmless, before he hunts the bridge.
@@ -446,7 +446,7 @@ namespace HollowCurrent
                 if(!SwoopDetour(prev,target,out var via)){Debug.Log("HC_COUNT_RETURN_SWOOP skipped reason=leg "+i+" "+prev+"->"+target+" blocked, no clear detour"+log);return false;}
                 legs.Add(via);legs.Add(target);prev=target;log.Append(" leg"+i+"=detour via "+via);
             }
-            route.Clear();route.AddRange(legs);routeAt=0;routeGoal=legs[legs.Count-1];transform.position=start;
+            route.Clear();route.AddRange(legs);routeAt=0;routeGoal=legs[legs.Count-1];routeAir=true;transform.position=start;
             var first=route[0]-transform.position;first.y=0;if(first.sqrMagnitude>.01f)transform.rotation=Quaternion.LookRotation(first);
             swooping=true;flight=Flight.Travel;travelToPerch=false;pendingPerch=-1;perchIndex=-1;speedNow=count.GlideTightSpeed;PickLegLoudness("swoop");
             Debug.Log("HC_COUNT_RETURN_SWOOP begin from="+start+" to="+routeGoal+log+" "+DiagnosticState);
@@ -475,6 +475,8 @@ namespace HollowCurrent
         }
         void CountEndHunt()
         {
+            pendingVoice=null;
+            if(actor)Debug.Log("HC_COUNT_MODES frames=["+string.Join(",",System.Array.ConvertAll(actor.ModeFrames,f=>f.ToString()))+"] (Animator Mode 0-9 frames so far)");
             swooping=false;pendingWitnessed=false;CanSeePlayer=false;Memory.Clear();witnessedHide=false;contact=0;tell=0;holdTimer=0;nearMissStage=0;staggerTimer=retreatTimer=0;unobserved=0;
             Debug.Log("HC_COUNT_HUNT_END lastSeen="+(lastSeen.HasValue?lastSeen.Value.ToString():"none")+" "+DiagnosticState);
             if(flight==Flight.Dead)return;
@@ -487,7 +489,7 @@ namespace HollowCurrent
             Debug.Log("HC_COUNT_PERCH leaving hunt to="+i+" flight="+flight);
         }
         bool attackAttempted;
-        float guaranteeClock,aiLogClock;
+        float guaranteeClock,aiLogClock,guaranteeNext=10;
         // Seed his memory with a point near the investigator: 1.5-3 m off in the open, 3-5 m off when hidden.
         void HearPlayerRoughly()
         {
@@ -568,17 +570,23 @@ namespace HollowCurrent
             if(!PlanRoute(point,false)){Debug.Log("HC_COUNT_ROUTE abort=search reason=no route to "+point+" "+DiagnosticState);BeginLand();return;}
             Debug.Log("HC_COUNT_SEARCH to="+point+" waypoints="+route.Count+" "+DiagnosticState);
             travelToPerch=false;pendingPerch=-1;flight=Flight.Travel;PickLegLoudness("search");
-            Voice("cc_hunt_hungry");   // item 13: entering Search
+            QueueVoice("cc_hunt_hungry");   // item 13: entering Search (r10 blind P2: at a random delay, never on the search tick)
         }
         int chaseRouteFails;
-        void BeginChase(){chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
+        float chaseT0,chaseD0;bool diveCloseLogged;
+        void BeginChase(){chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
         bool CountFrame()
         {
             // Measured flight speed for the wing loop (a teleport reads as 0, not a burst).
-            if(Time.deltaTime>0){float v=(transform.position-lastFramePosition).magnitude/Time.deltaTime;flightSpeed=v>20?0:Mathf.Lerp(flightSpeed,v,1-Mathf.Exp(-8*Time.deltaTime));}
+            if(Time.deltaTime>0)
+            {
+                var vel=(transform.position-lastFramePosition)/Time.deltaTime;float v=vel.magnitude;
+                flightSpeed=v>20?0:Mathf.Lerp(flightSpeed,v,1-Mathf.Exp(-8*Time.deltaTime));
+                if(v<=20)flightVelocity=Vector3.Lerp(flightVelocity,vel,1-Mathf.Exp(-8*Time.deltaTime));
+            }
             lastFramePosition=transform.position;
             if(choreo){SetRim(1);CaptureChoreography(Mathf.Min(Time.deltaTime,1f/30));return true;}
             if(staged){SetRim(1);return true;}
@@ -640,7 +648,12 @@ namespace HollowCurrent
             }
             // A dive that got within reach of a grab and ended without a kill is a grab survived (+DreadGrabSurvived, 20).
             if(flight==Flight.Chase)chaseClosest=Mathf.Min(chaseClosest,Vector3.Distance(transform.position,Game.Player.transform.position));
-            else if(chaseClosest<count.GrabSurvivedDistance){GrabSurvived("dive missed, closest "+chaseClosest.ToString("F2")+" m");chaseClosest=99;}
+            else if(chaseClosest<99)
+            {
+                if(!diveCloseLogged){diveCloseLogged=true;Debug.Log("HC_COUNT_DIVE close_s=none from="+chaseD0.ToString("F2")+" closest="+chaseClosest.ToString("F2")+" reason=dive ended before grab range");}
+                if(chaseClosest<count.GrabSurvivedDistance)GrabSurvived("dive missed, closest "+chaseClosest.ToString("F2")+" m");
+                chaseClosest=99;
+            }
             else chaseClosest=99;
             bool hostile=HostileReturn;
             if(hostile&&!retreating&&!swooping&&flight!=Flight.Chase){returnHearClock-=dt;if(returnHearClock<=0){returnHearClock=count.ReturnHearSeconds;HearPlayerRoughly();}}
@@ -663,6 +676,7 @@ namespace HollowCurrent
             }
             if(!retreating&&Game.Player.Hidden&&Game.Player.TorchOn)Hear(Game.Player.transform.position,Profile.HiddenTorchHearRadius);
             breath-=dt;if(CanSeePlayer)quietSeen=true;
+            TickVoices();
             if(breath<=0)
             {
                 if(QuietWindow){if(!quietHeldLogged){quietHeldLogged=true;Debug.Log("HC_COUNT_ONESHOT held=breath t="+huntClock.ToString("F1")+" reason="+quietReason+" (first 8 s, not seen)");}}
@@ -730,9 +744,9 @@ namespace HollowCurrent
             }
             // At least one attack attempt per hunt: until he has dived, every GuaranteeSeconds he hears you again and searches.
             guaranteeClock+=dt;
-            if(!retreating&&!swooping&&!attackAttempted&&guaranteeClock>=count.AttackGuaranteeSeconds&&flight!=Flight.Chase&&flight!=Flight.NearMiss)
+            if(!retreating&&!swooping&&!attackAttempted&&guaranteeClock>=guaranteeNext&&flight!=Flight.Chase&&flight!=Flight.NearMiss)
             {
-                guaranteeClock=0;HearPlayerRoughly();BeginSearch(new Vector3(Memory.X,Memory.Y,Memory.Z));
+                guaranteeClock=0;guaranteeNext=Random.Range(count.AttackGuaranteeMin,count.AttackGuaranteeMax);HearPlayerRoughly();BeginSearch(new Vector3(Memory.X,Memory.Y,Memory.Z));
             }
             aiLogClock-=dt;
             if(aiLogClock<=0){aiLogClock=1;LogAI(retreating);}
@@ -785,6 +799,11 @@ namespace HollowCurrent
             }
             // Item 17: how far above you he has been lately (decaying), so a grab after a drop from the vault reads as GrabDrop.
             dropHeight=Mathf.Max(dropHeight-count.GrabDropHeightDecay*dt,transform.position.y-player.transform.position.y);
+            if(!diveCloseLogged&&distance<=Profile.GrabDistance)
+            {
+                diveCloseLogged=true;
+                Debug.Log("HC_COUNT_DIVE close_s="+(huntClock-chaseT0).ToString("F2")+" from="+chaseD0.ToString("F2")+" to="+distance.ToString("F2")+" speed="+speedNow.ToString("F1")+" "+DiagnosticState);
+            }
             // Reached a remembered spot without seeing you: land there and prowl (Mode 2), then take a perch.
             var toGoal=goal-transform.position;toGoal.y=0;
             if(!CanSeePlayer&&!witnessedHide&&toGoal.magnitude<1){searchedAt=goal;BeginLand();return;}
@@ -820,8 +839,8 @@ namespace HollowCurrent
                 if(flat.sqrMagnitude>.0001f)transform.rotation=Quaternion.LookRotation(flat);
                 if(grabMode<0||contact<=dt)
                 {
-                    grabMode=ChooseGrab(out var why);
-                    Debug.Log("HC_COUNT_GRAB mode="+grabMode+" why="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
+                    grabMode=ChooseGrab(atHideEntrance,out var why,out var height);
+                    Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+height.ToString("F2")+" reason="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
                 }
                 actor.Pose(grabMode);
                 // huntClock, not PhaseTime: a hostile-return hunt (F1) runs inside Phase Return.
@@ -846,10 +865,18 @@ namespace HollowCurrent
             if(routeAt<route.Count)
             {
                 var target=route[routeAt];var to=target-transform.position;float dist=to.magnitude;
-                speedNow=Mathf.MoveTowards(speedNow,CruiseSpeed(to),Profile.Acceleration*dt);
+                speedNow=Mathf.MoveTowards(speedNow,CruiseSpeed(to),(flight==Flight.Chase?count.DiveAcceleration:Profile.Acceleration)*dt);
                 float step=speedNow*dt;
-                if(step>=dist){transform.position=target;routeAt++;}
-                else transform.position+=to/dist*step;
+                var next=step>=dist?target:transform.position+to/dist*step;
+                // r10 blind (wallCrossings=2, both closing service doors): the step he is about to take must not pass through
+                // anything. A door he waits for (opened, up to 2 s), anything else is re-routed, else he stops there.
+                if(LegBlocked(transform.position,next,out var hit)){OnLegBlocked(hit,dt);}
+                else
+                {
+                    blockedFor=0;
+                    if(step>=dist){transform.position=target;routeAt++;}
+                    else transform.position=next;
+                }
                 var flat=new Vector3(to.x,0,to.z);
                 if(flat.sqrMagnitude>.0004f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(flat),count.TurnDegreesPerSecond*dt);
                 foreach(var door in Game.World.Doors)if(Vector3.Distance(door.transform.position,transform.position)<Profile.DoorOpenDistance)door.Open=true;
@@ -858,6 +885,26 @@ namespace HollowCurrent
             if(MustCrawl(transform.position)){actor.Pose(count.ModeCrawl,speedNow*.85f);return;}
             // Wing-beat rate follows speed but stays slow enough to read as a giant (LocomotionRate = speed / 2.05).
             actor.Pose(mode,1.2f+speedNow*.35f);
+        }
+        float blockedFor;int blockedLogs;
+        // The same segment test as the playtest driver's wall-crossing count (0.35 m above his origin), excluding himself and her.
+        bool LegBlocked(Vector3 from,Vector3 to,out RaycastHit hit)
+        {
+            hit=default;if((to-from).sqrMagnitude<1e-6f)return false;
+            if(!Physics.Linecast(from+Vector3.up*.35f,to+Vector3.up*.35f,out hit,FlightMask,QueryTriggerInteraction.Ignore))return false;
+            var t=hit.collider.transform;
+            return !t.IsChildOf(transform)&&!hit.collider.GetComponentInParent<Investigator>();
+        }
+        void OnLegBlocked(RaycastHit hit,float dt)
+        {
+            blockedFor+=dt;speedNow*=.5f;
+            var door=hit.collider.GetComponentInParent<Door>();
+            string fix;
+            if(door&&blockedFor<2f){door.Open=true;fix="wait";}
+            else if(blockedFor<3f&&PlanRoute(routeGoal,routeAir)&&!(routeAt<route.Count&&LegBlocked(transform.position,Vector3.MoveTowards(transform.position,route[routeAt],.3f),out _)))fix="replan";
+            else if(blockedFor<3f)fix="stop";
+            else{fix="land";BeginLand();}
+            if(blockedLogs<40&&(fix!="wait"&&fix!="stop"||blockedFor<=dt*1.01f)){blockedLogs++;Debug.Log("HC_COUNT_LEG blocked="+(door?"door":"wall")+" fix="+fix+" hit="+hit.collider.name+" at="+hit.point+" for="+blockedFor.ToString("F1")+" state="+flight);}
         }
         bool MustCrawl(Vector3 p)
         {
@@ -874,6 +921,8 @@ namespace HollowCurrent
             var chest=p+Vector3.up*1.1f;
             float width=Reach(chest,side,6)+Reach(chest,-side,6);
             bool straight=to.magnitude>=count.StraightLookahead||routeAt>=route.Count-1;
+            // Wave I: a dive closes at DiveSpeed (>= the 4.6 m/s design dive) wherever he can fly, tight rooms included.
+            if(flight==Flight.Chase)return count.DiveSpeed*SpeedScale;
             // Item 4: in a hostile return he flies at straight-glide speed everywhere he can fly.
             if(HostileReturn)return count.GlideStraightSpeed*SpeedScale;
             return count.GlideSpeedFor(width,straight)*SpeedScale;
@@ -892,9 +941,10 @@ namespace HollowCurrent
         // Route to goal (feet position). goalAir: the goal is itself a flight point (a perch); otherwise it is on the
         // ground and gets a hover height (low on the last leg of a chase). False when neither a straight flight nor a
         // NavMesh path exists.
+        bool routeAir;
         bool PlanRoute(Vector3 goal,bool goalAir)
         {
-            route.Clear();routeAt=0;routeGoal=goal;var start=transform.position;
+            route.Clear();routeAt=0;routeGoal=goal;routeAir=goalAir;var start=transform.position;
             Vector3 end=goal;
             if(!goalAir){if(GroundUnder(goal,out var g))goal=g;end=goal+Vector3.up*HoverAt(goal,flight==Flight.Chase);}
             if(Clear(start,end)){route.Add(end);return true;}
@@ -981,13 +1031,13 @@ namespace HollowCurrent
         // [3.5,6.5) off the rail and down toward the camera, Dive 3 [6.5,9.5) to the hold distance and holding,
         // Feint 1 [9.5,12.5) back to the perch; then it repeats. The investigator's view tracks his posed bounds at
         // the investigator's own eye height. Each phase change logs HC_COUNT_CAPTURE.
-        public const float CapturePerchEnd=3.5f,CaptureGlideEnd=6.5f,CaptureDiveEnd=10.6f,CaptureFeintEnd=13.6f,CaptureDiveArrive=1.5f,CaptureLungeStart=9.2f,CaptureLungeArrive=9.8f;
+        public const float CapturePerchEnd=3.5f,CaptureGlideEnd=6.5f,CaptureDiveEnd=10.6f,CaptureFeintEnd=13.6f,CaptureDiveArrive=1.0f,CaptureLungeStart=9.2f,CaptureLungeArrive=9.8f;
         static readonly string[] CapturePhases={"Perch","Glide","Dive","Grab","Feint"};
         bool choreo;
         float choreoClock;
         int choreoPhase=-1;
         Vector3 cPerch,cFacing,cGlideEnd,cHold,cLunge,cCamForward,cLook;
-        float cLean;
+        float cLean;int cGrabMode=6;
         public float CaptureClock=>choreoClock;
         public bool CaptureChoreographyActive=>choreo;
         public string CaptureNote {get;private set;}="";
@@ -1003,11 +1053,20 @@ namespace HollowCurrent
             cCamForward=player.View.transform.forward;cCamForward.y=0;
             if(cCamForward.sqrMagnitude<.01f)cCamForward=player.transform.forward;cCamForward.Normalize();
             float hold=holdDistance>0?holdDistance:count.CaptureHoldDistance;
-            // Round 5: the whole approach stays above the 1.1 m ground-fog planes (r4 H07/H08 waist cut on the descent).
-            cGlideEnd=ground+cCamForward*5.5f+Vector3.up*count.CaptureGlideEndHeight;
-            // Round 4: hold high enough that his lowest point clears the 0.08-1.1 m ground-fog planes (the r3 "bust cut").
-            cHold=ground+cCamForward*hold+Vector3.up*count.CaptureHoldHeight;
-            cLunge=ground+cCamForward*count.CaptureLungeDistance+Vector3.up*count.CaptureHoldHeight;
+            // Wave I (r10 blind: "a monster floats nearer, then poses"): the glide ends CaptureGlideEndDistance (7 m) out, the dive
+            // closes in CaptureDiveArrive (1 s, >= 4.6 m/s) and the climax is GrabDrop (else GrabCrawl, else the old Mode 6 hold)
+            // planted on her floor at its stand-off, so the clip's claws end CameraClearance short of the lens.
+            silhouette.gameObject.SetActive(true);
+            cGrabMode=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")?count.ModeGrabDrop:count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl")?count.ModeGrabCrawl:count.ModeGrab;
+            cGlideEnd=ground+cCamForward*count.CaptureGlideEndDistance+Vector3.up*count.CaptureGlideEndHeight;
+            if(cGrabMode==count.ModeGrab)
+            {
+                // Round 4: hold high enough that his lowest point clears the 0.08-1.1 m ground-fog planes (the r3 "bust cut").
+                cHold=ground+cCamForward*hold+Vector3.up*count.CaptureHoldHeight;
+                cLunge=ground+cCamForward*count.CaptureLungeDistance+Vector3.up*count.CaptureHoldHeight;
+            }
+            else{cHold=ground+cCamForward*count.StandOffFor(cGrabMode);cLunge=cHold;}
+            Debug.Log("HC_COUNT_CAPTURE grab mode="+cGrabMode+" standOff="+Vector3.Distance(new Vector3(cHold.x,ground.y,cHold.z),ground).ToString("F2")+" glideEndDistance="+count.CaptureGlideEndDistance.ToString("F1"));
             presentationRemaining=0;capturePresentation=false;fakeRush=false;staged=false;agent.enabled=false;route.Clear();contact=0;
             CanSeePlayer=false;Memory.Clear();perchIndex=i;flight=Flight.Perched;
             transform.SetPositionAndRotation(cPerch,Quaternion.Euler(0,yaw,0));silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeIdle);
@@ -1015,7 +1074,7 @@ namespace HollowCurrent
             Debug.Log("HC_COUNT_CAPTURE begin perch="+i+" feet="+cPerch+" glideEnd="+cGlideEnd+" hold="+cHold+" holdDistance="+hold.ToString("F2")+" eye="+player.View.transform.position);
             return true;
         }
-        public void EndCaptureChoreography(){if(!choreo)return;choreo=false;silhouette.localRotation=Quaternion.identity;Debug.Log("HC_COUNT_CAPTURE end clock="+choreoClock.ToString("F2"));}
+        public void EndCaptureChoreography(){if(!choreo)return;choreo=false;silhouette.localRotation=Quaternion.identity;silhouette.localPosition=Vector3.zero;Debug.Log("HC_COUNT_CAPTURE end clock="+choreoClock.ToString("F2"));}
         static Vector3 Bezier(Vector3 a,Vector3 b,Vector3 c,Vector3 d,float t){float u=1-t;return u*u*u*a+3*u*u*t*b+3*u*t*t*c+t*t*t*d;}
         Vector3 ChoreoPosition(float t,out int phase,out int mode)
         {
@@ -1030,10 +1089,12 @@ namespace HollowCurrent
             if(t<CaptureDiveEnd)
             {
                 mode=Profile.ModeReach;float k=(t-CaptureGlideEnd)/CaptureDiveArrive;
-                if(k<1){phase=2;return Vector3.Lerp(cGlideEnd,cHold,k*k);}
-                // Climax: front-facing Grab (Mode 6) at the hold, face to the camera, then a short lunge in so the claws
-                // and wing tips frame the lens.
-                phase=3;mode=count.ModeGrab;float l=Mathf.SmoothStep(0,1,(t-CaptureLungeStart)/(CaptureLungeArrive-CaptureLungeStart));
+                // Wave I: near-constant closing speed (was k*k from a standing start); slight ease-in over the first 15 %.
+                if(k<1){phase=2;float e=k<.15f?k*k/.3f:k-.075f;return Vector3.Lerp(cGlideEnd,cHold,e/.925f);}
+                phase=3;mode=cGrabMode;
+                if(cGrabMode!=count.ModeGrab)return cHold;   // GrabDrop / GrabCrawl: the clip itself carries the fall or the lunge
+                // Mode 6 fallback: front-facing wing-wrap at the hold, then a short lunge so the claws and wing tips frame the lens.
+                float l=Mathf.SmoothStep(0,1,(t-CaptureLungeStart)/(CaptureLungeArrive-CaptureLungeStart));
                 return Vector3.Lerp(cHold,cLunge,l)+Vector3.up*.05f*Mathf.Sin((t-CaptureGlideEnd-CaptureDiveArrive)*4);
             }
             phase=4;mode=Profile.ModeMove;float f=Mathf.SmoothStep(0,1,(t-CaptureDiveEnd)/(CaptureFeintEnd-CaptureDiveEnd));
@@ -1055,11 +1116,15 @@ namespace HollowCurrent
             transform.position=position;
             if(heading.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(heading),(phase==0?120:phase==4?150:540)*dt);
             actor.Pose(mode,1.2f+speed*.35f);
-            // Lean the whole figure back while gliding/diving toward the camera so the chest, not the soles, faces it.
-            float lean=phase==1?count.CaptureGlideLean:phase==2?count.CaptureDiveLean:phase==4?count.CaptureGlideLean*.5f:0;
-            cLean=Mathf.Lerp(cLean,lean,1-Mathf.Exp(-4*dt));silhouette.localRotation=Quaternion.Euler(cLean,0,0);
+            // Wave I (r10 blind: "hangs upright, arms down"): nose-down into the travel direction in Glide and Dive (he comes
+            // down at the camera, so it sees his face and chest), upright at the perch and in the grab clip.
+            bool backing=phase==4&&(choreoClock%CaptureFeintEnd)-CaptureDiveEnd<count.CaptureFeintFacingSeconds;
+            float lean=phase==1?count.CaptureGlidePitch:phase==2?count.CaptureDivePitch:phase==4&&!backing?count.FlightPitchMin:0;
+            cLean=Mathf.Lerp(cLean,lean,1-Mathf.Exp(-(phase==3?10:6)*dt));SetFlightPose(cLean);
             if(phase!=choreoPhase)
             {
+                if(phase==3)Debug.Log("HC_COUNT_DIVE close_s="+CaptureDiveArrive.ToString("F2")+" from="+Vector3.Distance(new Vector3(cGlideEnd.x,eye.y,cGlideEnd.z),eye).ToString("F2")+" to="+Vector3.Distance(new Vector3(position.x,eye.y,position.z),eye).ToString("F2")+" capture=True grabMode="+mode);
+                if(phase==1||phase==2)Debug.Log("HC_COUNT_POSE pitch="+lean.ToString("F0")+" capture=True phase="+CapturePhases[phase]);
                 choreoPhase=phase;
                 Debug.Log("HC_COUNT_CAPTURE phase="+CapturePhases[phase]+" clock="+choreoClock.ToString("F2")+" mode="+mode+" pos="+position+" distance="+Vector3.Distance(position+Vector3.up,eye).ToString("F2"));
             }
@@ -1110,6 +1175,86 @@ namespace HollowCurrent
             var rim=rimLight=new GameObject("Count rim light").AddComponent<Light>();rim.transform.SetParent(silhouette,false);
             rim.transform.localPosition=new Vector3(0,2.3f,-1.1f);rim.type=LightType.Point;rim.color=new Color(.62f,.72f,1f);
             rim.range=count.RimLightRange;rim.intensity=count.RimLightIntensity;rim.shadows=LightShadows.None;rim.renderMode=LightRenderMode.ForcePixel;
+        }
+        // ---- Wave I: flight posture, dive arms, wing-tip clamp, mode binding (r10 blind critic) -----------------------------
+        readonly List<Transform> wingExt=new List<Transform>();readonly List<Vector3> wingExtRest=new List<Vector3>();
+        Transform armL,armR,foreL,foreR,handL,handR;
+        float pitchNow,poseLegTimer=-1;bool poseLogged,modesLogged;
+        readonly HashSet<int> clampLogged=new HashSet<int>();
+        // Bind-pose offsets, read before the Animator has ever evaluated (the silhouette is still inactive here).
+        void CacheRig()
+        {
+            foreach(var t in silhouette.GetComponentsInChildren<Transform>(true))
+            {
+                if(t.name.StartsWith("WingFan",System.StringComparison.Ordinal)&&t.name.EndsWith("Ext",System.StringComparison.Ordinal)){wingExt.Add(t);wingExtRest.Add(t.localPosition);}
+                else if(t.name=="LeftArm")armL=t;else if(t.name=="RightArm")armR=t;else if(t.name=="LeftForeArm")foreL=t;else if(t.name=="RightForeArm")foreR=t;
+                else if(t.name=="LeftHand")handL=t;else if(t.name=="RightHand")handR=t;
+            }
+            Debug.Log("HC_COUNT_RIG wingExt="+wingExt.Count+" arms="+(armL&&armR&&foreL&&foreR&&handL&&handR));
+        }
+        // Pitch the whole figure about a point FlightPitchPivot above his feet (nose-down = positive).
+        void SetFlightPose(float pitch)
+        {
+            var rot=Quaternion.Euler(pitch,0,0);var pivot=Vector3.up*count.FlightPitchPivot;
+            silhouette.localRotation=rot;silhouette.localPosition=pivot-rot*pivot;
+        }
+        void LateUpdate()
+        {
+            if(count==null||!silhouette||!silhouette.gameObject.activeInHierarchy||!actor)return;
+            float dt=Time.deltaTime;
+            if(!modesLogged&&actor.Animator&&actor.Animator.isActiveAndEnabled&&actor.Animator.runtimeAnimatorController)
+            {
+                modesLogged=true;string[] names={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl","GrabDrop","GrabCrawl"};var b=new System.Text.StringBuilder();
+                for(int i=0;i<names.Length;i++)b.Append(i).Append(':').Append(names[i]).Append('=').Append(HasModeState(i,names[i])?1:0).Append(' ');
+                Debug.Log("HC_COUNT_MODES bound="+b.ToString().Trim()+" frames=["+string.Join(",",System.Array.ConvertAll(actor.ModeFrames,f=>f.ToString()))+"]");
+            }
+            if(!choreo)
+            {
+                // Glide and Dive lean into the travel direction: at least FlightPitchMin nose-down, more when descending.
+                bool flying=!staged&&!capturePresentation&&(actor.Mode==Profile.ModeMove||actor.Mode==Profile.ModeReach)&&flightSpeed>count.FlightPitchMinSpeed&&gateStage!=2&&
+                            (flight==Flight.Travel||flight==Flight.Retreat||flight==Flight.Chase||flight==Flight.NearMiss||gateStage>0);
+                float target=0;
+                if(flying)
+                {
+                    var v=flightVelocity;float horizontal=new Vector2(v.x,v.z).magnitude;
+                    float descent=Mathf.Atan2(-v.y,Mathf.Max(horizontal,.01f))*Mathf.Rad2Deg;
+                    target=Mathf.Clamp(count.FlightPitchMin+Mathf.Max(0,descent)*.6f,count.FlightPitchMin,count.FlightPitchMax);
+                }
+                pitchNow=staged||capturePresentation?0:Mathf.Lerp(pitchNow,target,1-Mathf.Exp(-count.FlightPitchRate*dt));
+                SetFlightPose(pitchNow);
+                // One HC_COUNT_POSE per leg, logged once the lean has settled (0.4 s after it starts).
+                if(target>0){if(poseLegTimer<0)poseLegTimer=0;poseLegTimer+=dt;if(!poseLogged&&poseLegTimer>.4f){poseLogged=true;Debug.Log("HC_COUNT_POSE pitch="+pitchNow.ToString("F0")+" target="+target.ToString("F0")+" mode="+actor.Mode+" state="+flight+" speed="+flightSpeed.ToString("F1"));}}
+                else{poseLegTimer=-1;poseLogged=false;}
+                // Dive: the arms reach along the pitched body forward.
+                if(actor.Mode==Profile.ModeReach&&target>0)ReachArms(count.DiveArmReach*Mathf.Clamp01(pitchNow/Mathf.Max(1,target)));
+            }
+            else if(choreoPhase==2)ReachArms(count.DiveArmReach);
+            ClampWingTips();
+        }
+        void ReachArms(float weight)
+        {
+            if(weight<=0||!armL||!armR||!foreL||!foreR||!handL||!handR)return;
+            var forward=silhouette.forward;
+            void Aim(Transform bone,Transform child)
+            {
+                var dir=child.position-bone.position;if(dir.sqrMagnitude<1e-6f)return;dir.Normalize();
+                var want=Vector3.Slerp(dir,forward,weight);bone.rotation=Quaternion.FromToRotation(dir,want)*bone.rotation;
+            }
+            Aim(armL,foreL);Aim(armR,foreR);Aim(foreL,handL);Aim(foreR,handR);
+        }
+        // r10 H09/H10 wing-tip zig-zag: the Grab clip stretches the fan Ext bones to 2.2x (tools/count_prepare.py, grab(),
+        // stretch=2.2). Any stretch past WingExtMaxStretch is clamped back along the same direction.
+        void ClampWingTips()
+        {
+            float max=count.WingExtMaxStretch-1;if(max<0||count.WingExtMaxStretch<=0)return;
+            float worst=0;
+            for(int i=0;i<wingExt.Count;i++)
+            {
+                var t=wingExt[i];if(!t)continue;var rest=wingExtRest[i];var delta=t.localPosition-rest;float limit=rest.magnitude*max;
+                float ratio=rest.sqrMagnitude>1e-8f?delta.magnitude/rest.magnitude:0;worst=Mathf.Max(worst,ratio);
+                if(delta.magnitude>limit&&limit>0)t.localPosition=rest+delta.normalized*limit;
+            }
+            if(worst>max&&clampLogged.Add(actor.Mode))Debug.Log("HC_COUNT_WING_CLAMP mode="+actor.Mode+" stretch="+(1+worst).ToString("F2")+" clampedTo="+count.WingExtMaxStretch.ToString("F2"));
         }
         Light rimLight;
         float rimScale=1;
@@ -1172,7 +1317,7 @@ namespace HollowCurrent
         /// hunts and between them. Integrator: Soundscape's claw cue uses this instead of hunting ? .8 : .05.</summary>
         public float ClawStepVolume=>count==null?.05f:Mathf.Lerp(count.ClawNearVolume,count.ClawFarVolume,Mathf.InverseLerp(2,16,Vector3.Distance(transform.position,Game.Player.transform.position)));
         public bool WingsBeating=>count!=null&&silhouette&&silhouette.gameObject.activeInHierarchy&&flightSpeed>.4f&&actor&&(actor.Mode==Profile.ModeMove||actor.Mode==Profile.ModeReach);
-        float flightSpeed;Vector3 lastFramePosition;
+        float flightSpeed;Vector3 lastFramePosition,flightVelocity;
         /// <summary>Beats for logs and CastleRun audio: "near-miss", "hide-open", "gatehouse", "learned", "return-swoop" (integrator: show the hostile-return card on this one).</summary>
         public event System.Action<string> Beat;
         /// <summary>The cupboard door he is breathing at (item 10), for CastleRun's door rattle.</summary>
@@ -1180,9 +1325,13 @@ namespace HollowCurrent
         public Vector3 HeadPosition=>actor&&actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
         bool seenThisHunt;
         float chaseClosest=99;
+        bool grabSurvivedThisHunt;
         void GrabSurvived(string why)
         {
             if(Game.Case.Terminal)return;
+            // r10 blind P3 (Dread runaway): at most once per hunt.
+            if(grabSurvivedThisHunt){Debug.Log("HC_COUNT_DREAD grab survived ("+why+") +0 reason=already counted this hunt");return;}
+            grabSurvivedThisHunt=true;
             Game.Case.AddDread(Game.Case.Rules.DreadGrabSurvived);
             Debug.Log("HC_COUNT_DREAD grab survived ("+why+") +"+Game.Case.Rules.DreadGrabSurvived+" dread="+Game.Case.Dread.ToString("F1"));
         }
@@ -1200,25 +1349,48 @@ namespace HollowCurrent
             voiceAt[id]=now;lastVoice=now;Game.Sound.Speak(id,HeadPosition);
             Debug.Log("HC_COUNT_VOICE "+id+" t="+huntClock.ToString("F1")+" "+DiagnosticState);
         }
+        // r10 blind P2: a search line is not spoken on the search tick (that put cc_hunt_hungry at exactly 10.0 and 20.0 s). It is
+        // queued at a random VoiceJitterMin-Max delay, then held until VoiceGap after the last line and, unless he has seen her,
+        // past the hunt's first 8 s, each hold adding a fresh random delay.
+        string pendingVoice;float pendingVoiceAt;
+        void QueueVoice(string id)
+        {
+            if(pendingVoice!=null)return;
+            pendingVoice=id;pendingVoiceAt=Time.time+Random.Range(count.VoiceJitterMin,count.VoiceJitterMax);
+        }
+        void TickVoices()
+        {
+            if(pendingVoice==null)return;
+            float now=Time.time;if(now<pendingVoiceAt)return;
+            float jitter=Random.Range(count.VoiceJitterMin,count.VoiceJitterMax);
+            if(huntClock<8&&!quietSeen&&!CanSeePlayer){pendingVoiceAt=now+(8-huntClock)+jitter;Debug.Log("HC_COUNT_VOICE queued "+pendingVoice+" reason=first 8 s, not seen; due in "+(pendingVoiceAt-now).ToString("F1")+" s");return;}
+            if(now-lastVoice<count.VoiceGap){pendingVoiceAt=lastVoice+count.VoiceGap+jitter;return;}
+            var id=pendingVoice;pendingVoice=null;
+            if(voiceAt.TryGetValue(id,out var at)&&now-at<count.VoiceCooldown){Debug.Log("HC_COUNT_VOICE dropped "+id+" reason=cooldown");return;}
+            Voice(id,true);
+        }
 
         // ---- Item 17: grab variants -----------------------------------------------------------------------------------
-        int ChooseGrab(out string why)
+        // Wave I grab choice (r10 blind: the grab shown was Mode 6 hovering 3.9 m up). Height = his origin above her feet, the larger of
+        // now and the recent decaying approach height. Hide entrance -> GrabDrop. She is crouched, or he comes in under
+        // GrabCrawlBelow -> GrabCrawl. Mode 6 wing-wrap only within GrabWrapDistance at <= GrabWrapMaxHeight. Higher -> GrabDrop.
+        // A missing clip falls through to the next choice, Mode 6 last.
+        int ChooseGrab(bool hideEntrance,out string why,out float height)
         {
-            var player=Game.Player.transform.position;float above=Mathf.Max(dropHeight,transform.position.y-player.y);
-            bool onFoot=actor.Mode==count.ModeCrawl||MustCrawl(transform.position);
-            // Integrator (hc/grabs review): GrabDrop is the default whenever he is airborne at grab time.
-            if(count.ModeGrabDrop>=0&&!onFoot)
+            var p=Game.Player;var feet=p.transform.position;height=Mathf.Max(dropHeight,transform.position.y-feet.y);
+            var flat=feet-transform.position;flat.y=0;float distance=flat.magnitude;
+            bool drop=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
+            bool crawl=count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl");
+            if(hideEntrance){if(drop){why="hide entrance";return count.ModeGrabDrop;}if(crawl){why="hide entrance, GrabDrop missing";return count.ModeGrabCrawl;}}
+            if(p.Crouched||height<count.GrabCrawlBelow)
             {
-                if(HasModeState(count.ModeGrabDrop,"GrabDrop")){why="airborne drop from "+above.ToString("F1")+" m";return count.ModeGrabDrop;}
-                why="drop wanted, no GrabDrop state";
+                if(crawl){why=p.Crouched?"she is crouched":"came in low ("+height.ToString("F1")+" m)";return count.ModeGrabCrawl;}
+                if(drop&&height>=count.GrabCrawlBelow){why="crouched, GrabCrawl missing";return count.ModeGrabDrop;}
             }
-            else why="wing-wrap";
-            if(count.ModeGrabCrawl>=0&&onFoot)
-            {
-                if(HasModeState(count.ModeGrabCrawl,"GrabCrawl")){why="on foot (crawl)";return count.ModeGrabCrawl;}
-                why="crawl wanted, no GrabCrawl state";
-            }
-            return count.ModeGrab;
+            if(height<=count.GrabWrapMaxHeight&&distance<=count.GrabWrapDistance){why="wing-wrap in reach ("+distance.ToString("F2")+" m)";return count.ModeGrab;}
+            if(drop){why="from above ("+height.ToString("F1")+" m)";return count.ModeGrabDrop;}
+            if(crawl){why="GrabDrop missing";return count.ModeGrabCrawl;}
+            why="no GrabDrop/GrabCrawl state, wing-wrap fallback";return count.ModeGrab;
         }
         readonly Dictionary<int,bool> modeStates=new Dictionary<int,bool>();
         // F5 adds Count_GrabDrop / Count_GrabCrawl (Animator Mode 8 / 9). Missing => false => the Mode 6 wing-wrap.
@@ -1568,7 +1740,17 @@ namespace HollowCurrent
                 if(routeAt<route.Count)
                 {
                     var target=route[routeAt];var to=target-transform.position;float dist=to.magnitude;float step=count.NearMissCrawlSpeed*dt;
-                    if(step>=dist){transform.position=target;routeAt++;}else transform.position+=to/dist*step;
+                    var next=step>=dist?target:transform.position+to/dist*step;
+                    if(LegBlocked(transform.position,next,out var hit))
+                    {
+                        // Never crawl through a door or wall: a door is opened and waited for; after 2 s he holds where he is.
+                        blockedFor+=dt;var door=hit.collider.GetComponentInParent<Door>();if(door)door.Open=true;
+                        if(blockedFor<=dt*1.01f)Debug.Log("HC_COUNT_LEG blocked="+(door?"door":"wall")+" fix="+(door?"wait":"hold")+" hit="+hit.collider.name+" state=NearMiss crawl");
+                        if(blockedFor>2f||!door){Debug.Log("HC_COUNT_LEG blocked="+(door?"door":"wall")+" fix=hold-here state=NearMiss crawl");route.Clear();routeAt=0;blockedFor=0;}
+                        actor.Pose(count.ModeCrawl,0);return;
+                    }
+                    blockedFor=0;
+                    if(step>=dist){transform.position=target;routeAt++;}else transform.position=next;
                     var flat=new Vector3(to.x,0,to.z);if(flat.sqrMagnitude>.0004f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(flat),count.TurnDegreesPerSecond*.5f*dt);
                     actor.Pose(count.ModeCrawl,count.NearMissCrawlSpeed*.85f);return;
                 }
@@ -1588,9 +1770,10 @@ namespace HollowCurrent
                 if(visitOpens)
                 {
                     nearMissStage=4;visitGrab=0;
-                    grabMode=visitWitnessed?PreferGrab(count.ModeGrabDrop,"GrabDrop",out var why):PreferGrab(count.ModeGrabCrawl,"GrabCrawl",out why);
+                    // Wave I: at a hide entrance the grab is GrabDrop (it bursts the door down on her), witnessed or near-miss.
+                    grabMode=PreferGrab(count.ModeGrabDrop,"GrabDrop",out var why);
                     if(!visitWitnessed)Debug.Log("HC_COUNT_NEARMISS open=True");
-                    Debug.Log("HC_COUNT_GRAB mode="+grabMode+" why="+why+" hideEntrance=True witnessed="+visitWitnessed+" torch="+Game.Player.TorchOn+" "+DiagnosticState);
+                    Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+(transform.position.y-Game.Player.transform.position.y).ToString("F2")+" reason="+why+" hideEntrance=True witnessed="+visitWitnessed+" torch="+Game.Player.TorchOn+" "+DiagnosticState);
                     return;
                 }
                 Debug.Log("HC_COUNT_NEARMISS open=False");
@@ -1608,7 +1791,7 @@ namespace HollowCurrent
         int PreferGrab(int mode,string state,out string why)
         {
             if(mode>=0&&HasModeState(mode,state)){why="hide opened ("+state+")";return mode;}
-            int fallback=ChooseGrab(out var other);why="hide opened, "+state+" missing reason=no state; "+other;return fallback;
+            int fallback=ChooseGrab(true,out var other,out _);why="hide opened, "+state+" missing; "+other;return fallback;
         }
         void LeaveHideVisit(bool survived)
         {

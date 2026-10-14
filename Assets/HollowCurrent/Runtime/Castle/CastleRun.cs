@@ -38,17 +38,18 @@ namespace HollowCurrent
         // Wave F beats from Presence's castle branch (FEAR_PLAN items 10, 11, 14).
         void CountBeat(string id)
         {
-            var count=Game.Creature;var spots=Game.World.Castle;
+            var count=Game.Creature;var spots=Game.World.Castle;string played=null;
             switch(id)
             {
                 case "near-miss":   // he breathes at the cupboard slats and rattles the door (item 10)
-                    if(count.NearMissHasDoor)Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);Game.Sound.Speak("cc_hunt_smell",count.HeadPosition);break;
+                    if(count.NearMissHasDoor)Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);Game.Sound.Speak("cc_hunt_smell",count.HeadPosition);played=(count.NearMissHasDoor?"door_rattle+":"")+"cc_hunt_smell";break;
                 case "hide-open":   // he saw her go in: the door rattles half a second before he opens it (r10 #16)
-                    if(count.NearMissHasDoor)Game.Sound.Cue("door_rattle",count.NearMissDoor,.95f);break;
+                    if(count.NearMissHasDoor){Game.Sound.Cue("door_rattle",count.NearMissDoor,.95f);played="door_rattle";}break;
                 case "gatehouse":   // he says cc_stay himself (Presence); the chains answer (item 11)
-                    if(spots!=null)Game.Sound.Cue("drawbridge_chains",spots.DrawbridgeWinch,((CountClaudeProfile)count.Profile).GatehouseChainsVolume);break;
+                    if(spots!=null){Game.Sound.Cue("drawbridge_chains",spots.DrawbridgeWinch,((CountClaudeProfile)count.Profile).GatehouseChainsVolume);played="drawbridge_chains";}break;
             }
-            Debug.Log("HC_COUNT_BEAT_AUDIO "+id);
+            // r10 blind P1: logged as audio only when a sound actually played (other beats are not audible).
+            if(played!=null)Debug.Log("HC_COUNT_BEAT_AUDIO "+id+" played="+played);
         }
         void Start()
         {

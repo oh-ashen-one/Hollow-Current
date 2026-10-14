@@ -24,6 +24,24 @@ namespace HollowCurrent
         // Mode 7 Crawl, a stooped four-limbed knuckle-walk (top 1.75 m) under 2.0 m lintels. Used on foot at service
         // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.33 m + margin).
         public int ModeCrawl=ModeCrawlId;
+        // ---- Wave I (r10 blind critic, item 1-5) -------------------------------------------------------------------------
+        // Flight posture: in Glide and Dive the whole figure pitches nose-down into the travel direction (>= FlightPitchMin),
+        // pivoting at FlightPitchPivot m above his feet; more when descending, never past FlightPitchMax. Perch, search, crawl,
+        // grabs, stagger and death stay upright. In Dive the arms reach along the pitched forward (DiveArmReach 0-1).
+        public float FlightPitchMin=38f, FlightPitchMax=68f, FlightPitchPivot=1.2f, FlightPitchRate=6f, FlightPitchMinSpeed=1.2f, DiveArmReach=.8f;
+        // Dive: closing speed once Chase begins (>= the 4.6 m/s design dive), with its own acceleration. Service-door crawl
+        // keeps LandedWalkSpeed.
+        public float DiveSpeed=5.2f, DiveAcceleration=16f;
+        // Grab choice (heights are his origin above her feet, max of now and the recent decaying approach height):
+        // hide entrance -> GrabDrop; she is crouched or he comes in under GrabCrawlBelow -> GrabCrawl; Mode 6 wing-wrap only
+        // within GrabWrapDistance at <= GrabWrapMaxHeight; anything higher -> GrabDrop.
+        public float GrabCrawlBelow=1.6f, GrabWrapMaxHeight=2.2f, GrabWrapDistance=1.3f;
+        // Wing tips: a fan Ext bone may stretch at most WingExtMaxStretch x its rest offset (the Grab clip asks for 2.2 and
+        // crumples the tip, r10 H09/H10; GrabDrop 1.7-2.1). 1.6 keeps Glide 1.45, Dive 1.26 and GrabCrawl 1.6 untouched. 0 disables.
+        public float WingExtMaxStretch=1.6f;
+        // Capture choreography dive: from CaptureGlideEndDistance ahead it closes in CaptureDiveArrive seconds (>= 4.6 m/s) and
+        // grabs with GrabDrop at its stand-off (GrabCrawl, then Mode 6 only if the clip is missing).
+        public float CaptureGlideEndDistance=7f;
         public float CrawlCeiling=2.45f;
         // CastleArt.Gore on the demon: submesh 1 wing membrane = Membrane, 2 flayed flesh = Flesh; body/coat plain unless GoreSkinOnBody.
         public bool GoreMaterials=true, GoreSkinOnBody=false; public float GoreSkinWet=.55f, GoreMembraneWet=.2f, GoreFleshWet=.6f;   // r8: Skin gore off (red cast)
@@ -57,6 +75,8 @@ namespace HollowCurrent
         public float HuntStartPerchMinSeconds=1f, HuntStartPerchMaxSeconds=2f;
         public float HeardOffsetMin=1.5f, HeardOffsetMax=3f, HeardOffsetHiddenMin=3f, HeardOffsetHiddenMax=5f;
         public float AttackGuaranteeSeconds=10f;
+        // r10 blind P2: the re-hear interval is drawn from this range each time (no 10 s metronome).
+        public float AttackGuaranteeMin=8f, AttackGuaranteeMax=14f;
         public float PerchEyeHeight=1.3f, FlightEyeHeight=1.85f, PerchLookDown=25f;
         public float LedgeProbe=2.2f;                          // balustrade search distance in front of a perch point
         public float SearchLandSeconds=2.6f;                   // lands at a heard/last-seen spot and prowls (Mode 2)
@@ -81,7 +101,8 @@ namespace HollowCurrent
         public float CaptureHoldHeight=1.25f, CaptureFeintFacingSeconds=1.3f;
         // Round 5: glide end height (approach stays above the fog), climax lunge distance, and the whole-figure lean back
         // (degrees, negative = back) while gliding/diving toward the camera so it sees chest and face, not soles.
-        public float CaptureGlideEndHeight=2.2f, CaptureLungeDistance=2.5f, CaptureGlideLean=-34f, CaptureDiveLean=-16f;
+        // Wave I: positive = nose-down into the travel direction (round 5's lean-back made him hang upright, r10 blind critic).
+        public float CaptureGlideEndHeight=2.2f, CaptureLungeDistance=2.5f, CaptureGlidePitch=40f, CaptureDivePitch=48f;
 
         // Cold rim light parented behind his shoulders (Presence.CountRimLight): keeps the wings readable in the dark.
         // Wave G (r10 static #11): ONE value in hunts and between hunts, so the light never tells the phase. Staged captures and
@@ -137,7 +158,9 @@ namespace HollowCurrent
         // A dive that came within this of her and ended without a kill counts as a grab survived (Dread).
         public float GrabSurvivedDistance=1.6f;
         // Item 13, hunt voices: each line at most once per VoiceCooldown, never two lines closer than VoiceGap.
-        public float VoiceCooldown=8f, VoiceGap=2f, FoundVoiceDistance=6f;
+        // r10 blind P2: lines are never closer than VoiceGap (5 s) and a search line waits a random VoiceJitterMin-Max after its
+        // trigger, so nothing lands on a fixed hunt time.
+        public float VoiceCooldown=8f, VoiceGap=5f, FoundVoiceDistance=6f, VoiceJitterMin=.8f, VoiceJitterMax=4.5f;
         // Item 4, hostile return (F1 HuntActive in Phase Return): short perch, no perch tell, straight-glide speed everywhere
         // he can fly, and he hears her again every ReturnHearSeconds.
         public float ReturnPerchSeconds=.4f, ReturnHearSeconds=3f;
