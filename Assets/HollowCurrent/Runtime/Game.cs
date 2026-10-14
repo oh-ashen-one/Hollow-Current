@@ -97,6 +97,9 @@ namespace HollowCurrent
             gameObject.AddComponent<Interface>().Game=this;
             Say(Book.Arrival);
             ApplyFocus();Debug.Log("HC_READY source-generated house; runtime route remains subject to playtest.");
+            // An unfocused player stops updating unless it runs in the background: capture and the
+            // playtest driver are launched from a script, so keep them running before any switch.
+            if(CaptureMode.Requested||PlaytestDriver.Requested)Application.runInBackground=true;
             if(Map==MapId.Castle&&CaptureMode.Requested)gameObject.AddComponent<CaptureMode>().Initialize(this);
             if(PlaytestDriver.Requested)gameObject.AddComponent<PlaytestDriver>().Initialize(this);
             if(NativeVerification.Requested&&FindFirstObjectByType<NativeVerification>()==null)new GameObject("Opt-in native verification").AddComponent<NativeVerification>();
