@@ -231,12 +231,21 @@ namespace HollowCurrent
             Debug.Log("HC_PLAY_FRAMES great_hall frames="+times.Count+" mean_ms="+(sum/times.Count).ToString("F2")+" p50_ms="+times[times.Count/2].ToString("F2")+" p95_ms="+times[(int)(times.Count*.95f)].ToString("F2")+" p99_ms="+times[(int)(times.Count*.99f)].ToString("F2")+" worst_ms="+times[times.Count-1].ToString("F2")+" over_16.7="+times.FindAll(t=>t>16.7f).Count+" screen="+Screen.width+"x"+Screen.height);
             yield return Step("great_hall_frames");
             // 3. Throwables: the director's real throw, then the poltergeist, facing the hall table.
-            // Stand 2.2 m from the hall-floor throwable nearest the rune ring, facing it.
-            Transform target=null;float tBest=99;
-            foreach(var th in Throwable.All){if(!th)continue;var tp=th.transform.position;if(tp.y<-.5f||tp.y>2)continue;float dd=Vector3.Distance(tp,hall);if(dd<tBest){tBest=dd;target=th.transform;}}
-            if(target){StandNear(target.position,2.2f,0);input.Look=target.position;}else Blocker("no Throwable on the hall floor");
-            yield return Frames(6);
-            bool threw=game.Scares.ThrowNearbyProp();yield return Wait(1.2f);yield return Step("throw","thrown="+threw+" prop="+(game.Scares.LastThrownProp?game.Scares.LastThrownProp.name:"none"));
+            // Try the ground-floor throwables nearest the rune ring in turn: stand 2.2 m away facing it, call the director's
+            // real ThrowNearbyProp; log why a candidate fails (distance, view angle, what the sight line hits).
+            var candidates=new List<Throwable>();foreach(var th in Throwable.All)if(th&&th.transform.position.y>-.5f&&th.transform.position.y<2)candidates.Add(th);
+            candidates.Sort((a,b)=>Vector3.Distance(a.transform.position,hall).CompareTo(Vector3.Distance(b.transform.position,hall)));
+            bool threw=false;
+            for(int k=0;k<Mathf.Min(6,candidates.Count)&&!threw;k++)
+            {
+                var t=candidates[k].transform;var rs=t.GetComponentsInChildren<Renderer>();var centre=rs.Length>0?rs[0].bounds.center:t.position;
+                StandNear(centre,2.2f,0);input.Look=centre;yield return Frames(6);
+                var eye=game.Player.View.transform;var delta=centre-eye.position;
+                string hitName=Physics.Linecast(eye.position,centre,out var hit,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)?hit.collider.name+"@"+hit.distance.ToString("F2")+"/"+delta.magnitude.ToString("F2"):"clear";
+                Debug.Log("HC_PLAY_THROW_PROBE "+t.name+" at="+t.position+" d="+delta.magnitude.ToString("F2")+" angle="+Vector3.Angle(eye.forward,delta).ToString("F0")+" renderers="+rs.Length+" body="+(t.GetComponent<Rigidbody>()!=null)+" line="+hitName);
+                threw=game.Scares.ThrowNearbyProp();
+            }
+            yield return Wait(1.2f);yield return Step("throw","thrown="+threw+" prop="+(game.Scares.LastThrownProp?game.Scares.LastThrownProp.name:"none"));
             int flung=game.CastleDread?game.CastleDread.Poltergeist():-1;yield return Wait(1.2f);yield return Step("poltergeist","flung="+flung);
             // 4. Castle dread beats through ScareDirector.Dread (HC_SCARE_CASTLE).
             for(int i=0;i<5;i++){game.Scares.Dread();yield return Wait(2.2f);}
