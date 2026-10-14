@@ -1,0 +1,11 @@
+margrave           1024x2048 RGB; eye-box luma 96 vs flank 29, min stddev 54, bright-band centre u=0.43 | OK
+margravine         1024x2048 RGB; eye-box luma 118 vs flank 20, min stddev 34, bright-band centre u=0.46 | OK
+steward            1024x2048 RGB; eye-box luma 80 vs flank 17, min stddev 39, bright-band centre u=0.46 | OK
+astronomer         1024x2048 RGB; eye-box luma 96 vs flank 15, min stddev 41, bright-band centre u=0.42 | OK
+painter            1024x2048 RGB; eye-box luma 93 vs flank 15, min stddev 39, bright-band centre u=0.47 | OK
+cellarer           1024x2048 RGB; eye-box luma 79 vs flank 18, min stddev 30, bright-band centre u=0.44 | OK
+child              1024x2048 RGB | OK
+ledger_steward     1536x1024 RGB | OK
+ledger_astronomer  1536x1024 RGB | OK
+ledger_painter     1536x1024 RGB | OK
+claw               1024x1024 RGBA; alpha coverage 0.19 | OK

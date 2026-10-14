@@ -1,0 +1,313 @@
+{
+  "tool": "OpenAI built-in image_gen.imagegen",
+  "model": "not exposed by built-in tool; no model version claimed",
+  "date": "2026-10-14",
+  "worktree": "/Users/midir/hollow-current-haunted-castle/.wt/wallart-art",
+  "branch": "hc/wallart-art",
+  "cost": "not exposed by built-in tool",
+  "assets": [
+    {
+      "id": "margrave",
+      "prompt_id": "P1",
+      "path": "Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_margrave.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-91f814e2-0bec-423a-a4b4-00aeed6124d4.png",
+      "attempts": 4,
+      "shift": 0,
+      "size": [
+        1024,
+        2048
+      ],
+      "mode": "RGB",
+      "bytes": 2917561,
+      "sha256": "b31b05b5291c372bfbd93b742ce96beb520c499122479378c00c8f9636e2bf33",
+      "notes": "Two initial generations; two pupil/alignment edits. Selected first edit; second edit overshot upward. Pupil-free; vertical mismatch remains.",
+      "approx_eye_centers_final_px": [
+        [
+          412,
+          793
+        ],
+        [
+          637,
+          793
+        ]
+      ],
+      "approx_eye_centers_uv": [
+        [
+          0.403,
+          0.613
+        ],
+        [
+          0.622,
+          0.613
+        ]
+      ],
+      "eye_measurement_note": "Visually estimated, about +/-5 raw pixels; refine against engine render. Fixed default pupil placement is NOT certified."
+    },
+    {
+      "id": "margravine",
+      "prompt_id": "P2",
+      "path": "Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_margravine.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-6973ae36-ca18-48c6-b515-b03fecdc087e.png",
+      "attempts": 3,
+      "shift": -20,
+      "size": [
+        1024,
+        2048
+      ],
+      "mode": "RGB",
+      "bytes": 3135102,
+      "sha256": "83b5c92f806e427e1842f2b601423a19a5968652ff3abdeb8512f660ddc2c0a9",
+      "notes": "Two initial generations, then pupil/alignment edit. Pupil-free; small vertical mismatch.",
+      "approx_eye_centers_final_px": [
+        [
+          411,
+          713
+        ],
+        [
+          612,
+          713
+        ]
+      ],
+      "approx_eye_centers_uv": [
+        [
+          0.402,
+          0.652
+        ],
+        [
+          0.597,
+          0.652
+        ]
+      ],
+      "eye_measurement_note": "Visually estimated, about +/-5 raw pixels; refine against engine render. Fixed default pupil placement is NOT certified."
+    },
+    {
+      "id": "steward",
+      "prompt_id": "P3",
+      "path": "Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_steward.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-88efcd64-a72e-40e2-84dc-7ccbeb84c02a.png",
+      "attempts": 4,
+      "shift": 14,
+      "size": [
+        1024,
+        2048
+      ],
+      "mode": "RGB",
+      "bytes": 2934821,
+      "sha256": "6aea449506fb5eb92225c9442cc75573f62268cb075be6eb91a0d90d54bed403",
+      "notes": "Two initial generations, then two edits to lower head and remove pupil remnants. Pupil-free; eye spacing narrower than target.",
+      "approx_eye_centers_final_px": [
+        [
+          426,
+          751
+        ],
+        [
+          591,
+          751
+        ]
+      ],
+      "approx_eye_centers_uv": [
+        [
+          0.416,
+          0.633
+        ],
+        [
+          0.577,
+          0.633
+        ]
+      ],
+      "eye_measurement_note": "Visually estimated, about +/-5 raw pixels; refine against engine render. Fixed default pupil placement is NOT certified."
+    },
+    {
+      "id": "astronomer",
+      "prompt_id": "P4",
+      "path": "Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_astronomer.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-39c6efb2-4539-41f9-b44d-d814fe8d55bc.png",
+      "attempts": 2,
+      "shift": -4,
+      "size": [
+        1024,
+        2048
+      ],
+      "mode": "RGB",
+      "bytes": 3118063,
+      "sha256": "b7607e5de38605656c34e64dc93a594c365412b04ca0457be648d30fa4773e6c",
+      "notes": "One generation and one pupil/alignment edit. Pupil-free; small position differences.",
+      "approx_eye_centers_final_px": [
+        [
+          439,
+          720
+        ],
+        [
+          624,
+          720
+        ]
+      ],
+      "approx_eye_centers_uv": [
+        [
+          0.429,
+          0.648
+        ],
+        [
+          0.61,
+          0.648
+        ]
+      ],
+      "eye_measurement_note": "Visually estimated, about +/-5 raw pixels; refine against engine render. Fixed default pupil placement is NOT certified."
+    },
+    {
+      "id": "painter",
+      "prompt_id": "P5",
+      "path": "Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_painter.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-a3f7177f-abaa-4829-a30c-82c3cf113edc.png",
+      "attempts": 3,
+      "shift": 10,
+      "size": [
+        1024,
+        2048
+      ],
+      "mode": "RGB",
+      "bytes": 3076627,
+      "sha256": "b9e4d9dea0755bc607e40e19cd6f2ac41804f475ad2367dc13e22953a2e9d640",
+      "notes": "One generation and two position edits. Retained original, which was closer to target than the edited results. Pupil-free; vertical/spacing mismatch remains.",
+      "approx_eye_centers_final_px": [
+        [
+          431,
+          693
+        ],
+        [
+          590,
+          693
+        ]
+      ],
+      "approx_eye_centers_uv": [
+        [
+          0.421,
+          0.661
+        ],
+        [
+          0.576,
+          0.661
+        ]
+      ],
+      "eye_measurement_note": "Visually estimated, about +/-5 raw pixels; refine against engine render. Fixed default pupil placement is NOT certified."
+    },
+    {
+      "id": "cellarer",
+      "prompt_id": "P6",
+      "path": "Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_cellarer.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-7671f190-cd7e-4432-a5be-cf23dd28148e.png",
+      "attempts": 2,
+      "shift": 18,
+      "size": [
+        1024,
+        2048
+      ],
+      "mode": "RGB",
+      "bytes": 2804121,
+      "sha256": "9264d5c626f56eb2c7595f73c36aa787854d1b4074f976df1a3ca06b963239a5",
+      "notes": "One generation and one alignment edit. Pupil-free; eye spacing narrower than target.",
+      "approx_eye_centers_final_px": [
+        [
+          426,
+          728
+        ],
+        [
+          600,
+          731
+        ]
+      ],
+      "approx_eye_centers_uv": [
+        [
+          0.416,
+          0.645
+        ],
+        [
+          0.586,
+          0.643
+        ]
+      ],
+      "eye_measurement_note": "Visually estimated, about +/-5 raw pixels; refine against engine render. Fixed default pupil placement is NOT certified."
+    },
+    {
+      "id": "child",
+      "prompt_id": "P7",
+      "path": "Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_child.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-84f3055f-90cf-44f9-8fc1-d0f45d71bce2.png",
+      "attempts": 1,
+      "shift": 0,
+      "size": [
+        1024,
+        2048
+      ],
+      "mode": "RGB",
+      "bytes": 2912634,
+      "sha256": "34e8234c5185e58560bdaae86484610bd8e61b7847d374990cd871499a709e8b",
+      "notes": "Full figure and unlit candle preserved after crop. Dress more ornate than plain linen; eyes approximately 14% down versus prompt 18%. No animated pupils on door."
+    },
+    {
+      "id": "ledger_steward",
+      "prompt_id": "L1",
+      "path": "Assets/HollowCurrent/Resources/Castle/LedgerSteward.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-ce9a0c04-9b5a-4f5e-9c8e-f0b771b40cb0.png",
+      "attempts": 2,
+      "shift": 0,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "bytes": 3243989,
+      "sha256": "913e2510c4337c9fe0da0adf64050c6ddea859c391880b19288c7d6d6665989e",
+      "notes": "Edited initial complete sword to a blade with bare tang; crypt/channel/claw clue retained."
+    },
+    {
+      "id": "ledger_astronomer",
+      "prompt_id": "L2",
+      "path": "Assets/HollowCurrent/Resources/Castle/LedgerAstronomer.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-0adcc873-d993-4d77-9a87-59fc62a45177.png",
+      "attempts": 1,
+      "shift": 0,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "bytes": 3304749,
+      "sha256": "f21aa43aedef2d4d0eaac8b23647f6425219ecea0b5741058e3274dd6a4b1fb2",
+      "notes": "Orrery, empty orbit circle, hilt and star charts present; moon studies more elaborate than the prompt."
+    },
+    {
+      "id": "ledger_painter",
+      "prompt_id": "L3",
+      "path": "Assets/HollowCurrent/Resources/Castle/LedgerPainter.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-a37f1cc0-bc79-44c0-a26c-9db1f67cc2f9.png",
+      "attempts": 1,
+      "shift": 0,
+      "size": [
+        1536,
+        1024
+      ],
+      "mode": "RGB",
+      "bytes": 3334921,
+      "sha256": "6599edd1219993be24c9dc5012e4f1b8fdad82996a789fc4980a0ca351ba24db",
+      "notes": "Portrait-door latch, struck-out eyes, milky stone and pigment smears present."
+    },
+    {
+      "id": "claw",
+      "prompt_id": "C1",
+      "path": "Assets/HollowCurrent/Resources/Castle/ClawScores.png",
+      "source_raw": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images/exec-ab6200ca-c427-4fc7-ad11-0f1174d5c77c.png",
+      "attempts": 1,
+      "shift": 0,
+      "size": [
+        1024,
+        1024
+      ],
+      "mode": "RGBA",
+      "bytes": 1334569,
+      "sha256": "d339879e67d4a781e64e89711a62723ce80353abf63b300d3cc74be25a989897",
+      "notes": "Four gouges, crossing set and curved wing-drag; black converted to alpha by supplied script."
+    }
+  ],
+  "originals_directory": "/Users/midir/Documents/Codex/2026-10-14/task/generated_images"
+}

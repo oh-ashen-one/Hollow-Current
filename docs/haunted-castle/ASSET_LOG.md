@@ -75,3 +75,23 @@ synthetic-reverb convolution; deterministic seeds; loops are periodic by constru
 | `voice_cc_kit`, `voice_cc_ending` | eSpeak NG, Count treatment from `CASTLE_FX` | 0 |
 
 No `ASSET_LICENSES.md` line is needed: everything here is generated from our own scripts (eSpeak NG output is redistributable per the existing voice entries).
+
+## Codex built-in wall art — 2026-10-14
+
+24 built-in calls, one at a time with visual review. No external provider; model version, price and provider job IDs are not exposed by the tool. Originals retained; selected files and hashes in `wallart-delivery/manifest.json`. User follow-up authorized bounded corrective image edits beyond the original two-generation limit. No refusals.
+
+| id | prompt | calls | selected tool-output basename | result |
+|---|---|---|---|---|
+| margrave | P1 | 4 | `exec-91f814e2-0bec-423a-a4b4-00aeed6124d4.png` | Two initial generations; two pupil/alignment edits. Selected first edit; second edit overshot upward. Pupil-free; vertical mismatch remains. |
+| margravine | P2 | 3 | `exec-6973ae36-ca18-48c6-b515-b03fecdc087e.png` | Two initial generations, then pupil/alignment edit. Pupil-free; small vertical mismatch. |
+| steward | P3 | 4 | `exec-88efcd64-a72e-40e2-84dc-7ccbeb84c02a.png` | Two initial generations, then two edits to lower head and remove pupil remnants. Pupil-free; eye spacing narrower than target. |
+| astronomer | P4 | 2 | `exec-39c6efb2-4539-41f9-b44d-d814fe8d55bc.png` | One generation and one pupil/alignment edit. Pupil-free; small position differences. |
+| painter | P5 | 3 | `exec-a3f7177f-abaa-4829-a30c-82c3cf113edc.png` | One generation and two position edits. Retained original, which was closer to target than the edited results. Pupil-free; vertical/spacing mismatch remains. |
+| cellarer | P6 | 2 | `exec-7671f190-cd7e-4432-a5be-cf23dd28148e.png` | One generation and one alignment edit. Pupil-free; eye spacing narrower than target. |
+| child | P7 | 1 | `exec-84f3055f-90cf-44f9-8fc1-d0f45d71bce2.png` | Full figure and unlit candle preserved after crop. Dress more ornate than plain linen; eyes approximately 14% down versus prompt 18%. No animated pupils on door. |
+| ledger_steward | L1 | 2 | `exec-ce9a0c04-9b5a-4f5e-9c8e-f0b771b40cb0.png` | Edited initial complete sword to a blade with bare tang; crypt/channel/claw clue retained. |
+| ledger_astronomer | L2 | 1 | `exec-0adcc873-d993-4d77-9a87-59fc62a45177.png` | Orrery, empty orbit circle, hilt and star charts present; moon studies more elaborate than the prompt. |
+| ledger_painter | L3 | 1 | `exec-a37f1cc0-bc79-44c0-a26c-9db1f67cc2f9.png` | Portrait-door latch, struck-out eyes, milky stone and pigment smears present. |
+| claw | C1 | 1 | `exec-ab6200ca-c427-4fc7-ad11-0f1174d5c77c.png` | Four gouges, crossing set and curved wing-drag; black converted to alpha by supplied script. |
+
+Prompt adjustments: P1 retry changed eye height 36% to 44%; P2 retry to 50%; P3 retry to 58%. P5/P6 initial prompts added explicit source eye pixel centers and completely pupil-free eyes; P7 added blank-eye/central-crop clarification. Corrective edits preserved subjects/style and requested removal of dark pupils plus eye centers (416,553)/(608,553) at raw 1024x1536. P1/P5 later upward-position edits overshot and were rejected. L1 edit removed the drawn hilt/crossguard. Originals P1..C1 are preserved verbatim in `wallart-delivery/original-prompts.json`.
