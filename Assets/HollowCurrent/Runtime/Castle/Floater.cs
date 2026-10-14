@@ -21,7 +21,21 @@ namespace HollowCurrent
             for(int i=0;i<All.Count;i++)if(All[i])All[i].flameTarget=target;
         }
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics(){All.Clear();globalTarget=null;autoTarget=null;autoNext=0;}
+        static void ResetStatics(){All.Clear();globalTarget=null;autoTarget=null;autoNext=0;falseUntil=0;falseTransform=null;}
+        // False candle tell (fear plan item 5): for `seconds`, every flame leans firmly toward `point` whatever the hunter target
+        // is, then releases and goes back to the hunter (or the Count himself). Nothing is there; that is the point.
+        static Transform falseTransform;static float falseUntil;
+        public static bool FalseActive=>falseTransform&&Time.time<falseUntil;
+        public static void FalseTarget(Vector3 point,float seconds)
+        {
+            if(!falseTransform)
+            {
+                var g=new GameObject("False candle target");g.hideFlags=HideFlags.HideInHierarchy;
+                falseTransform=g.transform;
+            }
+            falseTransform.position=point;falseUntil=Time.time+Mathf.Max(0,seconds);
+        }
+        public static void ClearFalseTarget(){falseUntil=0;}
         // When nobody has set a target, the Count himself is the target whenever he is in the scene and active (perched, gliding or
         // hunting): the candle rule must show in any state, not only in the Hunt phase CastleRun reacts to.
         static Transform autoTarget;static float autoNext;
@@ -66,7 +80,7 @@ namespace HollowCurrent
         Vector3 basePosition;
         Quaternion baseRotation;
         Quaternion[] flameRest;
-        bool ready,flamesDirty,haveLastTarget,autoSet;
+        bool ready,flamesDirty,haveLastTarget,autoSet,wasFalse;
         Vector3 lastTargetPosition;
         void OnEnable()
         {
@@ -106,7 +120,10 @@ namespace HollowCurrent
         {
             if(flames==null||flames.Length==0)return;
             float want=0;
-            if(!globalTarget&&(!flameTarget||autoSet)){var auto=AutoTarget();flameTarget=auto;autoSet=auto;}
+            bool falsing=FalseActive;
+            if(falsing){flameTarget=falseTransform;wasFalse=true;}
+            else if(wasFalse){wasFalse=false;flameTarget=globalTarget;autoSet=false;} // release: back to the hunter, or auto below
+            if(!falsing&&!globalTarget&&(!flameTarget||autoSet)){var auto=AutoTarget();flameTarget=auto;autoSet=auto;}
             bool hasTarget=flameTarget; // false for null and for a destroyed target
             // Remember where the target was: flames that are still leaning when it is cleared ease back up while
             // still pointing at that spot, so there is never a dereference of a missing target.
@@ -116,6 +133,7 @@ namespace HollowCurrent
                 float d=Vector3.Distance(flameTarget.position,transform.position);
                 float k=1-Mathf.Clamp01(d/bendRange);
                 want=k*k*(3-2*k); // smoothstep: nothing at range, firm lean up close
+                if(falsing)want=Mathf.Max(want,.9f); // the false tell reaches every flame in the castle
             }
             Bend01=want>Bend01?Mathf.MoveTowards(Bend01,want,bendSpeed*dt):Mathf.MoveTowards(Bend01,want,relaxSpeed*dt);
             if(Bend01<=0)

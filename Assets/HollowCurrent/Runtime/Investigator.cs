@@ -259,7 +259,7 @@ namespace HollowCurrent
         void UpdateNeedle()
         {
             if(!needle)return;
-            NeedleSpinning=FearLink.FalseCompass(Game.Scares.Castle);
+            NeedleSpinning=Game.CastleDread&&Game.CastleDread.FalseCompass;
             float angle;
             if(NeedleSpinning)angle=Time.time*840+Mathf.Sin(Time.time*13)*40;
             else
@@ -347,7 +347,6 @@ namespace HollowCurrent
             if(Game.Case.Phase==Phase.Briefing)return;
             if(Game.Map==MapId.Castle)
             {
-                if(spot.Nailed){Game.Notice("Nailed shut.");Game.Sound.Cue("knock",spot.transform.position,.35f);return;}
                 // Above the DoorHeld threshold something holds the door from inside (FEAR_PLAN item 5).
                 if(FearLink.DoorHeld(Game.Case)){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name);return;}
             }
