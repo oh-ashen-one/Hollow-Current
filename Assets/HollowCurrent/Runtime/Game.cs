@@ -93,11 +93,11 @@ namespace HollowCurrent
             LongNight=PlayerPrefs.GetInt(LongNightKey,0)!=0;MicEnabled=PlayerPrefs.GetInt(MicKey,0)!=0;MicThreshold=Mathf.Clamp(PlayerPrefs.GetFloat(MicThresholdKey,.02f),.005f,.08f);
             // Automated runs never inherit a player's dial or microphone: Long Night only by flag, microphone never.
             if(Automated){LongNight=Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-long-night")>=0;MicEnabled=false;}
-            // Castle rules (HuntRules.Castle or the Long Night dial) are chosen before the case exists.
-            if(Map==MapId.Castle)FearLink.ApplyCastleRules(CaseBook.For(Map),null,LongNight);
+            // Castle rules (HuntRules.Castle or the Long Night dial) and real dice; Bellwether is built exactly as before.
             appliedLongNight=LongNight;
-            Case=new Investigation(CaseBook.For(Map));Case.Message+=Say;Case.Changed+=PhaseChanged;
-            if(Map==MapId.Castle)FearLink.InjectRandom(Case);
+            Case=Map==MapId.Castle?new Investigation(CaseBook.For(Map),()=>UnityEngine.Random.value,HuntRules.For(Map,LongNight)):new Investigation(CaseBook.For(Map));
+            Case.Message+=Say;Case.Changed+=PhaseChanged;
+            if(Map==MapId.Castle)Debug.Log("HC_RULES "+Case.Rules.Name+" dread="+Case.Dread.ToString("F0"));
             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
             if(Map==MapId.Castle)CastleArt.ApplySkybox();
             if(!bakedHouse&&Map!=MapId.Castle)
@@ -111,7 +111,7 @@ namespace HollowCurrent
             var entity=new GameObject("Presence senses and navigation");Creature=entity.AddComponent<Presence>();Creature.Initialize(this);
             Scares=gameObject.AddComponent<ScareDirector>();Scares.Initialize(this);
             if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);gameObject.AddComponent<CastleAtmosphere>();gameObject.AddComponent<CastleLightTuning>();}
-            if(Map==MapId.Castle){Scares.Castle=FearLink.AddCastleScares(this);if(LongNight)World.Castle?.NailHides(FearLink.NailedHides(Case,2));}
+            if(Map==MapId.Castle){Scares.Castle=FearLink.AddCastleScares(this);if(Case.Rules.NailedHides>0)World.Castle?.NailHides(Case.Rules.NailedHides);}
             foreach(var lamp in World.Lamps)lampLevels[lamp]=lamp.intensity;
             foreach(var doll in World.Dolls)dollHomes[doll]=doll.position;
             gameObject.AddComponent<Interface>().Game=this;
@@ -132,7 +132,7 @@ namespace HollowCurrent
             GC.Collect();LoadingProgress=1;yield return new WaitForEndOfFrame();
             Loading=false;
             if(restoreCheckpoint&&checkpoints.TryGetValue(Map,out var checkpoint))
-            {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);Player.Teleport(checkpointPositions[Map]);Started=true;Scares.RetryGrace();Say("Checkpoint restored / Your records are intact. Find cover before the signal rises.");}
+            {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);if(Case.DeathPenaltyApplied)DeathPenalty();Player.Teleport(checkpointPositions[Map]);Started=true;Scares.RetryGrace();Say("Checkpoint restored / Your records are intact. Find cover before the signal rises.");}
             if(startOnLoad){startOnLoad=false;StartCase();}
             // Capture mode in the combined player (starts in Bellwether): switch to the castle.
             // The case starts on arrival, so S7 (title) is only meaningful in a castle-only build.
@@ -279,17 +279,22 @@ namespace HollowCurrent
             string hint=!Case.Evidence.Contains(Evidence.Induction)?"hint_signal":!Case.Evidence.Contains(Evidence.Handprint)?"hint_trace":"hint_voice";
             Say("Dispatch / "+(hint=="hint_signal"?Book.HintSignal:hint=="hint_trace"?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
         }
-        // Castle: dread-aware tick (FearLink falls back to the plain tick until hc/dread lands) and the
+        // Castle: dread-aware tick (HuntRules.Castle: dice hunts, lies, hostile return) and the
         // torch failing for a second when he dives.
         void CastleTick(float dt)
         {
             if(!candlesCached)CacheCandles();
             litCheck-=dt;if(litCheck<=0){litCheck=.25f;litNearby=CandleWithin(6);}
             bool atFire=hasChapelFire&&Case.BreakerOn&&Vector3.Distance(Player.transform.position,chapelFire)<3;
-            FearLink.Tick(Case,dt,Player.Inside,litNearby,Player.InVan||atFire);
+            Case.Tick(dt,Player.Inside,litNearby,Player.InVan||atFire);
             bool diving=FearLink.Diving(Creature);
             if(diving&&!wasDiving){Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL dive");}
             wasDiving=diving;
+        }
+        // FEAR_PLAN item 7: after a death he has moved the next relic or ledger page (F3's RelicAltPositions).
+        void DeathPenalty()
+        {
+            Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F0")+" moved=none (RelicAltPositions not in this build)");
         }
         void CacheCandles()
         {
@@ -314,14 +319,19 @@ namespace HollowCurrent
             {
                 // False warnings strobe and radio like real ones (Investigation never turns them into a hunt);
                 // no-tell hunts skip the Warning phase, so nothing here strobes or speaks for them.
-                if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+FearLink.FalseWarning(Case)+" dread="+FearLink.Dread(Case).ToString("F1"));
+                if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" length="+Case.WarningLength.ToString("F1")+" dread="+Case.Dread.ToString("F1"));
                 if(previous==Phase.Warning&&phase!=Phase.Hunt&&!Case.Terminal)Debug.Log("HC_FALSE_WARNING ended phase="+phase);
-                if(phase==Phase.Hunt)Debug.Log("HC_HUNT_START noTell="+FearLink.NoTellHunt(Case)+" from="+previous+" dread="+FearLink.Dread(Case).ToString("F1")+" hunts="+Case.Hunts);
+                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" dread="+Case.Dread.ToString("F1")+" hunts="+Case.Hunts);
             }
             Creature?.PhaseChanged(phase);
             if(phase==Phase.Disturbance&&!Case.Survived&&!evidenceAppearanceScheduled)
             {evidenceAppearanceScheduled=true;StartCoroutine(RevealFirstRecord());}
-            if(phase==Phase.Warning){Scares?.Pulse(Player.transform.position+Player.transform.forward*3,9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);Sound.Speak("warning");}
+            if(phase==Phase.Warning)
+            {
+                // Castle escalation (a 1.5 s tell after a close apparition) strobes but has no dispatch line.
+                bool escalation=Map==MapId.Castle&&Case.WarningLength<Case.Rules.WarningSeconds;
+                Scares?.Pulse(Player.transform.position+Player.transform.forward*3,escalation?Case.WarningLength:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)Sound.Speak("warning");
+            }
             if(phase==Phase.Return)Sound.Speak("return");
             // Castle: the sealed bell lowers the drawbridge for the escape.
             if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)World.Castle.Drawbridge.Lower();

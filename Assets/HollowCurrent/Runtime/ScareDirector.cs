@@ -117,7 +117,7 @@ namespace HollowCurrent
             next=Random.Range(28f,40f);
             if(IsCastle)
             {
-                FearLink.AddDread(game.Case,12);
+                FearLink.AddDread(game.Case,game.Case.Rules.DreadApparition);
                 // An apparition that lands close can become a hunt with a short tell (FEAR_PLAN item 3).
                 float near=Vector3.Distance(point,game.Player.transform.position);
                 if(near<4){bool escalated=FearLink.TryEscalate(game.Case);Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated);}
@@ -125,7 +125,7 @@ namespace HollowCurrent
             if(!firstBasement&&Events%2==0)
             {
                 // Castle: one throw in six is the poltergeist (everything on the table at once).
-                if(IsCastle&&Random.value<1f/6&&FearLink.Scare(Castle,"Poltergeist")){ThrownProps++;FearLink.AddDread(game.Case,8);Debug.Log("HC_THROW poltergeist");}
+                if(IsCastle&&Random.value<1f/6&&FearLink.Scare(Castle,"Poltergeist")){ThrownProps++;FearLink.AddDread(game.Case,game.Case.Rules.DreadThrow);Debug.Log("HC_THROW poltergeist");}
                 else ThrowNearbyProp();
             }
             Debug.Log("HC_SCARE visible="+Events+" basement="+firstBasement+" rush="+rush);return true;
@@ -176,7 +176,7 @@ namespace HollowCurrent
                 var impact=prop.gameObject.AddComponent<ScareImpact>();impact.Sound=game.Sound;
                 var lateral=Vector3.Cross(Vector3.up,delta.normalized);body.AddForce((lateral*5+Vector3.up*2.3f),ForceMode.VelocityChange);body.AddTorque(new Vector3(7,13,5),ForceMode.VelocityChange);
                 game.Sound.Cue("knock",prop.position,.6f);ThrownProps++;LastThrownProp=prop;
-                if(IsCastle)FearLink.AddDread(game.Case,8);
+                if(IsCastle)FearLink.AddDread(game.Case,game.Case.Rules.DreadThrow);
                 Debug.Log("HC_THROW prop="+prop.name+" at="+prop.position+" distance="+delta.magnitude.ToString("F1"));return true;
             }
             return false;

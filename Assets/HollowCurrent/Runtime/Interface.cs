@@ -460,7 +460,7 @@ namespace HollowCurrent
             }
             dialogueText.fontSize=Mathf.RoundToInt(24*Game.SubtitleScale);
             float height=Mathf.Clamp(dialogueText.CalcHeight(new GUIContent(dialogueBody),460)/.53f,125,245);
-            bool danger=Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference;
+            bool danger=Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference||Game.Map==MapId.Castle&&Game.Case.HuntActive;
             float fade=Mathf.Clamp01(Game.SubtitleTime/.4f);
             Dialogue(new Rect(495,858-height,610,height),dialogueSpeaker,dialogueBody,danger,fade);
         }
