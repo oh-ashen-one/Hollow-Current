@@ -236,6 +236,21 @@ Table in AUTO_RUN.md.
 
 The blind critic is next. No further fixes were started.
 
+## hc/rules5: pacing governor (code only, not built yet)
+
+**Merged:** hc/rules5 `4283f55`; handoff `docs/haunted-castle/handoffs/rules5.md`.
+- **Grace:** multiplied by (1 + 12 × (share − 0.25)), capped at 3. After 3 minutes below a share of 0.12 the grace is 0.8×.
+- **High-Dread dice odds:** divided by the same factor.
+- **Share:** measured from the first threat, over a 300-600 s window.
+- **Integrator diff applied:**
+  - `HC_RECOVERY governor= governorShare=`
+  - `HC_RULES governor=`
+- **Checks:** `check_source` 1036 assertions, `check_castle_scares` PASS, `check_audio_keys` OK, `bellwether_fuzz` PASS.
+
+**Windowed proof line (next build):**
+- [ ] A natural 10-minute run has a final `huntShare` ≤ 0.33, even with the immortal driver.
+- [ ] `governor=` > 1 appears on `HC_RECOVERY` / `HC_RULES` whenever the share is above 0.25.
+
 ## Rules for the next integrator
 
 **Deliberate Bellwether change (for Hari to accept):** `Investigator` focus ray, in both maps (`e1e360a`). An interactable whose collider the same ray meets within 12 cm behind the first hit is focused. This fixes the coat cupboard: its hide trigger sits in the same plane as its solid lower door from `89dac7e` on `main`, which made `-hc-verify` fail. Bellwether rules are unchanged (fuzz identical).
