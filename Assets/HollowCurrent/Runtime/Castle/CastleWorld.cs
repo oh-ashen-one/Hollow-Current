@@ -738,7 +738,7 @@ namespace HollowCurrent
         {
             CastleExterior.Build(root);
             // a separate empty tag object: a script on the keep itself would pull it out of the baked statics
-            Tag("keep_block", "S4", new Vector3(0, 20.5f, 19.5f), new Vector3(8.4f, 23f, 8.4f));
+            Tag("keep_block", "S4", new Vector3(2.3f, 20.5f, 20.4f), new Vector3(5.6f, 23f, 5.6f));   // r12 polish: keep moved off-axis so both moons clear it
         }
 
         // ---- exterior -----------------------------------------------------------------------------------

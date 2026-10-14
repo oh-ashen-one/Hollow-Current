@@ -9,18 +9,23 @@ namespace HollowCurrent
     // origin (they are modelled in castle-local coordinates), re-skins their stone slots with the same world-space surfaces the front
     // veneer uses, paints the lit windows with the unlit CastleEmissive shader and the far ridge ring with CastleBackdrop, and adds
     // the exterior ground-fog bands. Nothing here has a collider and nothing here is a gameplay point: roofs, towers, rock and
-    // backdrop are render-only (the layout, nav and Points code never see them). New materials: glow, backdrop, two fog layers.
+    // backdrop are render-only (the layout, nav and Points code never see them). Six new materials: windows (atlas), backdrop, two fog
+    // layers, and two exterior stone instances (the same world-space stone as the veneer with a stronger ambient-fill term).
     public static class CastleExterior
     {
         // Draw order inside the group is irrelevant (all opaque except the backdrop and the fog, which are Transparent-queue).
         public static readonly string[] Pieces = { "ExtRock", "ExtWalls", "ExtTowers", "ExtGate", "ExtKeep", "ExtBackdrop" };
 
-        // Mirror of tools/castle_exterior.py (BACKDROP in the proof render): far ridge, near ridge, mist band.
-        static readonly Color FarLow = new Color(.040f, .055f, .095f, 1f), FarHigh = new Color(.016f, .024f, .046f, 1f);
-        static readonly Color NearLow = new Color(.022f, .030f, .055f, 1f), NearHigh = new Color(.008f, .011f, .022f, 1f);
-        static readonly Color Haze = new Color(.10f, .13f, .20f, .38f);
+        // Mirror of tools/castle_exterior.py BACKDROP. DISPLAY colours: the project is Linear, and Material.SetColor on a non-HDR Color
+        // property takes them as typed. Round 12 polish: the first values (.04 .055 .095) rendered at 10-15/255 in the captures.
+        static readonly Color FarLow = new Color(.20f, .25f, .38f, 1f), FarHigh = new Color(.085f, .105f, .19f, 1f);
+        static readonly Color NearLow = new Color(.10f, .13f, .21f, 1f), NearHigh = new Color(.04f, .05f, .095f, 1f);
+        static readonly Color Haze = new Color(.20f, .26f, .40f, .40f);
+        // Exterior stone: the veneer's own tints (CastleWorld.StoneFamily) with the shader's ambient-fill term raised, so the keep and gate read
+        // as moonlit stone instead of black next to the warm-lit courtyard walls. _FillAmount multiplies albedo * (_CastleFillSky/Ground).
+        const float StoneFill = 3.0f;
 
-        static Material glow, backdrop;
+        static Material backdrop, windows, stoneLight, stoneDark;
 
         public static int Build(Transform root)
         {
@@ -46,7 +51,7 @@ namespace HollowCurrent
             return renderers;
         }
 
-        // The pieces are authored in castle-local coordinates (keep centre z +19.5). If the FBX axis conversion ever landed the mesh mirrored
+        // The pieces are authored in castle-local coordinates (keep centre z +20.4). If the FBX axis conversion ever landed the mesh mirrored
         // in z (the CastleArt.ImportYaw question, never observed so far), turn the group 180 degrees like CastleWorld does for the
         // drawbridge leaf: that restores the layout position and leaves only a harmless x mirror.
         static void AxisCheck(Transform root, Transform group, Transform keep)
@@ -55,7 +60,7 @@ namespace HollowCurrent
             foreach (var r in keep.GetComponentsInChildren<Renderer>()) { if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds); }
             if (!any) return;
             var c = root.InverseTransformPoint(b.center);
-            if (c.z < 0f) { group.localRotation = Quaternion.Euler(0f, 180f, 0f); Debug.LogWarning("HC_EXTERIOR_AXIS keep centre local z " + c.z.ToString("F1") + " (expected +19.5): group turned 180 degrees"); }
+            if (c.z < 0f) { group.localRotation = Quaternion.Euler(0f, 180f, 0f); Debug.LogWarning("HC_EXTERIOR_AXIS keep centre local z " + c.z.ToString("F1") + " (expected +20.4): group turned 180 degrees"); }
             else Debug.Log("HC_EXTERIOR_AXIS ok keep centre local " + c.ToString("F1"));
         }
 
@@ -81,11 +86,11 @@ namespace HollowCurrent
                     Material m = null;
                     switch (BaseName(slots[i]))
                     {
-                        case "Castle_Stone": m = CastleArt.Surface("Castle_StoneWeathered", CastleArt.SurfaceKind.World, new Color(.86f, .86f, .88f)); break;
-                        case "Castle_StoneWeathered": m = CastleArt.Surface("Castle_StoneWeathered", CastleArt.SurfaceKind.World, new Color(.80f, .80f, .82f)); break;
-                        case "Castle_StoneDark": m = CastleArt.Surface("Castle_StoneDark", CastleArt.SurfaceKind.World, new Color(1.9f, 1.9f, 1.85f)); break;
-                        case "Castle_StoneMossy": m = CastleArt.Surface("Castle_StoneMossy", CastleArt.SurfaceKind.World, new Color(1.05f, 1.05f, 1.05f)); break;
-                        case "Castle_ExtGlow": m = Glow(); break;
+                        case "Castle_Stone":
+                        case "Castle_StoneWeathered": m = StoneLight(); break;
+                        case "Castle_StoneDark":
+                        case "Castle_StoneMossy": m = StoneDark(); break;
+                        case "Castle_ExtWindow": m = Windows(); break;
                         case "Castle_ExtBackdrop": m = Backdrop(); break;
                     }
                     if (m != null) { slots[i] = m; changed = true; }
@@ -99,22 +104,36 @@ namespace HollowCurrent
             }
         }
 
-        // Lit windows: unlit warm colour (same shader as the candelabra flames). Opaque, so it bakes as black emission like every
-        // castle material (HouseLighting sets EmissiveIsBlack); the colour comes from the shader, not from the lightmap.
-        static Material Glow()
+        static Material ExtStone(string surface, Color tint, string name)
         {
-            if (glow) return glow;
-            var shader = Resources.Load<Shader>("Castle/Shaders/CastleEmissive");
-            if (shader == null || !shader.isSupported)
+            var basis = CastleArt.Surface(surface, CastleArt.SurfaceKind.World, tint);
+            if (!basis) return null;
+            var m = new Material(basis) { name = name };
+            if (m.HasProperty("_FillAmount")) m.SetFloat("_FillAmount", StoneFill);
+            return m;
+        }
+        static Material StoneLight() { if (!stoneLight) stoneLight = ExtStone("Castle_StoneWeathered", new Color(.84f, .84f, .86f), "Castle exterior stone"); return stoneLight; }
+        static Material StoneDark() { if (!stoneDark) stoneDark = ExtStone("Castle_StoneDark", new Color(1.9f, 1.9f, 1.85f), "Castle exterior stone dark"); return stoneDark; }
+
+        // Lit windows (round 12 polish): one atlas (Castle_ExtWindows: leaded lancet, four arrow-slit variants, the dim lit gate tympanum) through
+        // the unlit HDR CastleWindow shader. Texture core #d9933a to edge #5a2e0a, dark leading; _Intensity 1.5 keeps the hottest channel under 2.0.
+        // Opaque, so it bakes as black emission like every castle material; the colour comes from the shader, not from the lightmap.
+        static Material Windows()
+        {
+            if (windows) return windows;
+            var shader = Resources.Load<Shader>("Castle/Shaders/CastleWindow");
+            var atlas = Resources.Load<Texture2D>("Castle/Textures/Castle_ExtWindows");
+            if (shader == null || !shader.isSupported || atlas == null)
             {
-                var std = Shader.Find("Standard");
-                glow = new Material(std) { name = "Castle exterior glow", color = new Color(.1f, .05f, .02f) };
-                glow.EnableKeyword("_EMISSION"); glow.SetColor("_EmissionColor", new Color(1.25f, .78f, .30f));
-                return glow;
+                Debug.LogWarning("[CastleExterior] CastleWindow shader or Castle_ExtWindows atlas unavailable; windows fall back to a dim flat amber");
+                windows = new Material(Shader.Find("Standard")) { name = "Castle exterior windows (fallback)", color = new Color(.05f, .025f, .01f) };
+                windows.EnableKeyword("_EMISSION"); windows.SetColor("_EmissionColor", new Color(.6f, .35f, .12f));
+                return windows;
             }
-            glow = new Material(shader) { name = "Castle exterior glow" };
-            glow.SetColor("_Color", new Color(1.25f, .78f, .30f, 1f));
-            return glow;
+            windows = new Material(shader) { name = "Castle exterior windows" };
+            windows.SetTexture("_MainTex", atlas);
+            windows.SetFloat("_Intensity", 1.5f);
+            return windows;
         }
 
         // Far ridge ring: unlit, ignores fog, alpha-blended in the Transparent queue (so the lightmap bake skips it: HouseLighting excludes
@@ -146,8 +165,8 @@ namespace HollowCurrent
             var noise = Resources.Load<Texture2D>("Castle/Textures/Castle_FogNoise");
             if (shader == null || !shader.isSupported || noise == null) { Debug.LogWarning("[CastleExterior] CastleFogLayer unavailable; exterior fog bands skipped"); return 0; }
             var group = new GameObject("Exterior ground fog").transform; group.SetParent(parent, false);
-            var low = FogMaterial(shader, noise, "Castle exterior fog low", .30f, .18f, new Vector4(.007f, .004f, 0, 0));
-            var high = FogMaterial(shader, noise, "Castle exterior fog high", .21f, .11f, new Vector4(-.005f, .006f, 0, 0));
+            var low = FogMaterial(shader, noise, "Castle exterior fog low", .34f, .18f, new Vector4(.007f, .004f, 0, 0));
+            var high = FogMaterial(shader, noise, "Castle exterior fog high", .24f, .11f, new Vector4(-.005f, .006f, 0, 0));
             var quad = Quad();
             // centre x, centre z, size x, size z
             var bands = new[] { new Vector4(0, -3.4f, 46f, 11f), new Vector4(-17.2f, 14f, 9f, 36f), new Vector4(17.2f, 14f, 9f, 36f), new Vector4(0, 31.4f, 46f, 8f) };
@@ -155,19 +174,30 @@ namespace HollowCurrent
             foreach (var b in bands)
                 for (int i = 0; i < 3; i++)
                     foreach (var layer in new[] { (low, .18f + .38f * i), (high, .55f + .55f * i) })
-                    {
-                        var go = new GameObject("Fog layer " + n);
-                        go.transform.SetParent(group, false);
-                        go.transform.localPosition = new Vector3(b.x, layer.Item2 - .6f, b.y);        // moat water is at y -0.6; layers climb from there
-                        go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-                        go.transform.localScale = new Vector3(b.z, b.w, 1f);
-                        go.AddComponent<MeshFilter>().sharedMesh = quad;
-                        var r = go.AddComponent<MeshRenderer>();
-                        r.sharedMaterial = layer.Item1; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
-                        r.lightProbeUsage = LightProbeUsage.Off; r.reflectionProbeUsage = ReflectionProbeUsage.Off;
-                        n++;
-                    }
+                        n += FogQuad(group, quad, layer.Item1, b, layer.Item2 - .6f, n);
+            // far-bank and flank mist (round 12 polish): the battlement and gate views looked over an unlit black plain at 12/255; two thin layers
+            // of the same fog over the banks put a cool veil between the castle and the ridge. Edges fade over a third of the quad.
+            var far = new[] { new Vector4(0, -34f, 110f, 56f), new Vector4(-44f, 14f, 40f, 70f), new Vector4(44f, 14f, 40f, 70f), new Vector4(0, 62f, 110f, 56f) };
+            foreach (var b in far)
+            {
+                n += FogQuad(group, quad, low, b, .35f, n);
+                n += FogQuad(group, quad, high, b, 1.1f, n);
+            }
             return n;
+        }
+
+        static int FogQuad(Transform group, Mesh quad, Material m, Vector4 b, float y, int n)
+        {
+            var go = new GameObject("Fog layer " + n);
+            go.transform.SetParent(group, false);
+            go.transform.localPosition = new Vector3(b.x, y, b.y);        // y relative to the castle root; the moat water is at -0.6
+            go.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            go.transform.localScale = new Vector3(b.z, b.w, 1f);
+            go.AddComponent<MeshFilter>().sharedMesh = quad;
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = m; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
+            r.lightProbeUsage = LightProbeUsage.Off; r.reflectionProbeUsage = ReflectionProbeUsage.Off;
+            return 1;
         }
 
         static Material FogMaterial(Shader shader, Texture2D noise, string name, float alpha, float tile, Vector4 scroll)

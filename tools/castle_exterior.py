@@ -9,8 +9,10 @@ docs/haunted-castle/art/manifest_exterior.json (measured size, triangle count an
 --proof DIR renders the offline proof images (Blender Workbench composited over the real sky, tools/castle_exterior_proof.py).
 
 Authoring space: all helpers take UNITY castle-local coordinates (x right, y up, z forward: footprint x +-14, z 0..28,
-gate wall on z = 0, +z into the castle). They swap to Blender space (x, z, y) like the other kit scripts, which
-castle_lib.export_asset turns back into Unity (x, y, z) (axis_forward=-Z, axis_up=Y).
+gate wall on z = 0, +z into the castle). Round 12 polish (axis fix): the FBX exporter (axis_forward=-Z, axis_up=Y) and Unity's importer
+together map Blender (x, y, z) to Unity (-x, z, -y), a 180 degree turn about the vertical axis relative to the (x, z, y) swap the first
+version of this kit assumed (CastleExterior.AxisCheck caught it: keep centre local z -19.5). So U() now writes Blender (-x, -z, y): the
+piece lands in Unity exactly where it is authored, with no runtime correction (the check stays).
 
 Gameplay contract: NOTHING here has a collider (CastleExterior never adds one), nothing stands inside the gate-wall-top standing
 spot (3.6, 7.5, 0), the bridge corridor |x| < 2.4 for z < 0, or any interior room volume (check_clear()).
@@ -24,17 +26,19 @@ import castle_common as cc
 # ---- materials -----------------------------------------------------------------------------------------------------------
 # Existing castle materials are reused (CastleExterior re-skins the stone slots with the same world-space surfaces the veneer uses).
 # Two names are new: Castle_ExtGlow (unlit warm emission) and Castle_ExtBackdrop (the distant-ridge shader).
-cc.MATERIALS.update({"Castle_ExtGlow": ((1.0, .62, .22), 0.0, 0.0, False), "Castle_ExtBackdrop": ((.05, .07, .12), 0.0, 0.0, False)})
+cc.MATERIALS.update({"Castle_ExtWindow": ((.85, .58, .23), 0.0, 0.0, False), "Castle_ExtBackdrop": ((.05, .07, .12), 0.0, 0.0, False)})
 UV_TILE.update({"Castle_StoneDark": 2.0, "Castle_StoneWeathered": 2.0, "Castle_StoneMossy": 2.0, "Castle_FlagStone": 2.0})
 ST, SW, SD, SM, SL = "Castle_Stone", "Castle_StoneWeathered", "Castle_StoneDark", "Castle_StoneMossy", "Castle_BlackStone"
-IRON, OX, GLOW, BACK = "Castle_Iron", "Castle_Oxblood", "Castle_ExtGlow", "Castle_ExtBackdrop"
+IRON, OX, GLOW, BACK = "Castle_Iron", "Castle_Oxblood", "Castle_ExtWindow", "Castle_ExtBackdrop"
+import castle_exterior_atlas as ATL
 
 def only():
     a = sys.argv
     return a[a.index("--") + 1:] if "--" in a else []
 ARGS = only()
 
-def U(p): return (p[0], p[2], p[1])          # Unity (x, y, z) -> Blender (x, z, y)
+def U(p): return (-p[0], -p[2], p[1])        # Unity (x, y, z) -> Blender (-x, -z, y); export + import turn it back to Unity (x, y, z)
+def S(p): return (p[0], p[2], p[1])          # sizes: no sign change
 
 # ---- shared constants (castle-local, must match CastleWorld.cs) ----------------------------------------------------------
 GATE_Z = -.45                       # outer face of the gate wall (wall z -0.45..+0.45); the front veneer adds ~0.125 m of relief
@@ -45,12 +49,12 @@ RECT = (-14.45, 14.45, -.45, 28.45)  # outer faces of the building shell
 class K:
     """Builder wrapper that takes Unity castle-local coordinates."""
     def __init__(s, name): s.b = Builder(name)
-    def box(s, c, sz, mat): s.b.box(U(c), U(sz), mat)
+    def box(s, c, sz, mat): s.b.box(U(c), S(sz), mat)
     def rbox(s, c, sz, yaw, mat):
-        with s.b.xf(T(*U(c)) @ Rz(yaw)): s.b.box((0, 0, 0), U(sz), mat)
+        with s.b.xf(T(*U(c)) @ Rz(yaw)): s.b.box((0, 0, 0), S(sz), mat)
     def lathe(s, c, prof, seg, mat, smooth=False): s.b.lathe(U(c), prof, seg, mat, smooth, cap=False)
-    def poly_xy(s, pts, z0, z1, mat): s.b.poly(pts, z0, z1, mat, 'XZ')   # polygon (x, y) extruded along z
-    def poly_zy(s, pts, x0, x1, mat): s.b.poly(pts, x0, x1, mat, 'YZ')   # polygon (z, y) extruded along x
+    def poly_xy(s, pts, z0, z1, mat): s.b.poly([(-x, y) for x, y in pts], -z1, -z0, mat, 'XZ')   # polygon (x, y) extruded along z
+    def poly_zy(s, pts, x0, x1, mat): s.b.poly([(-z, y) for z, y in pts], -x1, -x0, mat, 'YZ')   # polygon (z, y) extruded along x
     def at(s, c, yaw): return s.b.xf(T(*U(c)) @ Rz(yaw))                 # local frame at c, yaw about vertical (x toward z)
 
 # ---- primitives built from the basics ------------------------------------------------------------------------------------
@@ -89,20 +93,48 @@ def merlon_row(k, a, b, y, n, w, h, t, mat, axis='x'):
         x = a[0] + (b[0] - a[0]) * f; z = a[1] + (b[1] - a[1]) * f
         k.box((x, y + h / 2, z), (w, h, t) if axis == 'x' else (t, h, w), mat)
 
-def lancet(k, along, y0, w, h, face, plane):
-    """Lit pointed window: an emissive polygon proud of a wall face by 0.05. face N faces -z, S +z, W -x, E +x; plane = wall coordinate."""
-    pts = [(-w / 2, 0), (w / 2, 0), (w / 2, h * .72), (0, h), (-w / 2, h * .72)]
-    p = [(along + px, y0 + py) for px, py in pts]
-    if face in 'NS':
-        k.poly_xy(p, *((plane - .05, plane + .01) if face == 'N' else (plane - .01, plane + .05)), GLOW)
+def face(k, pts, outward, mat, uvs):
+    """One-sided polygon (Unity castle-local points), wound so its normal points toward `outward`; explicit UVs."""
+    b = k.b
+    P = [Vector(U(p)) for p in pts]; out = Vector(U(outward)); uvs = list(uvs)
+    n = Vector((0, 0, 0))
+    for i in range(len(P)):                                       # Newell normal
+        a, c = P[i], P[(i + 1) % len(P)]
+        n += Vector(((a.y - c.y) * (a.z + c.z), (a.z - c.z) * (a.x + c.x), (a.x - c.x) * (a.y + c.y)))
+    if n.dot(out) < 0: P.reverse(); uvs.reverse()
+    b._f([b._v(tuple(p)) for p in P], mat, False, uvs=uvs, closed=False)
+
+_win_count = [0]
+def window(k, kind, pts2, to3d, outward):
+    """Lit window from the atlas. pts2 = polygon (t, y) in the wall plane (t along the wall, y up); to3d(t, y) gives the Unity point."""
+    name = kind
+    if kind == "slit":
+        name = "slit%d" % ((_win_count[0] * 3 + _win_count[0] // 4) % ATL.SLIT_VARIANTS)       # spread brightness variants
+        _win_count[0] += 1
+    u0, v0, u1, v1 = ATL.uv_rect(name); pad = 3 / ATL.SIZE
+    u0 += pad; v0 += pad; u1 -= pad; v1 -= pad
+    ts = [p[0] for p in pts2]; ys = [p[1] for p in pts2]
+    tmin, tmax, ymin, ymax = min(ts), max(ts), min(ys), max(ys)
+    uvs = [(u0 + (u1 - u0) * (t - tmin) / (tmax - tmin), v0 + (v1 - v0) * (y - ymin) / (ymax - ymin)) for t, y in pts2]
+    face(k, [to3d(t, y) for t, y in pts2], outward, GLOW, uvs)
+
+def lancet(k, along, y0, w, h, face_dir, plane):
+    """Lit pointed window proud of a wall face by 0.03. face_dir N faces -z, S +z, W -x, E +x; plane = wall coordinate."""
+    pts = [(along - w / 2, y0), (along + w / 2, y0), (along + w / 2, y0 + h * .72), (along, y0 + h), (along - w / 2, y0 + h * .72)]
+    kind = "slit" if w < .6 else "lancet"
+    if face_dir in "NS":
+        z = plane - .03 if face_dir == "N" else plane + .03
+        window(k, kind, pts, lambda t, y: (t, y, z), (0, 0, -1 if face_dir == "N" else 1))
     else:
-        k.poly_zy(p, *((plane - .05, plane + .01) if face == 'W' else (plane - .01, plane + .05)), GLOW)
+        x = plane - .03 if face_dir == "W" else plane + .03
+        window(k, kind, pts, lambda t, y: (x, y, t), (-1 if face_dir == "W" else 1, 0, 0))
 
 def radial_slit(k, cx, cz, apothem, phi, y0, w, h):
     """Lit slit on the drum facet whose centre angle is phi (unity angle from +x toward +z); apothem = facet distance."""
-    with k.at((cx, 0, cz), phi + 90):   # local -z is outward
-        pts = [(-w / 2, y0), (w / 2, y0), (w / 2, y0 + h * .72), (0, y0 + h), (-w / 2, y0 + h * .72)]
-        k.poly_xy(pts, -apothem - .05, -apothem + .02, GLOW)
+    nx, nz = math.cos(math.radians(phi)), math.sin(math.radians(phi)); tx, tz = -nz, nx
+    r = apothem + .03
+    pts = [(-w / 2, y0), (w / 2, y0), (w / 2, y0 + h * .72), (0, y0 + h), (-w / 2, y0 + h * .72)]
+    window(k, "slit", pts, lambda t, y: (cx + nx * r + tx * t, y, cz + nz * r + tz * t), (nx, 0, nz))
 
 # ---- deterministic noise ---------------------------------------------------------------------------------------------------
 def _h(ix, iy, seed):
@@ -125,10 +157,10 @@ def smooth01(a, b, x):
 # =================================================================================================================================
 # PIECE 1: the keep (replaces the old plain box and its cone)
 # =================================================================================================================================
-KEEP_C = (0.0, 19.5)       # centre (x, z) on the great-hall roof (roof top y 9.2, x +-6, z 14..28)
-KEEP_HALF = 4.2
+KEEP_C = (2.3, 20.4)       # centre (x, z) on the great-hall roof (roof top y 9.2, x +-6, z 14..28); off-axis so both moons clear it
+KEEP_HALF = 2.8
 KEEP_BASE, KEEP_TOP = 9.0, 32.0
-KEEP_SIZE = (8.4, 28.0, 8.4)   # reported to the SetPiece tag (body, parapet to turret tops)
+KEEP_SIZE = (5.6, 23.0, 5.6)   # reported to the SetPiece tag (body)
 
 def keep():
     k = K("ExtKeep")
@@ -137,8 +169,8 @@ def keep():
     k.box((cx, KEEP_BASE + .5, cz), (2 * h + .5, 1.0, 2 * h + .5), SD)                      # plinth
     for y in (14.4, 19.8, 25.4):                                                              # string courses
         k.box((cx, y, cz), (2 * h + .4, .34, 2 * h + .4), SD)
-    # stepped corner buttresses: three tiers, each with a cap slab
-    tiers = [(KEEP_BASE, 16.0, 1.7, .55), (16.0, 23.5, 1.35, .4), (23.5, T - 2.0, 1.05, .25)]
+    # stepped corner buttresses: three tiers, each with a cap slab and a pinnacle on the top tier
+    tiers = [(KEEP_BASE, 16.0, 1.5, .5), (16.0, 23.5, 1.2, .36), (23.5, T - 2.0, .95, .22)]
     for sx in (-1, 1):
         for sz in (-1, 1):
             for (ya, yb, w, off) in tiers:
@@ -146,13 +178,10 @@ def keep():
                 k.box((px, (ya + yb) / 2, pz), (w, yb - ya, w), SD)
                 k.box((px, yb + .09, pz), (w + .16, .18, w + .16), SD)
                 if yb > 20: k.lathe((px, yb + .18, pz), [(0, 0), (w * .42, 0), (w * .3, .5), (.05, 1.6), (0, 1.9)], 6, SD)   # pinnacle
-    for sz in (-1, 1):                                                                         # mid-face pilasters
-        for xo in (-1.5, 1.5):
-            k.box((cx + xo, (KEEP_BASE + T - 3.2) / 2, cz + sz * (h + .14)), (.55, T - 3.2 - KEEP_BASE, .3), SD)
     # machicolated crown: corbels under an overhanging slab, merlons on top
     y_c = T - 1.8
-    for i in range(-4, 5):
-        a = i * .95
+    for i in range(-3, 4):
+        a = i * .85
         k.box((cx + a, y_c + .85, cz - h - .38), (.38, 1.7, .76), SD)
         k.box((cx + a, y_c + .85, cz + h + .38), (.38, 1.7, .76), SD)
         k.box((cx - h - .38, y_c + .85, cz + a), (.76, 1.7, .38), SD)
@@ -160,40 +189,39 @@ def keep():
     top_h = h + .85
     k.box((cx, T + .15, cz), (2 * top_h, .4, 2 * top_h), SW)                                  # overhang slab, top y T + .35
     for side in (-1, 1):
-        merlon_row(k, (cx - top_h + .45, cz + side * (top_h - .22)), (cx + top_h - .45, cz + side * (top_h - .22)), T + .35, 8, .8, 1.15, .5, SW)
-        merlon_row(k, (cx + side * (top_h - .22), cz - top_h + .45), (cx + side * (top_h - .22), cz + top_h - .45), T + .35, 8, .8, 1.15, .5, SW, axis='z')
+        merlon_row(k, (cx - top_h + .45, cz + side * (top_h - .22)), (cx + top_h - .45, cz + side * (top_h - .22)), T + .35, 6, .8, 1.15, .5, SW)
+        merlon_row(k, (cx + side * (top_h - .22), cz - top_h + .45), (cx + side * (top_h - .22), cz + top_h - .45), T + .35, 6, .8, 1.15, .5, SW, axis='z')
     # four bartizan turrets on the crown corners (corbel cone, shaft, slate spire) of different heights
     spec = {(-1, -1): (T + 5.0, 10.5), (1, -1): (T + 3.4, 8.2), (-1, 1): (T + 2.4, 6.8), (1, 1): (T + 4.0, 9.0)}
     for (sx, sz), (top, sh) in spec.items():
-        tx, tz = cx + sx * (top_h - .2), cz + sz * (top_h - .2)
-        k.lathe((tx, 0, tz), [(0, T - 3.4), (.35, T - 3.4), (.7, T - 2.4), (1.05, T - 1.4), (1.25, T - .8), (0, T - .8)], 12, SD)
-        drum(k, tx, tz, 1.05, T - .8, top, SW, seg=12)
-        spire(k, (tx, top, tz), 1.15, sh, eave=.32)
+        tx, tz = cx + sx * (top_h - .45), cz + sz * (top_h - .45)
+        k.lathe((tx, 0, tz), [(0, T - 3.4), (.3, T - 3.4), (.55, T - 2.4), (.8, T - 1.4), (.95, T - .8), (0, T - .8)], 12, SD)
+        drum(k, tx, tz, .8, T - .8, top, SW, seg=12)
+        spire(k, (tx, top, tz), .95, sh, eave=.28)
     # central drum and the tall spire
-    drum(k, cx, cz, 2.7, T + .3, T + 5.2, SW, seg=16)
-    corbel_ring(k, cx, cz, 2.7, T + 3.2, SD, seg=16, flare=.5, depth=1.0)
-    spire(k, (cx, T + 5.4, cz), 2.9, 11.5, eave=.45, seg=16, rod=1.6)
+    drum(k, cx, cz, 2.0, T + .3, T + 5.2, SW, seg=16)
+    corbel_ring(k, cx, cz, 2.0, T + 3.2, SD, seg=16, flare=.4, depth=1.0)
+    spire(k, (cx, T + 5.4, cz), 2.25, 11.5, eave=.4, seg=16, rod=1.6)
     # lit windows: courtyard/gate face (-z) and back face (+z), then the sides
     zf, zb = cz - h, cz + h
+    xs = h - 1.35
     for (face, zc, sgn) in (('N', zf, -1), ('S', zb, 1)):
-        lancet(k, cx, 17.0, 1.3, 6.2, face, zc)
-        for xo in (-2.9, 2.9):
+        lancet(k, cx, 17.0, 1.1, 6.2, face, zc)
+        for xo in (-xs, xs):
             for y0 in (17.6, 22.6): lancet(k, cx + xo, y0, .34, 1.9, face, zc)
-        for xo in (-2.4, 0.0, 2.4): lancet(k, cx + xo, 27.0, .34, 1.9, face, zc)
-        for sx in (-1, 1): k.box((cx + sx * .85, 20.3, zc + sgn * .05), (.2, 6.6, .16), SD)    # jambs
-        k.box((cx, 23.3, zc + sgn * .05), (1.9, .22, .16), SD)
-        k.box((cx, 19.9, zc + sgn * .0), (.08, 4.2, .10), SD)                                     # mullion
-        for y in (19.0, 21.2): k.box((cx, y, zc + sgn * .0), (1.3, .07, .10), SD)                  # transoms
+        for xo in (-1.0, 1.0): lancet(k, cx + xo, 27.0, .34, 1.9, face, zc)
+        for sx in (-1, 1): k.box((cx + sx * .72, 20.3, zc + sgn * .05), (.2, 6.6, .16), SD)    # jambs
+        k.box((cx, 23.3, zc + sgn * .05), (1.7, .22, .16), SD)
     for (face, xc) in (('W', cx - h), ('E', cx + h)):
-        for zo in (-2.2, 0.0, 2.2): lancet(k, cz + zo, 17.6, .34, 1.9, face, xc)
-        for zo in (-1.1, 1.1): lancet(k, cz + zo, 22.6, .34, 1.9, face, xc)
-        for zo in (-1.1, 1.1): lancet(k, cz + zo, 27.0, .34, 1.9, face, xc)
+        for zo in (-1.2, 0.0, 1.2): lancet(k, cz + zo, 17.6, .34, 1.9, face, xc)
+        for zo in (-0.7, 0.7): lancet(k, cz + zo, 22.6, .34, 1.9, face, xc)
+        for zo in (-0.7, 0.7): lancet(k, cz + zo, 27.0, .34, 1.9, face, xc)
     return k
 
 # =================================================================================================================================
 # PIECE 2: gatehouse approach (drum towers, parapet, hood moulding, raised portcullis, banners)
 # =================================================================================================================================
-DRUM_C = ((-6.7, -2.0), (6.7, -2.0)); DRUM_R = 1.9; DRUM_TOP = 10.0
+DRUM_C = ((-8.6, -2.2), (8.6, -2.2)); DRUM_R = 1.7; DRUM_TOP = 9.4
 
 def pointed(hw, rise, off, y0, n=10):
     """Left half (spring -> apex) of a two-centre pointed arch; offset > 0 gives a constant-thickness band outside it."""
@@ -204,26 +232,19 @@ def pointed(hw, rise, off, y0, n=10):
 def gate():
     k = K("ExtGate")
     for (dx, dz) in DRUM_C:                                   # twin drum towers
-        drum(k, dx, dz, DRUM_R, -1.3, 8.6, ST, seg=20, plinth=.3)
-        corbel_ring(k, dx, dz, DRUM_R, 8.6, SD, seg=20, flare=.62, depth=1.4)
-        merlons(k, dx, dz, DRUM_R + .52, DRUM_TOP, 14, 1.05, 1.2, .55, ST, phase=360 / 28)
+        drum(k, dx, dz, DRUM_R, -1.3, DRUM_TOP - 1.4, ST, seg=20, plinth=.3)
+        corbel_ring(k, dx, dz, DRUM_R, DRUM_TOP - 1.4, SD, seg=20, flare=.4, depth=1.4)
+        merlons(k, dx, dz, DRUM_R + .3, DRUM_TOP, 12, .95, 1.0, .5, ST, phase=360 / 24)
         k.lathe((dx, 0, dz), [(0, 3.9), (DRUM_R + .16, 3.9), (DRUM_R + .16, 4.1), (0, 4.1)], 20, SD)   # string course
         apo = DRUM_R * math.cos(math.radians(9))
         for j in (13, 14, 15, 16):                              # facets facing the approach (243..297 deg)
             radial_slit(k, dx, dz, apo, (j + .5) * 18, 4.6 if j % 2 else 5.5, .26, 1.5)
         for j in (9, 10) if dx < 0 else (0, 19):                # and the outer flank
             radial_slit(k, dx, dz, apo, (j + .5) * 18, 5.1, .26, 1.5)
-        k.box((dx, DRUM_TOP + 3.2, dz), (.09, 4.0, .09), IRON)                                         # flag pole
-        s = 1 if dx > 0 else -1
-        k.poly_xy([(dx + .045, DRUM_TOP + 4.6), (dx + s * 1.7, DRUM_TOP + 4.15), (dx + .045, DRUM_TOP + 3.5)], dz - .02, dz + .02, OX)
-    # gate wall: machicolated parapet along the outer top edge; the crenel at x 3.0..4.2 (1.2 m) is the Count's standing spot (3.6)
-    for x in (-4.65, -3.15, -1.65, -.15, 1.35, 2.55, 4.65):
-        k.box((x, WALL_TOP_GATE + .6, GATE_Z - .02), (.9, 1.2, .5), SW)
-    for x in (-4.4, -3.6, -2.8, -2.0, -1.2, -.4, .4, 1.2, 2.0, 2.8, 4.4):
-        k.box((x, WALL_TOP_GATE - .38, GATE_Z - .2), (.34, .76, .4), SD)
-    k.box((0, WALL_TOP_GATE - .05, GATE_Z - .12), (9.8, .2, .66), SD)                                  # corbel table
+    # gate wall: kept flush at the top (r12 polish: any parapet, merlon or corbel there sits in front of the pale/red moon from the bridge)
+    k.box((0, WALL_TOP_GATE - .4, GATE_Z - .06), (9.6, .22, .22), SD)                                # flush crown course (top 7.2, 0.1 m proud: no projection above the wall line)
     # pointed hood moulding over the rectangular opening; the raised portcullis hangs inside it against a lit tympanum
-    hw, y0, rise = 1.95, 4.9, 2.15
+    hw, y0, rise = 1.95, 4.75, 1.3
     zf = GATE_Z - .34                                          # hood centre: z -0.79, depth .36 -> -0.97..-0.61 (embeds in the veneer)
     inner = pointed(hw, rise, 0.0, y0); outer = pointed(hw, rise, .3, y0)
     mirror = lambda pts: [(-x, y) for x, y in pts]
@@ -234,7 +255,7 @@ def gate():
         k.box((sx * (hw + .15), 4.65, zf), (.3, .8, .36), SD)                                         # springing blocks
     left = [(x * .94, y0 + (y - y0) * .94) for x, y in inner]
     tym = left[:-1] + [(-x, y) for x, y in reversed(left)]
-    k.poly_xy(tym, zf + .02, zf + .06, GLOW)
+    window(k, "gate", tym, lambda t, y: (t, y, zf + .04), (0, 0, -1))
     for x in (-1.2, -.8, -.4, 0.0, .4, .8, 1.2):                                                       # portcullis bars with spikes
         top = y0 + (rise * .9) * (1 - (abs(x) / hw) ** 1.8) - .12
         k.box((x, (y0 + .05 + top) / 2, zf - .04), (.07, top - y0 - .05, .07), IRON)
@@ -243,8 +264,8 @@ def gate():
         k.box((0, y, zf - .04), (2.5, .07, .07), IRON)
     for sx in (-1, 1):                                                                                  # banners and slits on the flanks
         bx = sx * 3.3
-        k.poly_xy([(bx - .45, 7.1), (bx + .45, 7.1), (bx + .45, 4.9), (bx, 4.4), (bx - .45, 4.9)], GATE_Z - .185, GATE_Z - .145, OX)
-        k.box((bx, 7.18, GATE_Z - .16), (1.1, .08, .12), IRON)
+        k.poly_xy([(bx - .45, 6.8), (bx + .45, 6.8), (bx + .45, 4.6), (bx, 4.1), (bx - .45, 4.6)], GATE_Z - .185, GATE_Z - .145, OX)
+        k.box((bx, 6.86, GATE_Z - .16), (1.1, .08, .12), IRON)
     k.box((0, 3.95, GATE_Z - .13), (4.3, .22, .26), SD)
     return k
 
@@ -253,7 +274,7 @@ def gate():
 # =================================================================================================================================
 CR = 1.8                                                      # corner tower radius
 CORNER = {(-1, -1): (-15.3, -1.35, 12.4, 9.0), (1, -1): (15.3, -1.35, 11.4, 7.6), (-1, 1): (-15.3, 29.35, 13.0, 10.6), (1, 1): (15.3, 29.35, 12.0, 8.0)}
-OBS_C, OBS_R = (10.0, 23.7), 3.2
+OBS_C, OBS_R = (11.4, 25.4), 2.4
 
 def towers():
     k = K("ExtTowers")
@@ -270,7 +291,7 @@ def towers():
     ox, oz = OBS_C                                                # observatory drum on the east roof block (roof top y 11.6)
     drum(k, ox, oz, OBS_R, 11.4, 16.2, SW, seg=16)
     corbel_ring(k, ox, oz, OBS_R, 15.0, SD, seg=16, flare=.45, depth=1.2)
-    spire(k, (ox, 16.3, oz), 3.1, 11.5, eave=.4, seg=16, rod=1.6)
+    spire(k, (ox, 16.3, oz), 2.3, 11.5, eave=.3, seg=16, rod=1.6)
     for j in (11, 12, 13): radial_slit(k, ox, oz, OBS_R * math.cos(math.radians(11.25)), (j + .5) * 22.5, 12.8, .3, 1.7)
     def gable(x0, x1, z0, z1, y0, ridge):                         # steep slate gable inside the existing roof parapets
         xm = (x0 + x1) / 2
@@ -303,9 +324,8 @@ def walls():
         merlon_row(k, (sx * 6.0, 1.2), (sx * 6.0, 13.2), WALL_TOP_FRONT, 8, 1.0, 1.1, .6, SW, axis='z')
         k.box((sx * 6.0, WALL_TOP_FRONT + .06, 7.2), (.7, .12, 13.8), SD)
     merlon_row(k, (-5.2, 6.0), (5.2, 6.0), WALL_TOP_GATE, 7, 1.0, 1.1, .6, SW)      # gatehouse back wall
-    merlon_row(k, (-5.2, 14.0), (5.2, 14.0), 9.2, 7, 1.0, 1.1, .6, SW)               # hall front wall
     k.box((0, 7.0, 13.88), (12.4, .24, .3), SD)
-    for x in (-5.6, -2.8, 0.0, 2.8, 5.6): k.box((x, 8.0, 13.6), (.6, 1.1, .3), SD)
+    for x in (-2.8, 0.0, 2.8): k.box((x, 8.0, 13.6), (.6, 1.1, .3), SD)
     return k
 
 # =================================================================================================================================
@@ -380,6 +400,10 @@ def crag(k, cx, cz, r, hgt, seed, seg=15, rings=13):
 # Radii keep every column within the player camera's 75 m far clip from the S4 eye (0, 2.5, -14): the far ring's +z crest
 # is at z 58 (72 m).
 # =================================================================================================================================
+# Shader constants (mirrored in CastleExterior.cs). Values are DISPLAY colours (the project is Linear but SetColor takes them as typed).
+BACKDROP = dict(far_low=(.20, .25, .38), far_high=(.085, .105, .19), near_low=(.10, .13, .21), near_high=(.04, .05, .095), haze=(.20, .26, .40, .40))
+BACKDROP_PROOF = {"far": (.14, .175, .28), "near": (.07, .09, .15)}   # what the visible part of each layer averages to
+if "--old-backdrop" in ARGS: BACKDROP_PROOF = {"far": (.028, .04, .07), "near": (.015, .02, .04)}     # calibration only: the r12 first-pass values
 BACK_C = (0.0, 12.0)
 LAYERS = [(0, 47.0, 46.0, -6.0, .85, 21, 240), (2, 44.0, 43.0, -6.0, 1.00, 0, 120), (1, 39.5, 38.5, -6.0, .45, 33, 240)]
 
@@ -440,6 +464,8 @@ if __name__ == "__main__":
     reset_scene()
     proof = ARGS[ARGS.index("--proof") + 1] if "--proof" in ARGS else None
     if "--no-export" not in ARGS:
+        atlas = cc.TEX / "Castle_ExtWindows.png"
+        ATL.write_png(atlas, ATL.build()); cc.write_texture_meta(atlas, "emission")
         total = build_all(True)
         write_manifest("exterior")
         print("HC_EXTERIOR_EXPORT tris=%d (budget 150000)" % total)
