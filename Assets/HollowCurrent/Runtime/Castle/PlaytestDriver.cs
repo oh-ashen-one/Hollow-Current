@@ -216,8 +216,15 @@ namespace HollowCurrent
         IEnumerator Fight()
         {
             var castle=game.Castle;int rings=1;float limit=Time.realtimeSinceStartup+300,nextApproach=0;
+            // Give him a window: no strike and no step towards him for the first 3 s after he becomes
+            // hittable (a hunt starts or a retreat ends), so his own glide/dive/grab can play out.
+            const float Window=3f;float hittableSince=-1;int grabs=game.Case.BlockedDeaths;
             while(!castle.Fight.Dead&&Time.realtimeSinceStartup<limit)
             {
+                if(game.Case.BlockedDeaths>grabs){grabs=game.Case.BlockedDeaths;Debug.Log("HC_PLAY phase=grabbed t="+(Time.realtimeSinceStartup-start).ToString("F1")+" grabs="+grabs+" "+game.Creature.DiagnosticState);}
+                bool hittable=game.Case.Phase==Phase.Hunt&&castle.Fight.CanBeHit;
+                if(!hittable)hittableSince=-1;else if(hittableSince<0){hittableSince=Time.realtimeSinceStartup;Debug.Log("HC_PLAY window t="+(hittableSince-start).ToString("F1")+" hold strikes "+Window+" s");}
+                bool windowOpen=hittable&&Time.realtimeSinceStartup-hittableSince<Window;
                 if(game.Case.Phase!=Phase.Warning&&game.Case.Phase!=Phase.Hunt)
                 {
                     if(game.Case.Terminal)break;
@@ -229,6 +236,7 @@ namespace HollowCurrent
                 // If he stays far (perched/retreating) step to a walkable spot below him.
                 var him=game.Creature.transform.position;input.Look=him+Vector3.up*1.2f;
                 float reach=Vector3.Distance(game.Player.View.transform.position,him+Vector3.up*1.2f);
+                if(windowOpen){yield return null;continue;}
                 if(castle.Fight.CanBeHit&&reach<3.0f)
                 {
                     int before=castle.Fight.Hits;yield return Press(i=>i.Fire=true);
