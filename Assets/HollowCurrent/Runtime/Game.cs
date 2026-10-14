@@ -380,8 +380,8 @@ namespace HollowCurrent
                 bool escalation=Map==MapId.Castle&&Case.WarningLength<Case.Rules.WarningSeconds;
                 Scares?.Pulse(Player.transform.position+Player.transform.forward*3,escalation?Case.WarningLength:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)Sound.Speak("warning");
             }
-            // Castle hostile return (critic r10 #34): dispatch says he is free (voice_cc_dispatch); Bellwether keeps "return".
-            if(phase==Phase.Return)Sound.Speak(Map==MapId.Castle&&Case.Rules.HostileReturn?"dispatch":"return");
+            // Castle hostile return (critic r10 #34): dispatch says he is free (cc_dispatch -> voice_cc_dispatch); Bellwether keeps "return".
+            if(phase==Phase.Return)Sound.Speak(Map==MapId.Castle&&Case.Rules.HostileReturn?"cc_dispatch":"return");
             // Castle: the sealed bell lowers the drawbridge for the escape.
             if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)
             {

@@ -37,6 +37,11 @@ The ten clips below are Higgsfield Seed Audio 1.0 outputs under the same grant a
 
 `CastleAudio/orrery_tick.wav` is synthesised locally by `tools/audio_orrery_tick.py` (project CC BY 4.0 grant). `CastleAudio/voice_cc_*.wav` are eSpeak NG recordings of original lines (same basis as `Resources/Audio/voice_*.wav`), reproducible with `python3 tools/generate_open_voice.py --castle`.
 
+Fear-wave clips (added 2026-10-13/14, pieces F4 and audio3; provenance in `docs/haunted-castle/ASSET_LOG.md`):
+- `CastleAudio/heartbeat_loop.wav`, `wind_battlements_loop.wav`, `door_rattle.wav`, `book_drop.wav`, `knife_stick.wav`, `claw_steps_0..3.wav` and `bat_pass.wav` are synthesised by the project's own script `tools/audio_castle_sfx.py` (numpy/scipy, deterministic, no third-party samples). Project CC BY 4.0 grant.
+- `CastleAudio/bell_single.wav` is one strike cut from `chapel_bell_toll.wav` by `tools/audio_castle_sfx.py`. It is a derivative of that Higgsfield output and carries the same Higgsfield grant and restrictions (credit "Hollow Current by Ashen — audio generated with Higgsfield"; no AI/ML training use).
+- `CastleAudio/voice_cc_kit`, `voice_cc_ending`, `voice_cc_contain`, `voice_cc_hint_signal`, `voice_cc_hint_trace`, `voice_cc_hint_voice` and `voice_cc_dispatch` are eSpeak NG recordings of original lines, on the same basis as the other `voice_cc_*` clips.
+
 ## Excluded or independently obtained material
 
 - Original macOS Daniel/Moira system-voice recordings and dry takes: excluded. Apple's [macOS license §2](https://www.apple.com/legal/sla/docs/macOSTahoe.pdf) limits System Voice original-content use to personal, noncommercial projects. Public replacement files use eSpeak NG; the private originals remain preserved outside this repository.
