@@ -117,6 +117,36 @@ namespace HollowCurrent
                 return Math.Min(1, total / window);
             }
         }
+        // Pacing governor (wave J): the live multiplier (1 = neutral) and the one applied to the last grace.
+        public float Governor => GovernorFor(quietShareTime >= Rules.GovernorQuietSeconds);
+        float GovernorFor(bool quiet)
+        {
+            if (Rules.GovernorGain <= 0) return 1;
+            float g = GovernorShare;
+            if (g > Rules.GovernorStart) return Math.Min(Math.Max(1, Rules.GovernorMax), 1 + Rules.GovernorGain * (g - Rules.GovernorStart));
+            return quiet ? Rules.GovernorQuietScale : 1;
+        }
+        bool quietBeforeThreat;        // the quiet streak had reached GovernorQuietSeconds when the current threat began
+        public float GovernorAtLastGrace { get; private set; } = 1;
+        // The share the governor reads: threat time over the time since the first threat began (at most 10 minutes,
+        // at least GovernorMinWindow seconds), so quiet minutes before the first hunt do not hide a dense run after it.
+        public float GovernorShare
+        {
+            get
+            {
+                if (threatSpans.Count == 0) return 0;
+                float since = Math.Min(ShareWindow, Elapsed - firstThreatAt);
+                return Math.Min(1, ThreatSeconds() / Math.Max(since, Math.Max(1, Rules.GovernorMinWindow)));
+            }
+        }
+        float firstThreatAt = -1;
+        float quietShareTime;          // seconds the governor share has stayed below GovernorQuietShare
+        float ThreatSeconds()
+        {
+            float from = Elapsed - Math.Min(ShareWindow, Elapsed), total = 0;
+            foreach (var span in threatSpans) total += Math.Max(0, Math.Min(Elapsed, span[1] < 0 ? Elapsed : span[1]) - Math.Max(from, span[0]));
+            return total;
+        }
         const float ShareWindow = 600;
         readonly List<float[]> threatSpans = new List<float[]>(); // [start, end or -1 while open] in Elapsed time
         // Diagnostics: the running felt lie episode ("none", "calm", "spike") and how many have started.
@@ -166,7 +196,7 @@ namespace HollowCurrent
             // The saved event part keeps decaying; the death penalty's Dread above the saved ambient part is event Dread too.
             float savedAmbient=Math.Max(0,saved.Dread-Math.Max(0,saved.DreadEvent));
             DreadEvent=!Rules.UsesDread?0:Math.Max(0,Math.Min(Dread,DeathPenaltyApplied?Dread-savedAmbient:saved.DreadEvent));
-            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();
+            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();quietShareTime=0;GovernorAtLastGrace=1;firstThreatAt=-1;quietBeforeThreat=false;
             if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
             feltBase=Dread;feltEpisodeKind=0;if(Rules.UsesDread)ScheduleFeltEpisode(Elapsed);firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
@@ -235,6 +265,10 @@ namespace HollowCurrent
                 else if (inside) Dread = Clamp(Dread + (litNearby ? Rules.DreadInsideRate : Rules.DreadDarkRate) * dt);
                 DecayEventDread(dt);
                 if (GraceRemaining > 0) GraceRemaining = Math.Max(0, GraceRemaining - dt);
+                if (Rules.GovernorGain > 0)
+                {
+                    quietShareTime = GovernorShare < Rules.GovernorQuietShare ? quietShareTime + dt : 0;
+                }
                 UpdateFeltEpisode();
                 float target = feltEpisodeKind == 1 ? Rules.FeltCalm : feltEpisodeKind == 2 ? feltEpisodeTarget : Dread;
                 feltBase += (target - feltBase) * (FeltLagSeconds > 0 ? 1 - (float)Math.Exp(-dt / FeltLagSeconds) : 1);
@@ -249,7 +283,7 @@ namespace HollowCurrent
             {
                 Survived = true;
                 CurrentRecoverySeconds = Rules.RecoverySecondsMax > Rules.RecoverySecondsMin ? HuntRules.Draw(Rules.RecoverySecondsMin, Rules.RecoverySeconds, Rules.RecoverySecondsMax, Roll()) : Rules.RecoverySeconds;
-                if (Rules.GraceMax > 0) { GraceSeconds = Rules.GraceMin + (Rules.GraceMax - Rules.GraceMin) * Roll(); GraceRemaining = GraceSeconds; }
+                if (Rules.GraceMax > 0) { GovernorAtLastGrace = GovernorFor(quietBeforeThreat); GraceSeconds = (Rules.GraceMin + (Rules.GraceMax - Rules.GraceMin) * Roll()) * GovernorAtLastGrace; GraceRemaining = GraceSeconds; }
                 Set(Phase.Recovery);
                 if (Rules.AnnounceRecovery) Say(Book.RecoveryMessage);
             }
@@ -350,7 +384,7 @@ namespace HollowCurrent
                 if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
                 diceTimer -= dt;
                 if (diceTimer > 0) return;
-                float chance = dreadful ? Rules.DiceChance(Dread, Evidence.Count, RunDreadMin) : Rules.LowDreadChance;
+                float chance = dreadful ? Rules.DiceChance(Dread, Evidence.Count, RunDreadMin) / Math.Max(1, Governor) : Rules.LowDreadChance;
                 if (Roll() < chance) { StartThreat(true); return; }
                 diceTimer = NextDiceInterval();
             }
@@ -480,7 +514,7 @@ namespace HollowCurrent
             if (next == Phase.Disturbance || next == Phase.Recovery || next == Phase.Survey || next == Phase.Containment) diceTimer = float.NaN;
             bool wasThreat = IsThreat(Phase), isThreat = IsThreat(next);
             if (wasThreat && !isThreat && threatSpans.Count > 0) threatSpans[threatSpans.Count - 1][1] = Elapsed;
-            if (!wasThreat && isThreat) { threatSpans.Add(new[] { Elapsed, -1f }); while (threatSpans.Count > 1 && threatSpans[0][1] >= 0 && threatSpans[0][1] < Elapsed - ShareWindow) threatSpans.RemoveAt(0); }
+            if (!wasThreat && isThreat) { quietBeforeThreat = quietShareTime >= Rules.GovernorQuietSeconds; if (firstThreatAt < 0) firstThreatAt = Elapsed; threatSpans.Add(new[] { Elapsed, -1f }); while (threatSpans.Count > 1 && threatSpans[0][1] >= 0 && threatSpans[0][1] < Elapsed - ShareWindow) threatSpans.RemoveAt(0); }
             Phase = next; PhaseTime = 0; Changed?.Invoke(next);
         }
         bool IsThreat(Phase p) => p == Phase.Warning || p == Phase.Hunt || p == Phase.Return && Rules.HostileReturn;

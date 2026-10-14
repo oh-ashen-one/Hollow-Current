@@ -78,6 +78,12 @@ namespace HollowCurrent
         public float HuntDreadCap;
         // After a hunt ends the dice are disarmed for GraceMin..Max seconds (drawn per hunt). 0 = none.
         public float GraceMin, GraceMax;
+        // Pacing governor (wave J). G = threat share (Warning, Hunt, hostile Return) over the last 10 minutes, measured
+        // over at least GovernorMinWindow seconds. Above GovernorStart the multiplier is
+        // 1 + GovernorGain x (G - GovernorStart), at most GovernorMax: it scales each post-hunt grace and divides the
+        // banded (high-Dread) dice odds. After G has stayed below GovernorQuietShare for GovernorQuietSeconds the
+        // multiplier is GovernorQuietScale (< 1: shorter graces). It never disarms anything. GovernorGain 0 = off.
+        public float GovernorStart, GovernorGain, GovernorMax, GovernorMinWindow, GovernorQuietShare, GovernorQuietSeconds, GovernorQuietScale;
         // Lies (false readings) and held hide doors from these Dread levels. 0 = never.
         public float LieThreshold, DoorHeldThreshold;
         // On a checkpoint restore after a death, Dread restarts at DeathDread.
@@ -131,6 +137,7 @@ namespace HollowCurrent
             UsesDread=false,DreadDarkRate=0,DreadInsideRate=0,DreadSafeRecovery=0,DreadStart=0,
             DreadApparition=0,DreadThrow=0,DreadSeen=0,DreadGrabSurvived=0,
             DreadDecayRecovery=0,DreadDecayCalm=0,DreadDecayFloor=0,HuntDreadCap=0,GraceMin=0,GraceMax=0,
+            GovernorStart=0,GovernorGain=0,GovernorMax=0,GovernorMinWindow=0,GovernorQuietShare=0,GovernorQuietSeconds=0,GovernorQuietScale=0,
             LieThreshold=0,DoorHeldThreshold=0,DeathPenalty=false,DeathDread=0,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
         };
@@ -151,6 +158,7 @@ namespace HollowCurrent
             UsesDread=true,DreadDarkRate=.12f,DreadInsideRate=.05f,DreadSafeRecovery=.5f,DreadStart=0,
             DreadApparition=12,DreadThrow=8,DreadSeen=15,DreadGrabSurvived=20,
             DreadDecayRecovery=.4f,DreadDecayCalm=.15f,DreadDecayFloor=20,HuntDreadCap=25,GraceMin=30,GraceMax=90,
+            GovernorStart=.25f,GovernorGain=12,GovernorMax=3,GovernorMinWindow=300,GovernorQuietShare=.12f,GovernorQuietSeconds=180,GovernorQuietScale=.8f,
             LieThreshold=70,DoorHeldThreshold=90,DeathPenalty=true,DeathDread=60,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
         };
