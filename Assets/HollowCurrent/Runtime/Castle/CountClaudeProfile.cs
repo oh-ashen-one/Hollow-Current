@@ -84,9 +84,23 @@ namespace HollowCurrent
         public float CaptureGlideEndHeight=2.2f, CaptureLungeDistance=2.5f, CaptureGlideLean=-34f, CaptureDiveLean=-16f;
 
         // Cold rim light parented behind his shoulders (Presence.CountRimLight): keeps the wings readable in the dark.
-        // Wave F item 16: off during hunts (candles, moon and torch only), half between hunts for the perch sightings.
-        // Staged captures and the capture choreography keep the full value.
-        public float RimLightRange=3.6f, RimLightIntensity=1.1f, RimLightHuntScale=0f, RimLightBetweenScale=.5f;
+        // Wave G (r10 static #11): ONE value in hunts and between hunts, so the light never tells the phase. Staged captures and
+        // the capture choreography keep the full value.
+        public float RimLightRange=3.6f, RimLightIntensity=1.1f, RimLightScale=.35f;
+        // Wave G #11: when a between-hunt perch move is due, this share of them is a visible flight even while she watches
+        // (not a hunt; nothing can kill), so seeing him move no longer means "hunt".
+        public float ObservedReperchChance=.2f;
+        // Wave G #35: the lantern is a beacon. With the torch on and not hidden, his sight range is SightRange x this.
+        public float TorchSightScale=1.5f;
+        // Wave G #14: DiveEndsIn below this fires DiveLastSecond once per dive (the integrator's torch failure).
+        public float DiveLastSecond=1f;
+        // Wave G #16/#28: a hide he saw her enter is opened from any hunt state: approach, pause, rattle, then the grab.
+        public float WitnessedPauseSeconds=1.6f;
+        // Wave G #17: at Dread >= NearMissOpenDread or in Long Night, this share of near-misses opens the door (crawl grab).
+        public float NearMissOpenDread=80f, NearMissOpenChance=.25f;
+        // Wave G #34: the hostile return opens with a visible swoop over the courtyard (castle-local points, sky above the
+        // fountain at (0,0,10), out over the gate wall top at y 7.5) before he hunts the bridge. Nothing can kill during it.
+        public UnityEngine.Vector3[] ReturnSwoopLocal={new UnityEngine.Vector3(6f,10f,12f),new UnityEngine.Vector3(0f,4.6f,9.5f),new UnityEngine.Vector3(0f,8.7f,.4f)};
 
         // ---- Wave F (docs/haunted-castle/FEAR_PLAN.md, piece F2) ---------------------------------------------------
         // Item 9, perch sightings between hunts: he is active and visible on a perch at least PerchMinPlayerDistance from the
