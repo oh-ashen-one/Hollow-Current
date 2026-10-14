@@ -78,9 +78,12 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
 
 ## Wave G (static fixes from `docs/haunted-castle/rounds/r10/CRITIC_STATIC.md`, score 4/10)
 
-**Merged so far:** hc/scares2 `347060f` (merge `517da28`, wiring `c180914`). F0's own items are in `d655eda`.
+**Merged so far:**
+- hc/scares2 `347060f` (merge `517da28`, wiring `c180914`).
+- hc/audio3 `fee64f3` (merge `c285793`; wiring and licence lines `55cc989`). `tools/check_audio_keys.py` passes: 65 uses, 18 required ids.
+- F0's own items are in `d655eda`.
 
-**Still to land:** hc/rules2, hc/count12, hc/audio3. When hc/rules2 lands, switch `Soundscape.FeltDread` to the direct property. When hc/count12 lands, wire its dive-end torch blackout hook.
+**Still to land:** hc/rules2, hc/count12. When hc/rules2 lands, switch `Soundscape.FeltDread` to the direct property. When hc/count12 lands, wire its dive-end torch blackout hook.
 
 **Not yet built:** nothing from wave G is in a build. The castle must be **re-prepared and re-baked** first (`PrepareAndBakeCastle`, `PrepareAndBake`, then `BuildPreparedMacAll`), and `python3 tools/check_throwables_scene.py` must exit 0 on that bake.
 
