@@ -195,6 +195,18 @@ treat FalseWarning like Disturbance.
   27 % on average (p90 38 %), 10-minute `HuntShare` p50 20 % / p90 28 %, quiet gaps 42 / 101 / 212 s (p10 / p50 /
   p90), pooled CV 0.61; the same model without wave I gives 62 % and Dread ≥ 95 for 177 s per run.
 
+**Investigation API, wave J additions (hc/rules5, runtime r11: immortal driver in the open, HuntShare 0.362)**:
+- **Pacing governor.** `GovernorShare` = threat time (Warning, Hunt, hostile Return) over the time since the first
+  threat began, at most 10 minutes and at least 300 s. Above 0.25 the multiplier is 1 + 12 × (share − 0.25), at most 3:
+  each post-hunt grace is drawn 30–90 s and multiplied by it, and the banded (high-Dread) dice odds are divided by it.
+  When the share stayed below 0.12 for 3 minutes before a hunt began, that hunt's grace is × 0.8. It shifts odds and
+  graces; it never disarms anything (with certain dice a hunt still follows the grace at the top multiplier), and the
+  grace stays a random draw, so nothing reads as a timer. `Governor` (live), `GovernorAtLastGrace` (logged in
+  `HC_RECOVERY governor=`), `GovernorShare`.
+- **Session models, 2,000 seeds each:** mortal player, hunt + warning after the first hunt 25.0 % mean, p90 32.7 %;
+  immortal driver in the open at Dread 100, 10-minute `HuntShare` 28.5 % mean, p90 32.5 % (40.0 % p50 without the
+  governor).
+
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;
 exposes `public bool Diving` (for the integrator's torch fail), `public event Action<string> Beat` with ids

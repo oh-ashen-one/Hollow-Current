@@ -126,6 +126,7 @@ static class RulesTests
         WaveGTests();
         WaveHTests();
         WaveITests();
+        WaveJTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
@@ -182,7 +183,7 @@ static class RulesTests
     }
     // The castle with the wave I damping off (no event decay, no hunt cap, no post-hunt grace): for tests of the
     // Recovery dice mechanism itself, which the grace now mostly covers (WaveITests asserts the interplay).
-    static HuntRules RecoveryMech(){var r=HuntRules.Castle.Clone();r.Name="Castle (wave I damping off)";r.GraceMin=0;r.GraceMax=0;r.DreadDecayRecovery=0;r.DreadDecayCalm=0;r.HuntDreadCap=0;return r;}
+    static HuntRules RecoveryMech(){var r=HuntRules.Castle.Clone();r.Name="Castle (wave I damping off)";r.GraceMin=0;r.GraceMax=0;r.DreadDecayRecovery=0;r.DreadDecayCalm=0;r.HuntDreadCap=0;r.GovernorGain=0;return r;}
     static Investigation StartOn(CaseBook book,Func<float> random=null,HuntRules rules=null){var c=new Investigation(book,random,rules);c.Equip();c.EnterHouse();return c;}
     static int TickUntilLeaves(Investigation c,Phase phase,int maxSeconds){int t=0;while(c.Phase==phase&&t<maxSeconds){c.Tick(1,false);t++;}return t;}
     static Investigation SealedCastle()
@@ -565,17 +566,19 @@ static class RulesTests
     // 150-300 s of calm play (DreadRelief 3), evidence at 10-40 / 40-120 / 120-240 s, ledger read by 240 s, apparitions
     // every 60-110 s in Disturbance (+12, every second one throws +8, one in three lands close: TryEscalate). In a hunt
     // the player is seen in 60 % of hunts (DreadSeen once, +0.3/s for up to 8 s) and the hide fails in 30 % (grab survived +20).
-    static SessionResult Session(HuntRules rules,int seed,float darkShare)
+    // immortal: the r11 runtime driver: invulnerable, standing in the open, Dread pinned at 100 (ForceDread at the start,
+    // seen every hunt, a grab every hunt), never in the gatehouse.
+    static SessionResult Session(HuntRules rules,int seed,float darkShare,bool immortal=false)
     {
         var res=new SessionResult();var dice=new Random(seed*31+7);var p=new Random(seed*17+3);
-        var c=new Investigation(CaseBook.Castle,()=>(float)dice.NextDouble(),rules);c.Equip();c.EnterHouse();
+        var c=new Investigation(CaseBook.Castle,()=>(float)dice.NextDouble(),rules);c.Equip();c.EnterHouse();if(immortal)c.ForceDread(100);
         float[] ev={10+30*(float)p.NextDouble(),40+80*(float)p.NextDouble(),120+120*(float)p.NextDouble()};int evi=0,apps=0;
         float nextApp=40+60*(float)p.NextDouble(),nextGate=150+100*(float)p.NextDouble(),gateLeft=0,darkSwitch=20,seenLeft=0,grabAt=-1,t=0,dt=.5f,threat=0,lastEnd=-1;
         bool dark=false,seenGiven=false,grabGiven=false,inThreat=false;
         c.Changed+=ph=>{bool th=ph==Phase.Warning||ph==Phase.Hunt;
             if(th&&!inThreat){if(res.FirstAt<0)res.FirstAt=t;if(lastEnd>=0)res.Gaps.Add(t-lastEnd);inThreat=true;if(c.Dread<c.RunDreadMin)res.LowStarts++;}
             if(!th&&inThreat){inThreat=false;lastEnd=t;}
-            if(ph==Phase.Hunt){seenLeft=p.NextDouble()<.6?(float)(p.NextDouble()*8):0;seenGiven=false;grabGiven=false;grabAt=p.NextDouble()<.3?(float)(5+p.NextDouble()*20):-1;}};
+            if(ph==Phase.Hunt){seenLeft=immortal?999:p.NextDouble()<.6?(float)(p.NextDouble()*8):0;seenGiven=false;grabGiven=false;grabAt=immortal?10:p.NextDouble()<.3?(float)(5+p.NextDouble()*20):-1;}};
         while(t<600)
         {
             t+=dt;
@@ -583,7 +586,7 @@ static class RulesTests
             if(t>240&&c.ContextCount<3)foreach(var n in CaseBook.Castle.NoteTitles)c.Read(n);
             darkSwitch-=dt;if(darkSwitch<=0){dark=p.NextDouble()<darkShare;darkSwitch=10+20*(float)p.NextDouble();}
             bool calm=c.Phase==Phase.Disturbance||c.Phase==Phase.Survey||c.Phase==Phase.Recovery;
-            if(gateLeft>0)gateLeft-=dt;else if(calm&&t>=nextGate){gateLeft=20+20*(float)p.NextDouble();nextGate=t+150+150*(float)p.NextDouble();}
+            if(gateLeft>0)gateLeft-=dt;else if(!immortal&&calm&&t>=nextGate){gateLeft=20+20*(float)p.NextDouble();nextGate=t+150+150*(float)p.NextDouble();}
             bool safe=gateLeft>0;c.DreadRelief=safe?3:1;
             if(c.Phase==Phase.Hunt)
             {
@@ -614,6 +617,49 @@ static class RulesTests
             +" | gaps n="+gaps.Count+" p10="+Quantile(gaps,.1f).ToString("F0")+" p50="+Quantile(gaps,.5f).ToString("F0")+" p90="+Quantile(gaps,.9f).ToString("F0")+" max="+Quantile(gaps,1f).ToString("F0")
             +" cv_pooled="+pooledCv.ToString("F2")+" cv_seed_median="+(cvs.Count>0?Quantile(cvs,.5f):0).ToString("F2")
             +" | hunts/run="+(hunts/2000f).ToString("F1")+" starts_below_boundary="+low+"/"+threats+" dread>=95 s/run="+pinnedPerRun.ToString("F1");
+    }
+    // Wave J: pacing governor.
+    static void WaveJTests()
+    {
+        var r=HuntRules.Castle;
+        Assert(r.GovernorStart==.25f&&r.GovernorGain==12&&r.GovernorMax==3&&r.GovernorMinWindow==300&&r.GovernorQuietShare==.12f&&r.GovernorQuietSeconds==180&&r.GovernorQuietScale==.8f,"castle governor: 1 + 12 x (share - 0.25) up to 3; 0.8 after 3 quiet minutes");
+        Assert(HuntRules.Bellwether.GovernorGain==0,"Bellwether has no governor");
+        var bw=Start();Hunt(bw);bw.Tick(38,true);Assert(bw.Governor==1&&bw.GovernorAtLastGrace==1,"Bellwether governor stays neutral");
+        // Neutral, then quiet.
+        var q=StartOn(CaseBook.Castle);q.Record(Evidence.Induction);Assert(q.GovernorShare==0&&q.Governor==1,"no threat yet: neutral");
+        for(int t=0;t<179;t++)q.Tick(1,false);Assert(q.Governor==1,"quiet for under 3 minutes: neutral");q.Tick(1,false);Assert(q.Governor==.8f,"quiet for 3 minutes: graces shorten (0.8)");
+        q.BeginNoTellHunt();for(int t=0;t<60&&q.Phase==Phase.Hunt;t++)q.Tick(1,false);
+        Assert(q.Phase==Phase.Recovery&&q.GovernorAtLastGrace==.8f&&Math.Abs(q.GraceSeconds-48)<.01f,"a hunt that began after 3 quiet minutes gets 0.8 x the 60 s grace");
+        // Dense: three bell hunts back to back.
+        var d=StartOn(CaseBook.Castle);d.Record(Evidence.Induction);
+        for(int h=0;h<3;h++){d.BeginNoTellHunt();for(int t=0;t<60&&d.Phase==Phase.Hunt;t++)d.Tick(1,false);if(h<2)for(int t=0;t<10;t++)d.Tick(1,false);}
+        Assert(Math.Abs(d.GovernorShare-114f/300)<.01f&&Math.Abs(d.GovernorAtLastGrace-(1+12*(114f/300-.25f)))<.02f,"three 38 s hunts in 134 s: share over the 300 s minimum window drives the multiplier");
+        Assert(Math.Abs(d.GraceSeconds-60*d.GovernorAtLastGrace)<.05f,"the grace is the 30-90 s draw times the multiplier");
+        var m=StartOn(CaseBook.Castle,()=>0f);m.Record(Evidence.Induction);for(int h=0;h<6;h++){m.BeginNoTellHunt();for(int t=0;t<60&&m.Phase==Phase.Hunt;t++)m.Tick(1,false);}
+        Assert(m.GovernorAtLastGrace<=3&&m.Governor>2,"the multiplier is bounded at 3");
+        m.ForceDread(100);int wait=0;while(m.Phase!=Phase.Warning&&m.Phase!=Phase.Hunt&&wait<400){m.Tick(1,false);wait++;}
+        Assert(wait<400&&m.Hunts==7,"never a hard cap: with certain dice a hunt still comes at the top multiplier");
+        // Runtime case (r11, build 0b08422): immortal driver in the open, Dread 100. And the mortal model, 2,000 seeds each.
+        var imm=new System.Collections.Generic.List<float>();int fewHunts=0,minHunts=99;
+        for(int seed=0;seed<2000;seed++){var s=Session(HuntRules.Castle,seed,0,true);imm.Add(s.ShareRun);if(s.Hunts<3)fewHunts++;minHunts=Math.Min(minHunts,s.Hunts);}
+        float immMean=0;foreach(var v in imm)immMean+=v;immMean/=imm.Count;
+        var immOff=new System.Collections.Generic.List<float>();var offRules=HuntRules.Castle.Clone();offRules.GovernorGain=0;
+        for(int seed=0;seed<2000;seed++)immOff.Add(Session(offRules,seed,0,true).ShareRun);
+        Console.WriteLine("WAVE_J immortal_open HuntShare_10min mean="+immMean.ToString("F3")+" p10="+Quantile(imm,.1f).ToString("F3")+" p50="+Quantile(imm,.5f).ToString("F3")+" p90="+Quantile(imm,.9f).ToString("F3")+" max="+Quantile(imm,1f).ToString("F3")+" runs_under_3_hunts="+fewHunts+" min_hunts="+minHunts+" | governor off p50="+Quantile(immOff,.5f).ToString("F3")+" p90="+Quantile(immOff,.9f).ToString("F3"));
+        Assert(Quantile(immOff,.5f)>.36f,"without the governor the immortal model reproduces the runtime failure (0.362)");
+        Assert(immMean<=.30f&&Quantile(imm,.9f)<=.33f&&fewHunts<=20&&minHunts>=2,"immortal in the open at Dread 100: 10-minute HuntShare p90 <= 0.33; 99 % of runs still have 3+ hunts, every run 2+");
+        string mortal=SessionReport("castle lit (wave J governor)",HuntRules.Castle,0,out float meanAfter,out _,out _,out float cv,out var gaps,out _,out _,out _);Console.WriteLine(mortal);
+        float p90After=Quantile(GovernorAfterShares(HuntRules.Castle),.9f);float cvSeed=SeedCvMedian(HuntRules.Castle),cvSeedOff=SeedCvMedian(offRules);
+        Console.WriteLine("WAVE_J mortal share_after_first_hunt p90="+p90After.ToString("F3")+" cv_seed_median="+cvSeed.ToString("F2")+" (governor off "+cvSeedOff.ToString("F2")+") cv_pooled="+cv.ToString("F2"));
+        Assert(meanAfter<=.30f&&p90After<=.33f,"mortal: hunt + warning after the first hunt mean <= 30 %, p90 <= 33 %");
+        Assert(cvSeed>=cvSeedOff&&cv>=.4f&&Quantile(gaps,.1f)>=30,"gap variability within a run is unchanged or higher; pooled CV stays >= 0.4");
+    }
+    static System.Collections.Generic.List<float> GovernorAfterShares(HuntRules rules){var l=new System.Collections.Generic.List<float>();for(int seed=0;seed<2000;seed++)l.Add(Session(rules,seed,0).ShareAfterFirst);return l;}
+    static float SeedCvMedian(HuntRules rules)
+    {
+        var cvs=new System.Collections.Generic.List<float>();
+        for(int seed=0;seed<2000;seed++){var g=Session(rules,seed,0).Gaps;if(g.Count<3)continue;float m=0;foreach(var x in g)m+=x;m/=g.Count;float sd=0;foreach(var x in g)sd+=(x-m)*(x-m);cvs.Add((float)Math.Sqrt(sd/g.Count)/m);}
+        return Quantile(cvs,.5f);
     }
     static void WaveITests()
     {
