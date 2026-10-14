@@ -1,105 +1,85 @@
-# Automated castle playthrough (both endings)
+# Automated castle playthroughs: wave F build
 
-**Latest run: build `22370f1` (count10 live hunt + hc/sword).**
+These are facts from the real combined player. The critic and the owner judge them.
 
-**Kill driver changes:**
-- The driver does not strike, or step towards him, for 3 s after he becomes hittable (hunt start or end of a retreat). It logs `HC_PLAY window`.
-- `-hc-playtest-window <s>` changes the window.
-- Grabs that driver invulnerability blocked are logged as `HC_PLAY phase=grabbed`, one line per burst.
+**Build:** `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, from `haunted-castle` source at `b5da27e`, baked and committed as `34a0de9`.
+- All of wave F is merged: hc/dread, hc/count11, hc/scares, hc/audio2, hc/grabs (`fef50da`), hc/title and hc/wallart (runtime patch applied).
+- The window is 1920x1080, not full screen.
+- Each run went through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-f0 -- "<app>/Contents/MacOS/Hollow Current" -logFile <log> -hc-playtest <dir> escape|kill|fear`.
+- Runs, all 2026-10-14:
 
-**Escape: WON in 82.8 s.**
-- One blocker: the wardrobe was not focusable from the stand point (seen before), so the driver used it directly.
-- Hunt: `HC_COUNT_HEARD` x4 and `HC_COUNT_SEARCH` x4. He left the perch, glided to the bell's guess and searched near her.
-- Closest approach: 0.7 m from the hidden investigator.
-- No dive or grab. Every `HC_COUNT_AI` line says `why=player hidden, torch off`.
-
-**Kill: WON in 94.5 s, 0 blockers.**
-- Hits at 39.4, 64.9 and 90.4 s, each 3.0 s after the window opened.
-- Hunt 2: `HC_COUNT_DIVE` (mode 1→Chase), then a grab (mode 6) at 63.4 s, 1.0–1.3 m from the investigator.
-  - Driver invulnerability blocked it for 132 frames (`blockedDeaths=132`).
-  - **A real player would have died at 63.4 s.** The run went on only because of the driver's invulnerability.
-- Hunts 1 and 3 had no dive.
-- **Sword:** `HC_SWORD_HELD renderers=1` after the forge. The blade with its blue rune line and the red grip show in the bottom-right of `kill/15_sword_forged.png` to `kill/19_hit_3.png`, and the instrument is hidden.
-
-**Previous run, build `abfa1a2` (count10, before the sword):** both endings won.
-- Escape: 0 blockers; closest approach 0.9 m; no dive (hidden).
-- Kill: hits at 39.3, 64.8 and 90.3 s; 0 dives and 0 grabs; closest approach 1.6 m.
-
-**Latest re-run, build `080b3e1` (count9 + flames9 merged):**
-- Escape WON in 82.8 s, 0 blockers. The wardrobe was focused normally this time.
-- Kill WON in 87.5 s, 0 blockers; hits at 36.3, 58.8 and 83.4 s.
-- `blockedDeaths=0` in both runs.
-- The Count logged no DIVE, FEINT or GRAB line in either run.
-
-The tables below are from the first run (build `43c2152`). Phase timings in the re-run were within 0.1 s of them.
-
-Facts from the real combined player. Judging them is the critic's and the owner's job.
-
-- **Player:** `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, both maps, built from commit `43c2152`. It starts in Bellwether, and the driver switches to Haunted Castle through the title map picker path (`SelectMap` + `BeginInvestigation`).
-- **Driver:** `Assets/HollowCurrent/Runtime/Castle/PlaytestDriver.cs`, run as `-hc-playtest <outdir> escape|kill` through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-playtest`.
-  - **Input:** it plays through `Investigator.TestInput`, the same code path as keyboard and pad input: look, E press/hold, instrument button, tool select, torch. Every E press goes through the investigator's own interaction ray.
-  - **Movement:** it teleports between stops; it does not walk except on the drawbridge.
-  - **Safety:** driver-only `Investigation.Invulnerable` would count a grab instead of ending the run. It counted **0** grabs in both runs (`blockedDeaths=0`), so neither ending relied on it.
-- **Screenshots** (one per phase, 1920x1080, gitignored): `/Users/midir/hollow-current-haunted-castle/docs/haunted-castle/playtest/auto/escape/` and `/Users/midir/hollow-current-haunted-castle/docs/haunted-castle/playtest/auto/kill/`.
-- **Logs:** `/Users/midir/hollow-current-haunted-castle/.playtest-escape.log` and `/Users/midir/hollow-current-haunted-castle/.playtest-kill.log` (lines `HC_PLAY`, `HC_PLAY_BLOCKER`, `HC_PLAY_RESULT`).
-
-## A. Escape ending: WON (82.9 s)
-
-| t (s) | Phase | State after |
+| Run | Finished | Slot held |
 |---|---|---|
-| 1.1 | begin (castle loaded, case started) | Briefing |
-| 1.3 | field kit from the lantern cart (E) | equipped |
-| 1.7 | gate keeper's letter read, entered the courtyard | Survey |
-| 4.9 | compass held on the dining-hall residue | Induction recorded, Disturbance |
-| 8.1 | grave-ash lantern held on the claw-scores | Handprint recorded |
-| 12.9 | ear-trumpet: ask once, stay still | Voice recorded (3/3) |
-| 13.6 | three Blood Ledger pages read | notes 4 |
-| 13.8 | chapel bell rung (E) | Warning |
-| 14.0 | hid in the Count's wardrobe, torch off | hidden |
-| 22.8 | hunt started (Count on the west balcony perch) | Hunt |
-| 60.8 | hunt survived, no grab | Recovery, survived |
-| 61.0 | ledger closed (journal reconstruction: chapel bell / bargain's toll / let the last stroke fade) | Containment |
-| 61.2 | chapel brazier relit (E) | breaker on |
-| 74.9 | bell rope held 13.5 s | Return |
-| 78.5 | drawbridge lowered (finished moving) | lowered |
-| 82.9 | walked from the gatehouse over the bridge into the far-bank trigger | **Won**, "LEDGER CLOSED" |
+| escape | 09:46 | 92.2 s |
+| kill | 09:48 | 101.7 s |
+| fear | 09:53 | 272.5 s |
 
-`HC_PLAY_RESULT mode=escape won=True slain=False blockedDeaths=0 blockers=1`
+**Logs** are gitignored:
+- `/Users/midir/hollow-current-haunted-castle/.playtest-escape.log`
+- `/Users/midir/hollow-current-haunted-castle/.playtest-kill.log`
+- `/Users/midir/hollow-current-haunted-castle/.playtest-fear.log`
 
-The blocker was that the Count's wardrobe was not focused by the interaction ray from the driver's stand point. The driver then used the cupboard directly (hidden=true). In the earlier run the same wardrobe was focusable, so focusing this cupboard depends on where the player stands.
+**Screenshots** are 1920x1080 and also gitignored: `docs/haunted-castle/playtest/auto/{escape,kill,fear}/`.
 
-## B. Kill ending: WON (87.6 s)
+**Driver:** `Assets/HollowCurrent/Runtime/Castle/PlaytestDriver.cs`.
+- It sends input through `Investigator.TestInput` and teleports between stops.
+- The investigator is invulnerable to the driver only: a grab is counted as `blockedDeaths` instead of ending the run.
+- **Fear mode is not an organic playthrough:**
+  - It feeds queued values into the real rules engine through `Investigation.Dice` and raises Dread with `AddDread`. Each forced step is logged as `HC_PLAY_FORCED`.
+  - It calls the director's real `ThrowNearbyProp`, `CastleScares.Poltergeist` and `ScareDirector.Dread` methods.
+  - When the queue is empty, the dice return 0.99, so no unplanned hunt fires.
 
-| t (s) | Phase | State after |
+## Results
+
+| Run | Result | Blockers | Driver-blocked grabs |
+|---|---|---|---|
+| escape | **WON**, 85.8 s | 0 | 0 |
+| kill | **WON, slain**, 95.6 s | 0 | 0 |
+| fear | **WON (escape)**, 266.1 s | 0 | 856 frames, from one watched-hide grab |
+
+- **Escape:**
+  - The bell starts a 9 s told warning, then the hunt (`HC_HUNT_START noTell=False`).
+  - The investigator hid in the Count's wardrobe with the torch off and was not grabbed.
+  - The near-miss rolled 0.47 against 0.33, so it did not trigger.
+  - The seal starts the hostile return (`HC_HUNT_START phase=Return noTell=True`). The bridge was down at 81.2 s and the run won at 85.8 s.
+- **Kill:**
+  - The sword was forged at 27.3 s; the hits landed at 40.3, 65.9 and 91.4 s.
+  - The torch failed for a second on two dives (`HC_TORCH_FAIL dive`).
+  - At the third hit `HC_COUNT_GRAB mode=8 why=airborne drop` was chosen, but no death was blocked (`blockedDeaths=0`).
+
+## Wave F proofs (fear run unless noted)
+
+| Proof | Status | Evidence |
 |---|---|---|
-| 1.1–13.6 | same as A up to the ledger | 3 records, ledger read (3 relic hints unlocked) |
-| 13.8 | reliquary box used before the reveal | stays shut ("will not open") |
-| 14.9 | grave-ash lantern held on the reliquary claw marks for 1 s | blade revealed |
-| 16.6 | reliquary opened; hilt taken from the orrery socket; portrait door opened, moonstone taken | relics 3/3 |
-| 27.2 | altar E held 10.5 s (9 s craft) | moonstone sword forged, rune ring ignites |
-| 27.4 | chapel bell rung with the sword (calls him) | Warning |
-| 36.4 | hit 1 (reach 0.97 m) | Stagger, then 20 s retreat |
-| 58.9 | hit 2 (tier 1) | Stagger, retreat |
-| 83.5 | hit 3 (tier 2) | Death (`HC_COUNT_DEATH`), WinByKill |
-| 87.6 | ending screen | **Won**, kill text "Sunrise through the rose." |
+| False warning | **PASS** (forced dice) | `HC_WARNING false=True length=9.0`, then `HC_FALSE_WARNING ended phase=Disturbance`. Hunts stayed 0 to 0. Screenshot `fear/10_warning.png`. |
+| No-tell hunt | **PASS** (forced dice) | `HC_HUNT_START phase=Hunt noTell=True from=Disturbance`, with no Warning phase. Hidden, it was survived; closest approach 0.91 m. |
+| Near-miss | **NOT SEEN on this build** | The escape roll was 0.47 against 0.33. In the fear no-tell hunt `nearMissBegin=0`. An earlier build in this session (a full-screen run, log since overwritten) did log `HC_COUNT_NEARMISS begin/landed/hold doorDistance=0.50/leave` at the Count's wardrobe. |
+| Watched hide, door opened | **PASS** | `witnessed_hide seenBeforeHiding=True` at the ossuary niche. `HC_COUNT_GRAB mode=8 why=airborne drop ... witnessed=True`. The driver blocked 856 grab frames, so a real player dies here. |
+| Dread moves | **PASS** | It rose naturally from 0.17 to 0.58 in 8 s in a lit room. It reached 73.0 after a hunt with seen +15 and grab survived +20 (`HC_COUNT_DREAD`), fell in the gatehouse from 73.0 to 51.6, and fell again during the return. Forced jumps are logged separately. |
+| Hostile return | **PASS (approach), no kill** | `HC_HUNT_SPAWN hostileReturn=True`. The bridge now takes 7.2 s to lower. He came within 7.9 m while she waited at the gate, then dove on the crossing (`HC_TORCH_FAIL dive`); closest on the bridge 1.55 m. `grabsOnBridge=0`. |
+| Bridge ground (F2 risk) | **PASS** | The drawbridge has 3 child colliders. A ray down at z -3 hits `Drawbridge leaf` at y 0.00. |
+| Near-miss crawl through walls (F2 risk) | **Partial** | Over 176 + 14 ground moves in the two fear hunts, the wall linecast between consecutive positions hit 0 times. No near-miss crawl happened on this build, so that exact path is unchecked. |
+| Battlement visible from the courtyard (F2 risk) | **PASS (line of sight)** | `HC_PLAY_BATTLEMENT`: 90 of 90 outdoor NavMesh sample points have a clear line to the battlement head at (3.6, 8.9, 0.0). The farthest is 24.9 m. Not judged visually. |
+| Gatehouse visit | **PASS** | `HC_COUNT_GATEHOUSE landed` at (3.60, 7.50, 0.00) with `cc_stay`, after about 40 s in the gatehouse. Screenshot `fear/19_gatehouse_visit.png`. |
+| Throwables fly | **FAIL** | `ThrowNearbyProp` returned false and `Poltergeist()` threw 0, so the summary shows `HC_THROW=0`. The director listed all 38 throwables (`HC_THROWABLES director=38`). Cause unknown. `8485c6a` adds a per-candidate probe (`HC_PLAY_THROW_PROBE`: distance, angle, what the sight line hits) that is not built yet. |
+| Castle dread beats | **PASS** | `HC_SCARE_CASTLE` ×7: balustrade_shape, bat_pass, window_silhouette ×2, book_drop, bell_single, candle_gutter. |
+| Perch sightings between hunts | **PASS** | `HC_COUNT_PERCH moved` ×18 in the fear run, ×3 in escape and ×5 in kill. Every move was outside the view cone (viewAngle 130-145) or occluded. |
+| Hunt voices | **PASS** | `HC_COUNT_VOICE` ×10 in fear: hunt_hungry, hunt_run, hunt_found and stay. |
+| GrabDrop clip (F5) | **Selected** | `HC_COUNT_GRAB_STATE mode=8 GrabDrop=True`. The death presentation itself was not run, because the driver blocks deaths. |
+| Rare line `cc_listen`, Long Night, microphone, door held, death penalty | **NOT RUN** | The rare line is a one-in-three roll. Long Night needs `-hc-long-night`. The microphone is never enabled in automated runs, by design. Door held needs Dread 90 at a hide. The death penalty needs a death and a checkpoint retry. |
+| Bellwether `-hc-verify` route | **NOT RUN on this build** | Needs a window. |
+| Title captures at 2560x1440 and 1920x1080 against the mock | **NOT RUN** | Needs a window. The 2560x1440 one does not fit in a window on the 3440x1440 display, so `CaptureMode` falls back to full-screen-window for that run only. |
 
-`HC_PLAY_RESULT mode=kill won=True slain=True blockedDeaths=0 blockers=0`
+**Frame time, great hall:** the camera stands 3.5 m in front of the rune ring looking down the hall, for 10 s at a 1920x1080 window with the 90 fps cap.
 
-## Fixed in piece-0 files during this run
+| Frames | Mean | p50 | p95 | p99 | Worst | Over 16.7 ms |
+|---|---|---|---|---|---|---|
+| 897 | 11.15 ms | 11.11 ms | 11.16 ms | 11.44 ms | 22.03 ms | 3 |
 
-- **The chapel bell did nothing before containment.** DESIGN.md says "ring it, the bargain hears you, survive the hunt". Now:
-  - Before the ledger is closed (2+ records, no hunt survived yet), ringing it starts the warning.
-  - With the sword, ringing it calls him back for the fight.
-  - In containment it stays the hold-to-seal.
-  - Files: `CastleRun.RingBell`, `Interactable`, `CaseBook.BellRung`.
-- **Driver input:** a two-frame key press re-used E (entered and left the cupboard). The driver now presses for exactly one frame.
+**Windowed launch (owner rule):** a plain launch of this build logged `HC_WINDOWED switched=True mode=Windowed fullScreen=False size=1920x1080 display=3440x1440`. The Unity prefs then read `Screenmanager Fullscreen mode = 3`, which is Windowed. Log: `/Users/midir/hollow-current-haunted-castle/.owner-launch.log`.
 
-## Findings in other pieces' files (for the director)
+## Other findings
 
-1. **Count AI (Presence, count piece):**
-   - In all three hunts the Count stayed on the west balcony perch at (-3.22, 4.25, 20.51). `HC_HUNT_SPAWN ... flight=Perched`, and every later Count line has the same position.
-   - In the kill run the investigator stood 0.97 m from him for most of two hunts and was never grabbed (`blockedDeaths=0`); `seen=True` appears in some lines.
-   - In the escape run he never left the perch while the investigator hid on the upper floor.
-   - The hunt pressure the design describes (glide between perches, dive at the player) did not occur in these runs.
-2. **No sword model:** after forging, the investigator still holds the current instrument (the grave-ash lantern in `kill/17_hit_1.png`); strikes use the instrument button.
-3. **Hilt and moonstone focus:** both were focused normally by the interaction ray. The orrery socket's collision proxy did not block it.
+- `HC_MISSING_ART speech voice_cc_contain`: `Speak("contain")` has no clip. This is F4's area.
+- **Headless batchmode cannot run the driver:** it stalls at the first `WaitForEndOfFrame` screenshot, so every scripted run needs a window.
+- **Full-screen runs were closed from outside:** the earlier full-screen runs in this session quit within 3-11 s (`HC_APP_QUIT` with no `Quit()` call). Scripted runs now open a 1920x1080 window, and stray quit, retry and Escape keys are ignored in scripted runs.
