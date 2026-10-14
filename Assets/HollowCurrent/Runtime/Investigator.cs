@@ -222,7 +222,15 @@ namespace HollowCurrent
             {
                 Move(dt);
                 Focus=null;
-                if(Physics.Raycast(View.transform.position,View.transform.forward,out var hit,2.7f))Focus=hit.collider.GetComponent<Interactable>();
+                if(Physics.Raycast(View.transform.position,View.transform.forward,out var hit,2.7f))
+                {
+                    Focus=hit.collider.GetComponent<Interactable>();
+                    // Deliberate Bellwether bug fix (2026-10-14): a hide's focus trigger sits in the same plane as its solid lower door
+                    // (89dac7e on main), so the ray could stop on the door and lose the cupboard. Accept an interactable whose collider the
+                    // same ray meets within 12 cm of the first hit.
+                    if(!Focus)foreach(var h in Physics.RaycastAll(View.transform.position,View.transform.forward,Mathf.Min(2.7f,hit.distance+.12f)))
+                    {var it=h.collider.GetComponent<Interactable>();if(it&&h.distance<=hit.distance+.12f){Focus=it;break;}}
+                }
                 if(input.Use&&Focus!=null)Focus.Use(Game);
             }
             UseEquipment(dt);

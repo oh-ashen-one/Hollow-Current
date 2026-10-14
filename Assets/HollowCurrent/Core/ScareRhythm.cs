@@ -11,10 +11,12 @@ namespace HollowCurrent
         public bool CanSurprise=>Age>=quietUntil;
         public bool AppearanceDue=>CanSurprise&&Age>=nextAppearance;
         public void Tick(float dt){if(dt<0||float.IsNaN(dt)||float.IsInfinity(dt))throw new ArgumentOutOfRangeException(nameof(dt));Age+=dt;}
+        // Castle (r10 rerun) sets Spacing 60 and AppearanceBase/Spread 60/50; the defaults are Bellwether's 90 and 105-165 s.
+        public float Spacing=MinimumSpacing,AppearanceBase=105,AppearanceSpread=60;
         public void RecordAppearance(float randomUnit)
         {
-            quietUntil=Age+MinimumSpacing;
-            nextAppearance=Age+105+60*Math.Max(0,Math.Min(1,randomUnit));
+            quietUntil=Age+Spacing;
+            nextAppearance=Age+AppearanceBase+AppearanceSpread*Math.Max(0,Math.Min(1,randomUnit));
         }
         public void Rest(float seconds)
         {

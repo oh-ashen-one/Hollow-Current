@@ -391,7 +391,7 @@ namespace HollowCurrent
                 // no-tell hunts skip the Warning phase, so nothing here strobes or speaks for them.
                 if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" escalated="+Case.EscalatedWarning+" length="+Case.CurrentWarningSeconds.ToString("F1")+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1"));
                 if(previous==Phase.Warning&&phase!=Phase.Hunt&&!Case.Terminal)Debug.Log("HC_FALSE_WARNING ended phase="+phase);
-                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" huntSeconds="+Case.CurrentHuntSeconds.ToString("F1")+" breaker="+Case.BreakerOn+" hunts="+Case.Hunts);
+                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START t="+Case.Elapsed.ToString("F0")+" phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" escalated="+Case.EscalatedWarning+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" huntSeconds="+Case.CurrentHuntSeconds.ToString("F1")+" breaker="+Case.BreakerOn+" hunts="+Case.Hunts);
                 if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             }
             Creature?.PhaseChanged(phase);

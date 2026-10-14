@@ -29,6 +29,8 @@ namespace HollowCurrent
         public void Initialize(Game owner)
         {
             game=owner;
+            // Castle rhythm (r10 rerun): apparitions every 60-110 s after a 60 s minimum spacing; Bellwether keeps 90 / 105-165 s.
+            if(game.Map==MapId.Castle){rhythm.Spacing=60;rhythm.AppearanceBase=60;rhythm.AppearanceSpread=50;}
             foreach(var t in game.World.Root.GetComponentsInChildren<Transform>())if(t.name=="Authored / Mug")props.Add(t);
             // Castle goblets, candlesticks, books and plates carry F3's Throwable marker.
             if(game.Map==MapId.Castle){foreach(var t in game.World.Root.GetComponentsInChildren<Throwable>())props.Add(t.transform);Debug.Log("HC_THROWABLES director="+props.Count);}
@@ -59,10 +61,11 @@ namespace HollowCurrent
             if(previousPhase!=game.Case.Phase)
             {
                 previousPhase=game.Case.Phase;
-                if(previousPhase==Phase.Warning||previousPhase==Phase.Hunt)rhythm.Rest(90);
-                if(previousPhase==Phase.Recovery){rhythm.Rest(65);next=IsCastle?Random.Range(6f,30f):30f;} // castle: the post-hunt gap is not a clock (hc/scares3)
+                if(previousPhase==Phase.Warning||previousPhase==Phase.Hunt)rhythm.Rest(IsCastle?Random.Range(35f,70f):90);
+                if(previousPhase==Phase.Recovery){rhythm.Rest(IsCastle?Random.Range(35f,70f):65);next=IsCastle?Random.Range(6f,30f):30f;} // castle: the post-hunt gap is not a clock (hc/scares3)
             }
-            if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment)return;
+            // Castle (r10 rerun): the director also runs in Recovery.
+            if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment)return;
             // Reserve the approach to a natural hunt for dread, not a competing
             // loud apparition. The nine-second hunt warning remains intact.
             // Bellwether's 95 s timer reserve. The castle hunts on dice, so this gate would starve its apparitions, throws,
@@ -79,7 +82,7 @@ namespace HollowCurrent
         }
         public void Dread()
         {
-            if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Recovery)return;
+            if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Recovery&&!IsCastle)return;
             if(IsCastle&&CastleBeat())return;
             var point=game.Player.transform.position-game.Player.transform.forward*3+game.Player.transform.right*2;
             // These hints end without a sting, rush, blackout or explanatory card.
@@ -108,7 +111,7 @@ namespace HollowCurrent
         }
         public bool Trigger(bool firstBasement=false)
         {
-            if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
+            if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
             if(!firstBasement&&!rhythm.AppearanceDue)return false;
             if(!IsCastle&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false; // Bellwether only (critic r10 #26)
             if(!(IsCastle&&Castle&&Castle.ApparitionPoint(out var point))&&!VisiblePoint(out point)){if(!firstBasement)Dread();return false;}

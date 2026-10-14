@@ -805,7 +805,9 @@ namespace HollowCurrent
             bool clearReach=!CaptureMode.Requested&&distance<Profile.GrabDistance&&vertical<1.6f&&!player.Hidden&&
                 !Physics.Linecast(transform.position+Vector3.up,player.transform.position+Vector3.up,FlightMask,QueryTriggerInteraction.Ignore);
             bool touching=(clearReach&&(CanSeePlayer||contact>0))||atHideEntrance;
-            contact=touching?contact+dt:0;
+            // Integrator (r10 rerun, hostile return): a walking player flickered in and out of GrabDistance every frame, so contact
+            // reset and he chose a grab 20 times on the bridge without one kill. Contact now decays instead of resetting.
+            contact=touching?contact+dt:Mathf.Max(0,contact-dt*.5f);
             if(touching)
             {
                 if(flat.sqrMagnitude>.0001f)transform.rotation=Quaternion.LookRotation(flat);
@@ -1176,6 +1178,8 @@ namespace HollowCurrent
         void Voice(string id,bool force=false)
         {
             float now=Time.time;
+            // Integrator (r10 rerun): no hunt line in a hunt's first 8 s unless he has seen her (cc_hunt_found is a consequence).
+            if(!force&&huntOn&&huntClock<8&&!CanSeePlayer&&id!="cc_hunt_found"){Debug.Log("HC_COUNT_VOICE held "+id+" t="+huntClock.ToString("F1")+" (first 8 s, not seen)");return;}
             if(!force&&(now-lastVoice<count.VoiceGap||voiceAt.TryGetValue(id,out var at)&&now-at<count.VoiceCooldown))return;
             voiceAt[id]=now;lastVoice=now;Game.Sound.Speak(id,HeadPosition);
             Debug.Log("HC_COUNT_VOICE "+id+" t="+huntClock.ToString("F1")+" "+DiagnosticState);

@@ -86,17 +86,14 @@ namespace HollowCurrent
             Draw(material,texture,rect,new Rect(0,0,1,1),new Color(1,1,1,alpha));
         }
 
-        // Tiling noise scrolling at four design pixels a second over the lower (moat) half, faded in
-        // by horizontal strips so there is no hard top edge.
+        // Noise scrolling at four design pixels a second over the lower (moat) half. One quad, its vertical fade baked into the
+        // texture (soft to zero at the top and bottom), extending past the viewport so no edge is ever in frame at any Ken Burns
+        // scale. (The earlier 16 alpha-stepped strips left hard lines at strip boundaries.)
         void Fog(Material material,Rect screen,float t,float scale)
         {
-            float top=screen.height*.42f,tile=FogTile*scale;const int strips=16;float h=(screen.height-top)/strips;
+            float top=screen.height*.40f,bottom=screen.height*1.12f,tile=FogTile*scale;
             float u=-t*FogSpeed*scale/tile;
-            for(int i=0;i<strips;i++)
-            {
-                float y=top+i*h,k=(i+.5f)/strips,ramp=Smooth(k/.6f);
-                Draw(material,fog,new Rect(0,y,screen.width,h),new Rect(u,-(y+h)/tile,screen.width/tile,h/tile),new Color(1,1,1,FogAlpha*ramp));
-            }
+            Draw(material,fog,new Rect(-screen.width*.05f,top,screen.width*1.1f,bottom-top),new Rect(u,0,screen.width*1.1f/tile,1),new Color(1,1,1,FogAlpha));
         }
 
         static float Smooth(float x){x=Mathf.Clamp01(x);return x*x*(3-2*x);}
@@ -178,7 +175,7 @@ namespace HollowCurrent
         void Build()
         {
             if(fog)return;
-            fog=NoiseTexture(256);
+            fog=FogBand(NoiseTexture(256));
             vignette=Make(128,128,(u,v)=>{float dx=u*2-1,dy=v*2-1,d=Mathf.Sqrt(dx*dx+dy*dy);return new Color(0,0,0,.66f*Smooth((d-.52f)/.88f));},TextureWrapMode.Clamp);
             leftShade=Make(256,2,(u,v)=>new Color(0,0,0,LeftShade*(1-u)),TextureWrapMode.Clamp);
             cardShade=Make(2,64,(u,v)=>new Color(0,0,0,.88f*Smooth(1-v)),TextureWrapMode.Clamp);
@@ -204,9 +201,23 @@ namespace HollowCurrent
                 n/=sum;float density=Smooth((n-.30f)/.5f);
                 pixels[y*size+x]=new Color32(190,200,212,(byte)Mathf.RoundToInt(255*density));
             }
-            texture.SetPixels32(pixels);texture.Apply(false,true);return texture;
+            texture.SetPixels32(pixels);texture.Apply(false,false);return texture; // readable: FogBand re-reads it, then destroys it
         }
 
+        // The fog band: tiling noise across, a baked vertical mask down (0 at the top edge, full by 55 % down, back to 0 at the
+        // bottom edge). Wraps horizontally only.
+        static Texture2D FogBand(Texture2D noise)
+        {
+            int w=noise.width,h=noise.height;var src=noise.GetPixels32();var dst=new Color32[w*h];
+            for(int y=0;y<h;y++)
+            {
+                float v=(y+.5f)/h; // 0 bottom, 1 top
+                float mask=Smooth((1-v)/.55f)*Smooth(v/.12f);
+                for(int x=0;x<w;x++){var c=src[y*w+x];c.a=(byte)Mathf.RoundToInt(c.a*mask);dst[y*w+x]=c;}
+            }
+            var band=new Texture2D(w,h,TextureFormat.RGBA32,false){wrapModeU=TextureWrapMode.Repeat,wrapModeV=TextureWrapMode.Clamp,filterMode=FilterMode.Bilinear,hideFlags=HideFlags.HideAndDontSave};
+            band.SetPixels32(dst);band.Apply(false,true);Destroy(noise);return band;
+        }
         // Smooth value noise that wraps every `period` cells, so the texture tiles.
         static float Lattice(float x,float y,int period,int seed)
         {
