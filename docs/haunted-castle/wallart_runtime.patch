@@ -1,0 +1,82 @@
+diff --git a/Assets/HollowCurrent/Runtime/Castle/CastleWorld.cs b/Assets/HollowCurrent/Runtime/Castle/CastleWorld.cs
+index b49360c..530036a 100644
+--- a/Assets/HollowCurrent/Runtime/Castle/CastleWorld.cs
++++ b/Assets/HollowCurrent/Runtime/Castle/CastleWorld.cs
+@@ -592,7 +592,8 @@ namespace HollowCurrent
+                 panel.name = d.Name; panel.transform.SetParent(hinge.transform, false);
+                 panel.transform.localPosition = new Vector3(lw * .5f, h * .5f, 0); panel.transform.localScale = new Vector3(lw, h, .09f);
+                 panel.GetComponent<Renderer>().enabled = false;      // CastleArt supplies the visible leaf
+-                CastleArt.Place(leafArt, hinge.transform, Vector3.zero, Quaternion.identity);
++                var leafPlaced = CastleArt.Place(leafArt, hinge.transform, Vector3.zero, Quaternion.identity);
++                if (portrait) Paint(leafPlaced, "child");
+                 var it = panel.AddComponent<Interactable>(); it.Kind = InteractKind.Door; it.Label = d.Name;
+                 var door = hinge.AddComponent<Door>(); door.Closed = hinge.transform.localRotation; it.Door = door;
+                 doors.Add(door); if (d.IsService) serviceDoors.Add(door);
+@@ -1208,11 +1209,33 @@ namespace HollowCurrent
+ 
+         void PortraitHall()
+         {
+-            foreach (float x in new[] { 7.6f, 9.6f }) Prop(Art.Portrait, new Vector3(x, 3.2f + 1.0f, 13.35f), 0, false);
+-            foreach (float z in new[] { 14.3f, 18.2f }) Prop(Art.Portrait, new Vector3(6.35f, 3.2f + 1.0f, z), 90, false);
+-            foreach (float z in new[] { 16.4f, 20.2f }) Prop(Art.Portrait, new Vector3(13.5f, 3.2f + 1.0f, z), -90, false);
++            // One painting per frame: Resources/Castle/Portraits/Portrait_<id>.png (docs/haunted-castle/CODEX_HANDOFF.md). The door leaf is "child".
++            Portrait("margrave", 7.6f, 13.35f, 0); Portrait("margravine", 9.6f, 13.35f, 0);
++            Portrait("steward", 6.35f, 14.3f, 90); Portrait("astronomer", 6.35f, 18.2f, 90);
++            Portrait("painter", 13.5f, 16.4f, -90); Portrait("cellarer", 13.5f, 20.2f, -90);
+             Prop(Art.Pedestal, new Vector3(12.3f, 3.2f, 14.4f), 0);
+         }
++        void Portrait(string id, float x, float z, float yaw)
++        {
++            var frame = Prop(Art.Portrait, new Vector3(x, 3.2f + 1.0f, z), yaw, false);
++            Paint(frame, id);
++            SurrealProps.AttachPupils(frame, new Vector3(0, .65f, 0), .66f, 1.06f);   // optional: animated pupils over the painted eyes
++        }
++        // Gives every Castle_Canvas slot under `art` its own material with Resources/Castle/Portraits/Portrait_<id>. A missing file leaves
++        // the shared Resources/Castle/Textures/Portrait.png in place and logs HC_MISSING_ART once.
++        void Paint(Transform art, string id)
++        {
++            var texture = Resources.Load<Texture2D>("Castle/Portraits/Portrait_" + id);
++            if (!texture) { MissingArt.Report("texture", "Castle/Portraits/Portrait_" + id); return; }
++            foreach (var r in art.GetComponentsInChildren<Renderer>())
++            {
++                var slots = r.sharedMaterials; bool any = false;
++                for (int i = 0; i < slots.Length; i++)
++                    if (slots[i] && slots[i].name == "Castle_Canvas")
++                    { slots[i] = new Material(slots[i]) { name = "Castle_Canvas / " + id, mainTexture = texture }; any = true; }
++                if (any) r.sharedMaterials = slots;
++            }
++        }
+ 
+         void Bedchamber()
+         {
+diff --git a/Assets/HollowCurrent/Runtime/Castle/SurrealProps.cs b/Assets/HollowCurrent/Runtime/Castle/SurrealProps.cs
+index 67b8ec8..6d330e6 100644
+--- a/Assets/HollowCurrent/Runtime/Castle/SurrealProps.cs
++++ b/Assets/HollowCurrent/Runtime/Castle/SurrealProps.cs
+@@ -280,6 +280,26 @@ namespace HollowCurrent
+             return eyes;
+         }
+ 
++        // Pupils only, for a portrait that is already framed and painted (the Castle Portrait.fbx: front +Z, canvas centre `canvasCentre`
++        // in its local space, canvas width x height metres). Same pupil layout and travel as MakePortraitEyes.
++        public static PortraitEyes AttachPupils(Transform portrait,Vector3 canvasCentre,float width,float height,Transform target=null)
++        {
++            var eyes=portrait.gameObject.AddComponent<PortraitEyes>();
++            var back=Quaternion.Euler(0,180,0);
++            var pupils=new Transform[2];
++            float size=width*.045f;
++            for(int i=0;i<2;i++)
++            {
++                float side=i==0?-1:1;
++                var p=NewRenderer("Pupil",portrait,canvasCentre+new Vector3(side*PortraitEyeU*width,(PortraitEyeV-.5f)*height,.004f),back,CentreQuad,new[]{PupilMaterial},false);
++                p.transform.localScale=new Vector3(size,size,1);
++                pupils[i]=p.transform;
++            }
++            eyes.pupils=pupils;eyes.target=target;
++            eyes.maxOffset=width*.018f;
++            return eyes;
++        }
++
+         // ---- stair loop ----
+         // A trigger volume of `size` metres centred on localPosition (its floor
+         // sits size.y/2 below). Armed is false until the game arms it. It lives on
