@@ -371,13 +371,29 @@ namespace HollowCurrent
                 float score=Vector3.Distance(perches[i],desired)+(Vector3.Distance(perches[i],player)<Profile.HuntSpawnMinPlayerDistance+2?1000:0);
                 if(score<bestScore){bestScore=score;best=i;}
             }
-            if(best>=0)SetPerch(best,Random.Range(count.HuntPerchMinSeconds,count.HuntPerchMaxSeconds));
+            if(best>=0)SetPerch(best,Random.Range(count.HuntStartPerchMinSeconds,count.HuntStartPerchMaxSeconds));
             else
             {
                 if(GroundUnder(desired,out var ground))transform.position=ground;else transform.position=desired;
                 BeginLand();
             }
+            // Round 10 (playtest: he never left the perch): the bell / the bargain tells him roughly where you are. He leaves the
+            // perch for that spot within 2 s; it is never the exact cupboard, so hiding still works unless he saw you hide.
+            attackAttempted=false;guaranteeClock=0;aiLogClock=0;HearPlayerRoughly();
             Debug.Log("HC_HUNT_SPAWN "+DiagnosticState);
+        }
+        bool attackAttempted;
+        float guaranteeClock,aiLogClock;
+        // Seed his memory with a point near the investigator: 1.5-3 m off in the open, 3-5 m off when hidden.
+        void HearPlayerRoughly()
+        {
+            var player=Game.Player.transform.position;bool hidden=Game.Player.Hidden;
+            float r=hidden?Random.Range(count.HeardOffsetHiddenMin,count.HeardOffsetHiddenMax):Random.Range(count.HeardOffsetMin,count.HeardOffsetMax);
+            float a=Random.Range(0f,Mathf.PI*2);var guess=player+new Vector3(Mathf.Cos(a)*r,0,Mathf.Sin(a)*r);
+            if(NavMesh.SamplePosition(guess,out var nav,2.5f,NavMesh.AllAreas)&&Mathf.Abs(nav.position.y-player.y)<1.6f)guess=nav.position;
+            else if(NavMesh.SamplePosition(player,out nav,1.5f,NavMesh.AllAreas))guess=nav.position+new Vector3(Mathf.Cos(a),0,Mathf.Sin(a))*.8f;
+            Memory.Observe(guess.x,guess.y,guess.z);searchedAt=new Vector3(9999,9999,9999);
+            Debug.Log("HC_COUNT_HEARD guess="+guess+" offset="+Vector3.Distance(guess,player).ToString("F1")+" hidden="+hidden+" "+DiagnosticState);
         }
         void SetPerch(int i,float seconds)
         {
@@ -423,15 +439,16 @@ namespace HollowCurrent
                 if(!PlanRoute(feet,true))continue;
                 pendingPerch=candidate;travelToPerch=true;flight=retreat?Flight.Retreat:Flight.Travel;return true;
             }
-            BeginLand();return false;
+            Debug.Log("HC_COUNT_ROUTE no perch reachable "+DiagnosticState);BeginLand();return false;
         }
         void BeginSearch(Vector3 point)
         {
             searchedAt=point;searchSerial++;
-            if(!PlanRoute(point,false)){BeginLand();return;}
+            if(!PlanRoute(point,false)){Debug.Log("HC_COUNT_ROUTE none to "+point+" "+DiagnosticState);BeginLand();return;}
+            Debug.Log("HC_COUNT_SEARCH to="+point+" waypoints="+route.Count+" "+DiagnosticState);
             travelToPerch=false;pendingPerch=-1;flight=Flight.Travel;
         }
-        void BeginChase(){flight=Flight.Chase;tell=0;holdTimer=0;replan=0;route.Clear();Debug.Log("HC_COUNT_DIVE "+DiagnosticState);}
+        void BeginChase(){flight=Flight.Chase;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
@@ -489,11 +506,13 @@ namespace HollowCurrent
                     transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.Euler(0,face,0),90*dt);
                     actor.Pose(Profile.ModeIdle);
                     if(retreating)break;
+                    perchTimer-=dt;
                     if(CanSeePlayer){tell+=dt;if(tell>=count.PerchTellSeconds)BeginChase();break;}
                     tell=Mathf.Max(0,tell-dt);
+                    if(perchTimer>0)break;
                     if(freshMemory){BeginSearch(memory);break;}
-                    perchTimer-=dt;
-                    if(perchTimer<=0&&Game.World.PerchPoints.Count>1)GoToPerch((perchIndex+1)%Game.World.PerchPoints.Count,false);
+                    if(Game.World.PerchPoints.Count>1)GoToPerch((perchIndex+1)%Game.World.PerchPoints.Count,false);
+                    else BeginLand();
                     break;
                 }
                 case Flight.Travel:
@@ -525,6 +544,41 @@ namespace HollowCurrent
                 case Flight.Chase:
                     CountChase(dt,memory);break;
             }
+            // At least one attack attempt per hunt: until he has dived, every GuaranteeSeconds he hears you again and searches.
+            guaranteeClock+=dt;
+            if(!retreating&&!attackAttempted&&guaranteeClock>=count.AttackGuaranteeSeconds&&flight!=Flight.Chase)
+            {
+                guaranteeClock=0;HearPlayerRoughly();BeginSearch(new Vector3(Memory.X,Memory.Y,Memory.Z));
+            }
+            aiLogClock-=dt;
+            if(aiLogClock<=0){aiLogClock=1;LogAI(retreating);}
+        }
+        // One line per second during a hunt: what he is doing and why he is (not) attacking.
+        void LogAI(bool retreating)
+        {
+            var p=Game.Player;var eye=transform.position+Vector3.up*(flight==Flight.Perched?count.PerchEyeHeight:count.FlightEyeHeight);
+            var delta=p.View.transform.position-eye;float distance=delta.magnitude;
+            var look=flight==Flight.Perched?Quaternion.AngleAxis(count.PerchLookDown,transform.right)*transform.forward:transform.forward;
+            float angle=Vector3.Angle(look,delta);string blocker=SightBlocker(eye,delta);
+            string why=flight==Flight.Chase?(CaptureMode.Requested?"chasing (capture hold)":"chasing")
+                :retreating?"retreating after a hit"
+                :p.Hidden&&!p.TorchOn?"player hidden, torch off"
+                :distance>Profile.SightRange?"out of sight range"
+                :angle>Profile.SightAngle?"outside the sight cone"
+                :blocker!=null?"line of sight blocked by "+blocker
+                :flight==Flight.Perched&&tell<count.PerchTellSeconds?"sees you, tell "+tell.ToString("F1")+"s"
+                :"sees you";
+            Debug.Log("HC_COUNT_AI t="+Game.Case.PhaseTime.ToString("F1")+" state="+flight+" pos="+transform.position+" player="+p.transform.position+
+                " los="+(blocker==null)+" seen="+CanSeePlayer+" dist="+distance.ToString("F1")+" angle="+angle.ToString("F0")+" hidden="+p.Hidden+" torch="+p.TorchOn+
+                " memory="+(Memory.Knows?new Vector3(Memory.X,Memory.Y,Memory.Z).ToString():"none")+" route="+routeAt+"/"+route.Count+" attacked="+attackAttempted+" why="+why);
+        }
+        // Null when the line from his eye to the investigator's view is clear (the first 0.5 m is skipped: the rail or ledge
+        // he crouches on must not hide the hall below him).
+        string SightBlocker(Vector3 eye,Vector3 delta)
+        {
+            float length=delta.magnitude;if(length<.6f)return null;var dir=delta/length;var start=eye+dir*.5f;
+            if(Physics.Raycast(start,dir,out var hit,length-.5f,FlightMask,QueryTriggerInteraction.Ignore)&&!hit.collider.GetComponentInParent<Investigator>())return hit.collider.name;
+            return null;
         }
         void CountChase(float dt,Vector3 memory)
         {
@@ -672,8 +726,7 @@ namespace HollowCurrent
             Vector3 eye=transform.position+Vector3.up*(perched?count.PerchEyeHeight:count.FlightEyeHeight),delta=p.View.transform.position-eye;
             var look=perched?Quaternion.AngleAxis(count.PerchLookDown,transform.right)*transform.forward:transform.forward;
             if(delta.magnitude>Profile.SightRange||Vector3.Angle(look,delta)>Profile.SightAngle)return false;
-            if(Physics.Raycast(eye,delta.normalized,out var hit,delta.magnitude,FlightMask,QueryTriggerInteraction.Ignore))return hit.collider.GetComponentInParent<Investigator>()!=null;
-            return true;
+            return SightBlocker(eye,delta)==null;
         }
         // Capture only: the camera (the investigator's view) must never be inside his posed silhouette.
         void KeepCameraClear()
