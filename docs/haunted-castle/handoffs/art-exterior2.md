@@ -38,10 +38,10 @@ The pieces already used the veneer's own world-space stone (same surfaces and ti
 - `gate_out_S6` (10.9) cannot move with exterior values: in the engine capture the raised drawbridge leaf closes the gate opening, so the frame is the gatehouse interior and no exterior pixel is visible. My proof for that view uses the lowered bridge (mean 55, exterior visible). To judge the exterior from that eye, capture it with the leaf lowered (`spots.Drawbridge.Snap(true)` as the S4 shot does).
 
 ## Budget
-Triangles 20,776 in FBX (was 22,464; windows are single polygons now) + 96 fog quads x 2 = about 21k of 150k. New materials 6: windows, backdrop, fog low, fog high, exterior stone, exterior stone dark (the old flat glow is gone). Colliders 0, lights 0. Backdrop and fog stay Transparent-queue, outside the bake. 
+Triangles 20,776 in FBX (was 22,464; windows are single polygons now) + 32 fog quads x 2 = about 20.9k of 150k. New materials 6: windows, backdrop, fog low, fog high, exterior stone, exterior stone dark (the old flat glow is gone). Colliders 0, lights 0. Backdrop and fog stay Transparent-queue, outside the bake. 
 
 ## Integrator
 1. Merge, let Unity import `Castle_ExtWindows.png`, `CastleWindow.shader` and the re-exported `Ext*.fbx` (metas committed; the six FBX metas are unchanged), regenerate the castle scene, re-bake.
-2. Log: `HC_EXTERIOR_AXIS ok keep centre local (2.3, ..., 20.4)` with no 180 degree warning; `HC_EXTERIOR_KIT ... renderers=...` (six FBX parts + 96 fog quads); no `HC_MISSING_ART`; no `[CastleExterior] ... unavailable` warnings.
+2. Log: `HC_EXTERIOR_AXIS ok keep centre local (2.3, ..., 20.4)` with no 180 degree warning; `HC_EXTERIOR_KIT ... renderers=...` (six FBX parts + 32 fog quads = 38 renderers); no `HC_MISSING_ART`; no `[CastleExterior] ... unavailable` warnings.
 3. Recapture the art exterior set plus S4. Look for: window texture and tympanum falloff (`bridge_gate`), both moons clear (`courtyard_keep`, `bridge_keep`, S4), keep stone readable (`courtyard_keep`), mean brightness of `battlement_out`.
-4. Risks not seen in Unity: `CastleWindow` compile (trivial), the `_FillAmount` boost on stone also lifting the rock a lot (rock uses the dark instance), far-bank mist alpha, overdraw of 96 transparent quads (the far ones are large; if frame time moves, drop the four far-bank pairs).
+4. Risks not seen in Unity: `CastleWindow` compile (trivial), the `_FillAmount` boost on stone also lifting the rock a lot (rock uses the dark instance), far-bank mist alpha, overdraw of 32 transparent quads (the far ones are large; if frame time moves, drop the four far-bank pairs).
