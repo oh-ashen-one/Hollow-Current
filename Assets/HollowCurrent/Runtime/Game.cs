@@ -150,7 +150,7 @@ namespace HollowCurrent
             ApplyFocus();Debug.Log("HC_READY source-generated house; runtime route remains subject to playtest.");
             // An unfocused player stops updating unless it runs in the background: capture and the
             // playtest driver are launched from a script, so keep them running before any switch.
-            if(CaptureMode.Requested||PlaytestDriver.Requested)Application.runInBackground=true;
+            if(ScriptedRun){Application.runInBackground=true;Debug.Log("HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)");}
             if(Map==MapId.Castle&&CaptureMode.Requested)gameObject.AddComponent<CaptureMode>().Initialize(this);
             if(PlaytestDriver.Requested)gameObject.AddComponent<PlaytestDriver>().Initialize(this);
             if(NativeVerification.Requested&&FindFirstObjectByType<NativeVerification>()==null)new GameObject("Opt-in native verification").AddComponent<NativeVerification>();
@@ -288,7 +288,9 @@ namespace HollowCurrent
         }
         void BeginCase(){SavePreferences();Started=true;ApplyFocus();if(uiProbe)Debug.Log("HC_UI_STARTED cursor="+Cursor.lockState);}
         public void Resume(){SavePreferences();Paused=false;Journal=false;NoteBody=null;ApplyFocus();}
-        public void ApplyFocus(){bool modal=Modal;Time.timeScale=modal?0:1;AudioListener.pause=Loading||!Started||Paused||Journal||NoteBody!=null;Cursor.lockState=modal||NativeVerification.Requested?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=(modal&&!PadInput.Active)||NativeVerification.Requested;if(uiProbe)Debug.Log("HC_UI_STATE started="+Started+" paused="+Paused+" journal="+Journal+" cursor="+Cursor.lockState+" visible="+Cursor.visible+" timeScale="+Time.timeScale);}
+        // Owner rule (2026-10-14, "stop taking my mouse"): automated runs never lock or hide the cursor and never read real input.
+        public static bool ScriptedRun=>PlaytestDriver.Requested||CaptureMode.Requested||NativeVerification.Requested;
+        public void ApplyFocus(){bool modal=Modal;Time.timeScale=modal?0:1;AudioListener.pause=Loading||!Started||Paused||Journal||NoteBody!=null;Cursor.lockState=modal||ScriptedRun?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=(modal&&!PadInput.Active)||ScriptedRun;if(uiProbe)Debug.Log("HC_UI_STATE started="+Started+" paused="+Paused+" journal="+Journal+" cursor="+Cursor.lockState+" visible="+Cursor.visible+" timeScale="+Time.timeScale);}
         public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();if(Castle)Castle.NoteRead(title);}
         public void Say(string value)
         {
@@ -425,6 +427,7 @@ namespace HollowCurrent
         void Manifest(){if(Scares.Trigger())manifestation++;}
         void LateUpdate()
         {
+            if(ScriptedRun){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
             if(Case.Phase!=Phase.Dead||Creature.PresentationRemaining<=0)return;
             var direction=Creature.Actor.Head.position-Player.View.transform.position;
             if(direction.sqrMagnitude>.04f)Player.View.transform.rotation=Quaternion.Slerp(Player.View.transform.rotation,Quaternion.LookRotation(direction),Time.unscaledDeltaTime*3);

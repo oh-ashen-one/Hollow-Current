@@ -78,6 +78,7 @@ namespace HollowCurrent
         public bool FirePressed=>input!=null&&input.Fire;
         FieldInput input;
         readonly FieldInput liveInput=new FieldInput();
+        readonly FieldInput idleInput=new FieldInput(); // scripted runs before TestInput is set: no input at all
         static readonly string[] InductionLevels={"0.0","1.0","2.0","3.0","4.0","5.0"};
         public void Initialize(Game game)
         {
@@ -173,7 +174,9 @@ namespace HollowCurrent
             heldTool.localRotation=Quaternion.Euler(8+lowered*90,-8,Mathf.Sin(Time.time*1.7f)*.4f);
             float raised=Mathf.Min(Mathf.Clamp01((1.35f-radioPose)/.16f),Mathf.Clamp01(radioPose/.2f));
             radioModel.localPosition=new Vector3(.28f,-.16f-(1-raised)*.14f,.42f);
-            if(TestInput==null)
+            // Owner rule (2026-10-14): scripted runs (playtest, verify, capture) never read the real mouse, keyboard or pad.
+            bool live=TestInput==null&&!Game.ScriptedRun;
+            if(live)
             {
                 liveInput.Move=new Vector2(Input.GetAxisRaw("Horizontal"),Input.GetAxisRaw("Vertical"));liveInput.Use=Input.GetKeyDown(KeyCode.E);liveInput.UseHeld=Input.GetKey(KeyCode.E);
                 liveInput.Fire=Input.GetMouseButtonDown(0);liveInput.FireHeld=Input.GetMouseButton(0);liveInput.Torch=Input.GetKeyDown(KeyCode.F);liveInput.Radio=Input.GetKeyDown(KeyCode.R);
@@ -181,9 +184,9 @@ namespace HollowCurrent
                 var pad=PadInput.Current;
                 if(pad)pad.Apply(liveInput,Tool);
             }
-            input=TestInput??liveInput;
+            input=TestInput??(live?liveInput:idleInput);
             workingHand.Operate(input.Fire||input.FireHeld);radioHand.Operate(radioPose>0);
-            if(TestInput==null)
+            if(live)
             {
                 transform.Rotate(0,Input.GetAxisRaw("Mouse X")*Sensitivity,0);
                 pitch=Mathf.Clamp(pitch+Input.GetAxisRaw("Mouse Y")*Sensitivity*(InvertY?1:-1),-84,84);

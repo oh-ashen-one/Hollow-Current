@@ -121,6 +121,15 @@ After the hc/rules2 merge:
 
 ## Rules for the next integrator
 
+**Owner rules (2026-10-14):**
+- **Windowed only:** never fullscreen. Captures that cannot fit use the largest 16:9 window that does.
+- **"When you're testing the game stop taking my mouse":**
+  - Scripted runs (`-hc-playtest`, `-hc-verify`, `-hc-capture*`) never lock or hide the cursor: `Game.LateUpdate` forces it free every frame and logs `HC_CURSOR free` once.
+  - They run in the background, and the Investigator reads no real mouse, keyboard or pad input in them (TestInput only, otherwise idle).
+  - Launch them without activating the window: `gpu_slot.sh capture --label hc-f0 -- open -g -W -n -a "<app>" --args -logFile <log> ...`.
+  - Owner-launched play keeps the normal cursor lock.
+
+
 - Unity is launched only through `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label hc-f0 -- ...`, one instance at a time; stop it with SIGTERM.
 - Bakes use `-batchmode -quit` (graphics). Import and build add `-nographics`.
 - **Any `.cs` change stales both receipts.** Re-run `HouseLighting.PrepareAndBakeCastle` and `PrepareAndBake` before `NativeBuild.BuildPreparedMacAll`. Only castle-only paths leave the Bellwether receipt alone.
