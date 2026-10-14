@@ -111,9 +111,14 @@ namespace HollowCurrent
             if(restoreCheckpoint&&checkpoints.TryGetValue(Map,out var checkpoint))
             {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);Player.Teleport(checkpointPositions[Map]);Started=true;Scares.RetryGrace();Say("Checkpoint restored / Your records are intact. Find cover before the signal rises.");}
             if(startOnLoad){startOnLoad=false;StartCase();}
-            // Capture mode in the combined player (starts in Bellwether): load the castle scene
-            // without starting the case, so the capture script begins at the castle title.
-            if(CaptureMode.Requested&&Map!=MapId.Castle&&MapAvailable(MapId.Castle)){SelectMap(MapId.Castle);restoreCheckpoint=false;startOnLoad=false;BeginReload(MapId.Castle);yield break;}
+            // Capture mode in the combined player (starts in Bellwether): switch to the castle.
+            // The case starts on arrival, so S7 (title) is only meaningful in a castle-only build.
+            if(CaptureMode.Requested&&Map!=MapId.Castle&&MapAvailable(MapId.Castle))
+            {
+                // Same path as the title picker (and the playtest driver): select, then begin.
+                yield return new WaitForSecondsRealtime(1);Debug.Log("HC_CAPTURE switching to Castle from "+Map);
+                SelectMap(MapId.Castle);BeginInvestigation();yield break;
+            }
             ApplyFocus();Debug.Log("HC_STARTUP_READY");
         }
         void Update()
