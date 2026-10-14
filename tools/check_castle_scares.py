@@ -92,6 +92,28 @@ sites = len(re.findall(r"MakeThrowable\(Small\.", world))
 if sites < 20:
     failures.append("only %d MakeThrowable call sites" % sites)
 
+# 4b. tell-safe lint: any code line in CastleScares.cs that tests HuntActive or a Phase (hunt state) must be justified by a
+# `// tell-safe:` comment on the same line or in the comment block directly above it (a beat whose presence depends on the hunt
+# state is a signal to the player). Also SilenceChance must key on FeltDread, never on real Dread (critic N11).
+lines = scares.splitlines()
+for number, line in enumerate(lines, 1):
+    code = line.split("//")[0]
+    if not re.search(r"HuntActive|\bPhase\.|\.Phase\b|NoTellHunt|FalseWarning", code):
+        continue
+    if "Debug.Log(" in code:
+        continue  # logging the phase is not a gate
+    justified = any("tell-safe:" in l for l in lines[max(0, number - 9):number])  # same line or the 8 lines above (a property's comment block)
+    if not justified:
+        failures.append("CastleScares.cs:%d tests hunt state without a `// tell-safe:` comment: %s" % (number, line.strip()))
+silence = body(scares, "public float SilenceChance")
+if not silence or "FeltDread" not in silence or re.search(r"\.Dread\b", silence):
+    failures.append("SilenceChance must key on FeltDread and not on real Dread")
+if "TickAmbient" not in scares or "HC_AMBIENT" not in scares:
+    failures.append("the ambient substitute (TickAmbient / HC_AMBIENT) is missing")
+foot = body(scares, "IEnumerator Footsteps(")
+if foot is None or re.search(r"Phase|HuntActive|LieAllowed|Active", foot):
+    failures.append("Footsteps coroutine must not stop on a phase, hunt or Active change (only Ready)")
+
 # 5. Bellwether isolation: CastleScares is only reached through the castle gate in the director
 if "IsCastle" not in director:
     failures.append("ScareDirector has no IsCastle gate")
