@@ -56,7 +56,7 @@ namespace HollowCurrent
             {
                 if(t.name=="Reliquary claw-scores")claws=t.gameObject;
                 // The sarcophagus art ("Castle / Sarcophagus" or its placeholder), not its runes or collision proxy.
-                else if(!sarcophagus&&t.name.IndexOf("Sarcophagus",System.StringComparison.OrdinalIgnoreCase)>=0&&t.name.IndexOf("rune",System.StringComparison.OrdinalIgnoreCase)<0&&t.name.IndexOf("collision",System.StringComparison.OrdinalIgnoreCase)<0&&!t.GetComponent<Interactable>())sarcophagus=t;
+                else if(t.GetComponent<Interactable>() is Interactable i&&i.Kind==InteractKind.Sarcophagus)sarcophagus=t;
             }
             // Props on piece 1's anchors (piece 3's factories).
             if(spots.RuneRingAnchor)Rune=SurrealProps.MakeRuneRing(spots.RuneRingAnchor,Vector3.zero,spots.RuneRingRadius>0?spots.RuneRingRadius:3,24,Game.Player.transform);
@@ -80,7 +80,8 @@ namespace HollowCurrent
         public void TakeRelic(Interactable item)
         {
             if(item.RelicIndex<0||item.RelicIndex>2||!Game.Case.Equipped)return;
-            if(item.RelicIndex==0&&!BladeRevealed){Game.Say(Game.Book.BladeSealed);return;}
+            // The death penalty can move the blade out of the claw-scored box (Game.MovedRelic): nothing to reveal then.
+            if(item.RelicIndex==0&&!BladeRevealed&&Game.MovedRelic!=0){Game.Say(Game.Book.BladeSealed);return;}
             if(Forge.Found((Relic)item.RelicIndex))
             {
                 Game.Say(Game.Book.RelicFound[item.RelicIndex]);Game.Sound.Cue("evidence_filed",item.transform.position,.5f);
@@ -111,6 +112,7 @@ namespace HollowCurrent
         // A ledger page was opened: unlock its relic hint and read it aloud.
         public void NoteRead(string title)
         {
+            if(title=="Sarcophagus"){Sarcophagus();return;}
             string id=Game.Book.NoteIdFor(title);if(id==null)return;
             if(Forge.ReadLedger(id)&&LedgerHints.TryRelicFor(id,out var relic))Game.Say(Game.Book.RelicHints[(int)relic]);
             Game.Sound.Speak(id);
@@ -132,14 +134,13 @@ namespace HollowCurrent
 
         // ---- Item 18: the gamble at the sarcophagus --------------------------------------------------------------------
         // Reading an unread-aloud ledger page over the sarcophagus names the relic's room, costs 25 Dread and one time in
-        // three starts a hunt at once. Called by the integrator's InteractKind.Sarcophagus; until then a press of use while
-        // facing the sarcophagus (no other interactable focused) calls it too.
-        public const float GambleDread=25,GambleHuntChance=1f/3,GambleReach=2.6f;
+        // three starts a hunt at once. Called by InteractKind.Sarcophagus (Interactable.Use); while that case still only
+        // shows F3's note, NoteRead("Sarcophagus") calls it. A 1 s cooldown makes a double route harmless.
+        public const float GambleDread=25,GambleHuntChance=1f/3;
         static readonly string[] RelicRooms={"the Reliquary in the crypt, in the box the steward sealed","the Observatory at the top of the tower, in the orrery's empty socket","the Portrait hall, behind the painted door"};
         readonly bool[] readAloud=new bool[3];
         Transform sarcophagus;
         float gambleCooldown;
-        bool useWasHeld;
         public bool Sarcophagus()
         {
             var c=Game.Case;var at=SarcophagusPosition;
@@ -162,16 +163,6 @@ namespace HollowCurrent
             return true;
         }
         Vector3 SarcophagusPosition=>sarcophagus?sarcophagus.position:Game.World.Root?Game.World.Root.TransformPoint(new Vector3(0,-3.2f,22.5f)):new Vector3(0,-3.2f,22.5f);
-        void SarcophagusFallback()
-        {
-            var player=Game.Player;bool held=player.UseHeld,edge=held&&!useWasHeld;useWasHeld=held;
-            if(!edge||player.Hidden)return;
-            var focus=player.Focus;if(focus&&focus.name.IndexOf("Sarcophagus",System.StringComparison.OrdinalIgnoreCase)<0)return;
-            var at=SarcophagusPosition;var feet=player.transform.position;
-            if(Mathf.Abs(feet.y-at.y)>1.6f||new Vector2(feet.x-at.x,feet.z-at.z).magnitude>GambleReach)return;
-            var eye=player.View.transform;if(Vector3.Angle(eye.forward,at+Vector3.up*.7f-eye.position)>45)return;
-            Sarcophagus();
-        }
 
         // ---- Death penalty hook (integrator): move a relic not yet taken to its alternate place --------------------------
         /// <summary>Moves relic <paramref name="relicIndex"/> (0 blade, 1 hilt, 2 moonstone) and its art to
@@ -179,14 +170,13 @@ namespace HollowCurrent
         public bool MoveRelicToAlternate(int relicIndex)
         {
             if(relicIndex<0||relicIndex>2||Forge.HasRelic((Relic)relicIndex))return false;
-            var spots=Game.World.Castle;Vector3[] alt=null;
-            if(spots!=null){var field=spots.GetType().GetField("RelicAltPositions");if(field!=null)alt=field.GetValue(spots) as Vector3[];}
-            if(alt==null||relicIndex>=alt.Length||alt[relicIndex]==Vector3.zero){Debug.Log("HC_RELIC_MOVE none relic="+relicIndex+" (no RelicAltPositions on World.Castle)");return false;}
+            var alt=Game.World.Castle?.RelicAltPositions;
+            if(alt==null||relicIndex>=alt.Length||alt[relicIndex]==Vector3.zero){Debug.Log("HC_RELIC_MOVE none relic="+relicIndex+" (no RelicAltPositions in this scene)");return false;}
             Interactable relic=null;
             foreach(var item in Game.World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Relic&&item.RelicIndex==relicIndex){relic=item;break;}
             if(!relic){Debug.Log("HC_RELIC_MOVE none relic="+relicIndex+" (no interactable)");return false;}
             var from=relic.transform.position;var delta=alt[relicIndex]-from;
-            relic.transform.position+=delta;if(relic.Art)relic.Art.transform.position+=delta;
+            relic.transform.position+=delta;if(relic.Art&&!relic.Art.transform.IsChildOf(relic.transform))relic.Art.transform.position+=delta;
             // The blade leaves the claw-scored box, so the lantern gate no longer applies.
             if(relicIndex==0)BladeRevealed=true;
             Debug.Log("HC_RELIC_MOVE relic="+relicIndex+" from="+from+" to="+relic.transform.position);
@@ -198,7 +188,7 @@ namespace HollowCurrent
             if(Game==null||Game.Modal)return;
             float dt=Time.deltaTime;var spots=Game.World.Castle;if(spots==null)return;
             var player=Game.Player;var phase=Game.Case.Phase;bool hunting=Game.Case.HuntActive;
-            gambleCooldown-=dt;SarcophagusFallback();
+            gambleCooldown-=dt;
             if(player.Inside&&!Game.Case.Terminal)
             {
                 FloorSeconds[FloorIndex(player.transform.position.y)]+=dt;

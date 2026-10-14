@@ -1240,16 +1240,11 @@ namespace HollowCurrent
                 if(k>=1){gateStage=0;flight=Flight.Away;perchIndex=-1;silhouette.gameObject.SetActive(false);unobserved=0;Debug.Log("HC_COUNT_GATEHOUSE gone "+DiagnosticState);}
             }
         }
-        // F3's CastleWorld.Points.GatehouseBattlement when it exists (read by name so this compiles before hc/scares lands),
-        // else GatehouseFallbackHeight above the lantern cart, kept GatehouseHeadroom under the ceiling (he hovers there).
+        // F3's CastleWorld.Points.GatehouseBattlement (gate wall top) when the scene has it, else GatehouseFallbackHeight above the lantern cart, kept GatehouseHeadroom under the ceiling (he hovers there).
         Vector3 Battlement(out bool hover)
         {
             hover=false;var spots=Game.World.Castle;
-            if(spots!=null)
-            {
-                var field=spots.GetType().GetField("GatehouseBattlement");
-                if(field!=null&&field.GetValue(spots) is Vector3 b&&b!=Vector3.zero)return b;
-            }
+            if(spots!=null&&spots.GatehouseBattlement!=Vector3.zero)return spots.GatehouseBattlement;
             hover=true;Vector3 cart=Game.World.Spawn;bool found=false;
             foreach(var t in Game.World.Root.GetComponentsInChildren<Transform>(true))
                 if(t.name.EndsWith("LanternCart",System.StringComparison.Ordinal)){cart=t.position;found=true;break;}
