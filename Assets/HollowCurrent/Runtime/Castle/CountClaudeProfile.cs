@@ -39,6 +39,22 @@ namespace HollowCurrent
         // Wing tips: a fan Ext bone may stretch at most WingExtMaxStretch x its rest offset (the Grab clip asks for 2.2 and
         // crumples the tip, r10 H09/H10; GrabDrop 1.7-2.1). 1.6 keeps Glide 1.45, Dive 1.26 and GrabCrawl 1.6 untouched. 0 disables.
         public float WingExtMaxStretch=1.6f;
+        // ---- Wave K (r11 blind playtest critic) --------------------------------------------------------------------------
+        // Stalls: a door is waited for at most DoorWaitSeconds; an airborne leg that moves less than StallMinProgress in
+        // StallSeconds is blocked; either re-routes at once, else he lands and crawls the NavMesh for OnFootSeconds.
+        public float DoorWaitSeconds=1f, StallSeconds=.5f, StallMinProgress=.1f, OnFootSeconds=4f;
+        // Grab camera: when a grab commits the view turns to his skull over GrabCamTurnSeconds (no cut) and holds through the
+        // death. The aim sits GrabCamClawBias of the way from the skull toward the claws (claws fill the lower frame). In the
+        // kill presentation he is eased so the nearer claw is GrabCamClawDistance from the lens, never under CameraClearance.
+        // GrabDrop starts GrabDropAboveEye above her eye and falls in GrabDropFallSeconds. ClawWidth is the world width used for
+        // the claw_px proof (2560-wide frame).
+        public float GrabCamTurnSeconds=.15f, GrabCamClawBias=.3f, GrabCamClawDistance=.8f, GrabDropAboveEye=.35f, GrabDropFallSeconds=.35f, ClawWidth=.3f;
+        // Sword hits: he recoils SwordRecoilDistance away from her over SwordRecoilSeconds, and until SwordClearSeconds after the
+        // stagger no joint (wing markers included) comes within SwordClearRadius (+0.15 m skin) of the camera.
+        public float SwordRecoilDistance=1.2f, SwordRecoilSeconds=.25f, SwordClearRadius=.6f, SwordClearSeconds=1f;
+        // Near-miss: base chance NearMissChance; NearMissChanceLost when he lost sight of her within NearMissLostSeconds and
+        // NearMissLostRadius of the hide she is in.
+        public float NearMissChanceLost=.5f, NearMissLostSeconds=10f, NearMissLostRadius=6f;
         // Capture choreography dive: from CaptureGlideEndDistance ahead it closes in CaptureDiveArrive seconds (>= 4.6 m/s) and
         // grabs with GrabDrop at its stand-off (GrabCrawl, then Mode 6 only if the clip is missing).
         public float CaptureGlideEndDistance=7f;
