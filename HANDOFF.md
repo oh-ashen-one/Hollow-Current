@@ -204,6 +204,7 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 - Open: natural2 share 0.224 and no between-hunt gap ≥ 120 s; watched-hide grab path label is `dive`, and at t 1.00 he is not visible; HUD prompt shows during grabs; `gate_out_S6` faces the closed gate doors; verify floor flag still False.
 - Crypt "hitch" was the screenshot encode frame (capture artefact).
 - Not built yet (r12 critic holds the engine): `Interface.cs` hides every castle HUD line and prompt during a grab (`HC_UI grab_hidden=true`), captions stay. Interface.cs is shared, so the next build needs both the Castle and Bellwether re-bakes, then `-hc-verify`.
+- hc/count18 `b5113b9` merged (code only, not built): live skinned bounds (`updateWhenOffscreen`), door-grab floor/door clamp, `visible=` frustum+occlusion, `path=hideopen`. After the next build: fear run (watched hide) and the great-hall frame time (skinned bounds cost).
 
 ## Art pass merged (round 7, build `ac43efa`)
 
