@@ -93,29 +93,14 @@ namespace HollowCurrent
                 // The last beat is deliberately unresolved silence.
             }
         }
-        // Castle dread beats: lies above the Lies threshold (false candle tell, false compass), otherwise the
-        // castle's own beats (Beat picks a book drop, knife, bat, bell; the window silhouette; the balustrade shape).
-        bool CastleBeat()
-        {
-            if(!Castle)return false;
-            // Lies (Dread >= 70): one candle tell in three points at an empty doorway; the compass lies while raised.
-            if(game.Case.Lies)
-            {
-                if(Random.value<1f/3&&Castle.FalseCandleTell())return true;
-                if(game.Player.Tool==1&&game.Case.Equipped&&Random.value<.5f){Castle.FalseCompassReading();return true;}
-            }
-            // Peripheral beats need the player's view and return false cheaply when nothing qualifies.
-            float r=Random.value;
-            if(r<.2f&&Castle.WindowSilhouette())return true;
-            if(r<.35f&&Castle.BalustradeShape())return true;
-            Castle.Beat();return true; // Beat logs its own HC_SCARE_CASTLE line
-        }
+        // Castle dread beats: the whole tick (silence roll, lies, peripheral sightings, Beat) lives in CastleScares.DreadTick (hc/scares2).
+        bool CastleBeat()=>Castle&&Castle.DreadTick();
         public bool Trigger(bool firstBasement=false)
         {
             if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
             if(!firstBasement&&!rhythm.AppearanceDue)return false;
             if(!IsCastle&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false; // Bellwether only (critic r10 #26)
-            if(!VisiblePoint(out var point)){if(!firstBasement)Dread();return false;}
+            if(!(IsCastle&&Castle&&Castle.ApparitionPoint(out var point))&&!VisiblePoint(out point)){if(!firstBasement)Dread();return false;}
             bool rush=!firstBasement&&Events%3==2;
             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true))return false;
             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
@@ -126,7 +111,7 @@ namespace HollowCurrent
                 game.Case.AddDread(game.Case.Rules.DreadApparition);
                 // An apparition that lands close can become a hunt with a short tell (FEAR_PLAN item 3).
                 float near=Vector3.Distance(point,game.Player.transform.position);
-                if(near<4){bool escalated=game.Case.TryEscalate();Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated);}
+                if(near<CastleScares.EscalateRange){bool escalated=game.Case.TryEscalate();Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated);}
             }
             if(!firstBasement&&Events%2==0)
             {

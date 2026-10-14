@@ -131,7 +131,7 @@ namespace HollowCurrent
             if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);gameObject.AddComponent<CastleAtmosphere>();gameObject.AddComponent<CastleLightTuning>();}
             if(Map==MapId.Castle)
             {
-                CastleDread=gameObject.AddComponent<CastleScares>();CastleDread.Initialize(this);
+                CastleDread=gameObject.AddComponent<CastleScares>();CastleDread.Initialize(this);CastleDread.DuckBed=Sound.DuckBed;
                 // Long Night: nail hides at run start (the static list from a previous scene is cleared first).
                 CastleWorld.UnnailHides();
                 // Nailed spots are deactivated; drop them from the hunter's search list too.

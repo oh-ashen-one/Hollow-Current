@@ -189,6 +189,8 @@ namespace HollowCurrent
         void RareLine(bool hunting)
         {
             if(!rareLine||rareDone||game.Case.Hunts<1||game.Modal)return;
+            // One cc_listen per run across both paths (this rare line and hc/scares2's phantom-listen lie).
+            if(game.CastleDread&&game.CastleDread.ListenPlayed){rareDone=true;return;}
             if(hunting){rareAt=-1;return;}
             if(rareAt<0){rareAt=Time.time+UnityEngine.Random.Range(20f,90f);return;}
             if(Time.time<rareAt)return;
@@ -197,7 +199,7 @@ namespace HollowCurrent
             var view=game.Player.View.transform;var back=Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=game.Player.transform.forward;back.Normalize();
             var at=view.position-back*2+Vector3.up*1.5f;
             if(Physics.Raycast(view.position,Vector3.up,out var ceiling,1.6f,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))at.y=Mathf.Min(at.y,ceiling.point.y-.2f);
-            rareDone=true;Speak("cc_listen",at);Debug.Log("HC_RARE_LINE cc_listen at="+at+" t="+game.Case.Elapsed.ToString("F1"));
+            rareDone=true;if(game.CastleDread)game.CastleDread.MarkListenPlayed();Speak("cc_listen",at);Debug.Log("HC_RARE_LINE cc_listen at="+at+" t="+game.Case.Elapsed.ToString("F1"));
         }
         // Claw steps from the Count's ground movement: every 0.5 m he travels on a floor (not gliding),
         // 5 % volume outside hunts, full in hunts.
