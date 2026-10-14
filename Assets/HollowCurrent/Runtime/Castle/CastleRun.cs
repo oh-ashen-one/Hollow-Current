@@ -42,6 +42,8 @@ namespace HollowCurrent
             {
                 case "near-miss":   // he breathes at the cupboard slats and rattles the door (item 10)
                     Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);Game.Sound.Speak("cc_hunt_smell",count.HeadPosition);break;
+                case "hide-open":   // he saw her go in: the door rattles half a second before he opens it (r10 #16)
+                    Game.Sound.Cue("door_rattle",count.NearMissDoor,.95f);break;
                 case "gatehouse":   // he says cc_stay himself (Presence); the chains answer (item 11)
                     if(spots!=null)Game.Sound.Cue("drawbridge_chains",spots.DrawbridgeWinch,((CountClaudeProfile)count.Profile).GatehouseChainsVolume);break;
             }
@@ -216,7 +218,9 @@ namespace HollowCurrent
             if(hunting!=huntSeen)
             {
                 huntSeen=hunting;
-                if(hunting){Floater.SetFlameTarget(Game.Creature.transform);Game.Sound.Speak("cc_hunt_smell",Game.Creature.HeadPosition);}
+                // r10 #5: no voice at hunt start (cc_hunt_smell is the near-miss line only). The flames already follow him
+                // between hunts (Floater's automatic target), so this is no change on screen.
+                if(hunting)Floater.SetFlameTarget(Game.Creature.transform);
                 else ClearFlameTarget();
             }
             if(phase!=lastPhase)
@@ -229,9 +233,11 @@ namespace HollowCurrent
             // Ringing (sealing) the chapel bell tolls once per stroke window.
             bellCooldown-=dt;
             if(Game.Case.SealProgress>.01f&&bellCooldown<=0){bellCooldown=7;Game.Sound.Cue("chapel_bell_toll",spots.Anchor,1);}
-            bool flying=hunting&&Game.Creature.isActiveAndEnabled;
-            if(wings)wings.volume=Mathf.MoveTowards(wings.volume,flying?.7f:Game.Creature.Airborne?.35f:0,dt/.4f*.7f);
-            if(candles)candles.volume=Mathf.MoveTowards(candles.volume,hunting&&Vector3.Distance(Game.Creature.transform.position,candles.transform.position)<12?.6f:.25f,dt*.5f);
+            // r10 #6: the wing loop follows his actual flight, in hunts and between them, never the hunt state.
+            if(wings)wings.volume=Mathf.MoveTowards(wings.volume,Game.Creature.WingsBeating?.6f:0,dt/.4f*.6f);
+            // The candle bed swells when he is near the hall candles, visible, in any phase (same rule as the flames), not by hunt state.
+            bool nearCandles=Game.Creature.Actor&&Game.Creature.Actor.gameObject.activeInHierarchy&&Vector3.Distance(Game.Creature.transform.position,candles?candles.transform.position:Vector3.zero)<12;
+            if(candles)candles.volume=Mathf.MoveTowards(candles.volume,nearCandles?.6f:.25f,dt*.5f);
             if(forgeHum)forgeHum.volume=Mathf.MoveTowards(forgeHum.volume,Forge.CraftProgress01>0&&!Forge.HasSword?.6f:0,dt*1.5f);
         }
         void OnDestroy(){Floater.SetFlameTarget(null);if(Game&&Game.Creature)Game.Creature.Beat-=CountBeat;if(SurrealProps.Viewer&&Game&&Game.Player&&SurrealProps.Viewer==Game.Player.View.transform)SurrealProps.Viewer=null;}
