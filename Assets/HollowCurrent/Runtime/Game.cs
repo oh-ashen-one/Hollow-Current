@@ -167,6 +167,7 @@ namespace HollowCurrent
             if(startOnLoad){startOnLoad=false;StartCase();}
             // Capture mode in the combined player (starts in Bellwether): switch to the castle.
             // The case starts on arrival, so S7 (title) is only meaningful in a castle-only build.
+            if(CaptureMode.Requested&&CaptureMode.TitleOnly&&!Started){gameObject.AddComponent<CaptureMode>().InitializeTitle(this);ApplyFocus();Debug.Log("HC_STARTUP_READY");yield break;}
             if(CaptureMode.Requested&&Map!=MapId.Castle&&MapAvailable(MapId.Castle))
             {
                 // Same path as the title picker (and the playtest driver): select, then begin.

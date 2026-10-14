@@ -16,6 +16,7 @@ namespace HollowCurrent
         public GiantBat Bats {get;private set;}
         public const float AltarReach=2.6f,StrikeReach=2.4f,StrikeAngle=55;
         AudioSource wings,candles,forgeHum,trickle;
+        public float WingVolume=>wings?wings.volume:0; // read by the playtest driver's channel log
         int seenScares;
         float bellCooldown;
         Phase lastPhase;

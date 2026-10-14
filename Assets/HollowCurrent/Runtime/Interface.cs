@@ -348,7 +348,7 @@ namespace HollowCurrent
         // Castle (critic r10 #4): the HUD goal does not flip to the hunt goal. Through Hunt and Recovery it keeps the calm goal,
         // with the hunt-survived state frozen at the hunt's start.
         bool goalSurvived;
-        string HudGoal()
+        public string HudGoal()
         {
             var c=Game.Case;
             if(Game.Map!=MapId.Castle)return c.Goal;

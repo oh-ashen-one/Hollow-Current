@@ -45,15 +45,43 @@ namespace HollowCurrent
             Application.runInBackground=true;
             var args=Environment.GetCommandLineArgs();
             for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-capture-size"){var p=args[i+1].Split('x');if(p.Length==2&&int.TryParse(p[0],out var w)&&int.TryParse(p[1],out var h)){width=w;height=h;}}
-            // Windowed when the size fits this display with a title bar; a size the display cannot hold in a window is
-            // captured full-screen-window for the run only, and quitting always restores the owner's 1920x1080 window.
-            bool fits=width<=Display.main.systemWidth&&height+64<=Display.main.systemHeight;
-            Screen.SetResolution(width,height,fits?FullScreenMode.Windowed:FullScreenMode.FullScreenWindow);
-            Log("requested "+width+"x"+height+" mode="+(fits?"Windowed":"FullScreenWindow (does not fit a window)")+" display="+Display.main.systemWidth+"x"+Display.main.systemHeight);
+            ApplyWindow();
             System.IO.Directory.CreateDirectory(Directory);
             StartCoroutine(Run());
         }
         static void Log(string line)=>Debug.Log("HC_CAPTURE "+line);
+        // Always windowed (owner rule: never full screen). A size this display cannot hold in a window (title bar and menu bar
+        // included) is scaled down to the largest 16:9 window that fits, and the log says so.
+        static void ApplyWindow()
+        {
+            var args=Environment.GetCommandLineArgs();
+            for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-capture-size"){var p=args[i+1].Split('x');if(p.Length==2&&int.TryParse(p[0],out var w)&&int.TryParse(p[1],out var h)){width=w;height=h;}}
+            int dw=Display.main.systemWidth,dh=Display.main.systemHeight-80;int rw=width,rh=height;
+            if(rw>dw||rh>dh){float k=Mathf.Min((float)dw/rw,(float)dh/rh);rw=Mathf.FloorToInt(rw*k/16)*16;rh=Mathf.RoundToInt(rw*(float)height/width);}
+            Screen.SetResolution(rw,rh,FullScreenMode.Windowed);
+            Log("requested "+width+"x"+height+" window "+rw+"x"+rh+(rw!=width?" (largest window that fits)":"")+" display="+Display.main.systemWidth+"x"+Display.main.systemHeight);
+        }
+        // -hc-capture <dir> -hc-capture-title: from the combined player's title (Bellwether scene, case not started), capture the
+        // title with the Castle and then the Bellwether card selected, then quit. Never starts a case.
+        public static bool TitleOnly=>Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-capture-title")>=0;
+        public void InitializeTitle(Game owner)
+        {
+            game=owner;ui=owner.GetComponent<Interface>();Application.runInBackground=true;ApplyWindow();
+            System.IO.Directory.CreateDirectory(Directory);StartCoroutine(RunTitle());
+        }
+        IEnumerator RunTitle()
+        {
+            while(game.Loading)yield return null;
+            yield return new WaitForSecondsRealtime(2);
+            string size=Screen.width+"x"+Screen.height;
+            game.SelectMap(MapId.Castle);yield return new WaitForSecondsRealtime(2.5f);
+            yield return Shot("S7_title_castle_"+size,"rounds/r10/title_mock.png",Vector3.zero,Vector3.zero,"title, Haunted Castle selected");
+            game.SelectMap(MapId.Bellwether);yield return new WaitForSecondsRealtime(2.5f);
+            yield return Shot("S7_title_bellwether_"+size,"rounds/r10/title_mock_bellwether.png",Vector3.zero,Vector3.zero,"title, Bellwether selected");
+            Log("TITLE DONE");
+            Screen.SetResolution(Game.WindowWidth,Game.WindowHeight,FullScreenMode.Windowed);yield return null;yield return null;
+            Application.Quit();
+        }
         // Camera at eye (world), looking at target; the investigator body follows.
         void Place(Vector3 eye,Vector3 target)
         {

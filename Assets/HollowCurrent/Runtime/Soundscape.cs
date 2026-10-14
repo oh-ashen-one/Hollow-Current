@@ -27,6 +27,12 @@ namespace HollowCurrent
         float duckDepth=1,duckHold,duckClock=-1,duckLevel=1;
         float roomBase,windBase,heartBase;
         public float HeartbeatVolume=>heartbeat?heartbeat.volume:0;
+        // Read-only channel levels for the playtest driver's no-tell channel log.
+        public float SafeMusicVolume=>safeMusic?safeMusic.volume:0;
+        public float HouseMusicVolume=>houseMusic?houseMusic.volume:0;
+        public float HuntMusicVolume=>huntMusic?huntMusic.volume:0;
+        public float BreathVolume=>playerBreath?playerBreath.volume:0;
+        public float RoomVolume=>room?room.volume:0;
         public float WindVolume=>wind?wind.volume:0;
         public int ClawStepCount {get;private set;}
         string lastNote;

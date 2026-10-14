@@ -37,7 +37,7 @@ namespace HollowCurrent
         Game game;FieldInput input;float start;int shot;
         // fear mode: counts of HC_ log lines by prefix (Application.logMessageReceived), summarised at the end.
         readonly Dictionary<string,int> tags=new Dictionary<string,int>();
-        static readonly string[] Tags={"HC_THROW ","HC_THROW poltergeist","HC_SCARE_CASTLE","HC_COUNT_PERCH moved","HC_COUNT_PERCH landed","HC_COUNT_NEARMISS begin","HC_COUNT_NEARMISS hold","HC_WARNING","HC_FALSE_WARNING","HC_HUNT_START","HC_HUNT_SPAWN hostileReturn=True","HC_COUNT_GATEHOUSE landed","HC_COUNT_VOICE","HC_TORCH_FAIL","HC_COUNT_DREAD","HC_COUNT_GRAB","HC_COUNT_LEARNED","HC_ESCALATE","HC_RARE_LINE","HC_DOOR_HELD"};
+        static readonly string[] Tags={"HC_LIE","HC_DUCK","HC_SCARE_CASTLE silence","HC_COUNT_WITNESSED","HC_COUNT_NEARMISS open=True","HC_COUNT_RETURN_SWOOP","HC_COUNT_DIVE_LAST","HC_RECOVERY","HC_NAIL_HIDES","HC_COUNT_PERCH flight observed=True","HC_THROW_SKIP","HC_MISSING_ART","HC_THROW ","HC_THROW poltergeist","HC_SCARE_CASTLE","HC_COUNT_PERCH moved","HC_COUNT_PERCH landed","HC_COUNT_NEARMISS begin","HC_COUNT_NEARMISS hold","HC_WARNING","HC_FALSE_WARNING","HC_HUNT_START","HC_HUNT_SPAWN hostileReturn=True","HC_COUNT_GATEHOUSE landed","HC_COUNT_VOICE","HC_TORCH_FAIL","HC_COUNT_DREAD","HC_COUNT_GRAB","HC_COUNT_LEARNED","HC_ESCALATE","HC_RARE_LINE","HC_DOOR_HELD"};
         void OnLog(string message,string stack,LogType type){foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}}
         int Tag(string t)=>tags.TryGetValue(t,out int n)?n:0;
         void OnDestroy(){Application.logMessageReceived-=OnLog;}
@@ -154,7 +154,12 @@ namespace HollowCurrent
             game.Case.Invulnerable=true;
             input=new FieldInput();game.Player.TestInput=input;
             yield return Step("begin_"+Mode,"rules="+game.Case.Rules.Name);
-            if(Mode=="fear"){Application.logMessageReceived+=OnLog;yield return Fear();yield break;}
+            Application.logMessageReceived+=OnLog;
+            if(Mode=="fear"){yield return Fear();yield break;}
+            if(Mode=="siege"){yield return Siege();yield break;}
+            if(Mode=="lowdread"){yield return LowDread();yield break;}
+            if(Mode=="natural"){yield return Natural();yield break;}
+            if(Mode=="death"){yield return Death();yield break;}
             // Field kit from the lantern cart.
             yield return Use(Find(InteractKind.Kit),"field kit");
             if(!game.Case.Equipped)Blocker("kit not equipped");
@@ -267,6 +272,7 @@ namespace HollowCurrent
             if(!game.Player.Hidden)Blocker("could not hide before the no-tell hunt");
             yield return Step("hidden",hide?hide.name:"none");
             foreach(var v in new[]{0f,0f})dice.Enqueue(v); // hunt roll 0, no-tell roll 0
+            StartCoroutine(ChannelWatch("no_tell"));
             yield return WaitFor(()=>c.Phase==Phase.Hunt,20);
             yield return Step("no_tell_hunt","noTell="+c.NoTellHunt+" warningSeen="+(Tag("HC_WARNING")>1));
             if(!c.NoTellHunt)Blocker("forced dice did not give a no-tell hunt");
@@ -288,6 +294,13 @@ namespace HollowCurrent
             if(game.Player.Hidden)yield return Press(i=>i.Use=true);
             yield return Torch(true);
             yield return WaitFor(()=>c.Phase==Phase.Disturbance||c.Phase==Phase.Recovery,5);
+            // 7b. Lies and active silence: Dread above the Lies threshold (70), then the director's real dread beats.
+            yield return WaitFor(()=>c.Phase==Phase.Disturbance,50);
+            if(game.Player.Hidden)yield return Press(i=>i.Use=true);
+            var hall2=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall2.x,.05f,hall2.z-3.5f));yield return SelectTool(1);
+            ForceDread(78,"Lies threshold for the lie beats");
+            for(int i=0;i<8&&c.Phase==Phase.Disturbance;i++){game.Scares.Dread();yield return Wait(3f);if(c.Dread<72)ForceDread(78,"keep Lies");}
+            yield return Step("lies","HC_LIE="+Tag("HC_LIE")+" silence="+Tag("HC_SCARE_CASTLE silence")+" duck="+Tag("HC_DUCK"));
             // 8. Battlement visibility from the courtyard, then the gatehouse visit (40 s inside after a survived hunt).
             Battlement();
             game.Player.Teleport(game.World.Spawn);input.Look=game.World.Castle.GatehouseBattlement+Vector3.up*1.2f;yield return Frames(4);
@@ -312,6 +325,133 @@ namespace HollowCurrent
             yield return HostileBridge();
             yield return Finish();
         }
+        // Per-frame channel log around a forced no-tell hunt: everything the player can read from the HUD, radio-free mixer and
+        // the Count's lamps, compared with the frame before the hunt starts, for the first 6 s (critic r10 single biggest gap).
+        IEnumerator ChannelWatch(string label)
+        {
+            var c=game.Case;var ui=game.GetComponent<Interface>();var castle=game.Castle;
+            string Snap()=>"goal="+(ui?ui.HudGoal():c.Goal)+"|instrument="+game.Player.Instrument+"|huntMusic="+(game.Sound.HuntMusicVolume>.01f)+"|safeMusic="+(game.Sound.SafeMusicVolume>.01f)+"|houseMusic="+(game.Sound.HouseMusicVolume>.01f)+"|breath="+(game.Sound.BreathVolume>.01f)+"|room="+(game.Sound.RoomVolume>.01f)+"|breaker="+c.BreakerOn+"|danger="+(c.Phase==Phase.Warning||game.Scares.Interference);
+            int voice=0,rim=0,smell=0;
+            void Count(string m,string st,LogType t){if(m.StartsWith("HC_COUNT_VOICE",StringComparison.Ordinal))voice++;if(m.StartsWith("HC_COUNT_RIM",StringComparison.Ordinal))rim++;if(m.Contains("cc_hunt_smell"))smell++;}
+            string before=Snap();float heartBefore=game.Sound.HeartbeatVolume,wingBefore=castle?castle.WingVolume:0;
+            float wait=Time.realtimeSinceStartup+25;
+            while(c.Phase!=Phase.Hunt&&Time.realtimeSinceStartup<wait){before=Snap();heartBefore=game.Sound.HeartbeatVolume;wingBefore=castle?castle.WingVolume:0;yield return null;}
+            if(c.Phase!=Phase.Hunt){Debug.Log("HC_PLAY_CHANNELS "+label+" no hunt started");yield break;}
+            Application.logMessageReceived+=Count;
+            int frames=0,changed=0;string firstChange=null;float heartMax=0,wingMax=0;float end=Time.realtimeSinceStartup+6;
+            while(Time.realtimeSinceStartup<end)
+            {
+                frames++;string now=Snap();if(now!=before){changed++;if(firstChange==null)firstChange=now;}
+                heartMax=Mathf.Max(heartMax,Mathf.Abs(game.Sound.HeartbeatVolume-heartBefore));wingMax=Mathf.Max(wingMax,Mathf.Abs((castle?castle.WingVolume:0)-wingBefore));
+                yield return null;
+            }
+            Application.logMessageReceived-=Count;
+            Debug.Log("HC_PLAY_CHANNELS "+label+" noTell="+c.NoTellHunt+" frames="+frames+" changedFrames="+changed+" heartbeatMaxDelta="+heartMax.ToString("F3")+" wingMaxDelta="+wingMax.ToString("F3")+" voiceLines="+voice+" rimLines="+rim+" smellLines="+smell+" before=["+before+"]"+(firstChange!=null?" firstChange=["+firstChange+"]":""));
+        }
+        // Common opening for the extra modes: kit, letter, into the castle, compass record (Disturbance).
+        IEnumerator Opening(bool second)
+        {
+            yield return Use(Find(InteractKind.Kit),"field kit");
+            yield return Use(Find(InteractKind.Note,game.Book.ArrivalNoteTitle),"arrival letter");
+            game.Player.Teleport(new Vector3(0,.1f,10));yield return Frames(4);
+            yield return Record(Evidence.Induction,game.World.Induction,1,"compass");
+            if(second)yield return Record(Evidence.Handprint,game.World.Print,2,"grave-ash lantern");
+            yield return Step("opened","runDreadMin="+game.Case.RunDreadMin.ToString("F1"));
+        }
+        // siege: real dice, Dread held at 82+ by the driver, hidden with the torch off in the far hide. Proves near-miss (and
+        // its open at Dread >= 80) and a Recovery cut short. Ends after an open and a Recovery cut, or 12 minutes.
+        IEnumerator Siege()
+        {
+            var c=game.Case;yield return Opening(false);
+            var hide=FarHide();yield return Torch(false);if(hide)yield return Use(hide,"hiding place "+hide.Label);
+            yield return Step("siege_hidden",hide?hide.name:"none");
+            float end=Time.realtimeSinceStartup+720;int recoveryCuts=0;Phase last=c.Phase;
+            while(Time.realtimeSinceStartup<end&&!(Tag("HC_COUNT_NEARMISS open=True")>0&&recoveryCuts>0))
+            {
+                if(c.Dread<82)ForceDread(86,"siege");
+                if(c.Phase!=last){if(last==Phase.Recovery&&(c.Phase==Phase.Hunt||c.Phase==Phase.Warning)){recoveryCuts++;Debug.Log("HC_PLAY_RECOVERY_CUT to="+c.Phase+" recoveryCuts="+recoveryCuts);}last=c.Phase;}
+                if(!game.Player.Hidden&&c.Phase!=Phase.Hunt){if(game.Player.TorchOn)yield return Torch(false);if(hide)yield return Use(hide,"re-hide");}
+                yield return null;
+            }
+            yield return Step("siege_done","hunts="+c.Hunts+" nearMissBegin="+Tag("HC_COUNT_NEARMISS begin")+" nearMissOpen="+Tag("HC_COUNT_NEARMISS open=True")+" recoveryCuts="+recoveryCuts+" blocked="+c.BlockedDeaths);
+            yield return Finish();
+        }
+        // lowdread: real dice. The bell gives the first hunt; afterwards the driver keeps Dread below this run's boundary
+        // (RunDreadMin) and waits up to 10 minutes for a hunt that starts below it.
+        IEnumerator LowDread()
+        {
+            var c=game.Case;yield return Opening(true);
+            yield return Use(Find(InteractKind.Anchor),"chapel bell");
+            yield return SurviveHunt();
+            yield return WaitFor(()=>c.Phase==Phase.Disturbance,60);
+            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-4));
+            float start=Time.realtimeSinceStartup,end=start+600;int hunts=c.Hunts;bool low=false;
+            while(Time.realtimeSinceStartup<end)
+            {
+                if(c.Phase==Phase.Disturbance&&c.Dread>c.RunDreadMin-3)ForceDread(Mathf.Max(0,c.RunDreadMin-12),"stay below the run boundary");
+                if(c.Hunts>hunts){low=c.Dread<c.RunDreadMin;Debug.Log("HC_PLAY_LOWDREAD hunt after="+(Time.realtimeSinceStartup-start).ToString("F0")+"s dread="+c.Dread.ToString("F1")+" runDreadMin="+c.RunDreadMin.ToString("F1")+" noTell="+c.NoTellHunt+" phase="+c.Phase);break;}
+                yield return null;
+            }
+            yield return Step("lowdread_done","lowHunt="+low+" waited="+(Time.realtimeSinceStartup-start).ToString("F0")+"s");
+            if(c.Phase==Phase.Hunt||c.Phase==Phase.Warning)yield return WaitFor(()=>c.Phase!=Phase.Hunt&&c.Phase!=Phase.Warning,70);
+            yield return Finish();
+        }
+        // natural: no dice or Dread forcing. The escape route with an 8 minute walk through the rooms (torch on, never hidden)
+        // before the bell, so the castle's own rhythm, beats, throws and hunts show up as they would for a player.
+        IEnumerator Natural()
+        {
+            var c=game.Case;yield return Opening(true);
+            yield return Record(Evidence.Voice,game.World.Voice,3,"ear-trumpet");
+            foreach(var title in game.Book.NoteTitles)yield return Use(Find(InteractKind.Note,title),"ledger "+title);
+            var spots=new[]{game.World.Castle.RuneRingCenter,game.World.Induction,game.World.Print,game.World.Voice,game.World.Castle.AltarPosition,game.World.Anchor};
+            float end=Time.realtimeSinceStartup+480;int k=0;
+            while(Time.realtimeSinceStartup<end)
+            {
+                var p=spots[k++%spots.Length];
+                if(NavMesh.SamplePosition(p,out var hit,3,NavMesh.AllAreas))game.Player.Teleport(hit.position+Vector3.up*.05f);
+                float stay=Time.realtimeSinceStartup+20;
+                while(Time.realtimeSinceStartup<stay){input.Look=game.Player.View.transform.position+Quaternion.Euler(0,Time.realtimeSinceStartup*12,0)*Vector3.forward;yield return null;}
+            }
+            yield return Step("natural_walk_done","hunts="+c.Hunts+" survived="+c.Survived+" apparitions="+game.Scares.Events+" thrown="+game.Scares.ThrownProps);
+            while(c.Phase==Phase.Hunt||c.Phase==Phase.Warning||c.Phase==Phase.Recovery)yield return null;
+            if(!c.Survived){yield return Use(Find(InteractKind.Anchor),"chapel bell");yield return SurviveHunt();yield return WaitFor(()=>c.Phase!=Phase.Hunt&&c.Phase!=Phase.Recovery,60);}
+            game.Journal=true;game.ApplyFocus();bool solved=c.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd);game.Journal=false;game.ApplyFocus();
+            yield return Step("ledger_closed","conclude="+solved);
+            yield return Use(Find(InteractKind.Breaker),"chapel brazier");
+            yield return Use(Find(InteractKind.Anchor),"chapel bell (seal)",1.4f,true,13.5f);
+            yield return Step("bell_sealed",c.Phase+" huntActive="+c.HuntActive);
+            if(c.Phase==Phase.Return)yield return HostileBridge();
+            yield return Finish();
+        }
+        // death: no driver invulnerability. Two records (a checkpoint), the bell, stand in the open with the torch on until he
+        // kills her; then RETRY CHECKPOINT. The retried scene's driver checks the death penalty (Deaths, Dread 60, moved relic).
+        static bool deathRetried;
+        IEnumerator Death()
+        {
+            var c=game.Case;
+            if(deathRetried)
+            {
+                yield return Step("after_retry","deaths="+c.Deaths+" penalty="+c.DeathPenaltyApplied+" dread="+c.Dread.ToString("F1")+" movedRelic="+game.MovedRelic+" phase="+c.Phase+" evidence="+c.Evidence.Count);
+                Debug.Log("HC_PLAY_RESULT mode=death won=False deaths="+c.Deaths+" penalty="+c.DeathPenaltyApplied+" dread="+c.Dread.ToString("F1")+" movedRelic="+game.MovedRelic+" blockers="+blockers.Count);
+                yield return Wait(1);Application.Quit();yield break;
+            }
+            c.Invulnerable=false;
+            yield return Opening(true);
+            yield return Wait(1.5f); // let the checkpoint be saved after the second record
+            yield return Use(Find(InteractKind.Anchor),"chapel bell");
+            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-3));yield return Torch(true);
+            float end=Time.realtimeSinceStartup+240;
+            while(c.Phase!=Phase.Dead&&Time.realtimeSinceStartup<end)
+            {
+                input.Look=game.Creature.HeadPosition;
+                if(c.Phase==Phase.Disturbance&&c.Dread<85)ForceDread(90,"call another hunt (death run)");
+                yield return null;
+            }
+            yield return Step("dead","phase="+c.Phase+" deaths="+c.Deaths+" checkpoint="+game.HasCheckpoint);
+            if(c.Phase!=Phase.Dead){Blocker("no death in 240 s");yield return Finish();yield break;}
+            yield return Wait(Mathf.Max(1,game.Creature.Profile.CapturePresentationSeconds+1));
+            deathRetried=true;Debug.Log("HC_PLAY phase=retry_checkpoint");game.RetryCheckpoint();
+        }
         // Follow a hunt to its end: closest approach, near-miss and a wall check on his ground (crawl) moves.
         IEnumerator TrackHunt(string label)
         {
@@ -335,14 +475,19 @@ namespace HollowCurrent
         {
             var c=game.Case;game.Player.Teleport(game.World.Spawn+Vector3.zero);
             // Stand in the open on the hall floor with the torch on, wait until he sees her, then hide in the nearest cupboard.
-            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-4));yield return Torch(true);
+            // Stand at the exit of the hall-floor hide nearest the rune ring with the torch on, wait until he sees her,
+            // then switch the torch OFF and hide while he watches (critic r10 #16: the open must not depend on the torch).
+            var hall=game.World.Castle.RuneRingCenter;
+            Interactable near=null;float best=99;
+            foreach(var h in game.World.HidingPlaces){if(!h||!h.gameObject.activeInHierarchy||Mathf.Abs(h.HidePoint.y)>1)continue;float d=Vector3.Distance(h.HidePoint,hall);if(d<best){best=d;near=h;}}
+            if(near)game.Player.Teleport(near.ExitPoint);else game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-4));
+            yield return Torch(true);
             float end=Time.realtimeSinceStartup+30;
             while(c.Phase==Phase.Hunt&&!game.Creature.CanSeePlayer&&Time.realtimeSinceStartup<end){input.Look=game.Creature.HeadPosition;yield return null;}
-            Interactable near=null;float best=99;
-            foreach(var h in game.World.HidingPlaces){if(!h||!h.gameObject.activeInHierarchy)continue;float d=Vector3.Distance(h.HidePoint,game.Player.transform.position);if(d<best){best=d;near=h;}}
             bool seen=game.Creature.CanSeePlayer;
-            if(near){game.Player.Hide(near);}
-            yield return Step("witnessed_hide","seenBeforeHiding="+seen+" hide="+(near?near.name:"none")+" distance="+best.ToString("F1"));
+            yield return Torch(false);
+            if(near)game.Player.Hide(near);
+            yield return Step("witnessed_hide","seenBeforeHiding="+seen+" torch="+game.Player.TorchOn+" hide="+(near?near.name:"none")+" flight="+game.Creature.DiagnosticState);
         }
         void Battlement()
         {
@@ -460,7 +605,7 @@ namespace HollowCurrent
             yield return Wait(1.5f);
             var c=game.Case;
             yield return Step(c.Phase==Phase.Won?(c.HunterSlain?"won_kill":"won_escape"):"not_won","goal="+c.Goal);
-            if(Mode=="fear"){var sb=new System.Text.StringBuilder();foreach(var t in Tags)sb.Append(t.Trim().Replace(' ','_')).Append('=').Append(Tag(t)).Append(' ');Debug.Log("HC_PLAY_SUMMARY "+sb+"dread="+c.Dread.ToString("F1")+" hunts="+c.Hunts);}
+            if(Mode!="escape"&&Mode!="kill"){var sb=new System.Text.StringBuilder();foreach(var t in Tags)sb.Append(t.Trim().Replace(' ','_')).Append('=').Append(Tag(t)).Append(' ');Debug.Log("HC_PLAY_SUMMARY "+sb+"dread="+c.Dread.ToString("F1")+" hunts="+c.Hunts);}
             Debug.Log("HC_PLAY_RESULT mode="+Mode+" won="+(c.Phase==Phase.Won)+" slain="+c.HunterSlain+" blockedDeaths="+c.BlockedDeaths+" blockers="+blockers.Count+(blockers.Count>0?" ["+string.Join(" | ",blockers)+"]":""));
             yield return Wait(1);Application.Quit();
         }
