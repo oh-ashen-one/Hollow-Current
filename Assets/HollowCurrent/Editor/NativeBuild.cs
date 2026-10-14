@@ -52,7 +52,7 @@ namespace HollowCurrent.Editor
             PlayerSettings.companyName="Bellwether Field Office";PlayerSettings.productName="Hollow Current";
             PlayerSettings.colorSpace=ColorSpace.Linear;
             PlayerSettings.bundleVersion="0.2.0";PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Standalone,"com.bellwether.hollowcurrent");
-            PlayerSettings.defaultScreenWidth=1920;PlayerSettings.defaultScreenHeight=1080;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;PlayerSettings.resizableWindow=true;
+            PlayerSettings.defaultScreenWidth=1920;PlayerSettings.defaultScreenHeight=1080;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;PlayerSettings.resizableWindow=true;PlayerSettings.defaultIsNativeResolution=false;
             PlayerSettings.runInBackground=false;
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone,ScriptingImplementation.Mono2x);
             PlayerSettings.SetArchitecture(UnityEditor.Build.NamedBuildTarget.Standalone,1);

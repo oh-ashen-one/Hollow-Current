@@ -14,6 +14,8 @@ namespace HollowCurrent
     public sealed class CaptureMode : MonoBehaviour
     {
         public const int Width=2560,Height=1440;
+        // -hc-capture-size WxH overrides the 2560x1440 default (e.g. 1920x1080 for the title at the shipped window size).
+        static int width=Width,height=Height;
         // S4 eye: on the lowered drawbridge (hinge z -0.45, leaf to z -6.45), 2.0 m above
         // the planks, facing the gate (+z). Sprite moons for S4 can be placed on rays from here.
         // Round 5: 14 m back from the gate along the bridge axis, 3.5 m up (height limit lifted
@@ -41,7 +43,13 @@ namespace HollowCurrent
         {
             game=owner;ui=owner.GetComponent<Interface>();
             Application.runInBackground=true;
-            Screen.SetResolution(Width,Height,FullScreenMode.FullScreenWindow);
+            var args=Environment.GetCommandLineArgs();
+            for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-capture-size"){var p=args[i+1].Split('x');if(p.Length==2&&int.TryParse(p[0],out var w)&&int.TryParse(p[1],out var h)){width=w;height=h;}}
+            // Windowed when the size fits this display with a title bar; a size the display cannot hold in a window is
+            // captured full-screen-window for the run only, and quitting always restores the owner's 1920x1080 window.
+            bool fits=width<=Display.main.systemWidth&&height+64<=Display.main.systemHeight;
+            Screen.SetResolution(width,height,fits?FullScreenMode.Windowed:FullScreenMode.FullScreenWindow);
+            Log("requested "+width+"x"+height+" mode="+(fits?"Windowed":"FullScreenWindow (does not fit a window)")+" display="+Display.main.systemWidth+"x"+Display.main.systemHeight);
             System.IO.Directory.CreateDirectory(Directory);
             StartCoroutine(Run());
         }
@@ -269,6 +277,7 @@ namespace HollowCurrent
             Record("hunt_dive",samples);
             File.WriteAllText(Path.Combine(Directory,"capture.json"),"{\"unity\":\""+Application.unityVersion+"\",\"screen\":\""+Screen.width+"x"+Screen.height+"\",\"quality\":\""+QualitySettings.names[QualitySettings.GetQualityLevel()]+"\",\"antiAliasing\":"+QualitySettings.antiAliasing+",\"shadowResolution\":\""+QualitySettings.shadowResolution+"\",\"shadowDistance\":"+QualitySettings.shadowDistance+",\"targetFrameRate\":"+Application.targetFrameRate+",\"vSync\":"+QualitySettings.vSyncCount+",\"fov\":"+game.Player.View.fieldOfView+",\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");
             Log("DONE "+entries.Count+" entries");
+            Screen.SetResolution(Game.WindowWidth,Game.WindowHeight,FullScreenMode.Windowed);yield return null;yield return null;
             Application.Quit();
         }
     }

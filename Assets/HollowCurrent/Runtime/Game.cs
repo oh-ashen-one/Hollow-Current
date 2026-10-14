@@ -18,6 +18,19 @@ namespace HollowCurrent
         // The map a loading screen is loading (equals Map for a retry).
         public MapId LoadingTarget {get;private set;}
         static bool startOnLoad;
+        // Owner rule (2026-10-14): the game opens windowed, never covering the whole screen. Checked once per process.
+        static bool windowChecked;bool windowSwitched;
+        public const int WindowWidth=1920,WindowHeight=1080;
+        void EnsureWindowed()
+        {
+            if(windowChecked||PlaytestDriver.Requested||CaptureMode.Requested||Application.isBatchMode)return;
+            windowChecked=true;
+            if(Screen.fullScreenMode==FullScreenMode.Windowed&&!Screen.fullScreen)return;
+            int dw=Display.main.systemWidth,dh=Display.main.systemHeight;
+            int w=Mathf.Min(WindowWidth,Mathf.RoundToInt(dw*.75f)),h=Mathf.RoundToInt(w*9f/16f);
+            if(h>dh*.85f){h=Mathf.RoundToInt(dh*.85f);w=Mathf.RoundToInt(h*16f/9f);}
+            Screen.SetResolution(w,h,FullScreenMode.Windowed);windowSwitched=true;
+        }
         public static bool MapAvailable(MapId map)=>Application.CanStreamedLevelBeLoaded(MapCatalog.Get(map).SceneName);
         public Investigation Case {get;private set;}
         public CaseBook Book=>Case.Book;
@@ -84,6 +97,7 @@ namespace HollowCurrent
             Loading=true;
             Map=MapCatalog.TryFromSceneName(SceneManager.GetActiveScene().name,out var sceneMap)?sceneMap:MapId.Bellwether;LoadingTarget=Map;
             SelectedMap=MapCatalog.FromPreference(PlayerPrefs.GetInt(MapCatalog.PreferenceKey,(int)Map));if(SelectedMap!=Map&&!MapAvailable(SelectedMap))SelectedMap=Map;
+            EnsureWindowed();
             gameObject.AddComponent<PadInput>();
             uiProbe=Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-ui-probe")>=0;
             Application.targetFrameRate=90;QualitySettings.vSyncCount=0;QualitySettings.antiAliasing=4;QualitySettings.shadowResolution=ShadowResolution.Medium;QualitySettings.shadowDistance=16;
@@ -153,6 +167,8 @@ namespace HollowCurrent
                 yield return new WaitForSecondsRealtime(1);Debug.Log("HC_CAPTURE switching to Castle from "+Map);
                 SelectMap(MapId.Castle);BeginInvestigation();yield break;
             }
+            if(!PlaytestDriver.Requested&&!CaptureMode.Requested&&!Application.isBatchMode)
+                Debug.Log("HC_WINDOWED switched="+windowSwitched+" mode="+Screen.fullScreenMode+" fullScreen="+Screen.fullScreen+" size="+Screen.width+"x"+Screen.height+" display="+Display.main.systemWidth+"x"+Display.main.systemHeight);
             ApplyFocus();Debug.Log("HC_STARTUP_READY");
         }
         void Update()

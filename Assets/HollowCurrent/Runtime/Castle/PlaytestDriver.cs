@@ -41,11 +41,13 @@ namespace HollowCurrent
         void OnLog(string message,string stack,LogType type){foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}}
         int Tag(string t)=>tags.TryGetValue(t,out int n)?n:0;
         void OnDestroy(){Application.logMessageReceived-=OnLog;}
+        void OnApplicationQuit(){Screen.SetResolution(Game.WindowWidth,Game.WindowHeight,FullScreenMode.Windowed);}
         readonly List<string> blockers=new List<string>();
         public void Initialize(Game owner)
         {
             game=owner;Application.runInBackground=true;
-            Screen.SetResolution(1920,1080,FullScreenMode.FullScreenWindow);
+            // Windowed 1920x1080 (owner rule: never the whole screen); quitting leaves the window prefs windowed.
+            Screen.SetResolution(Game.WindowWidth,Game.WindowHeight,FullScreenMode.Windowed);
             Directory.CreateDirectory(OutDir);StartCoroutine(Run());
         }
         void Log(string phase,string detail="")
