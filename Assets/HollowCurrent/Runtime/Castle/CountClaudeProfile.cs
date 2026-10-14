@@ -11,8 +11,16 @@ namespace HollowCurrent
         public static readonly CountClaudeProfile Default=new CountClaudeProfile();
 
         // Animator "Mode" ints (HearthboundActor.Pose). 0-5 are the shared contract; 6 Grab is the wing-wrap.
-        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCrawlId=7,ModeCount=8;
+        // 8 GrabDrop (falls from the vault onto the camera) and 9 GrabCrawl (four-limbed lunge from a door) are F5's clips
+        // (Count_GrabDrop / Count_GrabCrawl); Presence plays them only when the controller has them, else the Mode 6 wing-wrap.
+        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCrawlId=7,ModeGrabDropId=8,ModeGrabCrawlId=9,ModeCount=10;
         public int ModeGrab=ModeGrabId;
+        // Set either to -1 to never use that variant.
+        public int ModeGrabDrop=ModeGrabDropId, ModeGrabCrawl=ModeGrabCrawlId;
+        // GrabDrop when he was at least this far above the player (height decays at GrabDropHeightDecay m/s, so it means
+        // "he came down on you", not "he once flew past high up"). Reaches from F5's receipt (grab_drop_reach_m /
+        // grab_crawl_reach_m); until it lands they equal the wing-wrap reach so the camera stand-off rule holds.
+        public float GrabDropMinHeight=2f, GrabDropHeightDecay=1f, GrabDropReach=1.39f, GrabCrawlReach=1.39f;
         // Mode 7 Crawl, a stooped four-limbed knuckle-walk (top 1.75 m) under 2.0 m lintels. Used on foot at service
         // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.33 m + margin).
         public int ModeCrawl=ModeCrawlId;
@@ -61,6 +69,8 @@ namespace HollowCurrent
         // keep the camera at least CameraClearance outside it.
         public float GrabReach=1.39f, CameraClearance=.6f;   // r8 forward wing-wrap (receipt grab_reach_m)
         public float GrabStandOff=>GrabReach+CameraClearance+.05f;
+        /// <summary>Stand-off for a grab presentation in Animator mode <paramref name="mode"/>: its reach + CameraClearance.</summary>
+        public float StandOffFor(int mode)=>(mode==ModeGrabDrop&&mode>=0?GrabDropReach:mode==ModeGrabCrawl&&mode>=0?GrabCrawlReach:GrabReach)+CameraClearance+.05f;
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
         // then feints back to a perch, so the hunt sequence shows perch, glide and dive without a kill.
@@ -73,7 +83,35 @@ namespace HollowCurrent
         public float CaptureGlideEndHeight=2.2f, CaptureLungeDistance=2.5f, CaptureGlideLean=-34f, CaptureDiveLean=-16f;
 
         // Cold rim light parented behind his shoulders (Presence.CountRimLight): keeps the wings readable in the dark.
-        public float RimLightRange=3.6f, RimLightIntensity=1.1f;
+        // Wave F item 16: off during hunts (candles, moon and torch only), half between hunts for the perch sightings.
+        // Staged captures and the capture choreography keep the full value.
+        public float RimLightRange=3.6f, RimLightIntensity=1.1f, RimLightHuntScale=0f, RimLightBetweenScale=.5f;
+
+        // ---- Wave F (docs/haunted-castle/FEAR_PLAN.md, piece F2) ---------------------------------------------------
+        // Item 9, perch sightings between hunts: he is active and visible on a perch at least PerchMinPlayerDistance from the
+        // investigator, never on her floor within PerchSameFloorExclusion, and outside her view cone (more than SightAngle
+        // off the camera forward, or occluded) when he lands there. He changes perch only after the camera has not seen
+        // him for UnobservedSeconds (PerchMin/MaxSeconds apart). Off in critic captures (CaptureMode).
+        public bool PerchBetweenHunts=true;
+        public float PerchMinPlayerDistance=8f, PerchSameFloorExclusion=6f, UnobservedSeconds=.5f;
+        // Item 14: a perch watching the floor where she spent most time gets up to this much extra weight (base weight 1).
+        public float PerchFloorWeight=2.5f;
+        // Item 10, cupboard near-miss: once per hunt, when she is hidden (torch off) and he did not see her hide, he lands,
+        // crawls (Mode 7) to NearMissDoorDistance from the cupboard door, holds, and leaves. Rolled once she has been
+        // hidden NearMissAfterSeconds into the hunt.
+        public float NearMissChance=.33f, NearMissAfterSeconds=4f, NearMissDoorDistance=.5f, NearMissCrawlDistance=2.2f, NearMissCrawlSpeed=1.1f, NearMissHoldSeconds=3f;
+        // Item 11, gatehouse violation (once per run, after the first survived hunt).
+        public float GatehouseSafeSeconds=40f, GatehouseHoldSeconds=4f, GatehouseFallbackHeight=3.5f, GatehouseArriveSeconds=1.4f, GatehouseChainsVolume=.4f, GatehouseHeadroom=1.75f;
+        // The battlement (F3: gate wall top) is seen from the courtyard, not from inside: he holds past GatehouseHoldSeconds
+        // while she stays in the gatehouse, until she has looked at him GatehouseSeenSeconds or GatehouseMaxHoldSeconds pass.
+        public float GatehouseSeenSeconds=1.2f, GatehouseMaxHoldSeconds=14f;
+        // A dive that came within this of her and ended without a kill counts as a grab survived (Dread).
+        public float GrabSurvivedDistance=1.6f;
+        // Item 13, hunt voices: each line at most once per VoiceCooldown, never two lines closer than VoiceGap.
+        public float VoiceCooldown=8f, VoiceGap=2f, FoundVoiceDistance=6f;
+        // Item 4, hostile return (F1 HuntActive in Phase Return): short perch, no perch tell, straight-glide speed everywhere
+        // he can fly, and he hears her again every ReturnHearSeconds.
+        public float ReturnPerchSeconds=.4f, ReturnHearSeconds=3f;
 
         public CountClaudeProfile()
         {

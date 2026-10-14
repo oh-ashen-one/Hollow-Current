@@ -60,7 +60,7 @@ namespace HollowCurrent
         public void Defeat()=>Profile.OnDeath(this);
         public bool ManifestAt(Vector3 point,float yaw,float seconds=3.5f,bool supersede=false)
         {
-            if(Game.Modal||Game.Case.Phase==Phase.Hunt||Game.Case.Phase==Phase.Warning||Game.Case.Terminal||presentationRemaining>0&&!supersede)return false;
+            if(Game.Modal||Game.Case.Phase==Phase.Hunt||Game.Case.Phase==Phase.Warning||Game.Case.Terminal||presentationRemaining>0&&!supersede||count!=null&&huntOn)return false;
             fakeRush=false;staged=false;agent.enabled=false;transform.position=point;transform.rotation=Quaternion.Euler(0,yaw,0);
             silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeSearch);presentationRemaining=seconds;Appearances++;Game.Sound.Cue("apparition",point+Vector3.up,.85f);return true;
         }
@@ -98,14 +98,14 @@ namespace HollowCurrent
         }
         public void Hear(Vector3 source,float radius)
         {
-            if(Game==null||Game.Case.Phase!=Phase.Hunt)return;
+            if(Game==null||!(count!=null?huntOn:Game.Case.Phase==Phase.Hunt))return;
             float vertical=Mathf.Abs(source.y-transform.position.y);
             if(vertical>Profile.VerticalGap)radius*=Profile.VerticalHearingScale;
             if(Vector3.Distance(source,transform.position)<=radius){Memory.Observe(source.x,source.y,source.z);if(NativeVerification.Requested&&!NativeVerification.ProfileOnly)Debug.Log("HC_HEARD "+source+" "+DiagnosticState);}
         }
         public void WitnessHide(Vector3 spot)
         {
-            if(Game.Case.Phase==Phase.Hunt&&(count!=null?CountSees():Sees())) {witnessedHide=true;knownHide=spot;Memory.Observe(spot.x,spot.y,spot.z);}
+            if((count!=null?huntOn&&CountSees():Game.Case.Phase==Phase.Hunt&&Sees())) {witnessedHide=true;knownHide=spot;Memory.Observe(spot.x,spot.y,spot.z);}
         }
         public void LeaveHide()
         {
@@ -200,7 +200,8 @@ namespace HollowCurrent
         // Everything below runs only when Profile is CountClaudeProfile (count != null); Split Grin's NavMeshAgent
         // path above is untouched. The Count flies kinematically: straight swoops where a sphere cast is clear,
         // otherwise NavMesh corners lifted to a hover height under the ceiling. docs/haunted-castle/DESIGN.md.
-        enum Flight { Perched, Travel, Chase, Land, Stagger, Retreat, Dead }
+        // Away: between hunts, not placed (hidden until a perch is free and he is unobserved). NearMiss: item 10.
+        enum Flight { Perched, Travel, Chase, Land, Stagger, Retreat, Dead, Away, NearMiss }
         const int FlightMask=~((1<<2)|(1<<30));
         CountClaudeProfile count;
         Flight flight=Flight.Perched;
@@ -332,7 +333,7 @@ namespace HollowCurrent
         internal void CountStagger()
         {
             if(flight==Flight.Dead)return;
-            staggerTimer=Fight.StaggerSeconds;retreatTimer=0;flight=Flight.Stagger;contact=0;route.Clear();actor.Pose(Profile.ModeStagger);
+            staggerTimer=Fight.StaggerSeconds;retreatTimer=0;flight=Flight.Stagger;contact=0;chaseClosest=99;route.Clear();actor.Pose(Profile.ModeStagger);
             Debug.Log("HC_COUNT_STAGGER "+DiagnosticState);
         }
         internal void CountDefeat()
@@ -343,35 +344,55 @@ namespace HollowCurrent
         void CountPhaseChanged(Phase phase)
         {
             if(choreo)return;   // the scripted capture choreography ignores case phases until it is ended
-            staged=false;agent.enabled=false;route.Clear();holdTimer=0;
+            staged=false;agent.enabled=false;holdTimer=0;
             if(flight==Flight.Dead){silhouette.gameObject.SetActive(true);actor.Pose(Profile.ModeDeath);return;}
             if(phase==Phase.Dead)
             {
-                // Wing-wrap at a fixed stand-off: the Grab clip reaches GrabReach ahead of him, so the camera stays
-                // CameraClearance outside the mesh while the presentation keeps animating (unscaled time).
+                // Grab presentation at a fixed stand-off: the clip reaches StandOffFor(mode) - CameraClearance ahead of him, so the
+                // camera stays CameraClearance outside the mesh while it keeps animating (unscaled time). Mode 6 wing-wrap unless
+                // the hunt chose GrabDrop (8) or GrabCrawl (9) and the controller has them (item 17).
+                huntOn=false;route.Clear();SetRim(count.RimLightBetweenScale);
+                int mode=grabMode>=0?grabMode:ChooseGrab(out _);
                 capturePresentation=true;presentationRemaining=Profile.CapturePresentationSeconds;
                 var player=Game.Player.transform.position;var towards=player-transform.position;towards.y=0;
                 if(towards.sqrMagnitude<.01f)towards=transform.forward;towards.Normalize();
-                transform.SetPositionAndRotation(player-towards*count.GrabStandOff,Quaternion.LookRotation(towards));
-                silhouette.gameObject.SetActive(true);actor.Pose(count.ModeGrab,0,true);CanSeePlayer=false;Memory.Clear();return;
+                transform.SetPositionAndRotation(player-towards*count.StandOffFor(mode),Quaternion.LookRotation(towards));
+                silhouette.gameObject.SetActive(true);actor.Pose(mode,0,true);CanSeePlayer=false;Memory.Clear();
+                Debug.Log("HC_COUNT_GRAB_PRESENTATION mode="+mode+" standOff="+count.StandOffFor(mode).ToString("F2")+" "+DiagnosticState);return;
             }
-            if(phase==Phase.Hunt){CountBeginHunt();return;}
-            silhouette.gameObject.SetActive(false);CanSeePlayer=false;Memory.Clear();witnessedHide=false;flight=Flight.Perched;
+            SyncHunt();
         }
+        // The castle hunts while F1's Investigation.HuntActive holds (Phase Hunt, or a hostile Return), not on Phase alone:
+        // called on every phase change and every frame, so a hunt that starts or ends without a phase change is seen too.
+        void SyncHunt()
+        {
+            bool active=Game.Case.HuntActive&&!Game.Case.Terminal;
+            if(active==huntOn)return;
+            huntOn=active;
+            if(active)CountBeginHunt();else CountEndHunt();
+        }
+        bool HostileReturn=>huntOn&&Game.Case.Phase==Phase.Return;
         void CountBeginHunt()
         {
-            var perches=Game.World.PerchPoints;var player=Game.Player.transform.position;
-            Vector3 desired=huntOrigin??(Profile.HuntSpawn??Game.World.HunterSpawn);huntOrigin=null;
+            var perches=Game.World.PerchPoints;var player=Game.Player.transform.position;bool hostile=HostileReturn;
+            Vector3 desired=hostile?DrawbridgeSide():huntOrigin??(Profile.HuntSpawn??Game.World.HunterSpawn);huntOrigin=null;
+            // Item 9: a hunt that starts while he is perched between hunts starts on that perch (no visible jump).
+            bool keepPerch=!hostile&&flight==Flight.Perched&&perchIndex>=0&&silhouette.gameObject.activeSelf;
             Memory.Clear();witnessedHide=false;think=0;contact=0;tell=0;staggerTimer=retreatTimer=0;speedNow=0;searchedAt=new Vector3(9999,9999,9999);
-            silhouette.gameObject.SetActive(true);
-            // Between hunts he is seen perched: the hunt starts on the perch nearest the hunt origin that is not on top of you.
-            int best=-1;float bestScore=float.MaxValue;
-            for(int i=0;i<perches.Count;i++)
+            gateStage=0;huntClock=0;seenThisHunt=false;chaseClosest=99;nearMissRolled=false;nearMissStage=0;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
+            silhouette.gameObject.SetActive(true);SetRim(count.RimLightHuntScale);
+            int best=keepPerch?perchIndex:-1;
+            if(best<0)
             {
-                float score=Vector3.Distance(perches[i],desired)+(Vector3.Distance(perches[i],player)<Profile.HuntSpawnMinPlayerDistance+2?1000:0);
-                if(score<bestScore){bestScore=score;best=i;}
+                // Hunt origin (the bell) or, in a hostile return, the drawbridge side: the nearest perch that is not on top of you.
+                float bestScore=float.MaxValue;
+                for(int i=0;i<perches.Count;i++)
+                {
+                    float score=Vector3.Distance(perches[i],desired)+(Vector3.Distance(perches[i],player)<Profile.HuntSpawnMinPlayerDistance+2?1000:0);
+                    if(score<bestScore){bestScore=score;best=i;}
+                }
             }
-            if(best>=0)SetPerch(best,Random.Range(count.HuntStartPerchMinSeconds,count.HuntStartPerchMaxSeconds));
+            if(best>=0)SetPerch(best,hostile?count.ReturnPerchSeconds:Random.Range(count.HuntStartPerchMinSeconds,count.HuntStartPerchMaxSeconds));
             else
             {
                 if(GroundUnder(desired,out var ground))transform.position=ground;else transform.position=desired;
@@ -379,8 +400,29 @@ namespace HollowCurrent
             }
             // Round 10 (playtest: he never left the perch): the bell / the bargain tells him roughly where you are. He leaves the
             // perch for that spot within 2 s; it is never the exact cupboard, so hiding still works unless he saw you hide.
-            attackAttempted=false;guaranteeClock=0;aiLogClock=0;HearPlayerRoughly();
-            Debug.Log("HC_HUNT_SPAWN "+DiagnosticState);
+            attackAttempted=false;guaranteeClock=0;aiLogClock=0;returnHearClock=count.ReturnHearSeconds;
+            // Item 14: after a survived hunt his first glide goes to where he last saw you instead.
+            if(lastSeen.HasValue&&!hostile)
+            {
+                var at=lastSeen.Value;Memory.Observe(at.x,at.y,at.z);
+                Debug.Log("HC_COUNT_LEARNED first glide to last seen "+at+" (player now "+player+", "+Vector3.Distance(at,player).ToString("F1")+" m away) "+DiagnosticState);
+                RaiseBeat("learned");
+            }
+            else HearPlayerRoughly();
+            Debug.Log("HC_HUNT_SPAWN hostileReturn="+hostile+" noTell="+Game.Case.NoTellHunt+" keptPerch="+keepPerch+" "+DiagnosticState);
+        }
+        void CountEndHunt()
+        {
+            CanSeePlayer=false;Memory.Clear();witnessedHide=false;contact=0;tell=0;holdTimer=0;nearMissStage=0;staggerTimer=retreatTimer=0;unobserved=0;
+            Debug.Log("HC_COUNT_HUNT_END lastSeen="+(lastSeen.HasValue?lastSeen.Value.ToString():"none")+" "+DiagnosticState);
+            if(flight==Flight.Dead)return;
+            SetRim(count.RimLightBetweenScale);
+            if(!silhouette.gameObject.activeSelf){flight=Flight.Away;return;}
+            if(flight==Flight.Perched&&perchIndex>=0&&PerchFarEnough(perchIndex)){perchTimer=Random.Range(count.PerchMinSeconds,count.PerchMaxSeconds);return;}
+            // Fly off (visibly) to a perch that keeps the distance rules; if none is reachable he prowls where he is until unobserved.
+            int i=ChoosePerch(-1,false);
+            if(i<0||!GoToPerch(i,false)){route.Clear();flight=Flight.Land;}
+            Debug.Log("HC_COUNT_PERCH leaving hunt to="+i+" flight="+flight);
         }
         bool attackAttempted;
         float guaranteeClock,aiLogClock;
@@ -447,15 +489,16 @@ namespace HollowCurrent
             if(!PlanRoute(point,false)){Debug.Log("HC_COUNT_ROUTE none to "+point+" "+DiagnosticState);BeginLand();return;}
             Debug.Log("HC_COUNT_SEARCH to="+point+" waypoints="+route.Count+" "+DiagnosticState);
             travelToPerch=false;pendingPerch=-1;flight=Flight.Travel;
+            Voice("cc_hunt_hungry");   // item 13: entering Search
         }
-        void BeginChase(){flight=Flight.Chase;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);}
+        void BeginChase(){flight=Flight.Chase;dropHeight=0;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
         bool CountFrame()
         {
-            if(choreo){CaptureChoreography(Mathf.Min(Time.deltaTime,1f/30));return true;}
-            if(staged)return true;
+            if(choreo){SetRim(1);CaptureChoreography(Mathf.Min(Time.deltaTime,1f/30));return true;}
+            if(staged){SetRim(1);return true;}
             float dt=Time.deltaTime;
             if(flight==Flight.Dead)
             {
@@ -463,9 +506,18 @@ namespace HollowCurrent
                 actor.Pose(Profile.ModeDeath);return true;
             }
             if(Game.Modal)return true;
-            if(Game.Case.Phase!=Phase.Hunt)return false;
-            CountHunt(dt);
-            if(CaptureMode.Requested)KeepCameraClear();
+            SyncHunt();
+            if(huntOn)
+            {
+                CountHunt(dt);
+                if(CaptureMode.Requested)KeepCameraClear();
+                return true;
+            }
+            // Between hunts. The shared code keeps the containment reach, scripted apparitions and (in captures / when the
+            // perch AI is off) the hidden silhouette; afterwards he is unplaced and re-perches unobserved.
+            bool shared=!BetweenAllowed||presentationRemaining>0||Game.Case.Phase==Phase.Containment&&Game.Case.SealProgress>.02f;
+            if(shared){gateStage=0;if(flight!=Flight.Away){flight=Flight.Away;perchIndex=-1;route.Clear();}SetRim(count.RimLightBetweenScale);return false;}
+            CountBetween(dt);
             return true;
         }
         void CountHunt(float dt)
@@ -491,8 +543,31 @@ namespace HollowCurrent
                 if(!GoToPerch(Mathf.Max(0,NearestPerch(transform.position)),true))flight=Flight.Land;
                 Debug.Log("HC_COUNT_RETREAT "+DiagnosticState);
             }
+            huntClock+=dt;SetRim(count.RimLightHuntScale);
             Memory.Tick(dt);CanSeePlayer=!retreating&&CountSees();
-            if(CanSeePlayer){var seen=Game.Player.transform.position;Memory.Observe(seen.x,seen.y,seen.z);}
+            if(CanSeePlayer){var seen=Game.Player.transform.position;Memory.Observe(seen.x,seen.y,seen.z);lastSeen=seen;}
+            // Item 13: "found" when he regains sight of you within 6 m.
+            if(CanSeePlayer&&!sawPlayer&&Vector3.Distance(transform.position,Game.Player.transform.position)<count.FoundVoiceDistance)Voice("cc_hunt_found");
+            sawPlayer=CanSeePlayer;
+            // Integrator request: +DreadSeen (15) the first time in a hunt she sees him (in her view, within SightRange).
+            if(!seenThisHunt&&ObservedByPlayer()&&Vector3.Distance(Game.Player.View.transform.position,transform.position+Vector3.up*1.2f)<Profile.SightRange)
+            {
+                seenThisHunt=true;Game.Case.AddDread(Game.Case.Rules.DreadSeen);
+                Debug.Log("HC_COUNT_DREAD seen +"+Game.Case.Rules.DreadSeen+" dread="+Game.Case.Dread.ToString("F1")+" "+DiagnosticState);
+            }
+            // A dive that got within reach of a grab and ended without a kill is a grab survived (+DreadGrabSurvived, 20).
+            if(flight==Flight.Chase)chaseClosest=Mathf.Min(chaseClosest,Vector3.Distance(transform.position,Game.Player.transform.position));
+            else if(chaseClosest<count.GrabSurvivedDistance){GrabSurvived("dive missed, closest "+chaseClosest.ToString("F2")+" m");chaseClosest=99;}
+            else chaseClosest=99;
+            bool hostile=HostileReturn;
+            if(hostile&&!retreating&&flight!=Flight.Chase){returnHearClock-=dt;if(returnHearClock<=0){returnHearClock=count.ReturnHearSeconds;HearPlayerRoughly();}}
+            // Item 10: once per hunt, hidden (torch off) and unwitnessed, roll for the cupboard near-miss.
+            if(!nearMissRolled&&!hostile&&!retreating&&flight!=Flight.Chase&&flight!=Flight.NearMiss&&Game.Player.Hidden&&!Game.Player.TorchOn&&!witnessedHide&&huntClock>=count.NearMissAfterSeconds)
+            {
+                nearMissRolled=true;float roll=Random.value;bool go=roll<count.NearMissChance;
+                Debug.Log("HC_COUNT_NEARMISS roll="+roll.ToString("F2")+" chance="+count.NearMissChance.ToString("F2")+" go="+go+" "+DiagnosticState);
+                if(go)BeginNearMiss();
+            }
             if(!retreating&&Game.Player.Hidden&&Game.Player.TorchOn)Hear(Game.Player.transform.position,Profile.HiddenTorchHearRadius);
             breath-=dt;
             if(breath<=0){breath=Profile.BreathInterval;Game.Sound.Cue("breath",transform.position+Vector3.up,Profile.BreathVolume);}
@@ -507,7 +582,8 @@ namespace HollowCurrent
                     actor.Pose(Profile.ModeIdle);
                     if(retreating)break;
                     perchTimer-=dt;
-                    if(CanSeePlayer){tell+=dt;if(tell>=count.PerchTellSeconds)BeginChase();break;}
+                    // Hostile return: no perch tell, he dives as soon as he sees you.
+                    if(CanSeePlayer){tell+=dt;if(hostile||tell>=count.PerchTellSeconds)BeginChase();break;}
                     tell=Mathf.Max(0,tell-dt);
                     if(perchTimer>0)break;
                     if(freshMemory){BeginSearch(memory);break;}
@@ -543,10 +619,14 @@ namespace HollowCurrent
                 }
                 case Flight.Chase:
                     CountChase(dt,memory);break;
+                case Flight.NearMiss:
+                    NearMissTick(dt);break;
+                default:   // Away (hunt began while he was unplaced): land where he is and prowl
+                    BeginLand();break;
             }
             // At least one attack attempt per hunt: until he has dived, every GuaranteeSeconds he hears you again and searches.
             guaranteeClock+=dt;
-            if(!retreating&&!attackAttempted&&guaranteeClock>=count.AttackGuaranteeSeconds&&flight!=Flight.Chase)
+            if(!retreating&&!attackAttempted&&guaranteeClock>=count.AttackGuaranteeSeconds&&flight!=Flight.Chase&&flight!=Flight.NearMiss)
             {
                 guaranteeClock=0;HearPlayerRoughly();BeginSearch(new Vector3(Memory.X,Memory.Y,Memory.Z));
             }
@@ -590,6 +670,8 @@ namespace HollowCurrent
             foreach(var spot in Game.World.HidingPlaces)
                 if(spot.Kind==InteractKind.Hide&&Vector3.Distance(goal,spot.HidePoint)<.35f){goal=spot.ExitPoint;break;}
             var flat=player.transform.position-transform.position;float vertical=Mathf.Abs(flat.y);flat.y=0;float distance=flat.magnitude;
+            // Item 17: how far above you he has been lately (decaying), so a grab after a drop from the vault reads as GrabDrop.
+            dropHeight=Mathf.Max(dropHeight-count.GrabDropHeightDecay*dt,transform.position.y-player.transform.position.y);
             // Reached a remembered spot without seeing you: land there and prowl (Mode 2), then take a perch.
             var toGoal=goal-transform.position;toGoal.y=0;
             if(!CanSeePlayer&&!witnessedHide&&toGoal.magnitude<1){searchedAt=goal;BeginLand();return;}
@@ -615,10 +697,17 @@ namespace HollowCurrent
             if(touching)
             {
                 if(flat.sqrMagnitude>.0001f)transform.rotation=Quaternion.LookRotation(flat);
-                actor.Pose(count.ModeGrab);
-                if(contact>=Profile.GrabSeconds&&Game.Case.PhaseTime>Profile.GrabGraceSeconds)Game.Case.Die();
+                if(grabMode<0||contact<=dt)
+                {
+                    grabMode=ChooseGrab(out var why);
+                    Debug.Log("HC_COUNT_GRAB mode="+grabMode+" why="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
+                }
+                actor.Pose(grabMode);
+                // huntClock, not PhaseTime: a hostile-return hunt (F1) runs inside Phase Return.
+                if(contact>=Profile.GrabSeconds&&huntClock>Profile.GrabGraceSeconds)Game.Case.Die();
                 return;
             }
+            if(contact<=0)grabMode=-1;
             Fly(dt,Profile.ModeReach);
         }
         void Fly(float dt,int mode)
@@ -654,6 +743,8 @@ namespace HollowCurrent
             var chest=p+Vector3.up*1.1f;
             float width=Reach(chest,side,6)+Reach(chest,-side,6);
             bool straight=to.magnitude>=count.StraightLookahead||routeAt>=route.Count-1;
+            // Item 4: in a hostile return he flies at straight-glide speed everywhere he can fly.
+            if(HostileReturn)return count.GlideStraightSpeed*SpeedScale;
             return count.GlideSpeedFor(width,straight)*SpeedScale;
         }
         static float Reach(Vector3 from,Vector3 direction,float max)=>Physics.Raycast(from,direction,out var hit,max,FlightMask,QueryTriggerInteraction.Ignore)?hit.distance:max;
@@ -681,8 +772,13 @@ namespace HollowCurrent
             var launch=start+transform.forward*.6f+Vector3.up*.5f;
             if(Clear(start,launch)&&Clear(launch,end)){route.Add(launch);route.Add(end);return true;}
             if(path==null)path=new NavMeshPath();
-            if(!GroundUnder(start,out var g0)||!GroundUnder(goal,out var g1)||!NavMesh.CalculatePath(g0,g1,NavMesh.AllAreas,path)||path.status==NavMeshPathStatus.PathInvalid||path.corners.Length==0)
-                return false;
+            if(!GroundUnder(start,out var g0)||!GroundUnder(goal,out var g1))return false;
+            bool found=NavMesh.CalculatePath(g0,g1,NavMesh.AllAreas,path)&&path.status!=NavMeshPathStatus.PathInvalid&&path.corners.Length>0;
+            // Item 4: a goal off the NavMesh (the lowered drawbridge is not baked into it) is reached via the nearest mesh point;
+            // the final leg to `end` is appended below.
+            if(!found&&NavMesh.SamplePosition(g1,out var nearGoal,6,NavMesh.AllAreas))
+                found=NavMesh.CalculatePath(g0,nearGoal.position,NavMesh.AllAreas,path)&&path.status!=NavMeshPathStatus.PathInvalid&&path.corners.Length>0;
+            if(!found)return false;
             var corners=path.corners;
             for(int i=0;i<corners.Length;i++)route.Add(corners[i]+Vector3.up*HoverAt(corners[i],false));
             route.Add(end);
@@ -713,7 +809,13 @@ namespace HollowCurrent
         bool GroundUnder(Vector3 p,out Vector3 ground)
         {
             var probe=p;
-            if(Physics.Raycast(p+Vector3.up*.3f,Vector3.down,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore))probe=hit.point;
+            if(Physics.Raycast(p+Vector3.up*.3f,Vector3.down,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore))
+            {
+                probe=hit.point;
+                // Item 4: the drawbridge deck is real ground for him (it is outside IsInside and not on the NavMesh).
+                var bridge=Game.World.Castle!=null?Game.World.Castle.Drawbridge:null;
+                if(bridge&&hit.collider.transform.IsChildOf(bridge.transform)){ground=probe;return true;}
+            }
             if(NavMesh.SamplePosition(probe,out var nav,2.2f,NavMesh.AllAreas)||NavMesh.SamplePosition(p,out nav,6,NavMesh.AllAreas)){ground=nav.position;return true;}
             ground=probe;return false;
         }
@@ -872,9 +974,352 @@ namespace HollowCurrent
         // (r2 hunt: "an unlit black smear"). Castle only; Split Grin never gets it.
         void CountRimLight()
         {
-            var rim=new GameObject("Count rim light").AddComponent<Light>();rim.transform.SetParent(silhouette,false);
+            var rim=rimLight=new GameObject("Count rim light").AddComponent<Light>();rim.transform.SetParent(silhouette,false);
             rim.transform.localPosition=new Vector3(0,2.3f,-1.1f);rim.type=LightType.Point;rim.color=new Color(.62f,.72f,1f);
             rim.range=count.RimLightRange;rim.intensity=count.RimLightIntensity;rim.shadows=LightShadows.None;rim.renderMode=LightRenderMode.ForcePixel;
+        }
+        Light rimLight;
+        float rimScale=1;
+        // Item 16: 0 during hunts, RimLightBetweenScale between hunts, 1 for staged captures and the capture choreography.
+        void SetRim(float scale)
+        {
+            if(!rimLight||Mathf.Approximately(scale,rimScale))return;
+            rimScale=scale;rimLight.enabled=scale>0;rimLight.intensity=count.RimLightIntensity*scale;
+            Debug.Log("HC_COUNT_RIM scale="+scale.ToString("F2")+" hunt="+huntOn);
+        }
+
+        // ---- Wave F (FEAR_PLAN items 4, 9, 10, 11, 13, 14, 16, 17), castle only ---------------------------------------
+        bool huntOn;                       // Investigation.HuntActive as last applied (Phase Hunt or a hostile Return)
+        float huntClock,returnHearClock,dropHeight;
+        bool sawPlayer;
+        int grabMode=-1;
+        Vector3? lastSeen;                 // item 14: survives between hunts
+        /// <summary>True while he is diving at the investigator during a hunt (FearLink: torch fails for the dive).</summary>
+        public bool Diving=>count!=null&&huntOn&&!choreo&&flight==Flight.Chase;
+        /// <summary>Flying (wing loop) between hunts: leaving a hunt for a perch or the gatehouse visit.</summary>
+        public bool Airborne=>count!=null&&!huntOn&&silhouette&&silhouette.gameObject.activeSelf&&(flight==Flight.Travel||gateStage==1||gateStage==3);
+        /// <summary>Wave F beats for logs and CastleRun audio: "near-miss", "gatehouse", "learned".</summary>
+        public event System.Action<string> Beat;
+        /// <summary>The cupboard door he is breathing at (item 10), for CastleRun's door rattle.</summary>
+        public Vector3 NearMissDoor {get;private set;}
+        public Vector3 HeadPosition=>actor&&actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
+        bool seenThisHunt;
+        float chaseClosest=99;
+        void GrabSurvived(string why)
+        {
+            if(Game.Case.Terminal)return;
+            Game.Case.AddDread(Game.Case.Rules.DreadGrabSurvived);
+            Debug.Log("HC_COUNT_DREAD grab survived ("+why+") +"+Game.Case.Rules.DreadGrabSurvived+" dread="+Game.Case.Dread.ToString("F1"));
+        }
+        void RaiseBeat(string id){Debug.Log("HC_COUNT_BEAT "+id+" "+DiagnosticState);Beat?.Invoke(id);}
+
+        // Item 13: spatial at his head, each line at most once per VoiceCooldown, lines never closer than VoiceGap.
+        readonly Dictionary<string,float> voiceAt=new Dictionary<string,float>();
+        float lastVoice=-99;
+        void Voice(string id,bool force=false)
+        {
+            float now=Time.time;
+            if(!force&&(now-lastVoice<count.VoiceGap||voiceAt.TryGetValue(id,out var at)&&now-at<count.VoiceCooldown))return;
+            voiceAt[id]=now;lastVoice=now;Game.Sound.Speak(id,HeadPosition);
+            Debug.Log("HC_COUNT_VOICE "+id+" t="+huntClock.ToString("F1")+" "+DiagnosticState);
+        }
+
+        // ---- Item 17: grab variants -----------------------------------------------------------------------------------
+        int ChooseGrab(out string why)
+        {
+            var player=Game.Player.transform.position;float above=Mathf.Max(dropHeight,transform.position.y-player.y);
+            if(count.ModeGrabDrop>=0&&above>=count.GrabDropMinHeight)
+            {
+                if(HasModeState(count.ModeGrabDrop,"GrabDrop")){why="drop from "+above.ToString("F1")+" m";return count.ModeGrabDrop;}
+                why="drop wanted, no GrabDrop state";
+            }
+            else why="wing-wrap";
+            bool onFoot=actor.Mode==count.ModeCrawl||MustCrawl(transform.position);
+            if(count.ModeGrabCrawl>=0&&onFoot)
+            {
+                if(HasModeState(count.ModeGrabCrawl,"GrabCrawl")){why="on foot (crawl)";return count.ModeGrabCrawl;}
+                why="crawl wanted, no GrabCrawl state";
+            }
+            return count.ModeGrab;
+        }
+        readonly Dictionary<int,bool> modeStates=new Dictionary<int,bool>();
+        // F5 adds Count_GrabDrop / Count_GrabCrawl (Animator Mode 8 / 9). Missing => false => the Mode 6 wing-wrap.
+        bool HasModeState(int mode,string name)
+        {
+            if(modeStates.TryGetValue(mode,out var known))return known;
+            var animator=actor?actor.Animator:null;var controller=animator?animator.runtimeAnimatorController:null;
+            if(!controller)return false;
+            bool found=false;
+            foreach(var clip in controller.animationClips)if(clip&&clip.name.IndexOf(name,System.StringComparison.OrdinalIgnoreCase)>=0){found=true;break;}
+            if(!found&&animator.isActiveAndEnabled)found=animator.HasState(0,Animator.StringToHash(name))||animator.HasState(0,Animator.StringToHash("Base Layer."+name));
+            else if(!found)return false;   // inactive animator: decide later
+            modeStates[mode]=found;Debug.Log("HC_COUNT_GRAB_STATE mode="+mode+" "+name+"="+found);
+            return found;
+        }
+
+        // ---- Item 9: perch sightings between hunts --------------------------------------------------------------------
+        float unobserved;
+        bool BetweenAllowed
+        {
+            get
+            {
+                var phase=Game.Case.Phase;
+                return count.PerchBetweenHunts&&!CaptureMode.Requested&&Game.Started&&!Game.Case.Terminal&&Game.World.PerchPoints.Count>0&&
+                       (phase==Phase.Survey||phase==Phase.Disturbance||phase==Phase.Warning||phase==Phase.Recovery||phase==Phase.Containment||phase==Phase.Return);
+            }
+        }
+        float BetweenPerchSeconds()
+        {
+            var rules=Game.Case.Rules;
+            float min=rules!=null&&rules.PerchMinSeconds>0?rules.PerchMinSeconds:count.PerchMinSeconds;
+            float max=rules!=null&&rules.PerchMaxSeconds>0?rules.PerchMaxSeconds:count.PerchMaxSeconds;
+            return Random.Range(min,Mathf.Max(min,max));
+        }
+        void CountBetween(float dt)
+        {
+            CanSeePlayer=false;contact=0;SetRim(count.RimLightBetweenScale);
+            bool seen=ObservedByPlayer();unobserved=seen?0:unobserved+dt;
+            if(gateStage>0){GatehouseTick(dt);return;}
+            if(GatehouseDue(dt)&&unobserved>=count.UnobservedSeconds){BeginGatehouse();return;}
+            switch(flight)
+            {
+                case Flight.Perched:
+                {
+                    transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.Euler(0,perchYaw,0),90*dt);
+                    actor.Pose(Profile.ModeIdle);perchTimer-=dt;
+                    // SCP-173 rule: he moves only while nobody is looking; a perch she walked up to is left the moment she looks away.
+                    if((perchTimer<=0||!PerchFarEnough(perchIndex))&&unobserved>=count.UnobservedSeconds)TeleportPerch(perchIndex);
+                    break;
+                }
+                case Flight.Travel:
+                case Flight.Retreat:
+                    Fly(dt,Profile.ModeMove);
+                    if(unobserved>=count.UnobservedSeconds)TeleportPerch(-1);
+                    else if(routeAt>=route.Count)
+                    {
+                        if(pendingPerch>=0){SetPerch(pendingPerch,BetweenPerchSeconds());Debug.Log("HC_COUNT_PERCH landed perch="+perchIndex+" "+DiagnosticState);}
+                        else flight=Flight.Land;
+                    }
+                    break;
+                case Flight.Land:
+                    if(GroundUnder(transform.position,out var ground))transform.position=Vector3.MoveTowards(transform.position,ground,2.5f*dt);
+                    actor.Pose(Profile.ModeSearch);
+                    if(unobserved>=count.UnobservedSeconds)TeleportPerch(-1);
+                    break;
+                default:   // Away, or a hunt state left over: hidden (or held still) until he is unobserved and a perch is free
+                    if(unobserved>=count.UnobservedSeconds)TeleportPerch(-1);
+                    break;
+            }
+        }
+        // Place him on a perch that is out of her sight. Called only while he is unobserved, so the move is never seen.
+        void TeleportPerch(int exclude)
+        {
+            unobserved=0;int i=ChoosePerch(exclude,true);
+            if(i<0)
+            {
+                if(flight==Flight.Perched&&perchIndex>=0&&PerchFarEnough(perchIndex)){perchTimer=1;return;}
+                if(flight!=Flight.Away)Debug.Log("HC_COUNT_PERCH none free (hidden) "+DiagnosticState);
+                flight=Flight.Away;perchIndex=-1;route.Clear();silhouette.gameObject.SetActive(false);return;
+            }
+            silhouette.gameObject.SetActive(true);route.Clear();SetPerch(i,BetweenPerchSeconds());
+            var cam=Game.Player.View.transform;var head=HeadPosition;
+            Debug.Log("HC_COUNT_PERCH moved perch="+i+" feet="+transform.position+" playerDist="+Vector3.Distance(transform.position,Game.Player.transform.position).ToString("F1")+
+                " viewAngle="+Vector3.Angle(cam.forward,head-cam.position).ToString("F0")+" occluded="+Occluded(cam.position,head)+" watches="+PerchWatchFloor(i)+" favourite="+FavouriteFloor()+" phase="+Game.Case.Phase);
+        }
+        // Distance rules only (used to keep a perch he is already on): >= PerchMinPlayerDistance and not on her floor within 6 m.
+        bool PerchFarEnough(int i)
+        {
+            if(i<0||i>=Game.World.PerchPoints.Count)return false;
+            var feet=PerchFeet(i);var player=Game.Player.transform.position;float d=Vector3.Distance(feet,player);
+            bool sameFloor=Mathf.Approximately(World.FloorBelow(feet.y+.1f),World.FloorBelow(player.y+.1f));
+            return d>=count.PerchMinPlayerDistance&&!(sameFloor&&d<count.PerchSameFloorExclusion);
+        }
+        // Outside her view cone (more than SightAngle off the camera forward) or occluded from the camera.
+        bool PerchHidden(int i)
+        {
+            var cam=Game.Player.View.transform;var feet=PerchFeet(i);
+            var head=feet+Vector3.up*(count.PerchEyeHeight+.35f);var chest=feet+Vector3.up*.8f;
+            if(Vector3.Angle(cam.forward,head-cam.position)>Profile.SightAngle&&Vector3.Angle(cam.forward,chest-cam.position)>Profile.SightAngle)return true;
+            return Occluded(cam.position,head)&&Occluded(cam.position,chest);
+        }
+        // Weighted random over allowed perches; item 14: a perch watching the floor where she spends most time weighs more.
+        int ChoosePerch(int exclude,bool mustBeHidden)
+        {
+            var perches=Game.World.PerchPoints;int fav=FavouriteFloor();float share=FavouriteShare();
+            var weights=new float[perches.Count];float total=0;var why=new System.Text.StringBuilder();
+            for(int i=0;i<perches.Count;i++)
+            {
+                if(i==exclude||!PerchFarEnough(i)||mustBeHidden&&!PerchHidden(i)){why.Append(i).Append(":x ");continue;}
+                float w=1+(fav>=0&&PerchWatchFloor(i)==fav?count.PerchFloorWeight*share:0);
+                weights[i]=w;total+=w;why.Append(i).Append(':').Append(w.ToString("F1")).Append(' ');
+            }
+            if(total<=0)return -1;
+            float pick=Random.value*total;int chosen=-1;
+            for(int i=0;i<perches.Count;i++){if(weights[i]<=0)continue;chosen=i;pick-=weights[i];if(pick<=0)break;}
+            Debug.Log("HC_COUNT_PERCH_CHOICE weights=["+why.ToString().Trim()+"] favouriteFloor="+fav+" share="+share.ToString("F2")+" chosen="+chosen);
+            return chosen;
+        }
+        int FavouriteFloor()=>Game.Castle?Game.Castle.FavouriteFloor:-1;
+        float FavouriteShare()=>Game.Castle?Game.Castle.FavouriteFloorShare:0;
+        readonly Dictionary<int,Vector3> perchFeet=new Dictionary<int,Vector3>();
+        readonly Dictionary<int,int> perchWatch=new Dictionary<int,int>();
+        Vector3 PerchFeet(int i){if(!perchFeet.TryGetValue(i,out var feet)){Ledge(i,out feet,out _);perchFeet[i]=feet;}return feet;}
+        // The floor a perch looks down on: the ground 2.5 m beyond its ledge in its open facing (a balcony watches the hall).
+        int PerchWatchFloor(int i)
+        {
+            if(perchWatch.TryGetValue(i,out var floor))return floor;
+            Ledge(i,out var feet,out var yaw);var probe=feet+Quaternion.Euler(0,yaw,0)*Vector3.forward*2.5f+Vector3.up*.5f;
+            float y=Physics.Raycast(probe,Vector3.down,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore)?hit.point.y:feet.y;
+            floor=CastleRun.FloorIndex(y);perchWatch[i]=floor;return floor;
+        }
+        // The camera sees him: a head, chest or feet point inside the viewport and not occluded.
+        bool ObservedByPlayer()
+        {
+            if(!silhouette.gameObject.activeInHierarchy)return false;
+            var cam=Game.Player.View;var eye=cam.transform.position;
+            var points=new[]{HeadPosition,transform.position+Vector3.up*1.2f,transform.position+Vector3.up*.3f};
+            foreach(var p in points)
+            {
+                var v=cam.WorldToViewportPoint(p);
+                if(v.z<=0||v.z>45||v.x<-.05f||v.x>1.05f||v.y<-.05f||v.y>1.05f)continue;
+                if(!Occluded(eye,p))return true;
+            }
+            return false;
+        }
+        bool Occluded(Vector3 from,Vector3 to)
+        {
+            if(!Physics.Linecast(from,to,out var hit,FlightMask,QueryTriggerInteraction.Ignore))return false;
+            return !hit.collider.transform.IsChildOf(transform)&&!hit.collider.GetComponentInParent<Investigator>();
+        }
+
+        // ---- Item 11: the gatehouse is not safe (once per run) ---------------------------------------------------------
+        float safeClock,gateTimer;
+        bool gatehouseDone,gateHover;
+        float gateSeen;
+        int gateStage;
+        Vector3 gateSpot,gateFrom;
+        bool GatehouseDue(float dt)
+        {
+            if(gatehouseDone||!Game.Case.Survived){safeClock=0;return false;}
+            safeClock=Game.Player.InVan?safeClock+dt:0;
+            return safeClock>=count.GatehouseSafeSeconds;
+        }
+        void BeginGatehouse()
+        {
+            gatehouseDone=true;gateStage=1;gateTimer=0;gateSeen=0;route.Clear();
+            gateSpot=Battlement(out gateHover);var player=Game.Player.transform.position;
+            // He drops in from above a real battlement; under the gatehouse ceiling he swoops in from beyond it, away from her.
+            var away=gateSpot-player;away.y=0;away=away.sqrMagnitude>.01f?away.normalized:Vector3.forward;
+            gateFrom=gateHover?gateSpot+away*2.5f+Vector3.up*.6f:gateSpot+Vector3.up*3f;
+            if(!Clear(gateFrom,gateSpot))gateFrom=Vector3.Lerp(gateSpot,gateFrom,.4f);
+            transform.SetPositionAndRotation(gateFrom,Quaternion.LookRotation(-away));silhouette.gameObject.SetActive(true);
+            Debug.Log("HC_COUNT_GATEHOUSE begin spot="+gateSpot+" from="+gateFrom+" hover="+gateHover+" safeSeconds="+safeClock.ToString("F1")+" "+DiagnosticState);
+        }
+        void GatehouseTick(float dt)
+        {
+            gateTimer+=dt;var player=Game.Player.transform.position;
+            var face=player-transform.position;face.y=0;
+            if(face.sqrMagnitude>.01f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(face),240*dt);
+            if(gateStage==1)
+            {
+                float k=Mathf.SmoothStep(0,1,gateTimer/count.GatehouseArriveSeconds);
+                transform.position=Vector3.Lerp(gateFrom,gateSpot,k);actor.Pose(Profile.ModeMove,2.5f);
+                if(k>=1){gateStage=2;gateTimer=0;Voice("cc_stay",true);RaiseBeat("gatehouse");Debug.Log("HC_COUNT_GATEHOUSE landed "+DiagnosticState);}
+            }
+            else if(gateStage==2)
+            {
+                actor.Pose(gateHover?Profile.ModeMove:Profile.ModeIdle,1.2f);
+                gateSeen=ObservedByPlayer()?gateSeen+dt:gateSeen;
+                bool done=gateTimer>=count.GatehouseHoldSeconds&&(!Game.Player.InVan||gateSeen>=count.GatehouseSeenSeconds||gateTimer>=count.GatehouseMaxHoldSeconds);
+                if(done){gateStage=3;gateTimer=0;Debug.Log("HC_COUNT_GATEHOUSE leaving "+DiagnosticState);}
+            }
+            else
+            {
+                float k=Mathf.SmoothStep(0,1,gateTimer/count.GatehouseArriveSeconds);
+                transform.position=Vector3.Lerp(gateSpot,gateFrom,k);actor.Pose(Profile.ModeMove,2.5f);
+                if(k>=1){gateStage=0;flight=Flight.Away;perchIndex=-1;silhouette.gameObject.SetActive(false);unobserved=0;Debug.Log("HC_COUNT_GATEHOUSE gone "+DiagnosticState);}
+            }
+        }
+        // F3's CastleWorld.Points.GatehouseBattlement (gate wall top) when the scene has it, else GatehouseFallbackHeight above the lantern cart, kept GatehouseHeadroom under the ceiling (he hovers there).
+        Vector3 Battlement(out bool hover)
+        {
+            hover=false;var spots=Game.World.Castle;
+            if(spots!=null&&spots.GatehouseBattlement!=Vector3.zero)return spots.GatehouseBattlement;
+            hover=true;Vector3 cart=Game.World.Spawn;bool found=false;
+            foreach(var t in Game.World.Root.GetComponentsInChildren<Transform>(true))
+                if(t.name.EndsWith("LanternCart",System.StringComparison.Ordinal)){cart=t.position;found=true;break;}
+            if(!found&&Game.World.Root)cart=Game.World.Root.TransformPoint(new Vector3(3.6f,0,3f));
+            var spot=cart+Vector3.up*count.GatehouseFallbackHeight;
+            if(Physics.Raycast(cart+Vector3.up*.3f,Vector3.up,out var ceiling,8,FlightMask,QueryTriggerInteraction.Ignore))
+                spot.y=Mathf.Min(spot.y,ceiling.point.y-count.GatehouseHeadroom);
+            return spot;
+        }
+
+        // ---- Item 10: the cupboard near-miss ----------------------------------------------------------------------------
+        bool nearMissRolled;
+        int nearMissStage;
+        float nearMissHold;
+        Vector3 nearMissCrawl,nearMissOutward;
+        void BeginNearMiss()
+        {
+            Interactable spot=null;float best=float.MaxValue;var exit=Game.Player.HideExit;
+            foreach(var h in Game.World.HidingPlaces){if(h.Kind!=InteractKind.Hide)continue;float d=Vector3.Distance(h.ExitPoint,exit);if(d<best){best=d;spot=h;}}
+            if(!spot||best>.5f){Debug.Log("HC_COUNT_NEARMISS abort no hide spot "+DiagnosticState);return;}
+            var outward=Vector3.ProjectOnPlane(spot.ExitPoint-spot.HidePoint,Vector3.up);if(outward.sqrMagnitude<.01f)outward=-spot.transform.forward;outward.Normalize();
+            float floorY=GroundUnder(spot.ExitPoint,out var g)?g.y:spot.ExitPoint.y;
+            var door=spot.transform.position;nearMissOutward=outward;
+            NearMissDoor=new Vector3(door.x,floorY+1,door.z);
+            nearMissCrawl=new Vector3(door.x,floorY,door.z)+outward*count.NearMissDoorDistance;
+            var landing=nearMissCrawl+outward*count.NearMissCrawlDistance;
+            if(!PlanRoute(landing,false)){Debug.Log("HC_COUNT_NEARMISS abort no route to "+landing+" "+DiagnosticState);return;}
+            flight=Flight.NearMiss;nearMissStage=1;pendingPerch=-1;travelToPerch=false;Memory.Clear();attackAttempted=true;
+            Debug.Log("HC_COUNT_NEARMISS begin hide="+spot.name+" door="+NearMissDoor+" crawlTo="+nearMissCrawl+" landing="+landing+" "+DiagnosticState);
+        }
+        void NearMissTick(float dt)
+        {
+            if(CanSeePlayer){nearMissStage=0;BeginChase();return;}
+            if(!Game.Player.Hidden){nearMissStage=0;BeginLand();return;}
+            if(nearMissStage==1)
+            {
+                Fly(dt,Profile.ModeMove);
+                if(routeAt<route.Count)return;
+                // Landed: crawl the last metres along the NavMesh, low to the floor.
+                route.Clear();routeAt=0;
+                if(GroundUnder(transform.position,out var g0)&&NavMesh.SamplePosition(nearMissCrawl,out var goal,1,NavMesh.AllAreas))
+                {
+                    if(path==null)path=new NavMeshPath();
+                    if(NavMesh.CalculatePath(g0,goal.position,NavMesh.AllAreas,path)&&path.status!=NavMeshPathStatus.PathInvalid)route.AddRange(path.corners);
+                }
+                route.Add(nearMissCrawl);nearMissStage=2;speedNow=0;
+                Debug.Log("HC_COUNT_NEARMISS landed crawl waypoints="+route.Count+" "+DiagnosticState);return;
+            }
+            if(nearMissStage==2)
+            {
+                if(routeAt<route.Count)
+                {
+                    var target=route[routeAt];var to=target-transform.position;float dist=to.magnitude;float step=count.NearMissCrawlSpeed*dt;
+                    if(step>=dist){transform.position=target;routeAt++;}else transform.position+=to/dist*step;
+                    var flat=new Vector3(to.x,0,to.z);if(flat.sqrMagnitude>.0004f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(flat),count.TurnDegreesPerSecond*.5f*dt);
+                    actor.Pose(count.ModeCrawl,count.NearMissCrawlSpeed*.85f);return;
+                }
+                nearMissStage=3;nearMissHold=count.NearMissHoldSeconds;transform.rotation=Quaternion.LookRotation(-nearMissOutward);
+                var d=new Vector3(NearMissDoor.x-transform.position.x,0,NearMissDoor.z-transform.position.z).magnitude;
+                Debug.Log("HC_COUNT_NEARMISS hold doorDistance="+d.ToString("F2")+" seconds="+nearMissHold.ToString("F1")+" "+DiagnosticState);
+                RaiseBeat("near-miss");return;
+            }
+            // Stage 3: breathing at the slats, then he leaves to search elsewhere.
+            actor.Pose(count.ModeCrawl,0);nearMissHold-=dt;
+            if(nearMissHold>0)return;
+            nearMissStage=0;Memory.Clear();searchedAt=NearMissDoor;guaranteeClock=0;GrabSurvived("near-miss");
+            int far=-1;float farthest=-1;
+            for(int i=0;i<Game.World.PerchPoints.Count;i++){float d=Vector3.Distance(Game.World.PerchPoints[i],NearMissDoor);if(d>farthest){farthest=d;far=i;}}
+            Debug.Log("HC_COUNT_NEARMISS leave to perch="+far+" "+DiagnosticState);
+            if(far<0||!GoToPerch(far,false))BeginLand();
+        }
+        Vector3 DrawbridgeSide()
+        {
+            var spots=Game.World.Castle;if(spots==null)return Game.World.Spawn;
+            return spots.Drawbridge?spots.DrawbridgeTrigger.center:spots.DrawbridgeWinch;
         }
     }
 }

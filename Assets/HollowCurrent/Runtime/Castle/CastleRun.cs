@@ -32,13 +32,32 @@ namespace HollowCurrent
             Forge.Crafted+=()=>{Game.Say(Game.Book.SwordForged);Fight.Begin();if(Rune)Rune.Ignite();Game.Sound.Cue("evidence_filed",Game.World.Castle.AltarPosition,.7f);};
             Fight.Killed+=()=>{Game.Creature.Defeat();Game.Sound.Cue("death_wail_sunrise",Game.Player.transform.position,.8f);Game.Case.WinByKill();};
             Fight.HitLanded+=()=>{Game.Creature.Stagger();Game.Sound.Cue("stagger_screech",Game.Creature.transform.position+Vector3.up,.9f);if(!Fight.Dead)Game.Say(Game.Book.HitLanded);};
+            Game.Creature.Beat+=CountBeat;
+        }
+        // Wave F beats from Presence's castle branch (FEAR_PLAN items 10, 11, 14).
+        void CountBeat(string id)
+        {
+            var count=Game.Creature;var spots=Game.World.Castle;
+            switch(id)
+            {
+                case "near-miss":   // he breathes at the cupboard slats and rattles the door (item 10)
+                    Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);Game.Sound.Speak("cc_hunt_smell",count.HeadPosition);break;
+                case "gatehouse":   // he says cc_stay himself (Presence); the chains answer (item 11)
+                    if(spots!=null)Game.Sound.Cue("drawbridge_chains",spots.DrawbridgeWinch,((CountClaudeProfile)count.Profile).GatehouseChainsVolume);break;
+            }
+            Debug.Log("HC_COUNT_BEAT_AUDIO "+id);
         }
         void Start()
         {
             var spots=Game.World.Castle;var root=Game.World.Root;var view=Game.Player.View.transform;
             SurrealProps.Viewer=view;
             if(spots==null)return;
-            foreach(var t in root.GetComponentsInChildren<Transform>(true))if(t.name=="Reliquary claw-scores")claws=t.gameObject;
+            foreach(var t in root.GetComponentsInChildren<Transform>(true))
+            {
+                if(t.name=="Reliquary claw-scores")claws=t.gameObject;
+                // The sarcophagus art ("Castle / Sarcophagus" or its placeholder), not its runes or collision proxy.
+                else if(t.GetComponent<Interactable>() is Interactable i&&i.Kind==InteractKind.Sarcophagus)sarcophagus=t;
+            }
             // Props on piece 1's anchors (piece 3's factories).
             if(spots.RuneRingAnchor)Rune=SurrealProps.MakeRuneRing(spots.RuneRingAnchor,Vector3.zero,spots.RuneRingRadius>0?spots.RuneRingRadius:3,24,Game.Player.transform);
             if(spots.KnifeOrbitAnchor)SurrealProps.MakeKnifeOrbit(spots.KnifeOrbitAnchor,Vector3.zero);
@@ -61,7 +80,8 @@ namespace HollowCurrent
         public void TakeRelic(Interactable item)
         {
             if(item.RelicIndex<0||item.RelicIndex>2||!Game.Case.Equipped)return;
-            if(item.RelicIndex==0&&!BladeRevealed){Game.Say(Game.Book.BladeSealed);return;}
+            // The death penalty can move the blade out of the claw-scored box (Game.MovedRelic): nothing to reveal then.
+            if(item.RelicIndex==0&&!BladeRevealed&&Game.MovedRelic!=0){Game.Say(Game.Book.BladeSealed);return;}
             if(Forge.Found((Relic)item.RelicIndex))
             {
                 Game.Say(Game.Book.RelicFound[item.RelicIndex]);Game.Sound.Cue("evidence_filed",item.transform.position,.5f);
@@ -78,21 +98,102 @@ namespace HollowCurrent
                 &&((!c.Survived&&c.Evidence.Count>=2)||Forge.HasSword);
             if(!summon){if(phase!=Phase.Containment)Game.Say(Game.Book.AnchorNotReady);return;}
             if(bellCooldown<=0){bellCooldown=7;Game.Sound.Cue("chapel_bell_toll",Game.World.Castle.Anchor,1);}
-            c.BeginWarning();Game.Say(Game.Book.BellRung);
+            c.BeginWarning();Game.Say(BellRungText());
+        }
+        // The book's line says "Nine seconds"; the warning length comes from the map's rules (Long Night has none).
+        string BellRungText()
+        {
+            string line=Game.Book.BellRung;float warning=Game.Case.Rules!=null?Game.Case.Rules.WarningSeconds:9;
+            if(!line.Contains("Nine seconds"))return line;
+            if(warning<=0)return line.Replace("Nine seconds: get under cover.","He is already coming.");
+            return Mathf.Approximately(warning,9)?line:line.Replace("Nine seconds",Mathf.RoundToInt(warning)+" seconds");
         }
         public void AltarHint(){if(Forge.RelicCount<3&&!Forge.HasSword)Game.ShowNote(Game.Book.AltarLabel,Game.Book.AltarHint);}
         // A ledger page was opened: unlock its relic hint and read it aloud.
         public void NoteRead(string title)
         {
+            if(title=="Sarcophagus"){Sarcophagus();return;}
             string id=Game.Book.NoteIdFor(title);if(id==null)return;
             if(Forge.ReadLedger(id)&&LedgerHints.TryRelicFor(id,out var relic))Game.Say(Game.Book.RelicHints[(int)relic]);
             Game.Sound.Speak(id);
         }
+        // ---- Item 14: seconds the investigator spends on each floor (crypt, ground, upper, tower) --------------------
+        public readonly float[] FloorSeconds=new float[World.CastleFloors.Length];
+        public static int FloorIndex(float y){float floor=World.FloorBelow(y+.1f);return Mathf.Max(0,System.Array.IndexOf(World.CastleFloors,floor));}
+        /// <summary>The floor she has spent most time on inside the castle (-1 before 10 s of data).</summary>
+        public int FavouriteFloor
+        {
+            get{int best=-1;float most=10;for(int i=0;i<FloorSeconds.Length;i++)if(FloorSeconds[i]>most){most=FloorSeconds[i];best=i;}return best;}
+        }
+        /// <summary>The favourite floor's share of the time inside (0-1).</summary>
+        public float FavouriteFloorShare
+        {
+            get{int f=FavouriteFloor;if(f<0)return 0;float total=0;foreach(var v in FloorSeconds)total+=v;return total>0?FloorSeconds[f]/total:0;}
+        }
+        float floorLog;
+
+        // ---- Item 18: the gamble at the sarcophagus --------------------------------------------------------------------
+        // Reading an unread-aloud ledger page over the sarcophagus names the relic's room, costs 25 Dread and one time in
+        // three starts a hunt at once. Called by InteractKind.Sarcophagus (Interactable.Use); while that case still only
+        // shows F3's note, NoteRead("Sarcophagus") calls it. A 1 s cooldown makes a double route harmless.
+        public const float GambleDread=25,GambleHuntChance=1f/3;
+        static readonly string[] RelicRooms={"the Reliquary in the crypt, in the box the steward sealed","the Observatory at the top of the tower, in the orrery's empty socket","the Portrait hall, behind the painted door"};
+        readonly bool[] readAloud=new bool[3];
+        Transform sarcophagus;
+        float gambleCooldown;
+        public bool Sarcophagus()
+        {
+            var c=Game.Case;var at=SarcophagusPosition;
+            if(!c.Equipped||c.Terminal||gambleCooldown>0)return false;
+            gambleCooldown=1;
+            int page=-1;
+            for(int i=0;i<3;i++)if(Forge.HintKnown((Relic)i)&&!readAloud[i]){page=i;break;}
+            if(page<0){Game.Say("Dispatch / The sarcophagus is cold. Read a ledger page first; then read it aloud here, if you dare.");Debug.Log("HC_COUNT_GAMBLE no unread-aloud page");return false;}
+            readAloud[page]=true;
+            string id=LedgerHints.EntryFor((Relic)page);
+            Game.Sound.Speak(id,at+Vector3.up*1.2f);
+            Game.Say("Dispatch / You read the page aloud over the sarcophagus. Something below answers: the "+Game.Book.RelicNames[page].ToLowerInvariant()+" is in "+RelicRooms[page]+".");
+            float before=c.Dread;c.AddDread(GambleDread);
+            var phase=c.Phase;bool canHunt=phase==Phase.Survey||phase==Phase.Disturbance||phase==Phase.Recovery;
+            float roll=Random.value;bool hunt=canHunt&&roll<GambleHuntChance;
+            // F1 has no public immediate no-tell trigger (StartHunt is private): BeginWarning is the only public one; under Long
+            // Night (WarningSeconds 0) it already starts the hunt at once. HANDOFF requests Investigation.BeginNoTellHunt().
+            if(hunt)c.BeginWarning();
+            Debug.Log("HC_COUNT_GAMBLE page="+id+" relic="+page+" dread="+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" roll="+roll.ToString("F2")+" hunt="+hunt+" via="+(hunt?"BeginWarning":"none")+" phase="+phase+"->"+c.Phase);
+            return true;
+        }
+        Vector3 SarcophagusPosition=>sarcophagus?sarcophagus.position:Game.World.Root?Game.World.Root.TransformPoint(new Vector3(0,-3.2f,22.5f)):new Vector3(0,-3.2f,22.5f);
+
+        // ---- Death penalty hook (integrator): move a relic not yet taken to its alternate place --------------------------
+        /// <summary>Moves relic <paramref name="relicIndex"/> (0 blade, 1 hilt, 2 moonstone) and its art to
+        /// CastleWorld.Points.RelicAltPositions[relicIndex]. False when it is already taken or no alternate exists.</summary>
+        public bool MoveRelicToAlternate(int relicIndex)
+        {
+            if(relicIndex<0||relicIndex>2||Forge.HasRelic((Relic)relicIndex))return false;
+            var alt=Game.World.Castle?.RelicAltPositions;
+            if(alt==null||relicIndex>=alt.Length||alt[relicIndex]==Vector3.zero){Debug.Log("HC_RELIC_MOVE none relic="+relicIndex+" (no RelicAltPositions in this scene)");return false;}
+            Interactable relic=null;
+            foreach(var item in Game.World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Relic&&item.RelicIndex==relicIndex){relic=item;break;}
+            if(!relic){Debug.Log("HC_RELIC_MOVE none relic="+relicIndex+" (no interactable)");return false;}
+            var from=relic.transform.position;var delta=alt[relicIndex]-from;
+            relic.transform.position+=delta;if(relic.Art&&!relic.Art.transform.IsChildOf(relic.transform))relic.Art.transform.position+=delta;
+            // The blade leaves the claw-scored box, so the lantern gate no longer applies.
+            if(relicIndex==0)BladeRevealed=true;
+            Debug.Log("HC_RELIC_MOVE relic="+relicIndex+" from="+from+" to="+relic.transform.position);
+            return true;
+        }
+        bool huntSeen;
         void Update()
         {
             if(Game==null||Game.Modal)return;
             float dt=Time.deltaTime;var spots=Game.World.Castle;if(spots==null)return;
-            var player=Game.Player;var phase=Game.Case.Phase;
+            var player=Game.Player;var phase=Game.Case.Phase;bool hunting=Game.Case.HuntActive;
+            gambleCooldown-=dt;
+            if(player.Inside&&!Game.Case.Terminal)
+            {
+                FloorSeconds[FloorIndex(player.transform.position.y)]+=dt;
+                floorLog-=dt;if(floorLog<=0){floorLog=30;Debug.Log("HC_COUNT_FLOORS seconds=["+string.Join(",",System.Array.ConvertAll(FloorSeconds,v=>v.ToString("F0")))+"] favourite="+FavouriteFloor);}
+            }
             // Forge: hold interact at the altar with three relics for Forge.CraftSeconds.
             Forge.AtAltar=Game.Case.Equipped&&!player.Hidden&&Vector3.Distance(player.transform.position,spots.AltarPosition)<AltarReach&&player.UseHeld&&Mathf.Abs(player.transform.position.y-spots.AltarPosition.y)<2;
             Forge.Tick(dt);Fight.Tick(dt);
@@ -107,15 +208,20 @@ namespace HollowCurrent
             // Far bank: crossing the lowered drawbridge after the bell is sealed escapes (same as the winch).
             if(phase==Phase.Return&&spots.Drawbridge&&spots.Drawbridge.Lowered&&!spots.Drawbridge.Moving&&spots.DrawbridgeTrigger.Contains(player.transform.position+Vector3.up*.5f))Game.Case.FinishAtVan();
             // Strike: the instrument button with the sword, at the visible hunter, during a hunt.
-            if(Forge.HasSword&&player.FirePressed&&phase==Phase.Hunt&&Fight.CanBeHit)
+            if(Forge.HasSword&&player.FirePressed&&hunting&&Fight.CanBeHit)
             {
                 var delta=Game.Creature.transform.position+Vector3.up*1.2f-player.View.transform.position;
                 if(delta.magnitude<StrikeReach+.8f&&Vector3.Angle(player.View.transform.forward,delta)<StrikeAngle)Fight.RegisterHit();
             }
+            // Item 4: a hostile return (HuntActive in Phase Return) is a hunt for the flames, voice, wings and the strike.
+            if(hunting!=huntSeen)
+            {
+                huntSeen=hunting;
+                if(hunting){Floater.SetFlameTarget(Game.Creature.transform);Game.Sound.Speak("cc_hunt_smell",Game.Creature.HeadPosition);}
+                else ClearFlameTarget();
+            }
             if(phase!=lastPhase)
             {
-                if(phase==Phase.Hunt){Floater.SetFlameTarget(Game.Creature.transform);Game.Sound.Speak("cc_hunt_smell",Game.Creature.transform.position+Vector3.up*1.8f);}
-                if(lastPhase==Phase.Hunt)ClearFlameTarget();
                 if(phase==Phase.Return)Game.Sound.Cue("drawbridge_chains",spots.DrawbridgeWinch,.9f);
                 if(phase==Phase.Dead){if(Fight.Active)Fight.PlayerGrabbed();Game.Sound.Cue("wing_wrap_grab",player.transform.position,.9f);}
                 lastPhase=phase;
@@ -124,11 +230,11 @@ namespace HollowCurrent
             // Ringing (sealing) the chapel bell tolls once per stroke window.
             bellCooldown-=dt;
             if(Game.Case.SealProgress>.01f&&bellCooldown<=0){bellCooldown=7;Game.Sound.Cue("chapel_bell_toll",spots.Anchor,1);}
-            bool flying=phase==Phase.Hunt&&Game.Creature.isActiveAndEnabled;
-            if(wings)wings.volume=Mathf.MoveTowards(wings.volume,flying?.7f:0,dt/.4f*.7f);
-            if(candles)candles.volume=Mathf.MoveTowards(candles.volume,phase==Phase.Hunt&&Vector3.Distance(Game.Creature.transform.position,candles.transform.position)<12?.6f:.25f,dt*.5f);
+            bool flying=hunting&&Game.Creature.isActiveAndEnabled;
+            if(wings)wings.volume=Mathf.MoveTowards(wings.volume,flying?.7f:Game.Creature.Airborne?.35f:0,dt/.4f*.7f);
+            if(candles)candles.volume=Mathf.MoveTowards(candles.volume,hunting&&Vector3.Distance(Game.Creature.transform.position,candles.transform.position)<12?.6f:.25f,dt*.5f);
             if(forgeHum)forgeHum.volume=Mathf.MoveTowards(forgeHum.volume,Forge.CraftProgress01>0&&!Forge.HasSword?.6f:0,dt*1.5f);
         }
-        void OnDestroy(){Floater.SetFlameTarget(null);if(SurrealProps.Viewer&&Game&&Game.Player&&SurrealProps.Viewer==Game.Player.View.transform)SurrealProps.Viewer=null;}
+        void OnDestroy(){Floater.SetFlameTarget(null);if(Game&&Game.Creature)Game.Creature.Beat-=CountBeat;if(SurrealProps.Viewer&&Game&&Game.Player&&SurrealProps.Viewer==Game.Player.View.transform)SurrealProps.Viewer=null;}
     }
 }
