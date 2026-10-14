@@ -56,6 +56,18 @@ namespace HollowCurrent
         readonly Dictionary<Transform,Vector3> dollHomes=new Dictionary<Transform,Vector3>();
         public int FrameSamples;
         public float FrameTotal,WorstFrame;
+        // Wave F (FEAR_PLAN.md) castle settings, kept in PlayerPrefs. Long Night applies to the next castle case.
+        public bool LongNight,MicEnabled;
+        public float MicThreshold=.02f;
+        public static bool Automated=>PlaytestDriver.Requested||CaptureMode.Requested||NativeVerification.Requested||Application.isBatchMode;
+        public const string LongNightKey="hc.long-night",MicKey="hc.microphone",MicThresholdKey="hc.mic-threshold";
+        // Castle fear plumbing: candle lights within 6 m count as lit (Dread rises slower), the gatehouse and
+        // the lit chapel fire are where Dread falls.
+        readonly List<Light> candleLights=new List<Light>();
+        bool candlesCached,litNearby,wasDiving,appliedLongNight;
+        float litCheck;
+        Vector3 chapelFire;bool hasChapelFire;
+        Phase lastPhase;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Register(){SceneManager.sceneLoaded-=Boot;SceneManager.sceneLoaded+=Boot;}
@@ -78,7 +90,14 @@ namespace HollowCurrent
             {RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.105f,.13f,.16f);RenderSettings.ambientEquatorColor=new Color(.055f,.06f,.07f);RenderSettings.ambientGroundColor=new Color(.025f,.028f,.03f);}
             RenderSettings.fog=true;RenderSettings.fogColor=new Color(.025f,.04f,.055f);RenderSettings.fogDensity=.012f;RenderSettings.fogMode=FogMode.Exponential;
             MissingArt.Placeholders=Map!=MapId.Bellwether;
+            LongNight=PlayerPrefs.GetInt(LongNightKey,0)!=0;MicEnabled=PlayerPrefs.GetInt(MicKey,0)!=0;MicThreshold=Mathf.Clamp(PlayerPrefs.GetFloat(MicThresholdKey,.02f),.005f,.08f);
+            // Automated runs never inherit a player's dial or microphone: Long Night only by flag, microphone never.
+            if(Automated){LongNight=Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-long-night")>=0;MicEnabled=false;}
+            // Castle rules (HuntRules.Castle or the Long Night dial) are chosen before the case exists.
+            if(Map==MapId.Castle)FearLink.ApplyCastleRules(CaseBook.For(Map),null,LongNight);
+            appliedLongNight=LongNight;
             Case=new Investigation(CaseBook.For(Map));Case.Message+=Say;Case.Changed+=PhaseChanged;
+            if(Map==MapId.Castle)FearLink.InjectRandom(Case);
             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
             if(Map==MapId.Castle)CastleArt.ApplySkybox();
             if(!bakedHouse&&Map!=MapId.Castle)
@@ -92,6 +111,7 @@ namespace HollowCurrent
             var entity=new GameObject("Presence senses and navigation");Creature=entity.AddComponent<Presence>();Creature.Initialize(this);
             Scares=gameObject.AddComponent<ScareDirector>();Scares.Initialize(this);
             if(Map==MapId.Castle){Castle=gameObject.AddComponent<CastleRun>();Castle.Initialize(this);gameObject.AddComponent<CastleAtmosphere>();gameObject.AddComponent<CastleLightTuning>();}
+            if(Map==MapId.Castle){Scares.Castle=FearLink.AddCastleScares(this);if(LongNight)World.Castle?.NailHides(FearLink.NailedHides(Case,2));}
             foreach(var lamp in World.Lamps)lampLevels[lamp]=lamp.intensity;
             foreach(var doll in World.Dolls)dollHomes[doll]=doll.position;
             gameObject.AddComponent<Interface>().Game=this;
@@ -168,7 +188,7 @@ namespace HollowCurrent
             if((Input.GetKeyDown(KeyCode.J)||(pad&&pad.Journal))&&Started&&!Paused&&NoteBody==null&&!Case.Terminal){Journal=!Journal;ApplyFocus();}
             if(!Modal)
             {
-                float dt=Time.deltaTime;Case.Tick(dt,Player.Inside);SubtitleTime-=dt;radioCooldown-=dt;
+                float dt=Time.deltaTime;if(Map==MapId.Castle)CastleTick(dt);else Case.Tick(dt,Player.Inside);SubtitleTime-=dt;radioCooldown-=dt;
                 FrameSamples++;FrameTotal+=Time.unscaledDeltaTime;WorstFrame=Mathf.Max(WorstFrame,Time.unscaledDeltaTime);
                 int progress=(Case.Equipped?1:0)+Case.Evidence.Count*10+Case.Notes.Count*100+(Case.Survived?10000:0)+(Case.Diagnosed?100000:0);
                 if(progress!=checkpointProgress&&Case.Phase!=Phase.Warning&&Case.Phase!=Phase.Hunt&&Case.Phase!=Phase.Return)
@@ -224,7 +244,14 @@ namespace HollowCurrent
             if(SelectedMap==Map||!MapAvailable(SelectedMap)){StartCase();return;}
             restoreCheckpoint=false;startOnLoad=true;BeginReload(SelectedMap);
         }
-        public void StartCase(){if(Loading||Paused)return;SavePreferences();Started=true;ApplyFocus();if(uiProbe)Debug.Log("HC_UI_STARTED cursor="+Cursor.lockState);}
+        public void StartCase()
+        {
+            if(Loading||Paused)return;
+            // The Long Night dial was changed on this castle's title after the case was built: rebuild it.
+            if(Map==MapId.Castle&&LongNight!=appliedLongNight){SavePreferences();restoreCheckpoint=false;startOnLoad=true;BeginReload(Map);return;}
+            BeginCase();
+        }
+        void BeginCase(){SavePreferences();Started=true;ApplyFocus();if(uiProbe)Debug.Log("HC_UI_STARTED cursor="+Cursor.lockState);}
         public void Resume(){SavePreferences();Paused=false;Journal=false;NoteBody=null;ApplyFocus();}
         public void ApplyFocus(){bool modal=Modal;Time.timeScale=modal?0:1;AudioListener.pause=Loading||!Started||Paused||Journal||NoteBody!=null;Cursor.lockState=modal||NativeVerification.Requested?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=(modal&&!PadInput.Active)||NativeVerification.Requested;if(uiProbe)Debug.Log("HC_UI_STATE started="+Started+" paused="+Paused+" journal="+Journal+" cursor="+Cursor.lockState+" visible="+Cursor.visible+" timeScale="+Time.timeScale);}
         public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();if(Castle)Castle.NoteRead(title);}
@@ -252,8 +279,45 @@ namespace HollowCurrent
             string hint=!Case.Evidence.Contains(Evidence.Induction)?"hint_signal":!Case.Evidence.Contains(Evidence.Handprint)?"hint_trace":"hint_voice";
             Say("Dispatch / "+(hint=="hint_signal"?Book.HintSignal:hint=="hint_trace"?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
         }
+        // Castle: dread-aware tick (FearLink falls back to the plain tick until hc/dread lands) and the
+        // torch failing for a second when he dives.
+        void CastleTick(float dt)
+        {
+            if(!candlesCached)CacheCandles();
+            litCheck-=dt;if(litCheck<=0){litCheck=.25f;litNearby=CandleWithin(6);}
+            bool atFire=hasChapelFire&&Case.BreakerOn&&Vector3.Distance(Player.transform.position,chapelFire)<3;
+            FearLink.Tick(Case,dt,Player.Inside,litNearby,Player.InVan||atFire);
+            bool diving=FearLink.Diving(Creature);
+            if(diving&&!wasDiving){Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL dive");}
+            wasDiving=diving;
+        }
+        void CacheCandles()
+        {
+            candlesCached=true;candleLights.Clear();
+            foreach(var lamp in World.Lamps)if(lamp)candleLights.Add(lamp);
+            foreach(var flame in CandleFlame.All)if(flame&&flame.flameLight&&!candleLights.Contains(flame.flameLight))candleLights.Add(flame.flameLight);
+            foreach(var item in World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Breaker){chapelFire=item.transform.position;hasChapelFire=true;break;}
+            Debug.Log("HC_FEAR_CANDLES lights="+candleLights.Count+" chapelFire="+hasChapelFire);
+        }
+        bool CandleWithin(float radius)
+        {
+            var p=Player.transform.position;float r2=radius*radius;
+            foreach(var l in candleLights)if(l&&l.isActiveAndEnabled&&l.intensity>.05f&&(l.transform.position-p).sqrMagnitude<r2)return true;
+            return false;
+        }
+        // A short action card that is not dialogue (FieldMessages would drop it): "The door is held."
+        public void Notice(string value,float seconds=2.6f){Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);Subtitle=value;SubtitleTime=seconds;}
         void PhaseChanged(Phase phase)
         {
+            var previous=lastPhase;lastPhase=phase;
+            if(Map==MapId.Castle)
+            {
+                // False warnings strobe and radio like real ones (Investigation never turns them into a hunt);
+                // no-tell hunts skip the Warning phase, so nothing here strobes or speaks for them.
+                if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+FearLink.FalseWarning(Case)+" dread="+FearLink.Dread(Case).ToString("F1"));
+                if(previous==Phase.Warning&&phase!=Phase.Hunt&&!Case.Terminal)Debug.Log("HC_FALSE_WARNING ended phase="+phase);
+                if(phase==Phase.Hunt)Debug.Log("HC_HUNT_START noTell="+FearLink.NoTellHunt(Case)+" from="+previous+" dread="+FearLink.Dread(Case).ToString("F1")+" hunts="+Case.Hunts);
+            }
             Creature?.PhaseChanged(phase);
             if(phase==Phase.Disturbance&&!Case.Survived&&!evidenceAppearanceScheduled)
             {evidenceAppearanceScheduled=true;StartCoroutine(RevealFirstRecord());}
@@ -281,10 +345,13 @@ namespace HollowCurrent
         public void SavePreferences()
         {
             if(!Player)return;
-            bool changed=!Mathf.Approximately(PlayerPrefs.GetFloat("hc.subtitle-scale",-1),SubtitleScale)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.card-opacity",-1),CardOpacity)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.sensitivity",-1),Player.Sensitivity)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.brightness",-1),Player.Brightness)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.volume",-1),Volume)||PlayerPrefs.GetInt("hc.invert-y",-1)!=(Player.InvertY?1:0)||PlayerPrefs.GetInt("hc.subtitles",-1)!=(Subtitles?1:0)||PlayerPrefs.GetInt("hc.help",-1)!=(HelpHints?1:0);
+            bool changed=!Mathf.Approximately(PlayerPrefs.GetFloat("hc.subtitle-scale",-1),SubtitleScale)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.card-opacity",-1),CardOpacity)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.sensitivity",-1),Player.Sensitivity)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.brightness",-1),Player.Brightness)||!Mathf.Approximately(PlayerPrefs.GetFloat("hc.volume",-1),Volume)||PlayerPrefs.GetInt("hc.invert-y",-1)!=(Player.InvertY?1:0)||PlayerPrefs.GetInt("hc.subtitles",-1)!=(Subtitles?1:0)||PlayerPrefs.GetInt("hc.help",-1)!=(HelpHints?1:0)
+                ||!Automated&&(PlayerPrefs.GetInt(LongNightKey,0)!=(LongNight?1:0)||PlayerPrefs.GetInt(MicKey,0)!=(MicEnabled?1:0)||!Mathf.Approximately(PlayerPrefs.GetFloat(MicThresholdKey,.02f),MicThreshold));
             if(!changed)return;
             PlayerPrefs.SetFloat("hc.subtitle-scale",SubtitleScale);PlayerPrefs.SetFloat("hc.card-opacity",CardOpacity);PlayerPrefs.SetFloat("hc.sensitivity",Player.Sensitivity);PlayerPrefs.SetFloat("hc.brightness",Player.Brightness);PlayerPrefs.SetFloat("hc.volume",Volume);
-            PlayerPrefs.SetInt("hc.invert-y",Player.InvertY?1:0);PlayerPrefs.SetInt("hc.subtitles",Subtitles?1:0);PlayerPrefs.SetInt("hc.help",HelpHints?1:0);PlayerPrefs.Save();
+            PlayerPrefs.SetInt("hc.invert-y",Player.InvertY?1:0);PlayerPrefs.SetInt("hc.subtitles",Subtitles?1:0);PlayerPrefs.SetInt("hc.help",HelpHints?1:0);
+            if(!Automated){PlayerPrefs.SetInt(LongNightKey,LongNight?1:0);PlayerPrefs.SetInt(MicKey,MicEnabled?1:0);PlayerPrefs.SetFloat(MicThresholdKey,MicThreshold);}
+            PlayerPrefs.Save();
         }
         public void Quit(){SavePreferences();Application.Quit();}
         public void RetryCheckpoint(){if(Loading||!HasCheckpoint)return;restoreCheckpoint=true;BeginReload(Map);}

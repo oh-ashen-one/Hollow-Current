@@ -14,7 +14,9 @@ namespace HollowCurrent
         readonly Dictionary<GUIStyle,GUIStyle> paperStyles=new Dictionary<GUIStyle,GUIStyle>();
         readonly Color paperInk=new Color(.105f,.074f,.065f),oxblood=new Color(.38f,.12f,.13f);
         string cachedSubtitle,dialogueSpeaker,dialogueBody;
-        bool displaySettings;
+        // Field Settings pages: 0 controls & audio, 1 dialogue display, 2 castle night (castle only).
+        int settingsPage;
+        bool CastleScreen=>(Game.Started||Game.Loading?Game.Map:Game.SelectedMap)==MapId.Castle;
         readonly string[] glyphs=new string[128];
         readonly float[] glyphWidths=new float[128];
         int shownRecords=-1;string recordLabel;
@@ -29,7 +31,7 @@ namespace HollowCurrent
         Vector2 heldDirection;
         float nextNavigation;
         public string ControllerFocus=>focusedId;
-        public void ShowDisplayPreferences(){displaySettings=true;Game.Paused=true;Game.ApplyFocus();}
+        public void ShowDisplayPreferences(){settingsPage=1;Game.Paused=true;Game.ApplyFocus();}
         bool ConsumeControllerAction(string id,bool enabled,bool layout)
         {
             if(!layout||pendingConfirm!=id)return false;
@@ -290,9 +292,12 @@ namespace HollowCurrent
             if(Action(80,607,340,58,fromTitle?"BACK TO TITLE":"RESUME INVESTIGATION","ESC",true))Game.Resume();
             if(!fromTitle&&Action(80,688,340,48,"RESTART CASE","N"))Game.Retry();
             if(Action(80,760,340,44,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
-            if(Action(80,544,340,42,displaySettings?"CONTROLS & AUDIO":"DIALOGUE DISPLAY","",false,false,displaySettings))displaySettings=!displaySettings;
+            if(settingsPage==2&&!CastleScreen)settingsPage=0;
+            string nextPage=settingsPage==0?"DIALOGUE DISPLAY":settingsPage==1&&CastleScreen?"CASTLE NIGHT":"CONTROLS & AUDIO";
+            if(Action(80,544,340,42,nextPage,"",false,false,settingsPage!=0,"settings-page"))settingsPage=settingsPage==0?1:settingsPage==1&&CastleScreen?2:0;
             Card(new Rect(520,173,1000,635));
-            if(displaySettings)
+            if(settingsPage==2){CastleSettings();return;}
+            if(settingsPage==1)
             {
                 Track(558,202,Book.CardStyle+" / DIALOGUE DISPLAY");
                 Game.SubtitleScale=SliderRow(558,256,924,"Subtitle size",Game.SubtitleScale,.85f,1.3f,Mathf.RoundToInt(Game.SubtitleScale*100)+"%","Larger type for living-room play");
@@ -309,6 +314,60 @@ namespace HollowCurrent
             Game.Subtitles=ToggleRow(558,650,924,"Subtitles",Game.Subtitles,"[T]");
             Game.HelpHints=ToggleRow(558,703,924,"Detailed field help",Game.HelpHints,"[H]");
             Footer("ESC return   ·   Shift sprint   ·   Ctrl crouch   ·   E interact   ·   F flashlight   ·   R radio");
+        }
+        // FEAR_PLAN items 6 and 19: the Long Night dial and the opt-in microphone (castle only).
+        void CastleSettings()
+        {
+            Track(558,202,"THE COUNT'S NIGHT / FIELD RULES");
+            bool longNight=ToggleRow(558,244,924,"Long night",Game.LongNight);
+            Label(558,288,820,60,"No warning before a hunt, a darker start, longer hunts, a restless perch, and two hiding places nailed shut. "+(Game.Started&&Game.Map==MapId.Castle?"Takes effect on the next castle case.":"Takes effect when the castle case begins."),small);
+            if(longNight!=Game.LongNight){Game.LongNight=longNight;Game.SavePreferences();}
+            Rule(558,360,924);
+            bool mic=ToggleRow(558,380,924,"Microphone",Game.MicEnabled);
+            Label(558,424,820,60,"During a hunt he hears your voice through the microphone. macOS asks for microphone access the first time. Off by default.",small);
+            if(mic!=Game.MicEnabled){Game.MicEnabled=mic;Game.SavePreferences();}
+            GUI.enabled=Game.MicEnabled;
+            float threshold=SliderRow(558,500,924,"Microphone threshold",Game.MicThreshold,.005f,.08f,Game.MicThreshold<.015f?"WHISPER":Game.MicThreshold<.035f?"SPEECH":"SHOUT","How loud you must be before he hears you");
+            GUI.enabled=true;
+            if(!Mathf.Approximately(threshold,Game.MicThreshold))Game.MicThreshold=threshold;
+            if(Game.Player.MicLive)
+            {
+                // Live input level against the threshold (scaled so the threshold range fills the bar).
+                Track(558,612,"INPUT",muted);var bar=new Rect(640,620,842,4);Panel(bar,line);
+                Panel(new Rect(bar.x,bar.y,bar.width*Mathf.Clamp01(Game.Player.MicLevel/.1f),4),Game.Player.MicLevel>Game.MicThreshold?oxblood:copper);
+                Panel(new Rect(bar.x+bar.width*Mathf.Clamp01(Game.MicThreshold/.1f),bar.y-6,2,16),paperInk);
+            }
+            Footer("Field rules for the castle. Preferences are kept between cases.");
+        }
+        // The journal's pulse: a hand-drawn ink trace whose rate and height follow Dread (with +-2 of slow
+        // noise). Never a number (FEAR_PLAN item 1).
+        void PulseLine(Rect r)
+        {
+            if(Event.current.type!=EventType.Repaint)return;
+            float t=Time.unscaledTime;
+            float dread=Mathf.Clamp(FearLink.Dread(Game.Case)+(Mathf.PerlinNoise(t*.35f,.5f)*2-1)*2,0,100);
+            float rate=.9f+dread*.022f; // beats per second: 0.9 calm to 3.1 at the edge
+            float height=r.height*(.18f+dread*.0042f);
+            float baseline=r.center.y;
+            var ink=new Color(paperInk.r,paperInk.g,paperInk.b,.85f);
+            Vector2 previous=Vector2.zero;
+            for(int i=0;i<=110;i++)
+            {
+                float u=i/110f,x=r.x+u*r.width;
+                float phase=Mathf.Repeat(u*r.width/90f*rate-t*rate,1);
+                // P wave, QRS spike, T wave; the hand wobbles a little at every point.
+                float y=Mathf.Exp(-Mathf.Pow((phase-.18f)/.035f,2))*.18f-Mathf.Exp(-Mathf.Pow((phase-.30f)/.012f,2))*.25f+Mathf.Exp(-Mathf.Pow((phase-.34f)/.014f,2))-Mathf.Exp(-Mathf.Pow((phase-.39f)/.014f,2))*.35f+Mathf.Exp(-Mathf.Pow((phase-.58f)/.06f,2))*.28f;
+                y+=(Mathf.PerlinNoise(i*.37f,t*.6f)-.5f)*.07f;
+                var point=new Vector2(x,baseline-y*height);
+                if(i>0)InkSegment(previous,point,ink);
+                previous=point;
+            }
+        }
+        void InkSegment(Vector2 a,Vector2 b,Color c)
+        {
+            var d=b-a;float length=d.magnitude;if(length<.01f)return;
+            var matrix=GUI.matrix;GUIUtility.RotateAroundPivot(Mathf.Atan2(d.y,d.x)*Mathf.Rad2Deg,a);
+            Panel(new Rect(a.x,a.y-.9f,length+.6f,1.8f),c);GUI.matrix=matrix;
         }
         void Note()
         {
@@ -353,6 +412,7 @@ namespace HollowCurrent
                 Track(130,y,yes?"RECORDED":"NOT RECORDED",yes?copper:muted);Label(130,y+26,526,65,EvidenceText(e,yes),evidenceStyle);y+=90;
             }
             Rule(111,570,548);Track(111,592,Book.ContextTrack);
+            if(Game.Map==MapId.Castle){Track(111,734,"PULSE",muted);PulseLine(new Rect(190,728,469,58));}
             string[] names=Book.NoteTitles;
             for(int i=0;i<3;i++)
             {
@@ -428,7 +488,7 @@ namespace HollowCurrent
             KeyPill(1315,840,PadInput.Active?(ps?"□":"X"):"F","FLASHLIGHT");
             if(Game.HelpHints)Label(365,869,855,25,PadInput.Active?(ps?"× INTERACT   △ JOURNAL   L2 RADIO   L3 SPRINT   ○ CROUCH":"A INTERACT   Y JOURNAL   LT RADIO   LS SPRINT   B CROUCH"):"E INTERACT   J JOURNAL   R RADIO   SHIFT SPRINT   CTRL CROUCH",hudTiny);
             if(p.Stamina<.99f){Panel(new Rect(44,878,220,2),line);Panel(new Rect(44,878,220*p.Stamina,2),copper);}
-            if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,"SIGNAL COLLAPSE  "+Mathf.CeilToInt(9-Game.Case.PhaseTime),center);
+            if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt((Game.Map==MapId.Castle?FearLink.WarningSeconds(Game.Case):9)-Game.Case.PhaseTime)),center);
         }
     }
 }

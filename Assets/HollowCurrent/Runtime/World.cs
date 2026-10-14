@@ -49,6 +49,40 @@ namespace HollowCurrent
                 HunterSpawn=p.HunterSpawn,PerchPoints=p.PerchPoints,AltarPosition=p.AltarPosition,RelicPositions=p.RelicPositions,DrawbridgeTrigger=p.DrawbridgeTrigger,DrawbridgeWinch=p.DrawbridgeWinch,
                 Drawbridge=p.Drawbridge,RuneRingCenter=p.RuneRingCenter,RuneRingRadius=p.RuneRingRadius,RuneRingAnchor=p.RuneRingAnchor,KnifeOrbitAnchor=p.KnifeOrbitAnchor,AltarAnchor=p.AltarAnchor,
                 StairLoop=p.StairLoop,StairLoopReturn=p.StairLoopReturn,ServiceDoors=p.ServiceDoors!=null?p.ServiceDoors.ToArray():new Door[0]};
+            // Long Night dial (FEAR_PLAN item 6): nail `count` random hide spots outside the gatehouse shut. A nailed
+            // spot keeps its collider (the player can still focus it) and refuses with "Nailed shut."; two dark
+            // planks cross its front so the player can see why.
+            public int NailHides(int count)
+            {
+                var open=new List<Interactable>();
+                foreach(var item in Object.FindObjectsByType<Interactable>(FindObjectsInactive.Exclude,FindObjectsSortMode.None))
+                    if(item.Kind==InteractKind.Hide&&!item.Nailed&&!Gatehouse.Contains(item.transform.position))open.Add(item);
+                open.Sort((a,b)=>a.name==b.name?a.transform.position.x.CompareTo(b.transform.position.x):string.CompareOrdinal(a.name,b.name));
+                int nailed=0;
+                while(nailed<count&&open.Count>0)
+                {
+                    int pick=Random.Range(0,open.Count);var spot=open[pick];open.RemoveAt(pick);
+                    spot.Nailed=true;nailed++;Planks(spot);
+                    Debug.Log("HC_NAILED hide="+spot.name+" at="+spot.transform.position);
+                }
+                return nailed;
+            }
+            static void Planks(Interactable spot)
+            {
+                var face=Vector3.ProjectOnPlane(spot.ExitPoint-spot.HidePoint,Vector3.up);if(face.sqrMagnitude<.01f)face=spot.transform.forward;face.Normalize();
+                var col=spot.GetComponent<Collider>();var centre=col?col.bounds.center:spot.transform.position+Vector3.up;
+                float reach=col?Mathf.Abs(Vector3.Dot(col.bounds.extents,new Vector3(Mathf.Abs(face.x),Mathf.Abs(face.y),Mathf.Abs(face.z)))):.3f;
+                // Borrow the hide spot's own (wood) material, darkened; a stripped Standard shader is only the fallback.
+                var source=spot.GetComponentInChildren<Renderer>();
+                var material=source&&source.sharedMaterial?new Material(source.sharedMaterial):new Material(Shader.Find("Standard"));material.color=new Color(.30f,.22f,.16f);
+                for(int i=0;i<2;i++)
+                {
+                    var plank=GameObject.CreatePrimitive(PrimitiveType.Cube);plank.name="Long Night / nailed plank";Object.Destroy(plank.GetComponent<Collider>());
+                    plank.transform.SetParent(spot.transform,true);plank.transform.position=centre+face*(reach+.04f);
+                    plank.transform.rotation=Quaternion.LookRotation(face)*Quaternion.Euler(0,0,i==0?38:-38);plank.transform.localScale=new Vector3(.16f,1.5f,.035f);
+                    plank.GetComponent<Renderer>().sharedMaterial=material;
+                }
+            }
         }
         public CastleSpots Castle;
         // Plan-view rectangles with strict bounds; y is ignored, exactly as the

@@ -15,6 +15,15 @@ namespace HollowCurrent
         AudioSource rain,room,dispatch,interfaceVoice,safeMusic,houseMusic,huntMusic,playerBreath;
         float duck=1,uiCooldown;
         bool lastJournal;
+        // Castle mixer (FEAR_PLAN item 12): no house music, dread heartbeat, battlement wind, a rare line,
+        // and the Count's claws (item 13). All null/unused in Bellwether.
+        AudioSource heartbeat,wind;
+        readonly List<Vector3> windows=new List<Vector3>();
+        bool rareLine,rareDone;float rareAt=-1;
+        Vector3 clawLast;bool clawTracking;int clawIndex=-1;
+        public float HeartbeatVolume=>heartbeat?heartbeat.volume:0;
+        public float WindVolume=>wind?wind.volume:0;
+        public int ClawStepCount {get;private set;}
         string lastNote;
         public int PlayedCues {get;private set;}
         public int PlayedSpeech {get;private set;}
@@ -47,6 +56,15 @@ namespace HollowCurrent
             interfaceVoice=gameObject.AddComponent<AudioSource>();interfaceVoice.playOnAwake=false;interfaceVoice.spatialBlend=0;interfaceVoice.ignoreListenerPause=true;
             safeMusic=Loop("music_safety",0);houseMusic=Loop("music_house",0);huntMusic=Loop("music_hunt",0);playerBreath=Loop("breath_hidden",0);
             safeMusic.ignoreListenerPause=houseMusic.ignoreListenerPause=huntMusic.ignoreListenerPause=true;
+            if(castle)
+            {
+                heartbeat=CastleLoop("heartbeat_loop");wind=CastleLoop("wind_battlements_loop");
+                foreach(var l in game.World.WindowLights)if(l)windows.Add(l.transform.position);
+                foreach(var w in game.World.Root.GetComponentsInChildren<WindowMoon>(true))windows.Add(w.transform.position);
+                // One run in three may hear the rare line once (rolled now, played after the first hunt).
+                rareLine=UnityEngine.Random.value<1f/3;
+                Debug.Log("HC_CASTLE_MIX heartbeat="+clips.ContainsKey("heartbeat_loop")+" wind="+clips.ContainsKey("wind_battlements_loop")+" windows="+windows.Count+" rareLine="+rareLine);
+            }
             var basement=new GameObject("Basement acoustic volume");basement.transform.SetParent(transform);basement.transform.position=new Vector3(0,-2,7);
             var zone=basement.AddComponent<AudioReverbZone>();zone.reverbPreset=AudioReverbPreset.StoneCorridor;zone.minDistance=2;zone.maxDistance=4.5f;
             Debug.Log("HC_AUDIO_READY "+clips.Count+" authored clips including intelligible voice takes");
@@ -54,6 +72,17 @@ namespace HollowCurrent
         AudioSource Loop(string name,float volume)
         {
             var a=gameObject.AddComponent<AudioSource>();a.clip=clips[name];a.loop=true;a.playOnAwake=false;a.volume=volume;a.spatialBlend=0;a.Play();return a;
+        }
+        AudioSource CastleLoop(string name)
+        {
+            if(!clips.ContainsKey(name)){MissingArt.Report("audio",name);clips[name]=MissingArt.Silence;}
+            var a=Loop(name,0);a.ignoreListenerPause=false;return a;
+        }
+        // Dread 40 -> 0, 60 -> 0.15, 80 -> 0.35, 100 -> 0.55 (AUDIO.md heartbeat curve).
+        public static float HeartbeatForDread(float dread)
+        {
+            if(dread<=40)return 0;if(dread<=60)return Mathf.Lerp(0,.15f,(dread-40)/20);if(dread<=80)return Mathf.Lerp(.15f,.35f,(dread-60)/20);
+            return Mathf.Lerp(.35f,.55f,Mathf.Clamp01((dread-80)/20));
         }
         public void Speak(string id,Vector3? location=null)
         {
@@ -107,6 +136,45 @@ namespace HollowCurrent
             var a=voices[index];a.Stop();speechUntil[index]=0;a.transform.position=position;a.clip=clip;a.volume=volume;a.pitch=pitch;
             filters[index].cutoffFrequency=22000;filters[index].enabled=true;a.Play();PlayedCues++;return index;
         }
+        void CastleMix(float dt,float bed,bool hunting,bool tellHeld,bool terminal)
+        {
+            var p=game.Player;float dread=FearLink.Dread(game.Case);
+            float beat=terminal||!game.Started?0:Mathf.Max(HeartbeatForDread(dread),hunting&&!tellHeld?.5f:0)*bed;
+            heartbeat.volume=Mathf.MoveTowards(heartbeat.volume,beat,dt*.55f); // ~1 s ramp
+            float nearWindow=99;foreach(var w in windows)nearWindow=Mathf.Min(nearWindow,Vector3.Distance(p.transform.position,w));
+            float air=!game.Started||terminal?0:!p.Inside?.15f:nearWindow<2.5f?.10f:0;
+            wind.volume=Mathf.MoveTowards(wind.volume,air*bed,dt*.25f);
+            RareLine(hunting);
+            ClawSteps(hunting);
+        }
+        // cc_listen at most once per run, in one run of three, at a quiet moment after the first hunt,
+        // 2 m behind and 1.5 m above the player's head (below the ceiling).
+        void RareLine(bool hunting)
+        {
+            if(!rareLine||rareDone||game.Case.Hunts<1||game.Modal)return;
+            if(hunting){rareAt=-1;return;}
+            if(rareAt<0){rareAt=Time.time+UnityEngine.Random.Range(20f,90f);return;}
+            if(Time.time<rareAt)return;
+            bool speaking=dispatch.isPlaying;for(int i=0;i<voices.Count;i++)if(voices[i].isPlaying&&speechUntil[i]>Time.unscaledTime)speaking=true;
+            if(speaking||game.Player.InVan||game.Player.Hidden||game.Case.Phase==Phase.Warning){rareAt=Time.time+5;return;}
+            var view=game.Player.View.transform;var back=Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=game.Player.transform.forward;back.Normalize();
+            var at=view.position-back*2+Vector3.up*1.5f;
+            if(Physics.Raycast(view.position,Vector3.up,out var ceiling,1.6f,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))at.y=Mathf.Min(at.y,ceiling.point.y-.2f);
+            rareDone=true;Speak("cc_listen",at);Debug.Log("HC_RARE_LINE cc_listen at="+at+" t="+game.Case.Elapsed.ToString("F1"));
+        }
+        // Claw steps from the Count's ground movement: every 0.5 m he travels on a floor (not gliding),
+        // 5 % volume outside hunts, full in hunts.
+        void ClawSteps(bool hunting)
+        {
+            var creature=game.Creature;var actor=creature?creature.Actor:null;
+            if(!actor||!actor.gameObject.activeInHierarchy||game.Modal){clawTracking=false;return;}
+            var at=actor.transform.position;
+            bool grounded=at.y-World.FloorBelow(at.y)<.5f;
+            if(!clawTracking||!grounded){clawLast=at;clawTracking=grounded;return;}
+            if(Vector3.ProjectOnPlane(at-clawLast,Vector3.up).magnitude<.5f)return;
+            clawLast=at;int next=clawIndex<0?UnityEngine.Random.Range(0,4):UnityEngine.Random.Range(0,3);if(clawIndex>=0&&next>=clawIndex)next++;clawIndex=next;
+            Cue("claw_steps_"+clawIndex,at,hunting?.8f:.05f);ClawStepCount++;
+        }
         void Update()
         {
             if(game.Player==null)return;
@@ -115,13 +183,17 @@ namespace HollowCurrent
             for(int i=0;i<voices.Count;i++)if(voices[i].isPlaying&&speechUntil[i]>Time.unscaledTime)speaking=true;
             duck=Mathf.MoveTowards(duck,speaking?.22f:1,dt*(speaking?5f:.75f));
             bool quiet=game.Loading||game.Paused||game.Journal||game.NoteBody!=null;
-            bool hunting=game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning;
+            bool hunting=game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||castle&&FearLink.HuntActive(game.Case);
+            // A no-tell hunt gives no audio tell for its first seconds: the first sign is him.
+            bool tellHeld=castle&&FearLink.NoTellHunt(game.Case)&&game.Case.Phase==Phase.Hunt&&game.Case.PhaseTime<4;
             bool safe=!game.Started||(game.Player.InVan&&!hunting&&!game.Scares.Interference);
             bool terminal=game.Case.Terminal;
             float bed=game.Loading||terminal?0:quiet?.16f:1;
             safeMusic.volume=Mathf.MoveTowards(safeMusic.volume,safe?.32f*bed*duck:0,dt*.25f);
-            houseMusic.volume=Mathf.MoveTowards(houseMusic.volume,!safe&&!hunting?.28f*bed*duck:0,dt*.25f);
-            huntMusic.volume=Mathf.MoveTowards(huntMusic.volume,!safe&&hunting?.38f*bed*duck:0,dt*.35f);
+            // The castle has no house music (silence is the bed) and caps the hunt music at 0.15.
+            houseMusic.volume=Mathf.MoveTowards(houseMusic.volume,!safe&&!hunting&&!castle?.28f*bed*duck:0,dt*.25f);
+            huntMusic.volume=Mathf.MoveTowards(huntMusic.volume,!safe&&hunting&&!tellHeld?(castle?.15f:.38f)*bed*duck:0,dt*.35f);
+            if(castle)CastleMix(dt,bed,hunting,tellHeld,terminal);
             float breathLevel=game.Started&&!game.Modal&&game.Player.Hidden&&hunting?.28f*duck:0;
             playerBreath.volume=Mathf.MoveTowards(playerBreath.volume,breathLevel,dt*.35f);
             if(safeMusic.volume+houseMusic.volume+huntMusic.volume>.02f&&game.Volume>0)MusicFrames++;

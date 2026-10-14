@@ -56,6 +56,17 @@ namespace HollowCurrent
         Transform torchModel;
         Transform radioModel;
         TextMesh inductionReadout;
+        // Castle hollow compass: a needle over the reader's face points at the compass spot and spins at nothing
+        // while CastleScares.FalseCompass is set (FEAR_PLAN item 5).
+        Transform needle;
+        public bool NeedleSpinning {get;private set;}
+        // Item 19: opt-in microphone (castle only, never in automated runs). One Microphone.Start per enable,
+        // 16 kHz, 1 s ring buffer, RMS every 0.1 s; above Game.MicThreshold during a hunt he hears you at 9 m.
+        AudioClip micClip;bool micTried;float micPoll,micHeardAt=-99;
+        readonly float[] micSamples=new float[1600];
+        public float MicLevel {get;private set;}
+        public bool MicLive=>micClip!=null;
+        public int MicHeard {get;private set;}
         float radioPose;
         public string HeldAssetName => radioPose>0?"FieldRadio":FieldKitArt.Names[Tool-1];
         public int HeldVertexCount => FieldKitArt.VertexCount(radioPose>0?radioModel:instrumentModels[Tool-1]);
@@ -101,6 +112,13 @@ namespace HollowCurrent
             var readout=new GameObject("Live induction LCD");readout.transform.SetParent(instrumentModels[0],false);readout.transform.localPosition=new Vector3(0,.044f,-.041f);readout.layer=30;
             inductionReadout=readout.AddComponent<TextMesh>();inductionReadout.text="0.0";inductionReadout.fontSize=32;inductionReadout.characterSize=.0048f;inductionReadout.anchor=TextAnchor.MiddleCenter;inductionReadout.alignment=TextAlignment.Center;inductionReadout.color=new Color(.35f,.9f,.48f);
             readout.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+            if(Game.Map==MapId.Castle)
+            {
+                var n=GameObject.CreatePrimitive(PrimitiveType.Cube);n.name="Hollow compass needle";Destroy(n.GetComponent<Collider>());n.layer=30;
+                needle=n.transform;needle.SetParent(readout.transform,false);needle.localPosition=new Vector3(0,0,-.002f);needle.localScale=new Vector3(.028f,.0022f,.0008f);
+                var r=n.GetComponent<Renderer>();r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;
+                var shader=Shader.Find("Sprites/Default");if(!shader)shader=Shader.Find("UI/Default");if(shader)r.sharedMaterial=new Material(shader){color=new Color(.86f,.22f,.16f)};
+            }
             instrumentModels[1].localRotation=Quaternion.Euler(0,180,0); // UV emitter points into the scene.
             workingHand=FirstPersonHands.Attach(heldTool,new Vector3(.052f,-.050f,-.003f),new Vector3(4,-15,82));
             // The exported flashlight lies on X with its broad reflector at -X.
@@ -127,6 +145,7 @@ namespace HollowCurrent
         void Update()
         {
             if(Game==null)return;
+            UpdateMicrophone();
             Torch.enabled=Game.Case.Equipped&&TorchOn&&!(Game.Scares&&Game.Scares.TorchFailed);Torch.intensity=.85f*Brightness;
             Ultraviolet.enabled=Game.Case.Equipped&&Tool==2&&!Hidden;
             hiddenVision.enabled=Hidden&&!Game.Modal;hiddenVision.intensity=.09f*Brightness;
@@ -237,8 +256,49 @@ namespace HollowCurrent
             if(Physics.Raycast(View.transform.position,delta.normalized,out var hit,delta.magnitude-.12f))return false;
             return true;
         }
+        void UpdateNeedle()
+        {
+            if(!needle)return;
+            NeedleSpinning=FearLink.FalseCompass(Game.Scares.Castle);
+            float angle;
+            if(NeedleSpinning)angle=Time.time*840+Mathf.Sin(Time.time*13)*40;
+            else
+            {
+                var to=Vector3.ProjectOnPlane(Game.World.Induction-transform.position,Vector3.up);
+                angle=to.sqrMagnitude<.01f?0:-Vector3.SignedAngle(transform.forward,to,Vector3.up)+90;
+            }
+            needle.localRotation=Quaternion.Euler(0,0,angle);
+        }
+        void UpdateMicrophone()
+        {
+            bool want=Game.Map==MapId.Castle&&Game.MicEnabled&&Game.Started&&!Game.Automated;
+            if(!want){StopMicrophone();return;}
+            if(micClip==null)
+            {
+                if(micTried)return;micTried=true;
+                if(Microphone.devices.Length==0){Debug.Log("HC_MIC no device");return;}
+                micClip=Microphone.Start(null,true,1,16000);Debug.Log("HC_MIC start device="+Microphone.devices[0]+" ok="+(micClip!=null));return;
+            }
+            micPoll-=Time.unscaledDeltaTime;if(micPoll>0)return;micPoll=.1f;
+            int position=Microphone.GetPosition(null);if(position<=0)return;
+            int start=position-micSamples.Length;if(start<0)start+=micClip.samples;
+            if(!micClip.GetData(micSamples,start))return; // GetData wraps past the end of the 1 s ring
+            float sum=0;foreach(float v in micSamples)sum+=v*v;
+            MicLevel=Mathf.Sqrt(sum/micSamples.Length);
+            if(!Game.Modal&&FearLink.HuntActive(Game.Case)&&MicLevel>Game.MicThreshold&&Time.time-micHeardAt>.5f)
+            {micHeardAt=Time.time;MicHeard++;Game.Creature.Hear(transform.position,9f);Debug.Log("HC_MIC heard rms="+MicLevel.ToString("F3"));}
+        }
+        void StopMicrophone()
+        {
+            micTried=false;MicLevel=0;if(micClip==null)return;
+            Microphone.End(null);micClip=null;Debug.Log("HC_MIC stop");
+        }
+        void OnDestroy()=>StopMicrophone();
+        void OnApplicationQuit()=>StopMicrophone();
         void UseEquipment(float dt)
         {
+            UpdateNeedle();
+            if(NeedleSpinning&&Tool==1)inductionReadout.text=InductionLevels[Game.Scares.FalseReading];
             if(Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference)inductionReadout.text=InductionLevels[Game.Scares.FalseReading];
             if(!Game.Case.Equipped||Hidden){Game.World.Trace.gameObject.SetActive(false);return;}
             if(Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference)
@@ -253,7 +313,7 @@ namespace HollowCurrent
             {
                 bool near=AimAt(Game.World.Induction,3.4f,19);
                 int reading=near?5:Mathf.Clamp(Mathf.CeilToInt((8-dist)*.55f),0,4);
-                string display=InductionLevels[reading];if(inductionReadout.text!=display)inductionReadout.text=display;
+                string display=InductionLevels[NeedleSpinning?Game.Scares.FalseReading:reading];if(inductionReadout.text!=display)inductionReadout.text=display;
                 readerPulse-=dt;
                 if(reading>0&&readerPulse<=0){readerPulse=1.35f-reading*.21f;Game.Sound.Cue("confirm",View.transform.position,.055f);}
 
@@ -285,6 +345,12 @@ namespace HollowCurrent
         public void Hide(Interactable spot)
         {
             if(Game.Case.Phase==Phase.Briefing)return;
+            if(Game.Map==MapId.Castle)
+            {
+                if(spot.Nailed){Game.Notice("Nailed shut.");Game.Sound.Cue("knock",spot.transform.position,.35f);return;}
+                // Above the DoorHeld threshold something holds the door from inside (FEAR_PLAN item 5).
+                if(FearLink.DoorHeld(Game.Case)){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name);return;}
+            }
             Game.Creature.WitnessHide(spot.HidePoint);
             hiding=spot;Hidden=true;Teleport(spot.HidePoint);
             var outward=Vector3.ProjectOnPlane(spot.ExitPoint-spot.HidePoint,Vector3.up).normalized;

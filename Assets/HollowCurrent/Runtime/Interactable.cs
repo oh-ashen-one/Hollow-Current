@@ -16,6 +16,8 @@ namespace HollowCurrent
         public int RelicIndex=-1;
         // Kind Relic: the visible relic mesh (hidden together with the interactable when taken).
         public GameObject Art;
+        // Kind Hide: nailed shut by the castle's Long Night dial (runtime only, never serialized).
+        [System.NonSerialized] public bool Nailed;
         public void Use(Game game)
         {
             switch(Kind)
