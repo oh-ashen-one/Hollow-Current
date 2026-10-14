@@ -301,8 +301,14 @@ namespace HollowCurrent
         {
             if(Game.Map!=MapId.Castle)return Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference;
             if(Game.Scares.Interference)return true;
-            var actor=Game.Creature?Game.Creature.Actor:null;
-            return actor&&actor.gameObject.activeInHierarchy&&Vector3.Distance(actor.transform.position,transform.position)<12;
+            // Critic r10b N4: only while he hunts (a perched Count between hunts never suspends recording), within 12 m and in
+            // line of sight from her eyes to his head (no radar through walls or floors).
+            if(!Game.Case.HuntActive)return false;
+            var creature=Game.Creature;var actor=creature?creature.Actor:null;
+            if(!actor||!actor.gameObject.activeInHierarchy)return false;
+            var head=creature.HeadPosition;var eye=View.transform.position;
+            if(Vector3.Distance(head,eye)>=12)return false;
+            return !Physics.Linecast(eye,head,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)||Physics.Linecast(eye,head,out var hit,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)&&hit.collider.transform.IsChildOf(actor.transform);
         }
         void UseEquipment(float dt)
         {
@@ -342,7 +348,8 @@ namespace HollowCurrent
                     evp-=dt;Instrument=Game.Book.Listening;
                     if(evp<=0)
                     {
-                        if(Vector3.Distance(transform.position,Game.World.Voice)<4&&!Moving&&Game.Case.Phase!=Phase.Hunt)
+                        // Castle (critic r10b N5): the ear-trumpet answers in and out of a hunt alike.
+                        if(Vector3.Distance(transform.position,Game.World.Voice)<4&&!Moving&&(Game.Map==MapId.Castle||Game.Case.Phase!=Phase.Hunt))
                         {Game.Case.Record(Evidence.Voice);Game.Say(Game.Book.Reply);Game.Sound.Cue("voice",Game.World.Voice);}
                         else Game.Say(Game.Book.NoReply);
                     }

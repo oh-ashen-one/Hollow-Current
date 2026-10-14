@@ -172,6 +172,11 @@ static class RulesTests
         var b=StartOn(CaseBook.Bellwether);b.Record(Evidence.Induction);
         Assert(!b.BeginNoTellHunt()&&b.Phase==Phase.Disturbance&&b.Hunts==0&&b.BreakerOn,"Bellwether ignores BeginNoTellHunt");
         var brief=new Investigation(CaseBook.Castle);Assert(!brief.BeginNoTellHunt()&&brief.Phase==Phase.Briefing,"castle: no no-tell hunt before the kit");
+        // r10b N5: castle actions behave the same in a hunt; Bellwether keeps its hunt gates.
+        var n5=StartOn(CaseBook.Castle);n5.Record(Evidence.Induction);n5.BeginNoTellHunt();n5.RestorePower();
+        Assert(n5.Phase==Phase.Hunt&&n5.BreakerOn&&n5.Record(Evidence.Handprint),"castle hunt: the brazier relights and records succeed");
+        var bw=StartOn(CaseBook.Bellwether);bw.Record(Evidence.Induction);bw.BeginWarning();bw.Tick(9,true);
+        Assert(bw.Phase==Phase.Hunt&&!bw.Record(Evidence.Handprint),"Bellwether hunt still blocks records");
     }
     static Investigation StartOn(CaseBook book,Func<float> random=null,HuntRules rules=null){var c=new Investigation(book,random,rules);c.Equip();c.EnterHouse();return c;}
     static int TickUntilLeaves(Investigation c,Phase phase,int maxSeconds){int t=0;while(c.Phase==phase&&t<maxSeconds){c.Tick(1,false);t++;}return t;}
@@ -229,7 +234,7 @@ static class RulesTests
         Assert(TickUntilLeaves(band,Phase.Disturbance,90)==90&&band.Hunts==0,"40-60 band: 0.125 chance never beats a 0.2 roll");
         band.AddDread(20);int waited=TickUntilLeaves(band,Phase.Disturbance,30);
         Assert(waited<=7&&band.Phase==Phase.Hunt&&band.NoTellHunt&&band.HuntActive&&band.Hunts==1&&band.BreakerOn,"60-80 band: 0.25 chance beats 0.2; the 0.2 tell roll makes it a no-tell hunt (brazier untouched)");
-        Assert(!band.Record(Evidence.Voice),"no-tell hunt still blocks records");
+        Assert(band.Record(Evidence.Voice),"castle (r10b N5): a no-tell hunt does not block records (the refusal was a hunt tell)");
         var high=StartOn(CaseBook.Castle);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))high.Record(e);high.AddDread(85);
         Assert(TickUntilLeaves(high,Phase.Disturbance,30)<10&&high.Phase==Phase.Warning&&!high.FalseWarning&&!high.NoTellHunt,"80+ band with three records: deterministic 0.5 roll hunts, after a real Warning");
         high.Tick(9,false);Assert(high.Phase==Phase.Hunt&&high.Hunts==1,"rolled Warning becomes a hunt after 9 s");
@@ -266,7 +271,7 @@ static class RulesTests
         Assert(fw.Record(Evidence.Voice)&&fw.MysteryReady,"false warning accepts records and keeps MysteryReady");
         fw.Tick(8,false);Assert(fw.Phase==Phase.Warning&&fw.FalseWarning,"false alarm lasts the full warning");
         fw.Tick(1,false);Assert(fw.Phase==Phase.Disturbance&&!fw.FalseWarning&&fw.Hunts==1&&fw.MysteryReady,"false alarm ends in Disturbance, no hunt, still ready");
-        fw.BeginWarning();Assert(!fw.MysteryReady&&!fw.FalseWarning,"a real Warning blocks the journal");fw.Tick(9,false);Assert(fw.Phase==Phase.Hunt&&fw.Hunts==2,"real Warning hunts");
+        fw.BeginWarning();Assert(fw.MysteryReady&&!fw.FalseWarning,"castle (r10b N5): a real Warning does not block the journal (readiness is phase-blind)");fw.Tick(9,false);Assert(fw.Phase==Phase.Hunt&&fw.Hunts==2,"real Warning hunts");
 
         // Escalation: a close apparition becomes a hunt after a 1.5 s tell, with no dispatch line.
         Assert(!StartOn(CaseBook.Castle).TryEscalate(),"no escalation outside Disturbance");

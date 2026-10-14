@@ -99,6 +99,11 @@ namespace HollowCurrent
             var c=Game.Case;var phase=c.Phase;
             bool summon=c.Equipped&&!c.Terminal&&phase!=Phase.Warning&&phase!=Phase.Hunt&&phase!=Phase.Containment&&phase!=Phase.Return&&phase!=Phase.Briefing
                 &&((!c.Survived&&c.Evidence.Count>=2)||Forge.HasSword);
+            // Critic r10b N5: in a Warning or hunt the bell answers as it would outside one (toll + the same card) when it could
+            // summon; he is already coming, so nothing else changes. AnchorNotReady never singles out a hunt.
+            bool canCall=c.Equipped&&!c.Terminal&&phase!=Phase.Containment&&phase!=Phase.Return&&phase!=Phase.Briefing&&((!c.Survived&&c.Evidence.Count>=2)||Forge.HasSword);
+            if(!summon&&canCall&&(phase==Phase.Warning||phase==Phase.Hunt))
+            {if(bellCooldown<=0){bellCooldown=7;Game.Sound.Cue("chapel_bell_toll",Game.World.Castle.Anchor,1);}Game.Say(BellRungText());return;}
             if(!summon){if(phase!=Phase.Containment)Game.Say(Game.Book.AnchorNotReady);return;}
             if(bellCooldown<=0){bellCooldown=7;Game.Sound.Cue("chapel_bell_toll",Game.World.Castle.Anchor,1);}
             c.BeginWarning();Game.Say(BellRungText());

@@ -321,7 +321,7 @@ namespace HollowCurrent
                 if(Scares&&Scares.Interference){Sound.Speak("whisper");Say(Book.RadioInterference);return;}
                 if(Case.Phase==Phase.Hunt||Case.Phase==Phase.Warning){Say(Book.RadioHunt);Sound.Speak("warning");return;}
             }
-            if(Case.Diagnosed){Say("Dispatch / "+Case.Goal);Sound.Speak(Case.Phase==Phase.Return?"return":"contain");return;}
+            if(Case.Diagnosed){Say("Dispatch / "+HeldGoal());Sound.Speak(Case.Phase==Phase.Return?"return":"contain");return;}
             string hint=!Case.Evidence.Contains(Evidence.Induction)?"hint_signal":!Case.Evidence.Contains(Evidence.Handprint)?"hint_trace":"hint_voice";
             Say("Dispatch / "+(hint=="hint_signal"?Book.HintSignal:hint=="hint_trace"?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
         }
@@ -350,11 +350,19 @@ namespace HollowCurrent
             Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F0")+" relic="+pick+" moved="+moved);
         }
         const string CastleReturnSwoop="Dispatch / He is out. He is over the courtyard. Get across that bridge.";
+        // Castle (critic r10b N1): every on-demand goal text shows the HUD's held goal, never the hunt goal. Bellwether: Case.Goal.
+        public string HeldGoal()
+        {
+            if(Map!=MapId.Castle)return Case.Goal;
+            var ui=GetComponent<Interface>();return ui?ui.HudGoal():Case.Goal;
+        }
+        IEnumerator SayLater(float seconds,string text){yield return new WaitForSeconds(seconds);if(!Case.Terminal)Say(text);}
         void CountBeat(string id)
         {
             // Critic r10 #34: the hostile return's dispatch card appears with his visible swoop over the courtyard.
             // (A Game constant, not a CaseBook field: RulesTests require every CaseBook string on both maps.)
-            if(id=="return-swoop")Say(CastleReturnSwoop);
+            // Critic r10b N9: the swoop beat fires inside Seal's Set(Return), before SealedMessage; show it 2 s later so both are read.
+            if(id=="return-swoop")StartCoroutine(SayLater(2,CastleReturnSwoop));
         }
         void CacheCandles()
         {

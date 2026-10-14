@@ -90,7 +90,8 @@ namespace HollowCurrent
         float firstHuntAt = -1;       // first-hunt deadline; -1 = not yet drawn
         float firstHuntClock;         // Disturbance time since the FirstHuntEvidence-th record (before any hunt)
         public int ContextCount => (Notes.Contains(Book.NoteTitles[0])?1:0)+(Notes.Contains(Book.NoteTitles[1])?1:0)+(Notes.Contains(Book.NoteTitles[2])?1:0);
-        public bool MysteryReady => Evidence.Count==3&&ContextCount==3&&Survived&&!Diagnosed&&!Terminal&&(Phase!=Phase.Warning||FalseWarning)&&Phase!=Phase.Hunt;
+        // Castle rules: phase-blind (critic r10b N5); a reconstruction filed during a hunt moves to Containment when the hunt ends.
+        public bool MysteryReady => Evidence.Count==3&&ContextCount==3&&Survived&&!Diagnosed&&!Terminal&&(Rules.UsesDread||(Phase!=Phase.Warning||FalseWarning)&&Phase!=Phase.Hunt);
         public bool Terminal => Phase == Phase.Dead || Phase == Phase.Won;
         public event Action<string> Message;
         public event Action<Phase> Changed;
@@ -137,7 +138,9 @@ namespace HollowCurrent
         }
         public bool Record(Evidence value)
         {
-            if (!Equipped || Terminal || Phase == Phase.Hunt || Phase == Phase.Warning && !FalseWarning || Phase == Phase.Briefing) return false;
+            // Castle rules (UsesDread, critic r10b N5): a record succeeds in and out of a hunt, so refusal is never a hunt tell.
+            bool huntGate = !Rules.UsesDread && (Phase == Phase.Hunt || Phase == Phase.Warning && !FalseWarning);
+            if (!Equipped || Terminal || huntGate || Phase == Phase.Briefing) return false;
             if (!Evidence.Add(value)) return false;
             Say("Evidence secured / " + Book.EvidenceName(value) + ". Journal updated.");
             if (Evidence.Count == 1 && Phase == Phase.Survey) Set(Phase.Disturbance);
@@ -158,13 +161,15 @@ namespace HollowCurrent
                 Say(anchor!=AnchorKind.MusicBox?Book.WrongAnchor:pattern!=HauntingPattern.DomesticLoop?Book.WrongPattern:Book.WrongClosure);
                 return false;
             }
-            Diagnosed=true;Set(Phase.Containment);
+            Diagnosed=true;
+            // Castle: during a Warning or hunt the case is diagnosed now and enters Containment when Recovery ends.
+            if (!(Phase == Phase.Hunt || Phase == Phase.Warning && !FalseWarning)) Set(Phase.Containment);
             Say(Book.Diagnosed);
             return true;
         }
         public void RestorePower()
         {
-            if (Phase == Phase.Hunt || Phase == Phase.Warning || Terminal) return;
+            if (!Rules.UsesDread && (Phase == Phase.Hunt || Phase == Phase.Warning) || Terminal) return; // castle: any live phase (N5)
             BreakerOn = true;
             Say(Book.PowerRestored);
         }
