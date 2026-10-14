@@ -143,5 +143,17 @@
     "rate": 112,
     "voice": "en-gb-x-rp+m7",
     "pitch": 16
+  },
+  "cc_kit": {
+    "text": "Take them. The steward took them too. They did not help him.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 16
+  },
+  "cc_ending": {
+    "text": "Dawn. I had forgotten its colour. Go, and leave the door open.",
+    "rate": 108,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 14
   }
 }
