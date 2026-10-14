@@ -1,0 +1,219 @@
+    37: HC_PLAY phase=switch_to_castle from=Bellwether
+    46: HC_THROWABLES director=38
+    59: HC_PLAY phase=begin_natural t=1.1 case=Briefing dread=0.0 hunts=0 evidence=0 notes=0 survived=False relics=0 sword=False hits=0 blockedDeaths=0 rules=Castle
+    62: HC_COUNT_PERCH moved perch=5 feet=(0.00, 8.10, 19.50) playerDist=15.1 viewAngle=50 occluded=True watches=1 favourite=-1 phase=Survey
+    92: HC_PLAY phase=evidence_Induction t=4.6 case=Disturbance dread=0.2 hunts=0 evidence=1 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 COMPASS  5 / 5 · HOLD STEADY TO RECORD
+   102: HC_PLAY phase=evidence_Handprint t=7.8 case=Disturbance dread=0.3 hunts=0 evidence=2 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 GRAVE-ASH · CLAW-SCORES · HOLD TO RECORD
+   103: HC_PLAY phase=opened t=8.0 case=Disturbance dread=0.3 hunts=0 evidence=2 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 runDreadMin=33.0
+   104: HC_PLAY phase=evidence_Voice t=12.8 case=Disturbance dread=0.6 hunts=0 evidence=3 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 EAR-TRUMPET · CLICK TO ASK: WHO IS HERE?
+   106: HC_COUNT_PERCH moved perch=3 feet=(-10.00, 5.60, 16.00) playerDist=11.7 viewAngle=34 occluded=True watches=2 favourite=-1 phase=Disturbance
+   107: HC_DUCK seconds=6.1 depth=0.10
+   108: HC_SCARE_CASTLE silence seconds=6.1 duck=wired felt=0 dread=1
+   110: HC_COUNT_PERCH moved perch=5 feet=(0.00, 8.10, 19.50) playerDist=8.1 viewAngle=78 occluded=False watches=1 favourite=1 phase=Disturbance
+   111: HC_SCARE_SKIP reason=rhythm canSurprise=False age=24
+   112: HC_SCARE_CASTLE knife_stick
+   113: HC_RULES t=29 phase=Disturbance dread=1.5 event=0.0 felt=4.2 runDreadMin=33.0 grace=0 relief=1 huntShare=0.000 hunts=0
+   115: HC_COUNT_PERCH moved perch=4 feet=(10.46, 9.20, 25.46) playerDist=15.5 viewAngle=33 occluded=True watches=3 favourite=1 phase=Disturbance
+   117: HC_SCARE_SKIP reason=rhythm canSurprise=True age=37
+   118: HC_SCARE_CASTLE bell_single
+   121: HC_COUNT_PERCH flight observed=False roll=0.11 from=4 to=1 position=(10.46, 9.20, 25.46) player=(-10.00, 0.98, 16.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=4 mode=0
+   126: HC_COUNT_PERCH landed perch=1 position=(3.22, 4.25, 20.51) player=(-10.00, 0.98, 16.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=1 mode=0
+   129: HC_COUNT_PERCH flight unseen=True audible=True roll=0.08 from=1 to=2 wings=0.5 position=(3.22, 4.25, 20.51) player=(-13.52, 6.48, 2.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=1 mode=0
+   131: HC_COUNT_PERCH landed perch=2 position=(0.00, 5.45, 27.00) player=(-13.52, 6.48, 2.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=2 mode=0
+   132: HC_RULES t=59 phase=Disturbance dread=3.4 event=0.0 felt=0.0 runDreadMin=33.0 grace=0 relief=1 huntShare=0.000 hunts=0
+   133: HC_SCARE_SKIP reason=rhythm canSurprise=True age=60
+   134: HC_DUCK seconds=6.8 depth=0.10
+   135: HC_SCARE_CASTLE silence seconds=6.8 duck=wired felt=1 dread=4
+   138: HC_COUNT_PERCH moved perch=5 feet=(0.00, 8.10, 19.50) playerDist=22.2 viewAngle=100 occluded=True watches=1 favourite=1 phase=Disturbance
+   140: HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=12.9 viewAngle=13 occluded=True watches=1 favourite=1 phase=Disturbance
+   141: HC_ESCALATE near=3.4 escalated=False
+   142: HC_SCARE visible=1 basement=False rush=False
+   144: HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=12.9 viewAngle=54 occluded=True watches=1 favourite=1 phase=Disturbance
+   145: HC_WARNING false=False escalated=False length=6.3 threatFrom=Disturbance dread=17.4
+   146: HC_RULES t=89 phase=Warning dread=17.8 event=11.7 felt=0.0 runDreadMin=33.0 grace=0 relief=1 huntShare=0.045 hunts=0
+   148: HC_HUNT_START t=91 phase=Hunt noTell=False from=Warning escalated=False threatFrom=Disturbance dread=18.1 felt=0.0 runDreadMin=33.0 huntSeconds=36.2 breaker=False hunts=1
+   158: HC_COUNT_VOICE queued cc_hunt_hungry reason=first 8 s, not seen; due in 7.8 s
+   168: HC_COUNT_VOICE cc_hunt_hungry t=10.4 position=(7.03, 3.25, 14.63) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Land perch=0 mode=2
+   179: HC_COUNT_VOICE dropped cc_hunt_hungry reason=cooldown
+   188: HC_COUNT_DIVE position=(1.28, 1.15, 13.28) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=1
+   189: HC_COUNT_VOICE cc_hunt_run t=20.8 position=(1.28, 1.15, 13.28) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=1
+   191: HC_SCARE_CASTLE window_silhouette
+   192: HC_AMBIENT phase=Hunt beat=window_silhouette
+   199: HC_COUNT_DIVE_LAST eta=1.00 distance=6.23 speed=5.2 position=(8.62, 1.15, 5.84) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=3
+   200: HC_TORCH_FAIL dive last second eta=1.00
+   202: HC_COUNT_DIVE close_s=4.49 from=12.75 to=1.03 speed=5.2 position=(11.27, 1.15, 10.31) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=3
+   203: HC_COUNT_GRAB mode=9 height=1.07 reason=came in low (1.1 m) dropHeight=1.07 hideEntrance=False witnessed=False position=(11.27, 1.15, 10.31) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch
+   206: HC_RULES t=119 phase=Hunt dread=34.5 event=26.7 felt=20.2 runDreadMin=33.0 grace=0 relief=1 huntShare=0.286 hunts=1
+   217: HC_RECOVERY seconds=25.7 grace=58.8 huntDreadAdded=15.0 huntShare=0.334 dread=34.9 felt=34.6
+   219: HC_COUNT_HUNT_END lastSeen=(11.80, 0.08, 11.20) position=(11.27, 1.15, 10.31) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=False memory=False flight=Chase perch=0 mode=9
+   227: HC_SCARE_SKIP reason=rhythm canSurprise=False age=145
+   228: HC_SCARE_CASTLE window_silhouette
+   230: HC_SCARE_CASTLE window_silhouette
+   231: HC_AMBIENT phase=Recovery beat=window_silhouette
+   233: HC_RULES t=149 phase=Recovery dread=27.4 event=18.1 felt=35.4 runDreadMin=33.0 grace=37 relief=1 huntShare=0.286 hunts=1
+   234: HC_COUNT_PERCH landed perch=0 position=(-3.22, 4.25, 20.51) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=0 mode=0
+   237: HC_COUNT_PERCH flight unseen=True audible=True roll=0.31 from=0 to=5 wings=0.5 position=(-3.22, 4.25, 20.51) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=0 mode=0
+   242: HC_SCARE_SKIP reason=rhythm canSurprise=True age=158
+   243: HC_SCARE_CASTLE bell_single
+   245: HC_COUNT_PERCH landed perch=5 position=(0.00, 8.10, 19.50) player=(-10.00, 0.98, 16.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=5 mode=0
+   247: HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=28.4 viewAngle=38 occluded=True watches=1 favourite=1 phase=Disturbance
+   248: HC_ESCALATE near=3.4 escalated=False
+   249: HC_THROW prop=Throwable / Candlestick at=(-12.20, 4.09, 1.25) castle=near_apparition toPlayer=2.8 toApparition=4.0
+   250: HC_SCARE visible=2 basement=False rush=False
+   252: HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=28.4 viewAngle=2 occluded=True watches=1 favourite=1 phase=Disturbance
+   253: HC_RULES t=179 phase=Disturbance dread=43.8 event=32.5 felt=19.3 runDreadMin=33.0 grace=7 relief=1 huntShare=0.238 hunts=1
+   256: HC_COUNT_PERCH moved perch=1 feet=(3.22, 4.25, 20.51) playerDist=25.1 viewAngle=104 occluded=True watches=1 favourite=1 phase=Disturbance
+   258: HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=12.9 viewAngle=80 occluded=True watches=1 favourite=1 phase=Disturbance
+   259: HC_SCARE_SKIP reason=rhythm canSurprise=False age=196
+   260: HC_SCARE_CASTLE candle_gutter
+   262: HC_COUNT_PERCH moved perch=5 feet=(0.00, 8.10, 19.50) playerDist=10.6 viewAngle=84 occluded=True watches=1 favourite=1 phase=Disturbance
+   263: HC_WARNING false=False escalated=False length=7.5 threatFrom=Disturbance dread=41.9
+   264: HC_RULES t=209 phase=Warning dread=42.1 event=28.4 felt=44.1 runDreadMin=33.0 grace=0 relief=1 huntShare=0.214 hunts=1
+   266: HC_HUNT_START t=214 phase=Hunt noTell=False from=Warning escalated=False threatFrom=Disturbance dread=42.6 felt=33.7 runDreadMin=33.0 huntSeconds=39.8 breaker=False hunts=2
+   268: HC_COUNT_LEARNED first glide to last known (11.80, 0.08, 11.20) (player now (12.04, 0.35, 6.50), 4.7 m away) hostileReturn=False position=(0.00, 8.10, 19.50) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=False memory=True f
+   278: HC_COUNT_VOICE queued cc_hunt_hungry reason=first 8 s, not seen; due in 5.0 s
+   279: HC_COUNT_DIVE position=(1.28, 1.15, 13.28) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=5 mode=1
+   280: HC_COUNT_VOICE cc_hunt_run t=4.9 position=(1.28, 1.15, 13.28) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=5 mode=1
+   285: HC_COUNT_DIVE_LAST eta=1.00 distance=6.05 speed=5.0 position=(6.71, 1.15, 3.66) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=5 mode=3
+   286: HC_TORCH_FAIL dive last second eta=1.00
+   289: HC_COUNT_DIVE close_s=3.82 from=12.75 to=1.00 speed=5.2 position=(11.19, 1.28, 5.97) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=5 mode=3
+   290: HC_COUNT_GRAB mode=9 height=0.93 reason=came in low (0.9 m) dropHeight=0.93 hideEntrance=False witnessed=False position=(11.19, 1.28, 5.97) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=5
+   297: HC_COUNT_VOICE cc_hunt_hungry t=14.4 position=(11.19, 1.28, 5.97) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=5 mode=9
+   298: HC_SCARE_CASTLE window_silhouette
+   299: HC_AMBIENT phase=Hunt beat=window_silhouette
+   311: HC_RULES t=239 phase=Hunt dread=58.8 event=43.4 felt=50.7 runDreadMin=33.0 grace=0 relief=1 huntShare=0.313 hunts=2
+   329: HC_RECOVERY seconds=32.8 grace=58.7 huntDreadAdded=25.0 huntShare=0.354 dread=69.6 felt=31.1
+   331: HC_COUNT_HUNT_END lastSeen=(11.80, 0.08, 11.20) position=(11.70, 0.05, 10.25) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Land perch=5 mode=2
+   337: HC_SCARE_CASTLE window_silhouette
+   338: HC_AMBIENT phase=Recovery beat=window_silhouette
+   340: HC_RULES t=269 phase=Recovery dread=64.4 event=47.4 felt=27.2 runDreadMin=33.0 grace=44 relief=1 huntShare=0.334 hunts=2
+   343: HC_COUNT_PERCH landed perch=3 position=(-10.00, 5.60, 16.00) player=(-10.00, 0.98, 16.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=3 mode=0
+   345: HC_COUNT_PERCH moved perch=1 feet=(3.22, 4.25, 20.51) playerDist=14.3 viewAngle=54 occluded=True watches=1 favourite=1 phase=Recovery
+   346: HC_SCARE_SKIP reason=no_visible_point
+   347: HC_SCARE_CASTLE bat_pass
+   349: HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=15.5 viewAngle=148 occluded=True watches=1 favourite=1 phase=Recovery
+   351: HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=21.3 viewAngle=40 occluded=True watches=1 favourite=1 phase=Disturbance
+   352: HC_ESCALATE near=3.4 escalated=False
+   353: HC_SCARE visible=3 basement=False rush=True
+   355: HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=21.3 viewAngle=29 occluded=True watches=1 favourite=1 phase=Disturbance
+   356: HC_RULES t=299 phase=Disturbance dread=69.4 event=50.4 felt=44.7 runDreadMin=33.0 grace=14 relief=1 huntShare=0.301 hunts=2
+   360: HC_COUNT_PERCH flight unseen=True audible=True roll=0.25 from=0 to=2 wings=1.0 position=(-3.22, 4.25, 20.51) player=(-13.52, 6.48, 2.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=0 mode=0
+   362: HC_COUNT_PERCH landed perch=2 position=(0.00, 5.45, 27.00) player=(-13.52, 6.48, 2.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=2 mode=0
+   363: HC_SCARE_SKIP reason=rhythm canSurprise=False age=309
+   364: HC_LIE kind=footsteps_behind at=(-14.1, 6.5, 5.9) distance=4.0 decoy=True dread=69
+   367: HC_COUNT_PERCH flight unseen=True audible=True roll=0.15 from=2 to=0 wings=0.0 position=(0.00, 5.45, 27.00) player=(9.00, 3.28, 16.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=2 mode=0
+   369: HC_COUNT_PERCH landed perch=0 position=(-3.22, 4.25, 20.51) player=(9.00, 3.28, 16.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=0 mode=0
+   371: HC_COUNT_PERCH moved perch=4 feet=(10.46, 9.20, 25.46) playerDist=10.8 viewAngle=43 occluded=True watches=3 favourite=1 phase=Disturbance
+   372: HC_WARNING false=True escalated=False length=6.7 threatFrom=Disturbance dread=67.4
+   373: HC_RULES t=329 phase=Warning dread=67.5 event=46.1 felt=56.1 runDreadMin=33.0 grace=0 relief=1 huntShare=0.276 hunts=2
+   375: HC_FALSE_WARNING ended phase=Disturbance
+   377: HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=21.1 viewAngle=161 occluded=True watches=1 favourite=1 phase=Disturbance
+   378: HC_WARNING false=False escalated=False length=6.3 threatFrom=Disturbance dread=67.7
+   379: HC_HUNT_START t=345 phase=Hunt noTell=False from=Warning escalated=False threatFrom=Disturbance dread=68.1 felt=66.5 runDreadMin=33.0 huntSeconds=47.7 breaker=False hunts=3
+   381: HC_COUNT_LEARNED first glide to last known (11.80, 0.08, 11.20) (player now (12.04, 0.35, 6.50), 4.7 m away) hostileReturn=False position=(-3.22, 4.25, 20.51) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=False memory=True 
+   389: HC_COUNT_VOICE queued cc_hunt_hungry reason=first 8 s, not seen; due in 9.4 s
+   394: HC_SCARE_CASTLE bat_pass
+   395: HC_AMBIENT phase=Hunt beat=bat_pass
+   403: HC_COUNT_VOICE cc_hunt_hungry t=11.7 position=(-6.43, 0.36, 25.02) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=0 mode=7
+   411: HC_RULES t=359 phase=Hunt dread=68.8 event=45.5 felt=66.0 runDreadMin=33.0 grace=0 relief=1 huntShare=0.327 hunts=3
+   417: HC_COUNT_VOICE dropped cc_hunt_hungry reason=cooldown
+   419: HC_COUNT_DIVE position=(5.53, 1.15, 3.40) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=1
+   420: HC_COUNT_VOICE cc_hunt_run t=20.1 position=(5.53, 1.15, 3.40) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=1
+   423: HC_COUNT_DIVE_LAST eta=0.99 distance=6.21 speed=5.2 position=(9.15, 1.20, 5.59) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=3
+   424: HC_TORCH_FAIL dive last second eta=0.99
+   426: HC_COUNT_DIVE close_s=2.03 from=10.06 to=1.03 speed=5.2 position=(11.38, 1.16, 10.26) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=3
+   427: HC_COUNT_GRAB mode=9 height=1.08 reason=came in low (1.1 m) dropHeight=1.08 hideEntrance=False witnessed=False position=(11.38, 1.16, 10.26) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch
+   438: HC_SCARE_CASTLE book_drop
+   439: HC_AMBIENT phase=Hunt beat=book_drop
+   449: HC_COUNT_DIVE position=(1.59, 1.15, 5.22) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=1
+   450: HC_COUNT_VOICE cc_hunt_run t=35.3 position=(1.59, 1.15, 5.22) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=1
+   452: HC_COUNT_DIVE_LAST eta=1.00 distance=6.25 speed=5.2 position=(1.36, 1.36, 12.40) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=3
+   453: HC_TORCH_FAIL dive last second eta=1.00
+   455: HC_COUNT_DIVE close_s=2.56 from=13.42 to=1.02 speed=5.2 position=(0.22, 0.39, 17.50) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=0 mode=3
+   463: HC_RULES t=389 phase=Hunt dread=95.3 event=70.5 felt=83.5 runDreadMin=33.0 grace=0 relief=1 huntShare=0.379 hunts=3
+   469: HC_RECOVERY seconds=31.1 grace=51.5 huntDreadAdded=25.0 huntShare=0.384 dread=95.4 felt=81.8
+   471: HC_COUNT_HUNT_END lastSeen=(0.00, 0.08, 18.50) position=(0.21, 0.10, 17.56) player=(-10.00, 0.98, 16.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Land perch=0 mode=2
+   479: HC_COUNT_PERCH landed perch=0 position=(-3.22, 4.25, 20.51) player=(-10.00, 0.98, 16.00) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=0 mode=0
+   480: HC_SCARE_CASTLE window_silhouette
+   481: HC_AMBIENT phase=Recovery beat=window_silhouette
+   483: HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=28.4 viewAngle=4 occluded=True watches=1 favourite=1 phase=Recovery
+   484: HC_RULES t=419 phase=Recovery dread=86.6 event=59.9 felt=88.1 runDreadMin=33.0 grace=25 relief=1 huntShare=0.359 hunts=3
+   486: HC_ESCALATE near=3.4 escalated=False
+   487: HC_THROW prop=Throwable / Book at=(-12.20, 3.97, 0.98) castle=near_apparition toPlayer=3.0 toApparition=3.1
+   488: HC_SCARE visible=4 basement=False rush=False
+   490: HC_COUNT_PERCH moved perch=1 feet=(3.22, 4.25, 20.51) playerDist=25.1 viewAngle=51 occluded=True watches=1 favourite=1 phase=Recovery
+   492: HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=14.0 viewAngle=110 occluded=True watches=1 favourite=1 phase=Disturbance
+   494: HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=12.9 viewAngle=45 occluded=True watches=1 favourite=1 phase=Disturbance
+   495: HC_SCARE_SKIP reason=rhythm canSurprise=False age=444
+   496: HC_DUCK seconds=6.3 depth=0.10
+   497: HC_SCARE_CASTLE silence seconds=6.3 duck=wired felt=91 dread=98
+   498: HC_WARNING false=True escalated=False length=10.0 threatFrom=Disturbance dread=97.9
+   499: HC_RULES t=449 phase=Warning dread=98.1 event=68.8 felt=100.0 runDreadMin=33.0 grace=0 relief=1 huntShare=0.340 hunts=3
+   502: HC_COUNT_PERCH moved perch=1 feet=(3.22, 4.25, 20.51) playerDist=17.0 viewAngle=153 occluded=True watches=1 favourite=1 phase=Warning
+   503: HC_FALSE_WARNING ended phase=Disturbance
+   504: HC_HUNT_START t=462 phase=Hunt noTell=True from=Disturbance escalated=False threatFrom=Disturbance dread=98.2 felt=100.0 runDreadMin=33.0 huntSeconds=28.6 breaker=False hunts=4
+   506: HC_COUNT_LEARNED first glide to last known (0.00, 0.08, 18.50) (player now (12.04, 0.35, 6.50), 17.0 m away) hostileReturn=False position=(3.22, 4.25, 20.51) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=False memory=True f
+   518: HC_COUNT_VOICE queued cc_hunt_hungry reason=first 8 s, not seen; due in 4.4 s
+   530: HC_COUNT_VOICE cc_hunt_hungry t=9.1 position=(-5.15, 0.05, 24.48) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=1 mode=7
+   539: HC_COUNT_DIVE position=(5.53, 1.15, 3.40) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=1
+   540: HC_COUNT_VOICE cc_hunt_run t=16.7 position=(5.53, 1.15, 3.40) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=1
+   541: HC_RULES t=479 phase=Hunt dread=99.0 event=68.1 felt=91.2 runDreadMin=33.0 grace=0 relief=1 huntShare=0.371 hunts=4
+   544: HC_COUNT_DIVE_LAST eta=0.99 distance=6.21 speed=5.2 position=(9.15, 1.20, 5.59) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+   545: HC_TORCH_FAIL dive last second eta=0.99
+   548: HC_COUNT_DIVE close_s=2.03 from=10.06 to=1.03 speed=5.2 position=(11.37, 1.16, 10.26) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+   549: HC_COUNT_GRAB mode=9 height=1.08 reason=came in low (1.1 m) dropHeight=1.08 hideEntrance=False witnessed=False position=(11.37, 1.16, 10.26) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch
+   555: HC_LIE kind=footsteps_behind at=(7.7, 0.0, 11.5) distance=4.1 decoy=False dread=99
+   556: HC_AMBIENT phase=Hunt beat=silence seconds=6.3 duck=wired felt=91 dread=98
+   563: HC_RECOVERY seconds=32.9 grace=59.8 huntDreadAdded=15.0 huntShare=0.386 dread=100.0 felt=100.0
+   565: HC_COUNT_HUNT_END lastSeen=(11.80, 0.08, 11.20) position=(11.37, 1.16, 10.26) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=False memory=False flight=Chase perch=1 mode=9
+   570: HC_PLAY phase=natural_walk_done t=493.6 case=Recovery dread=99.5 hunts=4 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=5644 hunts=4 survived=True apparitions=4 thrown=2
+   573: HC_SCARE_SKIP reason=rhythm canSurprise=False age=501
+   574: HC_SCARE_CASTLE bell_single
+   577: HC_RULES t=509 phase=Recovery dread=93.6 event=61.3 felt=96.1 runDreadMin=33.0 grace=42 relief=1 huntShare=0.372 hunts=4
+   580: HC_COUNT_PERCH landed perch=0 position=(-3.22, 4.25, 20.51) player=(11.80, 0.08, 11.20) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=0 mode=0
+   581: HC_SCARE_CASTLE bat_pass
+   582: HC_AMBIENT phase=Recovery beat=bat_pass
+   583: HC_SCARE_SKIP reason=rhythm canSurprise=False age=519
+   584: HC_DUCK seconds=6.2 depth=0.10
+   585: HC_SCARE_CASTLE silence seconds=6.2 duck=wired felt=86 dread=90
+   586: HC_PLAY phase=ledger_closed t=524.9 case=Containment dread=88.5 hunts=4 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=5644 conclude=True
+   587: HC_HUNT_START t=536 phase=Return noTell=True from=Containment escalated=False threatFrom=Containment dread=78.8 felt=93.5 runDreadMin=33.0 huntSeconds=28.6 breaker=True hunts=5
+   588: HC_COUNT_BEAT return-swoop position=(12.40, 0.00, 12.25) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=False flight=Away perch=-1 mode=3
+   591: HC_COUNT_RETURN_SWOOP begin from=(6.00, 10.00, 12.00) to=(0.00, 8.70, 0.40) leg1=clear leg2=detour via (0.00, 8.65, 4.95) position=(6.00, 10.00, 12.00) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=False flight
+   597: HC_PLAY phase=bell_sealed t=538.7 case=Return dread=78.1 hunts=5 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=5644 Return huntActive=True
+   598: HC_PLAY_BRIDGE_WAIT t=0.0 moving=True count=(1.16, 5.64, 9.98) dist=10.4 blocked=5644
+   601: HC_PLAY_BRIDGE_WAIT t=1.0 moving=True count=(0.00, 6.98, 6.82) dist=8.9 blocked=5644
+   603: HC_RULES t=539 phase=Return dread=77.2 event=51.8 felt=83.0 runDreadMin=33.0 grace=11 relief=3 huntShare=0.357 hunts=5
+   604: HC_PLAY_BRIDGE_WAIT t=2.0 moving=True count=(0.00, 8.67, 2.85) dist=8.8 blocked=5644
+   606: HC_COUNT_RETURN_SWOOP end at=(0.00, 8.70, 0.40) position=(0.00, 8.70, 0.40) player=(0.00, 0.08, 1.20) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=-1 mode=1
+   608: HC_COUNT_LEARNED first glide to last known (11.80, 0.08, 11.20) (player now (0.00, 0.08, 1.20), 15.5 m away) hostileReturn=True position=(0.00, 8.70, 0.40) player=(0.00, 0.08, 1.20) enabled=False nav=False path=none destination=none seen=False memory=True flig
+   612: HC_PLAY_BRIDGE_WAIT t=3.0 moving=True count=(2.14, 8.68, 0.25) dist=8.9 blocked=5644
+   614: HC_PLAY_BRIDGE_WAIT t=4.0 moving=True count=(6.12, 8.13, 0.78) dist=10.1 blocked=5644
+   618: HC_PLAY_BRIDGE_WAIT t=5.0 moving=True count=(7.81, 6.05, 3.87) dist=10.2 blocked=5644
+   619: HC_COUNT_VOICE queued cc_hunt_hungry reason=first 8 s, not seen; due in 2.5 s
+   625: HC_SCARE_CASTLE knife_stick
+   626: HC_AMBIENT phase=Return beat=knife_stick
+   627: HC_PLAY_BRIDGE_WAIT t=6.0 moving=False count=(7.81, 6.05, 3.87) dist=10.2 blocked=5644
+   629: HC_PLAY_BRIDGE_WAIT t=7.1 moving=False count=(7.81, 6.05, 3.87) dist=10.2 blocked=5644
+   631: HC_COUNT_VOICE cc_hunt_hungry t=9.3 position=(7.81, 6.05, 3.87) player=(0.00, 0.08, 1.20) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=-1 mode=1
+   633: HC_PLAY_BRIDGE_WAIT t=8.1 moving=False count=(7.78, 5.83, 3.87) dist=10.0 blocked=5644
+   641: HC_PLAY_BRIDGE_WAIT t=9.1 moving=False count=(7.21, 3.32, 3.69) dist=8.3 blocked=5644
+   642: HC_PLAY_BRIDGE_WAIT done seconds=9.2 closest=8.0 lowerSeconds=7.2
+   643: HC_PLAY phase=drawbridge_lowered t=548.0 case=Return dread=73.4 hunts=5 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=5644 colliders=3 groundHit=Drawbridge leaf@0.00 count=(7.07, 2.89, 3.63)
+   644: HC_PLAY_BRIDGE player=(0.00, 0.08, 1.20) count=(6.86, 2.26, 3.55) huntActive=True dist=7.6
+   645: HC_COUNT_DIVE position=(6.74, 1.88, 3.50) player=(0.00, 0.08, 0.96) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=-1 mode=1
+   647: HC_PLAY_BRIDGE player=(0.00, 0.08, 0.02) count=(5.54, 1.25, 3.40) huntActive=True dist=6.6
+   648: HC_COUNT_DIVE_LAST eta=1.00 distance=6.24 speed=5.2 position=(5.02, 1.64, 3.37) player=(0.00, 0.08, -0.34) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=-1 mode=3
+   649: HC_TORCH_FAIL dive last second eta=1.00
+   651: HC_PLAY_BRIDGE player=(0.00, 0.08, -1.15) count=(3.40, 1.31, 3.27) huntActive=True dist=5.7
+   653: HC_PLAY_BRIDGE player=(0.00, 0.08, -2.32) count=(1.81, 0.88, 2.08) huntActive=True dist=4.8
+   654: HC_PLAY_BRIDGE player=(0.00, 0.08, -3.53) count=(0.88, 0.50, -0.38) huntActive=True dist=3.3
+   656: HC_PLAY_BRIDGE player=(0.00, 0.08, -4.70) count=(0.24, 0.25, -2.89) huntActive=True dist=1.8
+   657: HC_COUNT_DIVE close_s=2.71 from=7.42 to=1.03 speed=5.2 position=(0.05, 0.17, -4.38) player=(0.00, 0.08, -5.41) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=-1 mode=3
+   658: HC_COUNT_GRAB mode=9 height=0.09 reason=came in low (0.1 m) dropHeight=0.09 hideEntrance=False witnessed=False position=(0.05, 0.17, -4.38) player=(0.00, 0.08, -5.41) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=-
+   660: HC_COUNT_HUNT_END lastSeen=(0.00, 0.08, -5.41) position=(0.05, 0.17, -4.38) player=(0.00, 0.08, -5.41) enabled=False nav=False path=none destination=none seen=False memory=False flight=Chase perch=-1 mode=9
+   664: HC_PLAY phase=bridge_crossed t=550.9 case=Won dread=73.2 hunts=5 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=5644 won=True closest=1.01 grabsOnBridge=0 far=(0.00, 1.20, -6.10)
+   665: HC_PLAY phase=won_escape t=552.6 case=Won dread=73.2 hunts=5 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=5644 goal=LEDGER CLOSED
+   666: HC_PLAY_SUMMARY HC_LIE=2 HC_DUCK=4 HC_SCARE_CASTLE_silence=4 HC_COUNT_WITNESSED=0 HC_COUNT_NEARMISS_open=True=0 HC_COUNT_RETURN_SWOOP=2 HC_COUNT_DIVE_LAST=6 HC_RECOVERY=4 HC_NAIL_HIDES=0 HC_COUNT_PERCH_flight_observed=True=0 HC_THROW_SKIP=0 HC_MISSING_ART=0 HC
+   667: HC_PLAY_RESULT mode=natural won=True slain=False blockedDeaths=5644 blockers=0
+Counter({'HC_SCARE': 35, 'HC_COUNT_PERCH moved': 23, 'HC_PLAY_': 19, 'HC_RULES t=': 18, 'HC_COUNT_DIVE': 18, 'HC_COUNT_VOICE ': 17, 'HC_PLAY ': 12, 'HC_COUNT_LEG blocked': 12, 'HC_AMBIENT': 10, 'HC_COUNT_PERCH landed': 9, 'HC_TORCH_FAIL': 6, 'HC_COUNT_PERCH flight': 5, 'HC_WARNING': 5, 'HC_HUNT_START': 5, 'HC_COUNT_GRAB ': 5, 'HC_COUNT_HUNT_END': 5, 'HC_DUCK': 4, 'HC_ESCALATE': 4, 'HC_RECOVERY': 4, 'HC_COUNT_LEARNED': 4, 'HC_THROW': 3, 'HC_LIE': 2, 'HC_FALSE_WARNING': 2, 'HC_COUNT_RETURN_SWOOP': 2, 'HC_COUNT_BEAT ': 1})

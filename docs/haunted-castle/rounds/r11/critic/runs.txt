@@ -1,0 +1,25 @@
+[15:41:14] start verify timeout=900 args=-hc-verify -hc-evidence /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/verify/evidence
+[15:48:21] end verify rc=0 secs=427 killed=0 result: HC_NATIVE_ROUTE_PASS
+[15:48:28] start escape timeout=600 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/escape escape
+[15:50:03] end escape rc=0 secs=95 killed=0 result: HC_PLAY_RESULT mode=escape won=True slain=False blockedDeaths=0 blockers=0
+[15:50:06] start natural1 timeout=1300 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/natural1 natural
+[15:59:13] end natural1 rc=0 secs=547 killed=0 result: HC_PLAY_RESULT mode=natural won=True slain=False blockedDeaths=2566 blockers=0
+[15:59:16] start huntcam timeout=600 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/huntcam huntcam
+[16:01:42] end huntcam rc=0 secs=146 killed=0 result: HC_PLAY_RESULT mode=huntcam won=False dead=True hunts=1 blockers=0
+[16:01:45] start fear timeout=1300 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/fear fear
+[16:07:16] end fear rc=0 secs=331 killed=0 result: HC_PLAY_RESULT mode=fear won=True slain=False blockedDeaths=1246 blockers=0
+[16:07:19] start siege timeout=1000 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/siege siege
+[16:10:10] end siege rc=0 secs=171 killed=0 result: HC_PLAY_RESULT mode=siege won=False slain=False blockedDeaths=1 blockers=0
+[16:10:13] start kill timeout=900 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/kill kill
+[16:11:58] end kill rc=0 secs=105 killed=0 result: HC_PLAY_RESULT mode=kill won=True slain=True blockedDeaths=171 blockers=0
+[16:12:01] start longnight timeout=700 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/longnight escape -hc-long-night
+[16:13:32] end longnight rc=0 secs=91 killed=0 result: HC_PLAY_RESULT mode=escape won=True slain=False blockedDeaths=0 blockers=0
+[16:13:35] start natural2 timeout=1300 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/natural2 natural
+[16:22:57] end natural2 rc=0 secs=562 killed=0 result: HC_PLAY_RESULT mode=natural won=True slain=False blockedDeaths=5644 blockers=0
+[16:23:00] start capture timeout=600 args=-hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/capture
+[16:23:50] end capture rc=0 secs=50 killed=0 result: HC_CAPTURE DONE 20 entries
+[16:23:53] start title timeout=300 args=-hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/title -hc-capture-title -hc-capture-size 1920x1080
+[16:24:08] end title rc=0 secs=15 killed=0 result: HC_CAPTURE TITLE DONE
+[16:24:11] start death timeout=600 args=-hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r11/critic/death death
+[16:24:47] end death rc=0 secs=36 killed=0 result: HC_PLAY_RESULT mode=death won=False deaths=1 penalty=True dread=58.9 movedRelic=0 blockers=0
+BATCH DONE crashes=0

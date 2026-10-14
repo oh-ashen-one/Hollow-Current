@@ -1,0 +1,254 @@
+Mono path[0] = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.20f1 (c9ba695d4f07)
+[Subsystems] Discovering subsystems at path /Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+ preferred device: Apple M3 Ultra (high power)
+Metal devices available: 1
+0: Apple M3 Ultra (high power)
+Using device Apple M3 Ultra (high power)
+Initializing Metal device caps: Apple M3 Ultra
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.053 seconds
+- Finished resetting the current domain, in  0.001 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+UnloadTime: 0.373792 ms
+HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad (TestInput only); window 1920x1080, owner window 1920x1080 restored on quit
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+HC_STARTUP_READY
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_PLAY phase=switch_to_castle from=Bellwether
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.297583 ms
+HC_RULES Long Night dread=50 runDreadMin=30.9 felt=61.3
+HC_CASTLE_MIX heartbeat=True wind=True windows=18 rareLine=False
+HC_AUDIO_READY 93 authored clips including intelligible voice takes
+HC_COUNT_REACH receipt grab=1.385 drop=1.615 crawl=1.729 standOff drop=2.22 crawl=2.33
+HC_COUNT_GORE applied Castle gore / Membrane/CountClaude / albedo/Castle gore / Flesh
+HC_COUNT_RIG wingExt=10 arms=True
+HC_THROWABLES director=38
+[CastleLightTuning] tuned 61 lights
+HC_NAIL_HIDES nailed=2 of requested=2
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_FLAME_CHECK scene material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | runtime material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | queue=3001 | lean shader property _LeanAmount present | one-quad flame mesh in use
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 773 unused Assets to reduce memory usage. Loaded Objects now: 14844.
+Total: 3.620500 ms (FindLiveObjects: 0.290583 ms CreateObjectMapping: 0.036625 ms MarkObjects: 2.720250 ms  DeleteObjects: 0.573000 ms)
+
+[CastleAtmosphere] upgraded 603 world and 525 prop material slots
+HC_STARTUP_READY
+HC_FEAR_CANDLES lights=43 chapelFire=True
+HC_COUNT_RIM scale=0.35 hunt=False
+HC_PLAY phase=begin_escape t=1.1 case=Briefing dread=50.0 hunts=0 evidence=0 notes=0 survived=False relics=0 sword=False hits=0 blockedDeaths=0 rules=Long Night
+HC_PLAY phase=kit_taken t=1.3 case=Briefing dread=50.0 hunts=0 evidence=0 notes=0 survived=False relics=0 sword=False hits=0 blockedDeaths=0
+HC_COUNT_FLOORS seconds=[0,0,0,0] favourite=-1
+HC_PLAY phase=entered t=1.6 case=Survey dread=50.0 hunts=0 evidence=0 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 Survey
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:1.0 1:1.0 2:1.0 3:x(near 5.9m) 4:1.0 5:1.0] favouriteFloor=-1 share=0.00 chosen=4
+HC_COUNT_PERCH moved perch=4 feet=(10.46, 9.20, 25.46) playerDist=26.4 viewAngle=37 occluded=True watches=3 favourite=-1 phase=Survey
+HC_COUNT_GRAB_STATE mode=0 Perch=True
+HC_COUNT_GRAB_STATE mode=1 Glide=True
+HC_COUNT_GRAB_STATE mode=2 Search=True
+HC_COUNT_GRAB_STATE mode=3 Dive=True
+HC_COUNT_GRAB_STATE mode=4 Stagger=True
+HC_COUNT_GRAB_STATE mode=5 Death=True
+HC_COUNT_GRAB_STATE mode=6 Grab=True
+HC_COUNT_GRAB_STATE mode=7 Crawl=True
+HC_COUNT_GRAB_STATE mode=8 GrabDrop=True
+HC_COUNT_GRAB_STATE mode=9 GrabCrawl=True
+HC_COUNT_MODES bound=0:Perch=1 1:Glide=1 2:Search=1 3:Dive=1 4:Stagger=1 5:Death=1 6:Grab=1 7:Crawl=1 8:GrabDrop=1 9:GrabCrawl=1 frames=[0,0,0,0,0,0,0,0,0,0]
+HC_LEAN_CHECK auto candle 1 at 19.1 m: wick screen position before lean (877.3,952.4) after (877.3,952.4) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 10 px (unleaned 10 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.3 _LeanDir=(0.80,0.56,0.20)
+HC_LEAN_CHECK auto candle 2 at 18.9 m: wick screen position before lean (857.5,957.4) after (857.5,957.4) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 11 px (unleaned 11 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.0 _LeanDir=(0.83,0.54,0.16)
+HC_LEAN_CHECK auto candle 3 at 19.3 m: wick screen position before lean (848.6,951.1) after (848.6,951.1) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 13 px (unleaned 13 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.4 _LeanDir=(0.82,0.57,0.11)
+HC_FLAME_RIGID auto flame 1 at 2.2 m: core enabled=True, halo centre to core centre 0.008 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.16 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 2.4 m: core enabled=True, halo centre to core centre 0.007 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.15 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 2.4 m: core enabled=True, halo centre to core centre 0.007 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.15 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 2.5 m: core enabled=True, halo centre to core centre 0.009 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.17 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 2.6 m: core enabled=True, halo centre to core centre 0.009 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.19 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (404 flames in the scene)
+HC_LEAN_CHECK auto candle 1 at 19.0 m: wick screen position before lean (876.6,948.8) after (876.6,948.8) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 12 px (unleaned 12 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.2 _LeanDir=(0.80,0.57,0.20)
+HC_LEAN_CHECK auto candle 2 at 18.9 m: wick screen position before lean (856.1,953.0) after (856.1,953.0) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 12 px (unleaned 12 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.0 _LeanDir=(0.82,0.55,0.15)
+HC_LEAN_CHECK auto candle 3 at 19.3 m: wick screen position before lean (849.0,946.2) after (849.0,946.2) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 11 px (unleaned 11 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.3 _LeanDir=(0.81,0.57,0.11)
+HC_FLAME_RIGID auto flame 1 at 2.2 m: core enabled=True, halo centre to core centre 0.010 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.19 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 2.4 m: core enabled=True, halo centre to core centre 0.008 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.16 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 2.4 m: core enabled=True, halo centre to core centre 0.009 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.18 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 2.5 m: core enabled=True, halo centre to core centre 0.009 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.17 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 2.6 m: core enabled=True, halo centre to core centre 0.007 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.15 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (404 flames in the scene)
+HC_PLAY phase=evidence_Induction t=4.8 case=Disturbance dread=50.2 hunts=0 evidence=1 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 COMPASS  5 / 5 · HOLD STEADY TO RECORD
+HC_LEAN_CHECK auto candle 1 at 26.1 m: wick screen position before lean (669.1,541.6) after (669.1,541.6) moved 0.00 px; rendered flame tip is tilted 7 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=6.2 _LeanDir=(0.53,0.41,0.74)
+HC_LEAN_CHECK auto candle 2 at 26.3 m: wick screen position before lean (676.4,542.7) after (676.4,542.7) moved 0.00 px; rendered flame tip is tilted 8 deg on screen from its candle axis, tip distance from wick 6 px (unleaned 6 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=7.3 _LeanDir=(0.49,0.42,0.76)
+HC_LEAN_CHECK auto candle 3 at 26.3 m: wick screen position before lean (661.4,542.0) after (661.4,542.0) moved 0.00 px; rendered flame tip is tilted 8 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=7.7 _LeanDir=(0.55,0.43,0.71)
+HC_FLAME_RIGID auto flame 1 at 3.4 m: core enabled=True, halo centre to core centre 0.009 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.17 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 3.5 m: core enabled=True, halo centre to core centre 0.008 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.16 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 3.6 m: core enabled=True, halo centre to core centre 0.007 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.15 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 3.7 m: core enabled=True, halo centre to core centre 0.008 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.15 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 3.8 m: core enabled=True, halo centre to core centre 0.008 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.16 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (404 flames in the scene)
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:1.0 1:1.0 2:1.0 3:1.0 4:x(current) 5:1.0] favouriteFloor=-1 share=0.00 chosen=0
+HC_COUNT_PERCH moved perch=0 feet=(-3.22, 4.25, 20.51) playerDist=19.5 viewAngle=137 occluded=True watches=1 favourite=-1 phase=Disturbance
+HC_PLAY phase=evidence_Handprint t=8.0 case=Disturbance dread=50.3 hunts=0 evidence=2 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 GRAVE-ASH · CLAW-SCORES · HOLD TO RECORD
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(current) 1:x(near 7.7m) 2:1.0 3:1.0 4:1.0 5:1.0] favouriteFloor=-1 share=0.00 chosen=5
+HC_COUNT_WINGS leg=perch loudness=0.0 hunt=False
+HC_COUNT_PERCH flight observed=False roll=0.03 from=0 to=5 position=(-3.22, 4.25, 20.51) player=(10.41, 3.28, 17.91) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=0 mode=0
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=2.9
+HC_PLAY phase=evidence_Voice t=12.9 case=Disturbance dread=50.6 hunts=0 evidence=3 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 EAR-TRUMPET · CLICK TO ASK: WHO IS HERE?
+HC_PLAY phase=ledger_read t=13.5 case=Disturbance dread=50.6 hunts=0 evidence=3 notes=4 survived=False relics=0 sword=False hits=0 blockedDeaths=0 Gate keeper's letter,Ledger: the steward,Ledger: the astronomer,Ledger: the painter
+HC_HUNT_START t=12 phase=Hunt noTell=True from=Disturbance escalated=False threatFrom=Disturbance dread=50.5 felt=53.3 runDreadMin=30.9 huntSeconds=43.4 breaker=True hunts=1
+HC_COUNT_MEMORY stale=none when=hunt start
+HC_COUNT_HEARD guess=(10.20, 0.05, 12.70) offset=3.3 hidden=False position=(-3.22, 4.25, 20.51) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=0 mode=0
+HC_HUNT_SPAWN hostileReturn=False noTell=True keptPerch=False position=(-3.22, 4.25, 20.51) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=0 mode=0
+HC_COUNT_ONESHOT held=breath t=0.0 reason=notell (first 8 s, not seen)
+HC_COUNT_AI t=0.0 state=Perched pos=(-3.22, 4.25, 20.51) player=(11.86, 0.08, 9.91) los=False seen=False dist=18.8 angle=129 hidden=False torch=True memory=(10.20, 0.05, 12.70) route=5/0 attacked=False why=outside the sight cone
+HC_PLAY phase=bell_rung t=13.7 case=Hunt dread=50.5 hunts=1 evidence=3 notes=4 survived=False relics=0 sword=False hits=0 blockedDeaths=0 Hunt
+HC_PLAY phase=hidden t=13.9 case=Hunt dread=50.5 hunts=1 evidence=3 notes=4 survived=False relics=0 sword=False hits=0 blockedDeaths=0 Count's wardrobe
+HC_PLAY phase=hunt_started t=14.0 case=Hunt dread=50.5 hunts=1 evidence=3 notes=4 survived=False relics=0 sword=False hits=0 blockedDeaths=0 position=(-3.22, 4.25, 20.51) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=0 mode=0
+HC_COUNT_AI t=1.0 state=Perched pos=(-3.22, 4.25, 20.51) player=(-7.70, 3.20, 0.85) los=False seen=False dist=20.0 angle=117 hidden=True torch=False memory=(10.20, 0.05, 12.70) route=5/0 attacked=False why=player hidden, torch off
+HC_COUNT_SEARCH to=(10.20, 0.05, 12.70) waypoints=20 position=(-3.22, 4.25, 20.51) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=0 mode=0
+HC_COUNT_LEG first=silent reason=notell leg=search
+HC_COUNT_WINGS leg=search loudness=0.0 hunt=True
+HC_COUNT_AI t=2.0 state=Travel pos=(-3.70, 4.29, 20.62) player=(-7.70, 3.20, 0.85) los=False seen=False dist=20.0 angle=52 hidden=True torch=False memory=(10.20, 0.05, 12.70) route=0/20 attacked=False why=player hidden, torch off
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=2.8
+HC_COUNT_AI t=3.0 state=Travel pos=(-4.70, 4.35, 22.90) player=(-7.70, 3.20, 0.85) los=False seen=False dist=22.1 angle=171 hidden=True torch=False memory=(10.20, 0.05, 12.70) route=2/20 attacked=False why=player hidden, torch off
+HC_COUNT_NEARMISS roll=0.04 chance=0.33 go=True position=(-4.12, 4.35, 25.55) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=0 mode=1
+HC_COUNT_NEARMISS begin hide=Count's wardrobe door=(-7.70, 4.25, 1.28) crawlTo=(-7.70, 3.25, 1.78) landing=(-7.70, 3.25, 3.98) open=False openRoll=0.38 chance=0.25 eligible=True dread=51 longNight=True position=(-4.12, 4.35, 25.55) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=NearMiss perch=0 mode=1
+HC_COUNT_AI t=4.0 state=NearMiss pos=(-4.19, 4.35, 25.49) player=(-7.70, 3.20, 0.85) los=False seen=False dist=24.7 angle=127 hidden=True torch=False memory=none route=0/10 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=5.0 state=NearMiss pos=(-4.90, 4.35, 22.20) player=(-7.70, 3.20, 0.85) los=False seen=False dist=21.4 angle=5 hidden=True torch=False memory=none route=1/10 attacked=True why=player hidden, torch off
+HC_COUNT_VOICE queued cc_hunt_hungry reason=first 8 s, not seen; due in 6.8 s
+HC_COUNT_AI t=6.0 state=NearMiss pos=(-5.17, 4.35, 18.46) player=(-7.70, 3.20, 0.85) los=False seen=False dist=17.7 angle=6 hidden=True torch=False memory=none route=1/10 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=7.0 state=NearMiss pos=(-5.98, 4.03, 15.97) player=(-7.70, 3.20, 0.85) los=False seen=False dist=15.1 angle=42 hidden=True torch=False memory=none route=3/10 attacked=True why=player hidden, torch off
+HC_COUNT_POSE pitch=41 target=39 mode=1 state=NearMiss speed=4.0
+HC_COUNT_AI t=8.0 state=NearMiss pos=(-8.06, 3.75, 13.02) player=(-7.70, 3.20, 0.85) los=False seen=False dist=12.0 angle=33 hidden=True torch=False memory=none route=5/10 attacked=True why=player hidden, torch off
+HC_COUNT_LEG blocked=door fix=wait hit=Bedchamber library door at=(-9.36, 4.10, 10.89) for=0.0 state=NearMiss
+HC_COUNT_DREAD seen +15 dread=65.9 position=(-9.45, 3.75, 10.75) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=NearMiss perch=0 mode=1
+HC_COUNT_AI t=9.0 state=NearMiss pos=(-9.60, 3.75, 10.50) player=(-7.70, 3.20, 0.85) los=True seen=False dist=9.7 angle=43 hidden=True torch=False memory=none route=6/10 attacked=True why=player hidden, torch off
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=NearMiss speed=3.0
+HC_COUNT_AI t=10.0 state=NearMiss pos=(-8.46, 3.75, 8.04) player=(-7.70, 3.20, 0.85) los=True seen=False dist=7.1 angle=31 hidden=True torch=False memory=none route=7/10 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=11.0 state=NearMiss pos=(-7.70, 3.75, 5.30) player=(-7.70, 3.20, 0.85) los=False seen=False dist=4.3 angle=10 hidden=True torch=False memory=none route=8/10 attacked=True why=player hidden, torch off
+HC_COUNT_NEARMISS landed crawl waypoints=3 position=(-7.70, 3.75, 3.98) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=NearMiss perch=0 mode=1
+HC_COUNT_AI t=12.0 state=NearMiss pos=(-7.70, 3.25, 3.88) player=(-7.70, 3.20, 0.85) los=True seen=False dist=2.9 angle=5 hidden=True torch=False memory=none route=1/3 attacked=True why=player hidden, torch off
+HC_COUNT_VOICE cc_hunt_hungry t=12.5 position=(-7.70, 3.25, 3.38) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=NearMiss perch=0 mode=7
+HC_COUNT_AI t=13.0 state=NearMiss pos=(-7.70, 3.25, 2.77) player=(-7.70, 3.20, 0.85) los=True seen=False dist=1.8 angle=8 hidden=True torch=False memory=none route=1/3 attacked=True why=player hidden, torch off
+HC_COUNT_NEARMISS hold doorDistance=0.50 seconds=3.0 opens=False position=(-7.70, 3.25, 1.78) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=NearMiss perch=0 mode=7
+HC_COUNT_BEAT near-miss position=(-7.70, 3.25, 1.78) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=NearMiss perch=0 mode=7
+HC_COUNT_BEAT_AUDIO near-miss played=door_rattle+cc_hunt_smell
+HC_COUNT_AI t=14.0 state=NearMiss pos=(-7.70, 3.25, 1.78) player=(-7.70, 3.20, 0.85) los=True seen=False dist=0.8 angle=18 hidden=True torch=False memory=none route=3/3 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=15.0 state=NearMiss pos=(-7.70, 3.25, 1.78) player=(-7.70, 3.20, 0.85) los=True seen=False dist=0.8 angle=18 hidden=True torch=False memory=none route=3/3 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=16.0 state=NearMiss pos=(-7.70, 3.25, 1.78) player=(-7.70, 3.20, 0.85) los=True seen=False dist=0.8 angle=18 hidden=True torch=False memory=none route=3/3 attacked=True why=player hidden, torch off
+HC_RULES t=29 phase=Hunt dread=66.3 event=15.0 felt=52.7 runDreadMin=30.9 grace=0 relief=1 huntShare=0.577 hunts=1
+HC_COUNT_NEARMISS open=False
+HC_COUNT_DREAD grab survived (near-miss) +20 dread=76.3
+HC_COUNT_NEARMISS leave to perch=4 position=(-7.70, 3.25, 1.78) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=NearMiss perch=0 mode=7
+HC_COUNT_LEG second=silent reason=notell leg=perch
+HC_COUNT_WINGS leg=perch loudness=0.0 hunt=True
+HC_COUNT_AI t=17.0 state=Travel pos=(-7.71, 3.25, 1.80) player=(-7.70, 3.20, 0.85) los=True seen=False dist=0.8 angle=33 hidden=True torch=False memory=none route=0/30 attacked=True why=player hidden, torch off
+HC_AMBIENT phase=Hunt beat=none
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=4.1
+HC_COUNT_FLOORS seconds=[0,4,26,0] favourite=2
+HC_COUNT_AI t=18.0 state=Travel pos=(-8.63, 3.61, 4.81) player=(-7.70, 3.20, 0.85) los=True seen=False dist=3.9 angle=171 hidden=True torch=False memory=none route=0/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=19.0 state=Travel pos=(-9.33, 3.75, 7.99) player=(-7.70, 3.20, 0.85) los=True seen=False dist=7.2 angle=173 hidden=True torch=False memory=none route=1/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=20.0 state=Travel pos=(-9.41, 3.75, 10.80) player=(-7.70, 3.20, 0.85) los=False seen=False dist=10.0 angle=138 hidden=True torch=False memory=none route=3/30 attacked=True why=player hidden, torch off
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=4.3
+HC_COUNT_AI t=21.0 state=Travel pos=(-7.35, 3.75, 14.18) player=(-7.70, 3.20, 0.85) los=False seen=False dist=13.2 angle=150 hidden=True torch=False memory=none route=3/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=22.0 state=Travel pos=(-5.69, 4.22, 16.23) player=(-7.70, 3.20, 0.85) los=False seen=False dist=15.4 angle=139 hidden=True torch=False memory=none route=5/30 attacked=True why=player hidden, torch off
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=3.8
+HC_COUNT_AI t=23.1 state=Travel pos=(-5.08, 4.35, 19.74) player=(-7.70, 3.20, 0.85) los=False seen=False dist=18.9 angle=174 hidden=True torch=False memory=none route=7/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=24.1 state=Travel pos=(-4.82, 4.35, 23.38) player=(-7.70, 3.20, 0.85) los=False seen=False dist=22.6 angle=175 hidden=True torch=False memory=none route=7/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=25.1 state=Travel pos=(-3.72, 4.35, 25.92) player=(-7.70, 3.20, 0.85) los=False seen=False dist=25.2 angle=142 hidden=True torch=False memory=none route=9/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=26.1 state=Travel pos=(0.25, 4.35, 26.40) player=(-7.70, 3.20, 0.85) los=False seen=False dist=26.6 angle=107 hidden=True torch=False memory=none route=10/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=27.1 state=Travel pos=(3.30, 4.35, 26.31) player=(-7.70, 3.20, 0.85) los=False seen=False dist=27.6 angle=95 hidden=True torch=False memory=none route=11/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=28.1 state=Travel pos=(4.77, 4.35, 23.96) player=(-7.70, 3.20, 0.85) los=False seen=False dist=26.1 angle=33 hidden=True torch=False memory=none route=13/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=29.1 state=Travel pos=(5.06, 4.35, 19.96) player=(-7.70, 3.20, 0.85) los=False seen=False dist=22.9 angle=38 hidden=True torch=False memory=none route=13/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=30.1 state=Travel pos=(5.29, 4.35, 16.70) player=(-7.70, 3.20, 0.85) los=False seen=False dist=20.4 angle=44 hidden=True torch=False memory=none route=13/30 attacked=True why=player hidden, torch off
+HC_COUNT_POSE pitch=43 target=39 mode=1 state=Travel speed=3.7
+HC_COUNT_AI t=31.1 state=Travel pos=(7.32, 3.75, 17.63) player=(-7.70, 3.20, 0.85) los=False seen=False dist=22.4 angle=171 hidden=True torch=False memory=none route=16/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=32.1 state=Travel pos=(9.02, 3.75, 20.55) player=(-7.70, 3.20, 0.85) los=False seen=False dist=25.7 angle=164 hidden=True torch=False memory=none route=17/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=33.1 state=Travel pos=(10.85, 3.75, 24.59) player=(-7.70, 3.20, 0.85) los=False seen=False dist=30.0 angle=166 hidden=True torch=False memory=none route=17/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=34.1 state=Travel pos=(12.32, 3.81, 26.88) player=(-7.70, 3.20, 0.85) los=False seen=False dist=32.7 angle=123 hidden=True torch=False memory=none route=20/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=35.1 state=Travel pos=(12.50, 5.99, 24.54) player=(-7.70, 3.20, 0.85) los=False seen=False dist=31.1 angle=41 hidden=True torch=False memory=none route=21/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=36.1 state=Travel pos=(12.38, 7.55, 22.08) player=(-7.70, 3.20, 0.85) los=False seen=False dist=29.4 angle=22 hidden=True torch=False memory=none route=22/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=37.1 state=Travel pos=(8.88, 7.55, 22.13) player=(-7.70, 3.20, 0.85) los=False seen=False dist=27.2 angle=55 hidden=True torch=False memory=none route=24/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=38.1 state=Travel pos=(7.20, 7.55, 23.64) player=(-7.70, 3.20, 0.85) los=False seen=False dist=27.5 angle=145 hidden=True torch=False memory=none route=26/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=39.1 state=Travel pos=(8.07, 7.55, 25.90) player=(-7.70, 3.20, 0.85) los=False seen=False dist=29.8 angle=122 hidden=True torch=False memory=none route=28/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=40.1 state=Travel pos=(10.38, 8.71, 25.59) player=(-7.70, 3.20, 0.85) los=False seen=False dist=31.0 angle=67 hidden=True torch=False memory=none route=29/30 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=41.1 state=Perched pos=(10.46, 9.20, 25.46) player=(-7.70, 3.20, 0.85) los=False seen=False dist=31.0 angle=17 hidden=True torch=False memory=none route=30/0 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=42.1 state=Perched pos=(10.46, 9.20, 25.46) player=(-7.70, 3.20, 0.85) los=False seen=False dist=31.0 angle=17 hidden=True torch=False memory=none route=30/0 attacked=True why=player hidden, torch off
+HC_COUNT_AI t=43.1 state=Perched pos=(10.46, 9.20, 25.46) player=(-7.70, 3.20, 0.85) los=False seen=False dist=31.0 angle=17 hidden=True torch=False memory=none route=30/0 attacked=True why=player hidden, torch off
+HC_RECOVERY seconds=10.6 grace=69.7 huntDreadAdded=25.0 huntShare=0.781 dread=77.6 felt=66.1
+HC_COUNT_MODES frames=[1158,3038,0,0,0,0,0,659,0,0] (Animator Mode 0-9 frames so far)
+HC_COUNT_HUNT_END lastSeen=none position=(10.46, 9.20, 25.46) player=(-7.70, 3.20, 0.85) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=4 mode=0
+HC_PLAY phase=hunt_survived t=57.0 case=Recovery dread=77.6 hunts=1 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=0 no grab
+HC_PLAY phase=ledger_closed t=57.3 case=Containment dread=77.6 hunts=1 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=0 conclude=True
+HC_PLAY phase=brazier_lit t=57.5 case=Containment dread=77.4 hunts=1 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=0 breaker=True
+HC_SCARE_CASTLE candle_gutter
+HC_AMBIENT phase=Containment beat=candle_gutter
+HC_RULES t=59 phase=Containment dread=75.2 event=24.0 felt=63.4 runDreadMin=30.9 grace=67 relief=2 huntShare=0.739 hunts=1
+HC_COUNT_FLOORS seconds=[0,9,52,0] favourite=2
+HC_HUNT_START t=68 phase=Return noTell=True from=Containment escalated=False threatFrom=Containment dread=67.7 felt=68.5 runDreadMin=30.9 huntSeconds=43.4 breaker=True hunts=2
+HC_COUNT_BEAT return-swoop position=(12.40, 0.00, 12.25) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=False flight=Away perch=-1 mode=3
+HC_COUNT_LEG first=silent reason=return leg=swoop
+HC_COUNT_WINGS leg=swoop loudness=0.0 hunt=True
+HC_COUNT_RETURN_SWOOP begin from=(6.00, 10.00, 12.00) to=(0.00, 8.70, 0.40) leg1=clear leg2=detour via (0.00, 8.65, 4.95) position=(6.00, 10.00, 12.00) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=-1 mode=3
+HC_HUNT_SPAWN hostileReturn=True noTell=True keptPerch=False position=(6.00, 10.00, 12.00) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=-1 mode=3
+HC_COUNT_AI t=0.0 state=Travel pos=(5.98, 9.98, 11.99) player=(11.86, 0.08, 9.91) los=False seen=False dist=11.9 angle=113 hidden=False torch=True memory=none route=0/3 attacked=False why=outside the sight cone
+HC_COUNT_POSE pitch=59 target=62 mode=1 state=Travel speed=4.4
+HC_COUNT_ONESHOT held=breath t=0.7 reason=return (first 8 s, not seen)
+HC_COUNT_AI t=1.0 state=Travel pos=(2.78, 7.10, 10.66) player=(11.86, 0.08, 9.91) los=False seen=False dist=11.6 angle=134 hidden=False torch=True memory=none route=0/3 attacked=False why=outside the sight cone
+HC_PLAY phase=bell_sealed t=71.1 case=Return dread=67.0 hunts=2 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=0 Return
+HC_COUNT_AI t=2.0 state=Travel pos=(0.00, 5.04, 9.00) player=(11.86, 0.08, 9.91) los=True seen=False dist=13.0 angle=100 hidden=False torch=True memory=none route=1/3 attacked=False why=outside the sight cone
+HC_COUNT_POSE pitch=45 target=38 mode=1 state=Travel speed=4.4
+HC_COUNT_AI t=3.0 state=Travel pos=(0.00, 8.13, 5.53) player=(11.86, 0.08, 9.91) los=False seen=False dist=15.1 angle=107 hidden=False torch=True memory=none route=1/3 attacked=False why=outside the sight cone
+HC_COUNT_AI t=4.0 state=Travel pos=(0.00, 8.69, 1.12) player=(11.86, 0.08, 9.91) los=False seen=False dist=17.2 angle=121 hidden=False torch=True memory=none route=2/3 attacked=False why=outside the sight cone
+HC_COUNT_RETURN_SWOOP end at=(0.00, 8.70, 0.40) position=(0.00, 8.70, 0.40) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=-1 mode=1
+HC_COUNT_MEMORY stale=none when=return swoop end
+HC_COUNT_HEARD guess=(10.00, 0.05, 7.30) offset=3.2 hidden=False position=(0.00, 8.70, 0.40) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=-1 mode=1
+HC_COUNT_SEARCH to=(10.00, 0.05, 7.30) waypoints=2 position=(0.00, 8.70, 0.40) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=-1 mode=1
+HC_COUNT_LEG second=silent reason=return leg=search
+HC_COUNT_WINGS leg=search loudness=0.0 hunt=True
+HC_COUNT_AI t=5.0 state=Travel pos=(3.89, 8.67, 0.13) player=(11.86, 0.08, 9.91) los=False seen=False dist=15.4 angle=62 hidden=False torch=True memory=(10.00, 0.05, 7.30) route=0/2 attacked=False why=line of sight blocked by Slab / wall
+HC_COUNT_AI t=6.0 state=Travel pos=(6.77, 6.79, 1.81) player=(11.86, 0.08, 9.91) los=False seen=False dist=11.8 angle=36 hidden=False torch=True memory=(10.00, 0.05, 7.30) route=1/2 attacked=False why=line of sight blocked by Slab / wall
+HC_COUNT_LEG blocked=wall fix=stop hit=Slab / wall at=(7.19, 6.40, 2.53) for=0.0 state=Travel
+HC_COUNT_LEG blocked=wall fix=stop hit=Slab / wall at=(7.18, 6.40, 2.51) for=0.0 state=Travel
+HC_COUNT_LEG blocked=wall fix=stop hit=Slab / wall at=(7.18, 6.40, 2.51) for=0.0 state=Travel
+HC_COUNT_VOICE queued cc_hunt_hungry reason=first 8 s, not seen; due in 4.5 s
+HC_COUNT_AI t=7.0 state=Travel pos=(7.18, 6.05, 2.51) player=(11.86, 0.08, 9.91) los=False seen=False dist=10.7 angle=35 hidden=False torch=True memory=(10.00, 0.05, 7.30) route=0/7 attacked=False why=line of sight blocked by Slab / wall
+HC_COUNT_HEARD guess=(11.70, 0.05, 11.63) offset=1.7 hidden=False position=(7.18, 6.05, 2.51) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=-1 mode=1
+HC_COUNT_SEARCH to=(11.70, 0.05, 11.63) waypoints=8 position=(7.18, 6.05, 2.51) player=(11.86, 0.08, 9.91) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=-1 mode=1
+HC_COUNT_WINGS leg=search loudness=0.0 hunt=True
+HC_PLAY phase=drawbridge_lowered t=76.8 case=Return dread=64.1 hunts=2 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=0 lowered=True moving=False
+HC_COUNT_AI t=8.0 state=Travel pos=(7.18, 6.05, 2.51) player=(0.00, 0.08, -0.42) los=False seen=False dist=9.9 angle=128 hidden=False torch=True memory=(11.70, 0.05, 11.63) route=0/8 attacked=False why=outside the sight cone
+HC_COUNT_AI t=9.0 state=Travel pos=(7.18, 6.05, 2.51) player=(0.00, 0.08, -2.77) los=False seen=False dist=10.8 angle=139 hidden=False torch=True memory=(11.70, 0.05, 11.63) route=0/8 attacked=False why=outside the sight cone
+HC_COUNT_LEG blocked=wall fix=land hit=Slab / wall at=(7.18, 6.40, 2.51) for=3.0 state=Land
+HC_COUNT_AI t=10.0 state=Land pos=(7.18, 4.26, 2.51) player=(0.00, 0.08, -5.13) los=False seen=False dist=11.4 angle=157 hidden=False torch=True memory=(11.70, 0.05, 11.63) route=0/0 attacked=False why=outside the sight cone
+HC_COUNT_MODES frames=[1197,3850,712,405,0,0,0,659,0,0] (Animator Mode 0-9 frames so far)
+HC_COUNT_HUNT_END lastSeen=none position=(7.18, 3.97, 2.51) player=(0.00, 0.08, -5.41) enabled=False nav=False path=none destination=none seen=False memory=False flight=Land perch=-1 mode=2
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:1.0 1:1.0 2:1.0 3:2.7 4:1.0 5:1.0] favouriteFloor=2 share=0.68 chosen=0
+HC_COUNT_WINGS leg=perch loudness=0.0 hunt=False
+HC_COUNT_PERCH leaving hunt to=0 flight=Travel
+HC_PLAY phase=won_escape t=81.3 case=Won dread=63.9 hunts=2 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=0 goal=LEDGER CLOSED
+HC_PLAY_RESULT mode=escape won=True slain=False blockedDeaths=0 blockers=0
+HC_APP_QUIT t=86.1 map=Castle started=True paused=False
+Thread 0x16f30f000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16d0db000 may have been prematurely finalized
