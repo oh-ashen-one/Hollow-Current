@@ -92,6 +92,33 @@ namespace HollowCurrent
         // from this, never from Dread. Always 0 when the map has no dread.
         public float FeltDread => Rules.UsesDread ? Clamp(feltBase + Rules.FeltNoise * FeltNoiseAt(Elapsed)) : 0;
         public float FeltLagSeconds { get; private set; }
+        // Wave I (blind critic P3, runaway Dread). The part of Dread added by events (AddDread); it decays
+        // in Recovery and the calm phases. The rest (darkness, time, DreadStart, ForceDread) only falls in
+        // the safe zone. Diagnostics.
+        public float DreadEvent { get; private set; }
+        // Multiplier on the event-Dread decay; the integrator sets it by location (gatehouse, chapel fire). 1 = normal.
+        public float DreadRelief { get; set; } = 1;
+        // Dread AddDread has added during the current hunt (capped at Rules.HuntDreadCap).
+        public float HuntDreadAdded { get; private set; }
+        // Post-hunt grace: dice (banded, low, quiet-phase, recovery) and escalation are disarmed until it runs
+        // out. GraceSeconds = the last draw (30-90 s, at hunt end), GraceRemaining counts down.
+        public float GraceSeconds { get; private set; }
+        public float GraceRemaining { get; private set; }
+        // Share of the last 10 minutes (or of the run so far, if shorter) spent in Warning, Hunt or the
+        // hostile Return. Observation only; it never changes the rules.
+        public float HuntShare
+        {
+            get
+            {
+                float window = Math.Min(ShareWindow, Elapsed);
+                if (window <= 0) return 0;
+                float from = Elapsed - window, total = 0;
+                foreach (var span in threatSpans) total += Math.Max(0, Math.Min(Elapsed, span[1] < 0 ? Elapsed : span[1]) - Math.Max(from, span[0]));
+                return Math.Min(1, total / window);
+            }
+        }
+        const float ShareWindow = 600;
+        readonly List<float[]> threatSpans = new List<float[]>(); // [start, end or -1 while open] in Elapsed time
         // Diagnostics: the running felt lie episode ("none", "calm", "spike") and how many have started.
         public string FeltEpisode => feltEpisodeKind == 1 ? "calm" : feltEpisodeKind == 2 ? "spike" : "none";
         public int FeltEpisodes { get; private set; }
@@ -121,8 +148,9 @@ namespace HollowCurrent
             public float Dread;
             public int Deaths;
             public float RunDreadMin = -1;
+            public float DreadEvent;
         }
-        public Checkpoint SaveCheckpoint()=>new Checkpoint {Evidence=new List<Evidence>(Evidence).ToArray(),Notes=new List<string>(Notes).ToArray(),Equipped=Equipped,BreakerOn=BreakerOn,Diagnosed=Diagnosed,Survived=Survived,Elapsed=Elapsed,Hunts=Hunts,WrongDiagnoses=WrongDiagnoses,Dread=Dread,Deaths=Deaths,RunDreadMin=RunDreadMin};
+        public Checkpoint SaveCheckpoint()=>new Checkpoint {Evidence=new List<Evidence>(Evidence).ToArray(),Notes=new List<string>(Notes).ToArray(),Equipped=Equipped,BreakerOn=BreakerOn,Diagnosed=Diagnosed,Survived=Survived,Elapsed=Elapsed,Hunts=Hunts,WrongDiagnoses=WrongDiagnoses,Dread=Dread,Deaths=Deaths,RunDreadMin=RunDreadMin,DreadEvent=DreadEvent};
         // A restore follows a death unless afterDeath is false (the game only offers it on the
         // lost screen). After a death Deaths counts it, and with Rules.DeathPenalty Dread
         // restarts at Rules.DeathDread and DeathPenaltyApplied is set.
@@ -135,6 +163,10 @@ namespace HollowCurrent
             Deaths=Math.Max(Deaths,saved.Deaths+(afterDeath?1:0));
             DeathPenaltyApplied=afterDeath&&Rules.DeathPenalty&&Rules.UsesDread;
             Dread=!Rules.UsesDread?0:DeathPenaltyApplied?Clamp(Rules.DeathDread):Clamp(saved.Dread);
+            // The saved event part keeps decaying; the death penalty's Dread above the saved ambient part is event Dread too.
+            float savedAmbient=Math.Max(0,saved.Dread-Math.Max(0,saved.DreadEvent));
+            DreadEvent=!Rules.UsesDread?0:Math.Max(0,Math.Min(Dread,DeathPenaltyApplied?Dread-savedAmbient:saved.DreadEvent));
+            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();
             if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
             feltBase=Dread;feltEpisodeKind=0;if(Rules.UsesDread)ScheduleFeltEpisode(Elapsed);firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
@@ -199,8 +231,10 @@ namespace HollowCurrent
             PhaseTime += dt;
             if (Rules.UsesDread)
             {
-                if (inSafe) Dread = Clamp(Dread - Rules.DreadSafeRecovery * dt);
+                if (inSafe) { Dread = Clamp(Dread - Rules.DreadSafeRecovery * dt); DreadEvent = Math.Min(DreadEvent, Dread); }
                 else if (inside) Dread = Clamp(Dread + (litNearby ? Rules.DreadInsideRate : Rules.DreadDarkRate) * dt);
+                DecayEventDread(dt);
+                if (GraceRemaining > 0) GraceRemaining = Math.Max(0, GraceRemaining - dt);
                 UpdateFeltEpisode();
                 float target = feltEpisodeKind == 1 ? Rules.FeltCalm : feltEpisodeKind == 2 ? feltEpisodeTarget : Dread;
                 feltBase += (target - feltBase) * (FeltLagSeconds > 0 ? 1 - (float)Math.Exp(-dt / FeltLagSeconds) : 1);
@@ -215,6 +249,7 @@ namespace HollowCurrent
             {
                 Survived = true;
                 CurrentRecoverySeconds = Rules.RecoverySecondsMax > Rules.RecoverySecondsMin ? HuntRules.Draw(Rules.RecoverySecondsMin, Rules.RecoverySeconds, Rules.RecoverySecondsMax, Roll()) : Rules.RecoverySeconds;
+                if (Rules.GraceMax > 0) { GraceSeconds = Rules.GraceMin + (Rules.GraceMax - Rules.GraceMin) * Roll(); GraceRemaining = GraceSeconds; }
                 Set(Phase.Recovery);
                 if (Rules.AnnounceRecovery) Say(Book.RecoveryMessage);
             }
@@ -225,10 +260,21 @@ namespace HollowCurrent
             }
             else if (Phase == Phase.Survey || Phase == Phase.Containment) TickQuietDice(dt);
         }
+        // Event Dread decays toward 0 (after the first hunt, never below DreadDecayFloor in total).
+        void DecayEventDread(float dt)
+        {
+            if (DreadEvent <= 0) return;
+            float rate = Phase == Phase.Recovery ? Rules.DreadDecayRecovery : Phase == Phase.Survey || Phase == Phase.Disturbance || Phase == Phase.Containment ? Rules.DreadDecayCalm : 0;
+            rate *= Math.Max(0, DreadRelief);
+            if (rate <= 0) return;
+            float drop = Math.Min(DreadEvent, rate * dt);
+            if (Hunts > 0 && Rules.DreadDecayFloor > 0) drop = Math.Min(drop, Math.Max(0, Dread - Rules.DreadDecayFloor));
+            Dread = Clamp(Dread - drop); DreadEvent = Math.Max(0, DreadEvent - drop);
+        }
         // Survey and Containment after the first hunt: a rare flat roll, so no phase is a refuge.
         void TickQuietDice(float dt)
         {
-            if (Rules.QuietPhaseChance <= 0 || Rules.DiceIntervalMax <= 0 || Hunts == 0) return;
+            if (Rules.QuietPhaseChance <= 0 || Rules.DiceIntervalMax <= 0 || Hunts == 0 || GraceRemaining > 0) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
@@ -258,7 +304,7 @@ namespace HollowCurrent
         void TickRecoveryDice(float dt)
         {
             float chance = Dread >= Rules.RecoveryDiceDread ? Rules.RecoveryDiceChance : Rules.RecoveryLowChance;
-            if (chance <= 0 || Rules.DiceIntervalMax <= 0) return;
+            if (chance <= 0 || Rules.DiceIntervalMax <= 0 || GraceRemaining > 0) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
@@ -299,7 +345,7 @@ namespace HollowCurrent
             }
             // Dice-roll hunts: banded at or above the run's boundary, a flat low roll below it after the first hunt.
             bool low = !dreadful && Hunts > 0 && Rules.LowDreadChance > 0;
-            if (Rules.DiceIntervalMax > 0 && (dreadful || low))
+            if (Rules.DiceIntervalMax > 0 && (dreadful || low) && GraceRemaining <= 0)
             {
                 if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
                 diceTimer -= dt;
@@ -340,6 +386,7 @@ namespace HollowCurrent
             Hunts++;
             FalseWarning = false;
             NoTellHunt = noTell;
+            HuntDreadAdded = 0;
             CurrentHuntSeconds = Rules.HuntSecondsMax > Rules.HuntSecondsMin ? HuntRules.Draw(Rules.HuntSecondsMin, Rules.HuntSeconds, Rules.HuntSecondsMax, Roll()) : Rules.HuntSeconds;
             Set(Phase.Hunt);
         }
@@ -367,7 +414,8 @@ namespace HollowCurrent
         // roll, warning length, hunt length). Ignored for Dread when the map has no dread.
         public void ForceDread(float target)
         {
-            if (Rules.UsesDread && !float.IsNaN(target) && !float.IsInfinity(target)) Dread = Clamp(target);
+            if (Rules.UsesDread && !float.IsNaN(target) && !float.IsInfinity(target)) { Dread = Clamp(target); DreadEvent = 0; }
+            GraceRemaining = 0;
             diceTimer = float.NaN;
             diceHigh = Dread >= RunDreadMin;
         }
@@ -375,18 +423,27 @@ namespace HollowCurrent
         // becomes a hunt after a short tell (EscalationWarningSeconds, no dispatch line).
         public bool TryEscalate()
         {
-            if (Rules.EventEscalationChance <= 0 || Terminal || Phase != Phase.Disturbance) return false;
+            if (Rules.EventEscalationChance <= 0 || Terminal || Phase != Phase.Disturbance || GraceRemaining > 0) return false;
             if (Roll() >= Rules.EventEscalationChance) return false;
             ThreatFrom = Phase;
             if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) StartHunt(true);
             else Warn(Rules.EscalationWarningSeconds, false, false, true);
             return true;
         }
-        // Clamped 0-100; ignored when the map has no dread.
+        // Clamped 0-100; ignored when the map has no dread. What it adds is event Dread (it decays);
+        // during a hunt the total added is capped at Rules.HuntDreadCap whoever calls it.
         public void AddDread(float amount)
         {
             if (!Rules.UsesDread || float.IsNaN(amount) || float.IsInfinity(amount)) return;
+            if (amount > 0 && Rules.HuntDreadCap > 0 && HuntActive)
+            {
+                amount = Math.Min(amount, Rules.HuntDreadCap - HuntDreadAdded);
+                if (amount <= 0) return;
+                HuntDreadAdded += amount;
+            }
+            float before = Dread;
             Dread = Clamp(Dread + amount);
+            DreadEvent = Math.Max(0, Math.Min(Dread, DreadEvent + (Dread - before)));
         }
         public void Seal(float dt, bool holding, bool atAnchor)
         {
@@ -397,7 +454,7 @@ namespace HollowCurrent
             if (SealProgress >= 1)
             {
                 // Hostile Return: the escape is a tell-less hunt until the bridge is crossed.
-                if (Rules.HostileReturn) { Hunts++; NoTellHunt = true; ThreatFrom = Phase.Containment; }
+                if (Rules.HostileReturn) { Hunts++; NoTellHunt = true; ThreatFrom = Phase.Containment; HuntDreadAdded = 0; }
                 Set(Phase.Return);
                 Say(Book.SealedMessage);
             }
@@ -421,8 +478,12 @@ namespace HollowCurrent
             if (next != Phase.Warning) { FalseWarning = false; EscalatedWarning = false; }
             if (next != Phase.Hunt && next != Phase.Return) NoTellHunt = false;
             if (next == Phase.Disturbance || next == Phase.Recovery || next == Phase.Survey || next == Phase.Containment) diceTimer = float.NaN;
+            bool wasThreat = IsThreat(Phase), isThreat = IsThreat(next);
+            if (wasThreat && !isThreat && threatSpans.Count > 0) threatSpans[threatSpans.Count - 1][1] = Elapsed;
+            if (!wasThreat && isThreat) { threatSpans.Add(new[] { Elapsed, -1f }); while (threatSpans.Count > 1 && threatSpans[0][1] >= 0 && threatSpans[0][1] < Elapsed - ShareWindow) threatSpans.RemoveAt(0); }
             Phase = next; PhaseTime = 0; Changed?.Invoke(next);
         }
+        bool IsThreat(Phase p) => p == Phase.Warning || p == Phase.Hunt || p == Phase.Return && Rules.HostileReturn;
         void Say(string value) => Message?.Invoke(value);
         public string Goal
         {

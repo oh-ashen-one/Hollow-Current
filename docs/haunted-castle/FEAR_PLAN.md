@@ -178,6 +178,23 @@ treat FalseWarning like Disturbance.
   (`Tests/BellwetherReference/`) and the current Core against `Tests/BellwetherFuzz.cs`, runs 4,000 seeds x 300
   random operations with live random dice, and exits 1 on any difference.
 
+**Investigation API, wave I additions (hc/rules4, blind critic r10 P3: runaway Dread, hunts 52–63 % of play)**:
+- **Two kinds of Dread.** What `AddDread` adds (apparitions, throws, seen, grab survived, gamble) is event Dread
+  (`DreadEvent`) and decays: 0.4/s in Recovery, 0.15/s in Survey/Disturbance/Containment, none in Warning/Hunt/Return,
+  times `DreadRelief` (Game sets 3 in the gatehouse, 2 at the chapel fire). After the first hunt the decay stops at a
+  total of 20. Dread from darkness and time (and `DreadStart`, `ForceDread`) does not decay; only the safe zone
+  lowers it (0.5/s). Checkpoints keep the event part; the death penalty's Dread above the saved ambient part decays.
+- **Per-hunt cap.** During a hunt or the hostile Return, `AddDread` adds at most `HuntDreadCap` (25) in total,
+  whoever calls it (`HuntDreadAdded`).
+- **Post-hunt grace.** When a hunt ends the rules draw the recovery length, then a grace of 30–90 s
+  (`GraceSeconds`, `GraceRemaining`). Until it runs out the banded, low-Dread, quiet-phase and Recovery dice and
+  `TryEscalate` are disarmed; the bell and the gamble still work. `ForceDread` (driver only) clears it.
+- **`float HuntShare`**: share of the last 10 minutes (or the run so far) spent in Warning, Hunt or the hostile
+  Return. Observation only; logged in `HC_RULES` every 30 s for proof runs.
+- **Session model** (`RulesTests.Session`, 2,000 seeds of 10 minutes): hunt + warning time after the first hunt
+  27 % on average (p90 38 %), 10-minute `HuntShare` p50 20 % / p90 28 %, quiet gaps 42 / 101 / 212 s (p10 / p50 /
+  p90), pooled CV 0.61; the same model without wave I gives 62 % and Dread ≥ 95 for 177 s per run.
+
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;
 exposes `public bool Diving` (for the integrator's torch fail), `public event Action<string> Beat` with ids

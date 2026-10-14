@@ -70,6 +70,14 @@ namespace HollowCurrent
         public float DreadDarkRate, DreadInsideRate, DreadSafeRecovery, DreadStart;
         // Suggested AddDread amounts for Game's events.
         public float DreadApparition, DreadThrow, DreadSeen, DreadGrabSurvived;
+        // Dread from events (AddDread) decays; Dread from darkness and time does not (only the safe zone
+        // lowers it). Per second, times Investigation.DreadRelief: in Recovery, and in the calm phases
+        // (Survey, Disturbance, Containment). After the first hunt the decay stops at DreadDecayFloor.
+        public float DreadDecayRecovery, DreadDecayCalm, DreadDecayFloor;
+        // Total Dread that AddDread may add during one hunt (hunt or hostile Return). 0 = no cap.
+        public float HuntDreadCap;
+        // After a hunt ends the dice are disarmed for GraceMin..Max seconds (drawn per hunt). 0 = none.
+        public float GraceMin, GraceMax;
         // Lies (false readings) and held hide doors from these Dread levels. 0 = never.
         public float LieThreshold, DoorHeldThreshold;
         // On a checkpoint restore after a death, Dread restarts at DeathDread.
@@ -122,6 +130,7 @@ namespace HollowCurrent
             NoTellChance=0,FalseWarningChance=0,EventEscalationChance=0,HostileReturn=false,
             UsesDread=false,DreadDarkRate=0,DreadInsideRate=0,DreadSafeRecovery=0,DreadStart=0,
             DreadApparition=0,DreadThrow=0,DreadSeen=0,DreadGrabSurvived=0,
+            DreadDecayRecovery=0,DreadDecayCalm=0,DreadDecayFloor=0,HuntDreadCap=0,GraceMin=0,GraceMax=0,
             LieThreshold=0,DoorHeldThreshold=0,DeathPenalty=false,DeathDread=0,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
         };
@@ -141,6 +150,7 @@ namespace HollowCurrent
             NoTellChance=.25f,FalseWarningChance=.25f,EventEscalationChance=.2f,HostileReturn=true,
             UsesDread=true,DreadDarkRate=.12f,DreadInsideRate=.05f,DreadSafeRecovery=.5f,DreadStart=0,
             DreadApparition=12,DreadThrow=8,DreadSeen=15,DreadGrabSurvived=20,
+            DreadDecayRecovery=.4f,DreadDecayCalm=.15f,DreadDecayFloor=20,HuntDreadCap=25,GraceMin=30,GraceMax=90,
             LieThreshold=70,DoorHeldThreshold=90,DeathPenalty=true,DeathDread=60,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
         };
