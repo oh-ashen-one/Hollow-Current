@@ -1,5 +1,13 @@
 # Automated castle playthrough (both endings)
 
+**Latest re-run, build `080b3e1` (count9 + flames9 merged):**
+- Escape WON in 82.8 s, 0 blockers. The wardrobe was focused normally this time.
+- Kill WON in 87.5 s, 0 blockers; hits at 36.3, 58.8 and 83.4 s.
+- `blockedDeaths=0` in both runs.
+- The Count logged no DIVE, FEINT or GRAB line in either run.
+
+The tables below are from the first run (build `43c2152`). Phase timings in the re-run were within 0.1 s of them.
+
 Facts from the real combined player. Judging them is the critic's and the owner's job.
 
 - **Player:** `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, both maps, built from commit `43c2152`. It starts in Bellwether, and the driver switches to Haunted Castle through the title map picker path (`SelectMap` + `BeginInvestigation`).

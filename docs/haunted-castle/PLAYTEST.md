@@ -68,5 +68,8 @@ Write in `docs/haunted-castle/playtest/OWNER_NOTES.md` (create it), or tell the 
 
 ## Build
 
-- Commit: see the latest "Combined build" line in `docs/haunted-castle/playtest/AUTO_RUN.md` and the git log of branch `haunted-castle`.
-- Automated proof that both endings complete in this build: `docs/haunted-castle/playtest/AUTO_RUN.md`.
+- **Commit:** `080b3e1` on branch `haunted-castle` (combined player, both maps, built 2026-10-13).
+- **Since the first automated run:**
+  - The Count's materials are now mapped to the right parts of the model: membrane wings, body albedo and flesh (count9).
+  - Candle flames are new and stay rigid on their wicks (flames9).
+- **Automated proof:** both endings complete in this exact build (escape 82.8 s, kill 87.5 s, 0 blockers). See `docs/haunted-castle/playtest/AUTO_RUN.md`.

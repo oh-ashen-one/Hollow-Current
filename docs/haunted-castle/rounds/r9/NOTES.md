@@ -1,0 +1,25 @@
+# Round 9: integration notes (facts only)
+
+- **Merged:** hc/count9 `0a7e882` (merge `d8bd983`), hc/flames9 `8ec93ea` (merge `744c52f`).
+- **Build:** combined player (Bellwether + Castle) `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, built from `080b3e1`, `HC_BUILD_RESULT Bellwether,Castle Succeeded`. Castle bake: 5 maps, 196 probes, 17 reflections. Bellwether bake: 4 maps, 124 probes, 9 reflections.
+- **Castle-only build removed:** `Builds/macOS-Castle` (853 MB duplicate) deleted. The combined build is the only player.
+- **Capture path:** the capture starts in Bellwether and switches to the castle (`HC_CAPTURE switching to Castle from Bellwether`).
+  - The first attempt stalled in Bellwether. Cause: `Application.runInBackground` was set only after the switch, so the unfocused player stopped updating.
+  - It is now set in `Game.Awake` for capture and playtest runs (commit `e22b8df`).
+- **Shots:** subset only (`-hc-capture-shots S1,S5,S6,H05,H08,H09`), at 2560x1440 Ultra. Files in `rounds/r9/captures/` (gitignored).
+- **Count import:** submesh 0 → `CountClaudeMembrane`, 1 → `CountClaude` albedo, 2 → `CountClaudeFlesh`. 54 bones, 8 clips. Geometry gate passes.
+- **Flames:** `HC_FLAME_RIGID` PASS at auto (x3), S1, S5, H05 and H08. Wick drift and quad offset were 0.000 m at every check. 404 flames in the hall views, 367 at S5.
+- **S5:** `HC_S5_CANDLES 6 (enabled 6, with a flame in frame 6)`. 13 floaters hidden on the view line; 6 `neverHide` re-shown.
+- **S6 framing:** Count head top at y 0.75, figure top at y 0.61, both feet at y 0.25. headTopY 2.43 m.
+- **Hunt (capture):** the Count spawned perched at (3.22, 4.25, 20.51). With the player standing in the open hall at (0, 0, 15.6) he alternated DIVE/FEINT four times (Chase/Travel, down to (1.47, 2.49, 17.95)). The capture waited 6.0 s, then ran its choreography Perch → Glide → Dive → Grab (holdDistance 2.80 m).
+- **Frame times:** S1 mean 11.11 ms, p95 11.11, max 11.31. Hunt mean 11.84 ms, p95 11.24, max 199.47 (one spike).
+- **GPU:** external load 42–53% before every run this wave (`gpu_slot` util_before); every run was flagged contaminated (no exclusive lock).
+- **Exposure vs r8:** 4 of 6 in band.
+  - S1 is too bright: dark 11.3% (aim 15.7).
+  - S6 is too dark: dark 33.9% (aim 26.9).
+  - H05, H08, H09 and S5 are within 1 point of r8.
+- **Playtest re-run on this build:** both endings WON, 0 blockers, 0 blocked deaths.
+  - Escape: 82.8 s.
+  - Kill: 87.5 s, with hits at 36.3, 58.8 and 83.4 s.
+  - In both runs the Count logged no DIVE, FEINT or GRAB lines. He only perched; in the kill run he also staggered and retreated. Contrast this with the capture hunt above, where the player stood in the open hall.
+- **Process note:** during this wave the combined player was launched once without arguments outside the GPU lock (pid 25149). It was stopped with SIGTERM within seconds.
