@@ -42,7 +42,7 @@ These are facts from the real combined player. The critic and the owner judge th
 | **Death, then checkpoint retry** | **PASS** | not rerun | Deaths 1, penalty true, Dread 59.4, relic 0 moved (`HC_DEATH_PENALTY`, `HC_RELIC_MOVE`) |
 | **Long Night** | route FAIL (N4) | **WON** (r2) | `HC_NAIL_HIDES nailed=2`, no-tell hunt on the bell. The one blocker is the driver's expectation of a Warning, which Long Night does not have. |
 | **Bellwether `-hc-verify`** | FAIL (Raycast focus Hall coat cupboard) | **PASS** (r2) | `HC_NATIVE_ROUTE_PASS`, after the deliberate Bellwether ray fix in `e1e360a` |
-| **Natural run, no forcing** | not won (N4) | **WON** (r2) | r3 in progress when this was written |
+| **Natural run, no forcing** | not won (N4) | **WON** (r2) | r3 (build `a412df7`) was **aborted by the owner** at about 6.4 min (SIGTERM, clean exit, not a crash, not retried). Before that it had 4 hunts and the `HC_SCARE_SKIP` lines below. |
 | **Missing audio** | 0 | 0 | `HC_MISSING_ART=0` in fear and natural |
 
 **No-tell hunt, first 6 s, detail (r3):**
@@ -72,7 +72,11 @@ These are facts from the real combined player. The critic and the owner judge th
 - `escalated=False` on every hunt. The run's boundary was 49.9.
 - **Why Dread climbed:** the driver stood in the open, invulnerable. Every hunt he saw her (+15) and dove and missed (+20 "grab survived"). A real player would have died early. Dread ≥ 80 then allows Recovery rolls, so the late hunts come one Recovery after another. The guarantee fired once, at t=104; the rest is dice.
 - **Scare layer:** 16 `HC_AMBIENT` beats during Hunt, Recovery, Warning and Containment, and 21 `HC_SCARE_CASTLE` beats (window silhouette ×6, candle gutter ×6, book ×3, knife ×2, bat ×2, silence ×2, false candle ×1, balustrade ×1). Also 4 `HC_LIE` and 2 `HC_DUCK`.
-- **Apparitions are still rare:** 1 apparition in 10 minutes, so 0 natural throws or poltergeist, and 1 escalation try (`near=3.4 escalated=False`). The cause was unknown. `430a266` adds `HC_SCARE_SKIP reason=` lines and natural run r3 reads them.
+- **Apparition starvation, cause (natural r3, aborted):**
+  - In about 6 minutes the director checked for an apparition 6 times. Five checks hit `HC_SCARE_SKIP reason=rhythm canSurprise=False` and one hit `canSurprise=True` but no appearance was due.
+  - Every Warning or hunt, and every Recovery, pushed the rhythm's quiet window out again, while hunts came about 90 s apart.
+  - Fixed in code after this run, not yet built: the castle no longer rests the rhythm after a Warning or hunt, rests 20-40 s after Recovery, and checks every 12-25 s.
+- **Apparitions are still rare (r2):** 1 apparition in 10 minutes, so 0 natural throws or poltergeist, and 1 escalation try (`near=3.4 escalated=False`). The cause was unknown. `430a266` adds `HC_SCARE_SKIP reason=` lines and natural run r3 reads them.
 
 ## Frame time, great hall
 

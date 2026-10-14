@@ -130,10 +130,21 @@ After the hc/rules2 merge:
 
 Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the blind critic.
 
-**Next:**
-1. Read the natural r3 `HC_SCARE_SKIP` reasons and fix the apparition starvation.
-2. Rerun kill, siege and death on the latest build: they passed only on r1.
-3. Run the blind critic round.
+**Code-only since the owner's stop (13:48):** the castle apparition rhythm fix (no rest after a Warning or hunt, 20-40 s after Recovery, checks every 12-25 s); the cause is in AUTO_RUN.md. The natural run r3 was **aborted by the owner** (SIGTERM, clean exit, not retried).
+
+### Remaining windowed list (only when the owner lifts the stop; launch with `open -g` through `gpu_slot`, never full screen)
+
+1. Re-bake both maps (`PrepareAndBakeCastle`, then `PrepareAndBake`). `check_throwables_scene.py` must exit 0. Then build (`BuildPreparedMacAll`).
+2. **Natural run (no forcing):**
+   - More than 1 `HC_SCARE visible=` in 10 minutes.
+   - `HC_THROW` or `HC_SCARE_CASTLE poltergeist` in natural play.
+   - `HC_ESCALATE escalated=True` at least once (rerun up to 3 times).
+   - Few `HC_SCARE_SKIP reason=rhythm canSurprise=False` lines.
+3. **Fear run:** no-tell first 6 s with `changedFrames=0`. Report the first wing leg; a silent leg is possible.
+4. **Kill, siege (near-miss open, Recovery cut) and death + retry:** these passed only on the r1 build; rerun them on the current build.
+5. **Bellwether `-hc-verify`:** `HC_NATIVE_ROUTE_PASS` again, after the director change (shared file).
+6. **Title captures:** at 1920x1080 and at the largest window, to confirm the fog band.
+7. **Blind critic round** on the captures and logs.
 
 ## Rules for the next integrator
 

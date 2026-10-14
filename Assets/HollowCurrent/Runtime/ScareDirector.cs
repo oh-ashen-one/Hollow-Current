@@ -61,8 +61,11 @@ namespace HollowCurrent
             if(previousPhase!=game.Case.Phase)
             {
                 previousPhase=game.Case.Phase;
-                if(previousPhase==Phase.Warning||previousPhase==Phase.Hunt)rhythm.Rest(IsCastle?Random.Range(35f,70f):90);
-                if(previousPhase==Phase.Recovery){rhythm.Rest(IsCastle?Random.Range(35f,70f):65);next=IsCastle?Random.Range(6f,30f):30f;} // castle: the post-hunt gap is not a clock (hc/scares3)
+                // Castle (natural run r3: 5 of 6 apparition checks hit canSurprise=False, because every Warning/Hunt and every
+                // Recovery pushed the quiet window out again with hunts ~90 s apart): no rest for a Warning or hunt, 20-40 s after
+                // Recovery. Bellwether keeps 90 / 65.
+                if(!IsCastle&&(previousPhase==Phase.Warning||previousPhase==Phase.Hunt))rhythm.Rest(90);
+                if(previousPhase==Phase.Recovery){rhythm.Rest(IsCastle?Random.Range(20f,40f):65);next=IsCastle?Random.Range(6f,30f):30f;} // castle: the post-hunt gap is not a clock (hc/scares3)
             }
             // Castle (r10 rerun): the director also runs in Recovery.
             if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment)return;
@@ -79,7 +82,7 @@ namespace HollowCurrent
             next-=dt;if(next>0)return;
             if(!approachingHunt&&rhythm.AppearanceDue)Trigger();
             else{if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=rhythm canSurprise="+rhythm.CanSurprise+" age="+rhythm.Age.ToString("F0"));Dread();}
-            next=Random.Range(22f,38f);
+            next=IsCastle?Random.Range(12f,25f):Random.Range(22f,38f); // castle: check the rhythm more often
         }
         public void Dread()
         {
