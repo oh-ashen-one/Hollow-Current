@@ -75,10 +75,13 @@ for f in sorted(cc.CASTLE.glob("*.fbx")):
     if name == "StairFlight":
         note.append("rise %.2f" % m["notes"]["rise"] if m else "")
     if name == "GiantSkeleton" and not (11.4 <= size[1] <= 12.6): fails.append("skeleton length %s" % size)
-    if name == "GiantSkeleton" and tris >= 15000: fails.append("skeleton tris")
-    # Ext* = round 12 exterior structures, budgeted in manifest_exterior.json instead
-    if not name.startswith(("Giant", "Ext")) and not name.startswith("Wall_") and tris >= 3000 and name != "GiantSkeleton":
-        fails.append("%s: %d tris >= 3000" % (name, tris))
+    if name == "GiantSkeleton" and not (2.9 <= size[0] <= 3.1): fails.append("skeleton rib span %s (r12 spec: ribcage 3.0 m across)" % size)
+    if name == "GiantSkeleton" and tris > 40000: fails.append("skeleton tris %d > 40000 (r12 budget)" % tris)
+    # Ext* = round 12 exterior structures, budgeted in manifest_exterior.json instead (hc/art-exterior).
+    # Other props stay under 3000 tris unless the manifest declares a budget (r12 hand-roots: 4000 each, the skeleton 40000; hc/art-props).
+    budget = m.get("budget") if m and m.get("budget", 0) > 3000 else 3000
+    if not name.startswith(("Giant", "Ext")) and not name.startswith("Wall_") and tris >= budget + (1 if budget > 3000 else 0):
+        fails.append("%s: %d tris >= %d" % (name, tris, budget))
     nom = cc.NOMINAL.get(name)
     if nom:
         got = (size[0], size[2], size[1])           # Unity W, H, D

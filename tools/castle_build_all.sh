@@ -7,6 +7,8 @@ python3 tools/castle_textures.py
 python3 tools/castle_sky.py 2048
 "$BLENDER" -b -P tools/castle_architecture.py
 "$BLENDER" -b -P tools/castle_props.py
+python3 tools/castle_r12_textures.py
+"$BLENDER" -b -P tools/castle_props_r12.py
 "$BLENDER" -b -P tools/castle_furniture.py
 "$BLENDER" -b -P tools/castle_exterior.py
 "$BLENDER" -b -P tools/castle_verify.py

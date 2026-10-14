@@ -93,3 +93,12 @@ The skeleton remap, wing re-skin, scaling and the eight animation clips are orig
 - `Resources/UI/CastleBackdrop.png` (title key art, replaces the earlier procedural backdrop): Higgsfield GPT Image 2.5 output (covered by the existing Higgsfield grant above), job `cc99ba72-efb5-432e-9108-49f1baabb55b`, prompt in `docs/haunted-castle/refs/title_1.prompt.txt`; logged in `docs/haunted-castle/ASSET_LOG.md`.
 - `Resources/UI/Fonts/Cinzel-Medium.ttf` and `Resources/UI/Fonts/OFL.txt`: Cinzel, Copyright 2020 The Cinzel Project Authors (https://github.com/NDISCOVER/Cinzel), SIL Open Font License 1.1 (full text beside the font). Downloaded from the Google Fonts repository (`ofl/cinzel/Cinzel[wght].ttf`) and instanced to a static weight 500 with fontTools (`varLib.instancer`); the font has no Reserved Font Name. The font is not sold on its own.
 - Fog, vignette and gradient textures on the title screen are generated in code at run time (`Runtime/TitleScreen.cs`); nothing to license.
+
+## Round 12 art props (added 2026-10-14, `hc/art-props`)
+
+`HandRoot0..5`, `RootCrown`, `FloatingBook`, `FloatingBookSmall`, `FloatingBookLarge`, `BookClosed`, `BookClosedSmall`, `BookClosedLarge`,
+`RelicSocketBlade`, `RelicSocketHilt`, `RelicSocketMoon` and the replacement `GiantSkeleton` (`Resources/Castle/*.fbx`) are original meshes modelled
+procedurally in `tools/castle_props_r12.py` (headless Blender, no downloaded assets). The nine new materials (`Castle_BookLeather*`,
+`Castle_BookPages`, `Castle_GiltWorn`, `Castle_RootBark`, `Castle_RootFlesh`, `Castle_BoneGrime`, `Castle_NicheStone`) and their textures are generated
+by `tools/castle_r12_textures.py` (numpy and Pillow, drawn designs and noise only). Original project work, CC BY 4.0. One Customuse Tripo v3.1 hand
+mesh was generated from the owner's own `crypt.png` concept (see `docs/haunted-castle/ASSET_LOG.md`), rejected and not shipped or committed.

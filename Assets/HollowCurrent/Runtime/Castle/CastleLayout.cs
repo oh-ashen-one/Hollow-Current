@@ -286,13 +286,15 @@ namespace HollowCurrent
         // ---- dressing data (round 2) ---------------------------------------------------------------
         // Great hall, round 6 (owner: the skeleton in the middle of the entrance looked stupid and uncentred): the centre axis from the
         // great doors (x = 0) is clean: rune ring, banquet table, throne and rose window all sit on x = 0. The giant skeleton lies
-        // along the west colonnade against the wall, in the 1.35 m strip between the wall relief (x -5.57) and the columns' west
-        // faces (x -4.35): its head (+Y in the art imports as local -Z, so yaw 0 points it at the entrance) at z about 17.7,
-        // tail into the back wall. Squeezed to 0.30 x laterally (ribs +-0.62 m), 0.82 x in height (2.8 m, under the 3.0 m gallery
-        // slab) and 0.9 x in length (10.8 m). Its bounds never reach x -3.
-        public static readonly Vector3 SkeletonPos = new Vector3(-5.0f, 0.05f, 22.4f);
+        // along the west colonnade against the wall. Round 12 (hc/art-props, r11 blind critic: "a small rib fragment"): the squeeze is
+        // gone. The new art is one full-scale carcass (12.1 m, ribcage 3.0 m across from x -1.47 to +1.54 about its spine, 2.83 m high, skull
+        // sunk 0.15 m into the floor) placed at scale 1 with the spine at x -4.58: the east rib tips end at x -3.04, the west ribs
+        // run into the wall relief, the spine clears the pier faces (x -4.35) and nothing touches the gallery slab (underside y 3.0).
+        // Head at z about 16.3 (art +Y imports as local -Z, so yaw 0 points it at the entrance), tail into the back wall.
+        public static readonly Vector3 SkeletonPos = new Vector3(-4.58f, 0.05f, 22.4f);
         public const float SkeletonYaw = 0f;
-        public static readonly Vector3 SkeletonScaleVec = new Vector3(.30f, .82f, .90f);   // local x lateral, y height, z length
+        public static readonly Vector3 SkeletonScaleVec = Vector3.one;   // local x lateral, y height, z length
+        public const float SkeletonHalfEast = 1.55f;                       // art extent east of the spine (measured 1.543)
         public const float SkeletonMaxX = -3.0f;
         public static readonly Vector3 TablePos = new Vector3(0f, 0, 23.7f);   // round 8: shorter (3.3 m, z 22.05-25.35) to leave room for the dais (z 25.5-27.55)
         public const float TableYaw = 90f;         // length axis along the hall axis (z)

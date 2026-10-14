@@ -855,13 +855,30 @@ namespace HollowCurrent
             for (int i = 0; i < CastleLayout.HallBooks.Length; i++)
             {
                 if (CastleLayout.NearCaptureLine(CastleLayout.HallBooks[i], 1.2f)) continue;
-                var book = ArtAt(Art.FloatingBook, CastleLayout.HallBooks[i], 0);
-                book.localScale = Vector3.one * 2.2f;
+                // round 12: three real open-book meshes (small, medium, large) in three worn covers, mixed so neighbours differ
+                string[] bookArt = { "FloatingBookSmall", Art.FloatingBook, "FloatingBookLarge" };
+                var book = ArtAt(bookArt[i % 3], CastleLayout.HallBooks[i], 0);
+                SwapCover(book, BookCovers[(i + i / 3) % 3]);
+                book.localScale = Vector3.one * 1.9f;
                 // pages tipped up toward the entrance so the open book reads from the aisle
                 book.localRotation = Quaternion.Euler(-(52 + (i * 7) % 20), (i % 2 == 0 ? 1 : -1) * (14 + i * 9), (i % 3 - 1) * 12);
                 var f = book.gameObject.AddComponent<Floater>();
                 f.phase = Mathf.Repeat((i + 1) * .6180339f, 1);
                 f.bobAmplitude = .16f; f.bobHertz = .13f + .02f * (i % 3); f.tiltDegrees = 6; f.yawDegreesPerSecond = 5;
+            }
+        }
+
+        static readonly string[] BookCovers = { "Castle_BookLeatherA", "Castle_BookLeatherB", "Castle_BookLeatherC" };
+        // Swap the cover leather of a book prop (the FBX parts carry their own default cover) for another castle cover material.
+        static void SwapCover(Transform art, string cover)
+        {
+            var m = CastleArt.Named(cover); if (!m) return;
+            foreach (var r in art.GetComponentsInChildren<Renderer>())
+            {
+                var shared = r.sharedMaterials; bool changed = false;
+                for (int k = 0; k < shared.Length; k++)
+                    if (shared[k] && shared[k].name.StartsWith("Castle_BookLeather", System.StringComparison.Ordinal)) { shared[k] = m; changed = true; }
+                if (changed) r.sharedMaterials = shared;
             }
         }
 
@@ -927,7 +944,7 @@ namespace HollowCurrent
         {
             float tableX = CastleLayout.TablePos.x, ringX = RuneLocal.x;
             // analytic bounds of the art (Blender x +-2.06 lateral) after the squeeze, and the measured renderer bounds
-            float analyticMax = CastleLayout.SkeletonPos.x + 2.06f * CastleLayout.SkeletonScaleVec.x;
+            float analyticMax = CastleLayout.SkeletonPos.x + CastleLayout.SkeletonHalfEast * CastleLayout.SkeletonScaleVec.x;
             float measuredMax = float.NegativeInfinity; bool any = false;
             foreach (var r in skeleton.GetComponentsInChildren<Renderer>())
             {
@@ -1047,6 +1064,19 @@ namespace HollowCurrent
             }
             Part("Slab", PrimitiveType.Cube, new Vector3(0, .025f, 0), new Vector3(.95f, .05f, 2.1f), "black");
             const float plinth = .30f, bottom = .04f, top = .05f + plinth;   // slab top at .05
+            // round 12 (hc/art-props): each socket is a carved stone niche from Resources/Castle (RelicSocket*.fbx: foot, shaft, cornice lip,
+            // sloped pocket, worn gilt edge, and a "Rune" part SocketRune lights once the relic is placed). The primitives below are
+            // only the fallback when the art is missing (placeholder).
+            bool Niche(string art, Vector3 centre, Relic relic)
+            {
+                var placed = CastleArt.Place(art, inlay, new Vector3(centre.x, bottom, centre.z), Quaternion.identity);
+                if (placed.placeholder) { Release(placed.gameObject); return false; }
+                foreach (var c in placed.gameObject.GetComponentsInChildren<Collider>()) Release(c);
+                placed.gameObject.name = "Socket / " + art;
+                placed.gameObject.AddComponent<SocketRune>().relic = relic;
+                foreach (var r in placed.gameObject.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                return true;
+            }
             void Socket(string name, Vector3 centre, Vector3 rimSize, Vector3 insetSize, bool round = false)
             {
                 var type = round ? PrimitiveType.Cylinder : PrimitiveType.Cube;
@@ -1054,10 +1084,15 @@ namespace HollowCurrent
                 Part(name + " plinth", type, centre + new Vector3(0, (top + bottom) * .5f, 0), round ? new Vector3(rimSize.x, rimH * .5f, rimSize.x) : new Vector3(rimSize.x, rimH, rimSize.z), "silver");
                 Part(name + " socket", type, centre + new Vector3(0, (top + bottom) * .5f + .002f, 0), round ? new Vector3(insetSize.x, insetH * .5f, insetSize.x) : new Vector3(insetSize.x, insetH, insetSize.z), "socket");
             }
-            Socket("Blade", new Vector3(0, 0, -.65f), new Vector3(.22f, 0, .66f), new Vector3(.14f, 0, .56f));
-            Socket("Hilt bar", new Vector3(0, 0, 0), new Vector3(.19f, 0, .5f), new Vector3(.11f, 0, .42f));
-            Socket("Hilt guard", new Vector3(0, 0, 0), new Vector3(.44f, 0, .17f), new Vector3(.36f, 0, .11f));
-            Socket("Moonstone", new Vector3(0, 0, .65f), new Vector3(.4f, 0, 0), new Vector3(.32f, 0, 0), true);
+            if (!Niche("RelicSocketBlade", new Vector3(0, 0, -.65f), Relic.SilverBlade))
+                Socket("Blade", new Vector3(0, 0, -.65f), new Vector3(.22f, 0, .66f), new Vector3(.14f, 0, .56f));
+            if (!Niche("RelicSocketHilt", new Vector3(0, 0, 0), Relic.HallowedHilt))
+            {
+                Socket("Hilt bar", new Vector3(0, 0, 0), new Vector3(.19f, 0, .5f), new Vector3(.11f, 0, .42f));
+                Socket("Hilt guard", new Vector3(0, 0, 0), new Vector3(.44f, 0, .17f), new Vector3(.36f, 0, .11f));
+            }
+            if (!Niche("RelicSocketMoon", new Vector3(0, 0, .65f), Relic.Moonstone))
+                Socket("Moonstone", new Vector3(0, 0, .65f), new Vector3(.4f, 0, 0), new Vector3(.32f, 0, 0), true);
             // an ember in each socket: a small lit flame with a halo (billboard, no light; the bake would blacken an emissive material)
             foreach (var z in new[] { -.65f, 0f, .65f }) SurrealProps.MakeCandleFlame(inlay, new Vector3(0, top + .01f, z), .14f, false, "Socket ember", .2f);
             // carved front: cracks and a damp stain (no chip decal: it reads as holes) 2 cm off the altar front
@@ -1353,7 +1388,7 @@ namespace HollowCurrent
         // library and bedchamber. Each is a few primitive parts with their colliders removed under an empty root carrying a Throwable
         // marker (no Rigidbody, no collider until thrown); the root's mesh bounds stay under 0.3 m on every axis, inside
         // ScareDirector.ThrowNearbyProp's 0.4 m rule. Positions are castle-local on the table tops of the rooms below.
-        int throwables;
+        int throwables, throwBooks;
         void Part(Transform parent, PrimitiveType type, Vector3 local, Vector3 scale, string mat, float rollZ = 0)
         {
             var g = GameObject.CreatePrimitive(type);
@@ -1385,11 +1420,27 @@ namespace HollowCurrent
                     Drum(t, 0, .26f, .015f, "silver"); Drum(t, .015f, .17f, .006f, "metal");
                     break;
                 case Small.Book:
-                    Part(t, PrimitiveType.Cube, new Vector3(0, .0025f, 0), new Vector3(.2f, .005f, .14f), "cloth");
-                    Part(t, PrimitiveType.Cube, new Vector3(0, .0325f, 0), new Vector3(.2f, .005f, .14f), "cloth");
-                    Part(t, PrimitiveType.Cube, new Vector3(-.0975f, .0175f, 0), new Vector3(.01f, .035f, .14f), "cloth");
-                    Part(t, PrimitiveType.Cube, new Vector3(.005f, .0175f, 0), new Vector3(.185f, .025f, .13f), "paper");
+                {
+                    // round 12: real closed-book meshes (small / medium / large, three covers); the four primitive boards stay as the fallback
+                    string[] bookArt = { "BookClosedSmall", "BookClosed", "BookClosedLarge" };
+                    var placed = CastleArt.Place(bookArt[throwBooks % 3], t, Vector3.zero, Quaternion.identity);
+                    if (!placed.placeholder)
+                    {
+                        SwapCover(placed.transform, BookCovers[(throwBooks / 3 + throwBooks) % 3]);
+                        foreach (var c in placed.gameObject.GetComponentsInChildren<Collider>()) Release(c);
+                        foreach (var r in placed.gameObject.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    }
+                    else
+                    {
+                        Release(placed.gameObject);
+                        Part(t, PrimitiveType.Cube, new Vector3(0, .0025f, 0), new Vector3(.2f, .005f, .14f), "cloth");
+                        Part(t, PrimitiveType.Cube, new Vector3(0, .0325f, 0), new Vector3(.2f, .005f, .14f), "cloth");
+                        Part(t, PrimitiveType.Cube, new Vector3(-.0975f, .0175f, 0), new Vector3(.01f, .035f, .14f), "cloth");
+                        Part(t, PrimitiveType.Cube, new Vector3(.005f, .0175f, 0), new Vector3(.185f, .025f, .13f), "paper");
+                    }
+                    throwBooks++;
                     break;
+                }
                 case Small.Bowl:
                     Part(t, PrimitiveType.Sphere, new Vector3(0, .04f, 0), new Vector3(.2f, .08f, .2f), "wood");
                     break;

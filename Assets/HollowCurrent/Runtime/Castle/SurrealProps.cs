@@ -375,6 +375,8 @@ namespace HollowCurrent
             return floater;
         }
 
+        static void Drop(GameObject item){if(Application.isPlaying)UnityEngine.Object.Destroy(item);else UnityEngine.Object.DestroyImmediate(item);}
+
         // ---- hand-roots ----
         // A root strand hanging from the ceiling: `localPosition` is the top of the hanging part, a crown cone of
         // `crownLength` metres reaches up to the ceiling. The strand sways slowly about the top.
@@ -385,9 +387,28 @@ namespace HollowCurrent
             floater.phase=Mathf.Repeat(seed*.6180339f,1);
             floater.bobAmplitude=0;floater.driftRadius=0;floater.yawDegreesPerSecond=0;
             floater.tiltDegrees=2.4f;floater.bobHertz=.08f;
-            NewRenderer("Roots",t,Vector3.zero,Quaternion.identity,HandRootMesh(seed),HandRootMaterials,false);
-            var crown=NewRenderer("Crown",t,Vector3.zero,Quaternion.identity,CrownMesh,RootCrownMaterials,false);
-            crown.transform.localScale=new Vector3(1,Mathf.Max(.05f,crownLength),1);
+            // round 12: modelled strand with three hands (Resources/Castle/HandRoot0..5.fbx, tools/castle_props_r12.py) and a modelled
+            // collar (RootCrown.fbx, 1 m long, scaled to the ceiling distance). The procedural boxes-and-tubes mesh is the fallback.
+            int variant=((seed%HandRootVariants)+HandRootVariants)%HandRootVariants;
+            var art=CastleArt.Place("HandRoot"+variant,t,Vector3.zero,Quaternion.identity);
+            if(art.placeholder)
+            {
+                Drop(art.gameObject);
+                NewRenderer("Roots",t,Vector3.zero,Quaternion.identity,HandRootMesh(seed),HandRootMaterials,false);
+                var crown=NewRenderer("Crown",t,Vector3.zero,Quaternion.identity,CrownMesh,RootCrownMaterials,false);
+                crown.transform.localScale=new Vector3(1,Mathf.Max(.05f,crownLength),1);
+            }
+            else
+            {
+                foreach(var r in art.gameObject.GetComponentsInChildren<Renderer>()){r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;}
+                var collar=CastleArt.Place("RootCrown",t,Vector3.zero,Quaternion.identity);
+                if(collar.placeholder)Drop(collar.gameObject);
+                else
+                {
+                    collar.transform.localScale=new Vector3(1,Mathf.Max(.05f,crownLength),1);
+                    foreach(var r in collar.gameObject.GetComponentsInChildren<Renderer>()){r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;}
+                }
+            }
             return floater;
         }
 

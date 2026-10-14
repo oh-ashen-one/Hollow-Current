@@ -42,6 +42,16 @@ MATERIALS = {
     "Castle_RuneGlow":   ((0.25, 0.55, 1.00), 0.30, 0.0, False),  # emissive blue engraving (unlit CastleEmissive shader)
     "Castle_Moonstone":  ((0.74, 0.80, 0.92), 0.70, 0.0, True),   # milky stone, soft blue emission (CastleLit shader + textures)
     "Castle_Flame":      ((1.00, 0.62, 0.22), 0.00, 0.0, False),  # emissive
+    # Round 12 (hc/art-props), textures from tools/castle_r12_textures.py
+    "Castle_BookLeatherA": ((0.34, 0.07, 0.08), 0.26, 0.0, True),  # oxblood leather, gilt double frame and moon sigil
+    "Castle_BookLeatherB": ((0.15, 0.10, 0.08), 0.30, 0.0, True),  # near-black brown leather, blind-tooled rune ring
+    "Castle_BookLeatherC": ((0.12, 0.20, 0.17), 0.22, 0.0, True),  # scuffed bottle-green leather, gilt cartouche and cross
+    "Castle_BookPages":  ((0.66, 0.58, 0.42), 0.08, 0.0, True),   # foxed vellum, ink script; fore-edge band at the bottom of the map
+    "Castle_GiltWorn":   ((0.66, 0.50, 0.20), 0.45, 0.85, True),  # gilding rubbed through to red bole (socket lips, clasps)
+    "Castle_RootBark":   ((0.27, 0.21, 0.16), 0.22, 0.0, True),   # dark wet root bark, long fibres
+    "Castle_RootFlesh":  ((0.56, 0.51, 0.47), 0.34, 0.0, True),   # pallid grey hand skin, veins and creases
+    "Castle_BoneGrime":  ((0.60, 0.56, 0.46), 0.26, 0.0, True),   # old bone with crevice grime and dust
+    "Castle_NicheStone": ((0.20, 0.21, 0.26), 0.30, 0.0, True),   # tool-dressed dark stone, damp streaks (relic niches)
 }
 
 def guid(rel):
