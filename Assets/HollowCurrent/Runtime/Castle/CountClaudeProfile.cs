@@ -107,6 +107,9 @@ namespace HollowCurrent
         // r10b N3: every Travel leg (search, re-perch, fly-off; hunts and between hunts alike) is a silent glide, a soft flap or
         // a full flap, one third each. A dive always flaps at full volume.
         public float WingSoftVolume=.5f;
+        // r10 rerun: a no-tell or hostile-return hunt starts quiet: first leg silent, second at most soft, no one-shot (breath) for
+        // this many seconds unless he has seen her. Told hunts keep the one-third roll.
+        public float QuietStartSeconds=8f;
         // r10b N3: claw steps follow distance and gait only, never the phase: ClawNearVolume within 2 m, ClawFarVolume at 16 m.
         public float ClawNearVolume=.7f, ClawFarVolume=.12f;
         // Wave G #34: the hostile return opens with a visible swoop over the courtyard (castle-local points, sky above the

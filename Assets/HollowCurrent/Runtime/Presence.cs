@@ -386,6 +386,9 @@ namespace HollowCurrent
             // Item 9: a hunt that starts while he is perched between hunts starts on that perch (no visible jump).
             bool keepPerch=!hostile&&flight==Flight.Perched&&perchIndex>=0&&silhouette.gameObject.activeSelf;
             Memory.Clear();witnessedHide=false;think=0;contact=0;tell=0;staggerTimer=retreatTimer=0;speedNow=0;searchedAt=new Vector3(9999,9999,9999);
+            // Quiet start (r10 rerun: the wing loop jumped +0.6 at take-off in both sampled no-tell hunts): a no-tell or hostile-return
+            // hunt flies its first leg silent and its second at most soft, and plays no one-shot for 8 s unless he has seen her.
+            quietHunt=Game.Case.NoTellHunt||HostileReturn;quietReason=HostileReturn?"return":"notell";quietLeg=0;quietSeen=false;quietHeldLogged=false;
             gateStage=0;huntClock=0;seenThisHunt=false;chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
             silhouette.gameObject.SetActive(true);SetRim(count.RimLightScale);
             int best=keepPerch?perchIndex:-1;
@@ -445,7 +448,7 @@ namespace HollowCurrent
             }
             route.Clear();route.AddRange(legs);routeAt=0;routeGoal=legs[legs.Count-1];transform.position=start;
             var first=route[0]-transform.position;first.y=0;if(first.sqrMagnitude>.01f)transform.rotation=Quaternion.LookRotation(first);
-            swooping=true;flight=Flight.Travel;travelToPerch=false;pendingPerch=-1;perchIndex=-1;speedNow=count.GlideTightSpeed;legLoudness=1;
+            swooping=true;flight=Flight.Travel;travelToPerch=false;pendingPerch=-1;perchIndex=-1;speedNow=count.GlideTightSpeed;PickLegLoudness("swoop");
             Debug.Log("HC_COUNT_RETURN_SWOOP begin from="+start+" to="+routeGoal+log+" "+DiagnosticState);
             return true;
         }
@@ -659,8 +662,12 @@ namespace HollowCurrent
                 if(go)BeginHideVisit(false);
             }
             if(!retreating&&Game.Player.Hidden&&Game.Player.TorchOn)Hear(Game.Player.transform.position,Profile.HiddenTorchHearRadius);
-            breath-=dt;
-            if(breath<=0){breath=Profile.BreathInterval;Game.Sound.Cue("breath",transform.position+Vector3.up,Profile.BreathVolume);}
+            breath-=dt;if(CanSeePlayer)quietSeen=true;
+            if(breath<=0)
+            {
+                if(QuietWindow){if(!quietHeldLogged){quietHeldLogged=true;Debug.Log("HC_COUNT_ONESHOT held=breath t="+huntClock.ToString("F1")+" reason="+quietReason+" (first 8 s, not seen)");}}
+                else{breath=Profile.BreathInterval;Game.Sound.Cue("breath",transform.position+Vector3.up,Profile.BreathVolume);}
+            }
             var memory=new Vector3(Memory.X,Memory.Y,Memory.Z);
             bool freshMemory=!retreating&&Memory.Knows&&Vector3.Distance(memory,searchedAt)>2;
             switch(flight)
@@ -1147,9 +1154,18 @@ namespace HollowCurrent
         // them; a dive is always 1. CastleRun: wing loop volume = 0.6 x WingLoudness.
         float legLoudness=1;
         public float WingLoudness=>WingsBeating?(flight==Flight.Chase?1:legLoudness):0;
+        bool quietHunt,quietSeen,quietHeldLogged;int quietLeg;string quietReason="";
+        /// <summary>True in the first QuietSeconds of a no-tell or hostile-return hunt while he has not seen her: no one-shots.</summary>
+        bool QuietWindow=>huntOn&&quietHunt&&huntClock<count.QuietStartSeconds&&!quietSeen&&!CanSeePlayer;
         void PickLegLoudness(string leg)
         {
             float r=Random.value;legLoudness=r<1f/3?0:r<2f/3?count.WingSoftVolume:1;
+            if(huntOn&&quietHunt&&quietLeg<2)
+            {
+                quietLeg++;
+                if(quietLeg==1){legLoudness=0;Debug.Log("HC_COUNT_LEG first=silent reason="+quietReason+" leg="+leg);}
+                else{legLoudness=r<.5f?0:count.WingSoftVolume;Debug.Log("HC_COUNT_LEG second="+(legLoudness>0?"soft":"silent")+" reason="+quietReason+" leg="+leg);}
+            }
             Debug.Log("HC_COUNT_WINGS leg="+leg+" loudness="+legLoudness.ToString("F1")+" hunt="+huntOn);
         }
         /// <summary>r10b N3: claw-step volume by distance only (ClawNearVolume at 2 m to ClawFarVolume at 16 m), same curve in
