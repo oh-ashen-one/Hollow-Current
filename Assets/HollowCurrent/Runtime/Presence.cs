@@ -994,7 +994,7 @@ namespace HollowCurrent
         bool sawPlayer;
         int grabMode=-1;
         Vector3? lastSeen;                 // item 14: survives between hunts
-        /// <summary>True while he is diving at the investigator during a hunt (FearLink: torch fails for the dive).</summary>
+        /// <summary>True while he is diving at the investigator during a hunt (Game: torch fails for the dive).</summary>
         public bool Diving=>count!=null&&huntOn&&!choreo&&flight==Flight.Chase;
         /// <summary>Flying (wing loop) between hunts: leaving a hunt for a perch or the gatehouse visit.</summary>
         public bool Airborne=>count!=null&&!huntOn&&silhouette&&silhouette.gameObject.activeSelf&&(flight==Flight.Travel||gateStage==1||gateStage==3);

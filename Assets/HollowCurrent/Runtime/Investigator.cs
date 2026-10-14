@@ -285,7 +285,7 @@ namespace HollowCurrent
             if(!micClip.GetData(micSamples,start))return; // GetData wraps past the end of the 1 s ring
             float sum=0;foreach(float v in micSamples)sum+=v*v;
             MicLevel=Mathf.Sqrt(sum/micSamples.Length);
-            if(!Game.Modal&&FearLink.HuntActive(Game.Case)&&MicLevel>Game.MicThreshold&&Time.time-micHeardAt>.5f)
+            if(!Game.Modal&&Game.Case.HuntActive&&MicLevel>Game.MicThreshold&&Time.time-micHeardAt>.5f)
             {micHeardAt=Time.time;MicHeard++;Game.Creature.Hear(transform.position,9f);Debug.Log("HC_MIC heard rms="+MicLevel.ToString("F3"));}
         }
         void StopMicrophone()
@@ -348,7 +348,7 @@ namespace HollowCurrent
             if(Game.Map==MapId.Castle)
             {
                 // Above the DoorHeld threshold something holds the door from inside (FEAR_PLAN item 5).
-                if(FearLink.DoorHeld(Game.Case)){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name);return;}
+                if(Game.Case.DoorHeld){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name);return;}
             }
             Game.Creature.WitnessHide(spot.HidePoint);
             hiding=spot;Hidden=true;Teleport(spot.HidePoint);

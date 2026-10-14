@@ -138,7 +138,7 @@ namespace HollowCurrent
         }
         void CastleMix(float dt,float bed,bool hunting,bool tellHeld,bool terminal)
         {
-            var p=game.Player;float dread=FearLink.Dread(game.Case);
+            var p=game.Player;float dread=game.Case.Dread;
             float beat=terminal||!game.Started?0:Mathf.Max(HeartbeatForDread(dread),hunting&&!tellHeld?.5f:0)*bed;
             heartbeat.volume=Mathf.MoveTowards(heartbeat.volume,beat,dt*.55f); // ~1 s ramp
             float nearWindow=99;foreach(var w in windows)nearWindow=Mathf.Min(nearWindow,Vector3.Distance(p.transform.position,w));
@@ -183,9 +183,9 @@ namespace HollowCurrent
             for(int i=0;i<voices.Count;i++)if(voices[i].isPlaying&&speechUntil[i]>Time.unscaledTime)speaking=true;
             duck=Mathf.MoveTowards(duck,speaking?.22f:1,dt*(speaking?5f:.75f));
             bool quiet=game.Loading||game.Paused||game.Journal||game.NoteBody!=null;
-            bool hunting=game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||castle&&FearLink.HuntActive(game.Case);
+            bool hunting=game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||castle&&game.Case.HuntActive;
             // A no-tell hunt gives no audio tell for its first seconds: the first sign is him.
-            bool tellHeld=castle&&FearLink.NoTellHunt(game.Case)&&game.Case.Phase==Phase.Hunt&&game.Case.PhaseTime<4;
+            bool tellHeld=castle&&game.Case.NoTellHunt&&game.Case.Phase==Phase.Hunt&&game.Case.PhaseTime<4;
             bool safe=!game.Started||(game.Player.InVan&&!hunting&&!game.Scares.Interference);
             bool terminal=game.Case.Terminal;
             float bed=game.Loading||terminal?0:quiet?.16f:1;

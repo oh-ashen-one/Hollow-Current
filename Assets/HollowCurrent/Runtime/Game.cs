@@ -298,29 +298,18 @@ namespace HollowCurrent
             litCheck-=dt;if(litCheck<=0){litCheck=.25f;litNearby=CandleWithin(6);}
             bool atFire=hasChapelFire&&Case.BreakerOn&&Vector3.Distance(Player.transform.position,chapelFire)<3;
             Case.Tick(dt,Player.Inside,litNearby,Player.InVan||atFire);
-            bool diving=FearLink.Diving(Creature);
+            bool diving=(Creature&&Creature.Diving);
             if(diving&&!wasDiving){Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL dive");}
             wasDiving=diving;
         }
         // FEAR_PLAN item 7: after a death he has moved the next relic or ledger page (F3's RelicAltPositions).
         // The relic state lives in CastleRun.Forge, which a checkpoint reload rebuilds, so every relic is back in place:
-        // the moved one rotates with the death count. Interactable and art move together by the same offset.
+        // the moved one rotates with the death count (CastleRun.MoveRelicToAlternate moves interactable and art).
         void DeathPenalty()
         {
-            var alt=World.Castle?.RelicAltPositions;
-            if(alt==null||alt.Length<3){Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" moved=none (no RelicAltPositions in this scene)");return;}
             int pick=(Case.Deaths+2)%3;
-            foreach(var item in World.Root.GetComponentsInChildren<Interactable>(true))
-            {
-                if(item.Kind!=InteractKind.Relic||item.RelicIndex!=pick)continue;
-                if(Castle&&Castle.Forge.HasRelic((Relic)pick))continue;
-                var from=item.transform.position;var delta=alt[pick]-from;
-                item.transform.position+=delta;if(item.Art&&!item.Art.transform.IsChildOf(item.transform))item.Art.transform.position+=delta;
-                MovedRelic=pick;
-                Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F0")+" moved relic="+pick+" from="+from+" to="+alt[pick]);
-                return;
-            }
-            Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" moved=none (relic "+pick+" interactable not found)");
+            bool moved=Castle&&Castle.MoveRelicToAlternate(pick);if(moved)MovedRelic=pick;
+            Debug.Log("HC_DEATH_PENALTY deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F0")+" relic="+pick+" moved="+moved);
         }
         void CacheCandles()
         {

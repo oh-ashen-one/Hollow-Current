@@ -220,6 +220,16 @@ namespace HollowCurrent
             NoTellHunt = noTell;
             Set(Phase.Hunt);
         }
+        // Castle rules only (UsesDread): a hunt that starts now with no Warning (the sarcophagus gamble, item 18).
+        // Bellwether rules ignore it. Only from the calm phases; returns whether the hunt started.
+        public bool BeginNoTellHunt()
+        {
+            if (!Rules.UsesDread || Terminal) return false;
+            if (Phase != Phase.Survey && Phase != Phase.Disturbance && Phase != Phase.Recovery) return false;
+            BreakerOn = false;
+            StartHunt(true);
+            return true;
+        }
         public void BeginWarning()
         {
             if (Terminal || Phase == Phase.Return || Phase == Phase.Containment) return;

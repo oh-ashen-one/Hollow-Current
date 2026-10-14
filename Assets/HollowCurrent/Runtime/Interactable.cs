@@ -31,7 +31,7 @@ namespace HollowCurrent
                 case InteractKind.Relic: if(game.Castle)game.Castle.TakeRelic(this);break;
                 case InteractKind.Altar: if(game.Castle)game.Castle.AltarHint();break;
                 // Castle crypt (FEAR_PLAN item 18, the cursed reading): CastleRun.Sarcophagus() once hc/count11 lands.
-                case InteractKind.Sarcophagus: Debug.Log("HC_SARCOPHAGUS used (CastleRun.Sarcophagus pending)");game.ShowNote(Label,Body);break;
+                case InteractKind.Sarcophagus: if(game.Castle)game.Castle.Sarcophagus();break;
                 case InteractKind.Anchor:
                     if(game.Castle){game.Castle.RingBell();break;}
                     if(game.Case.Phase!=Phase.Containment)game.Say(game.Book.AnchorNotReady);break;

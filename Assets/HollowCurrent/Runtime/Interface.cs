@@ -345,7 +345,7 @@ namespace HollowCurrent
         {
             if(Event.current.type!=EventType.Repaint)return;
             float t=Time.unscaledTime;
-            float dread=Mathf.Clamp(FearLink.Dread(Game.Case)+(Mathf.PerlinNoise(t*.35f,.5f)*2-1)*2,0,100);
+            float dread=Mathf.Clamp(Game.Case.Dread+(Mathf.PerlinNoise(t*.35f,.5f)*2-1)*2,0,100);
             float rate=.9f+dread*.022f; // beats per second: 0.9 calm to 3.1 at the edge
             float height=r.height*(.18f+dread*.0042f);
             float baseline=r.center.y;
@@ -488,7 +488,7 @@ namespace HollowCurrent
             KeyPill(1315,840,PadInput.Active?(ps?"□":"X"):"F","FLASHLIGHT");
             if(Game.HelpHints)Label(365,869,855,25,PadInput.Active?(ps?"× INTERACT   △ JOURNAL   L2 RADIO   L3 SPRINT   ○ CROUCH":"A INTERACT   Y JOURNAL   LT RADIO   LS SPRINT   B CROUCH"):"E INTERACT   J JOURNAL   R RADIO   SHIFT SPRINT   CTRL CROUCH",hudTiny);
             if(p.Stamina<.99f){Panel(new Rect(44,878,220,2),line);Panel(new Rect(44,878,220*p.Stamina,2),copper);}
-            if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt((Game.Map==MapId.Castle?FearLink.WarningSeconds(Game.Case):9)-Game.Case.PhaseTime)),center);
+            if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt((Game.Map==MapId.Castle?(Game.Case.WarningLength>0?Game.Case.WarningLength:Game.Case.Rules.WarningSeconds):9)-Game.Case.PhaseTime)),center);
         }
     }
 }

@@ -156,10 +156,9 @@ namespace HollowCurrent
             float before=c.Dread;c.AddDread(GambleDread);
             var phase=c.Phase;bool canHunt=phase==Phase.Survey||phase==Phase.Disturbance||phase==Phase.Recovery;
             float roll=Random.value;bool hunt=canHunt&&roll<GambleHuntChance;
-            // F1 has no public immediate no-tell trigger (StartHunt is private): BeginWarning is the only public one; under Long
-            // Night (WarningSeconds 0) it already starts the hunt at once. HANDOFF requests Investigation.BeginNoTellHunt().
-            if(hunt)c.BeginWarning();
-            Debug.Log("HC_COUNT_GAMBLE page="+id+" relic="+page+" dread="+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" roll="+roll.ToString("F2")+" hunt="+hunt+" via="+(hunt?"BeginWarning":"none")+" phase="+phase+"->"+c.Phase);
+            // The cursed reading starts the hunt at once, with no Warning (F0 added Investigation.BeginNoTellHunt).
+            if(hunt)hunt=c.BeginNoTellHunt();
+            Debug.Log("HC_COUNT_GAMBLE page="+id+" relic="+page+" dread="+before.ToString("F1")+"->"+c.Dread.ToString("F1")+" roll="+roll.ToString("F2")+" hunt="+hunt+" via="+(hunt?"BeginNoTellHunt":"none")+" phase="+phase+"->"+c.Phase);
             return true;
         }
         Vector3 SarcophagusPosition=>sarcophagus?sarcophagus.position:Game.World.Root?Game.World.Root.TransformPoint(new Vector3(0,-3.2f,22.5f)):new Vector3(0,-3.2f,22.5f);

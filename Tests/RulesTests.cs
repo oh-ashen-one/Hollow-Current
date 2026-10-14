@@ -122,6 +122,7 @@ static class RulesTests
         ForgeAndFightTests();
         MapTests();
         DreadRulesTests();
+        NoTellTriggerTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
@@ -162,6 +163,15 @@ static class RulesTests
     }
 
     // Piece F1: per-map HuntRules, Dread, dice hunts, broken tells, hostile Return, death penalty (Core/HuntRules.cs).
+    static void NoTellTriggerTests()
+    {
+        var c=StartOn(CaseBook.Castle);c.Record(Evidence.Induction);
+        Assert(c.BeginNoTellHunt()&&c.Phase==Phase.Hunt&&c.NoTellHunt&&!c.FalseWarning&&c.HuntActive&&c.Hunts==1,"castle: BeginNoTellHunt starts a no-tell hunt at once");
+        Assert(!c.BeginNoTellHunt()&&c.Hunts==1,"castle: no second no-tell hunt during a hunt");
+        var b=StartOn(CaseBook.Bellwether);b.Record(Evidence.Induction);
+        Assert(!b.BeginNoTellHunt()&&b.Phase==Phase.Disturbance&&b.Hunts==0&&b.BreakerOn,"Bellwether ignores BeginNoTellHunt");
+        var brief=new Investigation(CaseBook.Castle);Assert(!brief.BeginNoTellHunt()&&brief.Phase==Phase.Briefing,"castle: no no-tell hunt before the kit");
+    }
     static Investigation StartOn(CaseBook book,Func<float> random=null,HuntRules rules=null){var c=new Investigation(book,random,rules);c.Equip();c.EnterHouse();return c;}
     static int TickUntilLeaves(Investigation c,Phase phase,int maxSeconds){int t=0;while(c.Phase==phase&&t<maxSeconds){c.Tick(1,false);t++;}return t;}
     static Investigation SealedCastle()
