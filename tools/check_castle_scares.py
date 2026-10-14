@@ -65,7 +65,7 @@ reached = re.findall(r"return (\w+)\(\);", try_beat or "")
 registered = [b for b in reached if b in beats]
 if len(registered) != 5:
     failures.append("TryBeat registers %d beats, expected 5: %s" % (len(registered), registered))
-tick = body(scares, "public bool DreadTick(")
+tick = (body(scares, "public bool DreadTick(") or "") + (body(scares, "bool TickChoice(") or "")
 for needle in ("Silence()", "FalseCandleTell()", "FalseCompassReading()", "Lie()", "WindowSilhouette()", "BalustradeShape()", "Beat(false)"):
     if not tick or needle not in tick:
         failures.append("DreadTick does not call " + needle)
@@ -113,6 +113,40 @@ if "TickAmbient" not in scares or "HC_AMBIENT" not in scares:
 foot = body(scares, "IEnumerator Footsteps(")
 if foot is None or re.search(r"Phase|HuntActive|LieAllowed|Active", foot):
     failures.append("Footsteps coroutine must not stop on a phase, hunt or Active change (only Ready)")
+
+# 4c. budgets (critic r11, bell_single 9 times in 18 minutes): every beat and lie has a BudgetTable entry (max per run, gap), the beat
+# method checks Can("<key>") and a log spends it; the bell is capped at 2 per run with a gap >= 240 s, everything else gaps >= 90 s.
+table = {}
+m = re.search(r"BudgetTable\s*=\s*new Dictionary<string,int\[\]>\s*\{(.*?)\n        \};", scares, re.S)
+if not m:
+    failures.append("BudgetTable not found in CastleScares.cs")
+else:
+    for key, mx, gap in re.findall(r'\{"(\w+)",new\[\]\{(\d+),(\d+)\}\}', m.group(1)):
+        table[key] = (int(mx), int(gap))
+for tag in list(beats.values()) + [t.split("kind=")[1] for t in lies.values()]:
+    if tag not in table:
+        failures.append("beat %s has no BudgetTable entry" % tag)
+        continue
+    mx, gap = table[tag]
+    if mx < 1 or gap < 90:
+        failures.append("budget for %s is too loose: max=%d gap=%d (need max >= 1 and gap >= 90)" % (tag, mx, gap))
+if table.get("bell_single", (99, 0)) > (2, 10 ** 9) or table.get("bell_single", (0, 0))[1] < 240 or table.get("bell_single", (99, 0))[0] > 2:
+    failures.append("bell_single must be max 2 per run with gap >= 240 s: %s" % (table.get("bell_single"),))
+for method, tag in list(beats.items()) + [("PhantomListen", "phantom_listen"), ("FootstepsBehind", "footsteps_behind")]:
+    text = body(scares, method)
+    if text is not None and 'Can("%s")' % tag not in text:
+        failures.append("%s does not check Can(\"%s\") (budget/cooldown)" % (method, tag))
+for tag in ("phantom_listen", "footsteps_behind"):
+    if 'Spend("%s")' % tag not in scares:
+        failures.append("lie %s never spends its budget" % tag)
+if "string key=beat.Split" not in scares or "Spend(key)" not in scares or "BudgetText(key" not in scares:
+    failures.append("Log() must spend the beat's budget and print pick= budget=")
+if "no beat twice in a row" not in scares and "key==lastKey" not in scares:
+    failures.append("Can() must refuse the beat used last")
+esc = body(scares, "public bool Escalate(")
+if not esc or "reason=" not in esc or "substitute=" not in esc:
+    failures.append("Escalate must log reason= and substitute=")
+print("budget table: %d entries %s" % (len(table), sorted(table)))
 
 # 5. Bellwether isolation: CastleScares is only reached through the castle gate in the director
 if "IsCastle" not in director:
