@@ -125,6 +125,7 @@ static class RulesTests
         NoTellTriggerTests();
         WaveGTests();
         WaveHTests();
+        WaveITests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
@@ -556,5 +557,138 @@ static class RulesTests
         Assert(ef.TryEscalate()&&escFlag&&ef.EscalatedWarning&&ef.CurrentWarningSeconds==1.5f,"escalation is flagged before Changed fires");TickUntilLeaves(ef,Phase.Warning,10);Assert(!ef.EscalatedWarning,"flag clears when the Warning ends");
         var shortTold=StartOn(CaseBook.Castle,()=>0f);shortTold.Record(Evidence.Induction);shortTold.BeginWarning();Assert(shortTold.CurrentWarningSeconds==5&&!shortTold.EscalatedWarning,"a short told Warning is not an escalation");
         var fd=StartOn(CaseBook.Castle);fd.ForceDread(150);Assert(fd.Dread==100,"ForceDread clamps");var fdb=Start();fdb.ForceDread(80);Assert(fdb.Dread==0,"ForceDread ignores Dread on Bellwether");
+    }
+
+    // Wave I (blind critic r10 P3): Dread decay, per-hunt cap, post-hunt grace, HuntShare, and a 10-minute session model.
+    sealed class SessionResult{public float ShareAfterFirst,ShareRun,PinnedSeconds,FirstAt=-1;public int Hunts,LowStarts;public System.Collections.Generic.List<float> Gaps=new System.Collections.Generic.List<float>();}
+    // Player model: lit inside (+0.05/s), dark for darkShare of the time (+0.12/s), a 20-40 s gatehouse visit every
+    // 150-300 s of calm play (DreadRelief 3), evidence at 10-40 / 40-120 / 120-240 s, ledger read by 240 s, apparitions
+    // every 60-110 s in Disturbance (+12, every second one throws +8, one in three lands close: TryEscalate). In a hunt
+    // the player is seen in 60 % of hunts (DreadSeen once, +0.3/s for up to 8 s) and the hide fails in 30 % (grab survived +20).
+    static SessionResult Session(HuntRules rules,int seed,float darkShare)
+    {
+        var res=new SessionResult();var dice=new Random(seed*31+7);var p=new Random(seed*17+3);
+        var c=new Investigation(CaseBook.Castle,()=>(float)dice.NextDouble(),rules);c.Equip();c.EnterHouse();
+        float[] ev={10+30*(float)p.NextDouble(),40+80*(float)p.NextDouble(),120+120*(float)p.NextDouble()};int evi=0,apps=0;
+        float nextApp=40+60*(float)p.NextDouble(),nextGate=150+100*(float)p.NextDouble(),gateLeft=0,darkSwitch=20,seenLeft=0,grabAt=-1,t=0,dt=.5f,threat=0,lastEnd=-1;
+        bool dark=false,seenGiven=false,grabGiven=false,inThreat=false;
+        c.Changed+=ph=>{bool th=ph==Phase.Warning||ph==Phase.Hunt;
+            if(th&&!inThreat){if(res.FirstAt<0)res.FirstAt=t;if(lastEnd>=0)res.Gaps.Add(t-lastEnd);inThreat=true;if(c.Dread<c.RunDreadMin)res.LowStarts++;}
+            if(!th&&inThreat){inThreat=false;lastEnd=t;}
+            if(ph==Phase.Hunt){seenLeft=p.NextDouble()<.6?(float)(p.NextDouble()*8):0;seenGiven=false;grabGiven=false;grabAt=p.NextDouble()<.3?(float)(5+p.NextDouble()*20):-1;}};
+        while(t<600)
+        {
+            t+=dt;
+            while(evi<3&&t>=ev[evi]){c.Record((Evidence)evi);evi++;}
+            if(t>240&&c.ContextCount<3)foreach(var n in CaseBook.Castle.NoteTitles)c.Read(n);
+            darkSwitch-=dt;if(darkSwitch<=0){dark=p.NextDouble()<darkShare;darkSwitch=10+20*(float)p.NextDouble();}
+            bool calm=c.Phase==Phase.Disturbance||c.Phase==Phase.Survey||c.Phase==Phase.Recovery;
+            if(gateLeft>0)gateLeft-=dt;else if(calm&&t>=nextGate){gateLeft=20+20*(float)p.NextDouble();nextGate=t+150+150*(float)p.NextDouble();}
+            bool safe=gateLeft>0;c.DreadRelief=safe?3:1;
+            if(c.Phase==Phase.Hunt)
+            {
+                if(seenLeft>0){seenLeft-=dt;c.AddDread(.3f*dt);if(!seenGiven){seenGiven=true;c.AddDread(c.Rules.DreadSeen);}}
+                if(grabAt>=0&&c.PhaseTime>=grabAt&&!grabGiven){grabGiven=true;c.AddDread(c.Rules.DreadGrabSurvived);}
+            }
+            if(c.Phase==Phase.Disturbance&&t>=nextApp&&!safe){c.AddDread(c.Rules.DreadApparition);apps++;if(apps%2==0)c.AddDread(c.Rules.DreadThrow);if(p.NextDouble()<1/3.0)c.TryEscalate();nextApp=t+60+50*(float)p.NextDouble();}
+            c.Tick(dt,!safe,!dark,safe);
+            if(inThreat)threat+=dt;
+            if(c.Dread>=95)res.PinnedSeconds+=dt;
+        }
+        res.ShareAfterFirst=res.FirstAt<0?0:threat/(600-res.FirstAt);res.ShareRun=c.HuntShare;res.Hunts=c.Hunts;return res;
+    }
+    static float Quantile(System.Collections.Generic.List<float> v,float q){v.Sort();return v[Math.Min(v.Count-1,(int)(q*v.Count))];}
+    static string SessionReport(string name,HuntRules rules,float dark,out float meanAfter,out float runP50,out float runP90,out float pooledCv,out System.Collections.Generic.List<float> gaps,out float pinnedPerRun,out int low,out int threats)
+    {
+        var after=new System.Collections.Generic.List<float>();var run=new System.Collections.Generic.List<float>();gaps=new System.Collections.Generic.List<float>();var cvs=new System.Collections.Generic.List<float>();
+        float pinned=0,sumAfter=0;low=0;threats=0;int hunts=0;
+        for(int seed=0;seed<2000;seed++)
+        {
+            var r=Session(rules,seed,dark);after.Add(r.ShareAfterFirst);run.Add(r.ShareRun);sumAfter+=r.ShareAfterFirst;gaps.AddRange(r.Gaps);pinned+=r.PinnedSeconds;low+=r.LowStarts;threats+=r.Gaps.Count+(r.FirstAt>=0?1:0);hunts+=r.Hunts;
+            if(r.Gaps.Count>=3){float m=0;foreach(var g in r.Gaps)m+=g;m/=r.Gaps.Count;float sd=0;foreach(var g in r.Gaps)sd+=(g-m)*(g-m);cvs.Add((float)Math.Sqrt(sd/r.Gaps.Count)/m);}
+        }
+        meanAfter=sumAfter/2000;runP50=Quantile(run,.5f);runP90=Quantile(run,.9f);pinnedPerRun=pinned/2000;
+        float gm=0;foreach(var g in gaps)gm+=g;gm/=Math.Max(1,gaps.Count);float gsd=0;foreach(var g in gaps)gsd+=(g-gm)*(g-gm);pooledCv=gaps.Count>0?(float)Math.Sqrt(gsd/gaps.Count)/gm:0;
+        return "WAVE_I "+name+" share_after_first_hunt mean="+meanAfter.ToString("F3")+" p10="+Quantile(after,.1f).ToString("F3")+" p50="+Quantile(after,.5f).ToString("F3")+" p90="+Quantile(after,.9f).ToString("F3")
+            +" | HuntShare_10min p50="+runP50.ToString("F3")+" p90="+runP90.ToString("F3")
+            +" | gaps n="+gaps.Count+" p10="+Quantile(gaps,.1f).ToString("F0")+" p50="+Quantile(gaps,.5f).ToString("F0")+" p90="+Quantile(gaps,.9f).ToString("F0")+" max="+Quantile(gaps,1f).ToString("F0")
+            +" cv_pooled="+pooledCv.ToString("F2")+" cv_seed_median="+(cvs.Count>0?Quantile(cvs,.5f):0).ToString("F2")
+            +" | hunts/run="+(hunts/2000f).ToString("F1")+" starts_below_boundary="+low+"/"+threats+" dread>=95 s/run="+pinnedPerRun.ToString("F1");
+    }
+    static void WaveITests()
+    {
+        var r=HuntRules.Castle;var b=HuntRules.Bellwether;
+        Assert(Math.Abs(r.DreadDecayRecovery-.4f)<1e-6f&&Math.Abs(r.DreadDecayCalm-.15f)<1e-6f&&r.DreadDecayFloor==20&&r.HuntDreadCap==25&&r.GraceMin==30&&r.GraceMax==90,"castle: decay 0.4/0.15 to 20, cap 25, grace 30-90 s");
+        Assert(b.DreadDecayRecovery==0&&b.DreadDecayCalm==0&&b.HuntDreadCap==0&&b.GraceMax==0,"Bellwether: no wave I damping");
+        var bw=Start();Hunt(bw);bw.Tick(38,true);Assert(bw.GraceSeconds==0&&bw.GraceRemaining==0,"Bellwether draws no grace");
+
+        // 1. Event Dread decays; ambient Dread (darkness, time, ForceDread) does not.
+        var d=StartOn(CaseBook.Castle);d.Record(Evidence.Induction);d.AddDread(30);Assert(Math.Abs(d.DreadEvent-30)<1e-4f,"AddDread is event Dread");
+        d.Tick(10,false);Assert(Math.Abs(d.Dread-28.5f)<.01f,"calm phases: event Dread decays 0.15/s");
+        d.Tick(300,false);Assert(d.Dread==0&&d.DreadEvent==0,"before the first hunt event Dread decays to nothing");
+        var amb=StartOn(CaseBook.Castle);amb.Record(Evidence.Induction);amb.Tick(100,true,false,false);float dark=amb.Dread;amb.Tick(300,false);
+        Assert(Math.Abs(dark-12)<.01f&&amb.Dread==dark&&amb.DreadEvent==0,"darkness builds Dread that time does not take away");
+        amb.Tick(10,false,false,true);Assert(Math.Abs(amb.Dread-7)<.01f,"the safe zone still lowers it 0.5/s");
+        var rel=StartOn(CaseBook.Castle);rel.Record(Evidence.Induction);rel.AddDread(30);rel.DreadRelief=3;rel.Tick(10,false);Assert(Math.Abs(rel.Dread-25.5f)<.01f,"DreadRelief 3 triples the decay");
+        var rec=StartOn(CaseBook.Castle);rec.Record(Evidence.Induction);rec.BeginWarning();TickUntilLeaves(rec,Phase.Warning,30);
+        rec.AddDread(20);float inHunt=rec.Dread;rec.Tick(10,false);Assert(rec.Phase==Phase.Hunt&&rec.Dread==inHunt,"no decay during a hunt");
+        for(int t=0;t<60&&rec.Phase==Phase.Hunt;t++)rec.Tick(1,false);rec.ForceDread(10);rec.AddDread(50);rec.Tick(10,false);
+        Assert(rec.Phase==Phase.Recovery&&Math.Abs(rec.Dread-56)<.01f,"Recovery: event Dread decays 0.4/s");
+        for(int t=0;t<400;t++)rec.Tick(1,false);Assert(Math.Abs(rec.Dread-20)<.01f&&rec.Hunts>=1,"after the first hunt decay stops at 20");
+        var floorAmb=StartOn(CaseBook.Castle);floorAmb.Record(Evidence.Induction);floorAmb.BeginNoTellHunt();for(int t=0;t<200;t++)floorAmb.Tick(1,false);floorAmb.ForceDread(5);floorAmb.AddDread(10);
+        for(int t=0;t<200;t++)floorAmb.Tick(1,false);Assert(Math.Abs(floorAmb.Dread-15)<.01f,"the floor never raises Dread; it only stops the decay");
+        var cp=StartOn(CaseBook.Castle);cp.Record(Evidence.Induction);cp.ForceDread(10);cp.AddDread(30);var cs=cp.SaveCheckpoint();var cb=new Investigation(CaseBook.Castle);cb.RestoreCheckpoint(cs,false);
+        Assert(Math.Abs(cs.DreadEvent-30)<1e-4f&&Math.Abs(cb.DreadEvent-30)<1e-4f&&Math.Abs(cb.Dread-40)<1e-4f,"checkpoints keep the event part");
+        var pen=new Investigation(CaseBook.Castle);pen.RestoreCheckpoint(cs,true);Assert(pen.Dread==60&&Math.Abs(pen.DreadEvent-50)<1e-4f,"death penalty: 60, of which everything above the saved ambient part decays");
+
+        // 2. Per-hunt cap on AddDread.
+        var cap=StartOn(CaseBook.Castle);cap.Record(Evidence.Induction);cap.BeginNoTellHunt();float c0=cap.Dread;
+        cap.AddDread(15);cap.AddDread(20);Assert(Math.Abs(cap.Dread-c0-25)<1e-4f&&cap.HuntDreadAdded==25,"a hunt adds at most 25");
+        cap.AddDread(10);for(int i=0;i<100;i++)cap.AddDread(.3f);Assert(Math.Abs(cap.Dread-c0-25)<1e-4f,"no caller gets past the cap");
+        cap.AddDread(-5);Assert(Math.Abs(cap.Dread-c0-20)<1e-4f,"negative AddDread still works in a hunt");
+        for(int t=0;t<60&&cap.Phase==Phase.Hunt;t++)cap.Tick(1,false);cap.AddDread(30);Assert(cap.Phase==Phase.Recovery&&cap.Dread>=c0+49,"no cap outside a hunt");
+        cap.ForceDread(0);cap.BeginNoTellHunt();Assert(cap.HuntDreadAdded==0,"the cap resets each hunt");cap.AddDread(40);Assert(Math.Abs(cap.Dread-25)<1e-4f,"second hunt: 25 again");
+        var hr=SealedCastle();hr.AddDread(15);hr.AddDread(15);Assert(hr.HuntActive&&hr.HuntDreadAdded==25,"the hostile Return is capped too");
+        var bcap=Start();Hunt(bcap);bcap.AddDread(80);Assert(bcap.Dread==0,"Bellwether still ignores Dread");
+
+        // 3. Post-hunt grace: 30-90 s drawn at hunt end (after the recovery length), dice and escalation disarmed.
+        var g0=StartOn(CaseBook.Castle,()=>0f);g0.Record(Evidence.Induction);g0.BeginWarning();TickUntilLeaves(g0,Phase.Warning,30);TickUntilLeaves(g0,Phase.Hunt,60);
+        Assert(g0.Phase==Phase.Recovery&&g0.GraceSeconds==30&&g0.GraceRemaining==30&&g0.CurrentRecoverySeconds==10,"roll 0: recovery 10 s, grace 30 s");
+        int quietFor=0;while((g0.Phase==Phase.Recovery||g0.Phase==Phase.Disturbance)&&quietFor<120){g0.Tick(1,false);quietFor++;}
+        Assert(quietFor>=30&&quietFor<=40&&g0.Hunts==2,"certain dice stay disarmed for the whole grace, then hunt");
+        var gm=StartOn(CaseBook.Castle);gm.Record(Evidence.Induction);gm.BeginWarning();TickUntilLeaves(gm,Phase.Warning,30);TickUntilLeaves(gm,Phase.Hunt,60);Assert(gm.GraceSeconds==60,"0.5 roll: 60 s");
+        int gcalls=0;var go=new Investigation(CaseBook.Castle,()=>{gcalls++;return .5f;});go.Equip();go.EnterHouse();go.Record(Evidence.Induction);go.BeginWarning();TickUntilLeaves(go,Phase.Warning,30);int beforeEnd=gcalls;TickUntilLeaves(go,Phase.Hunt,60);
+        Assert(gcalls-beforeEnd==2,"hunt end draws exactly two rolls: recovery length, then grace");
+        var ge=StartOn(CaseBook.Castle,()=>0f);ge.Record(Evidence.Induction);ge.BeginNoTellHunt();for(int t=0;t<60&&ge.Phase!=Phase.Disturbance;t++)ge.Tick(1,false);
+        Assert(ge.Phase==Phase.Disturbance&&ge.GraceRemaining>0&&!ge.TryEscalate(),"no escalation during the grace");
+        ge.BeginWarning();Assert(ge.Phase==Phase.Warning,"the bell still summons during the grace");
+        var gf=StartOn(CaseBook.Castle,()=>0f);gf.Record(Evidence.Induction);gf.BeginNoTellHunt();for(int t=0;t<60&&gf.Phase==Phase.Hunt;t++)gf.Tick(1,false);gf.ForceDread(50);Assert(gf.GraceRemaining==0,"ForceDread (driver) clears the grace");
+        var graces=new System.Collections.Generic.List<float>();
+        for(int seed=0;seed<1000;seed++){var c=StartOn(CaseBook.Castle,Seeded(70000+seed));c.Record(Evidence.Induction);c.BeginNoTellHunt();for(int t=0;t<60&&c.Phase==Phase.Hunt;t++)c.Tick(1,false);graces.Add(c.GraceSeconds);}
+        Assert(Quantile(graces,0)>=30&&Quantile(graces,0)<32&&Quantile(graces,1)<=90&&Quantile(graces,1)>88&&Math.Abs(Quantile(graces,.5f)-60)<3,"grace uniform over 30-90 s");
+        int cutCastle=0;for(int seed=0;seed<300;seed++){var c=StartOn(CaseBook.Castle,Seeded(71000+seed));c.Record(Evidence.Induction);c.BeginNoTellHunt();c.ForceDread(90);for(int t=0;t<60&&c.Phase==Phase.Hunt;t++)c.Tick(1,false);
+            float len=c.CurrentRecoverySeconds,grace=c.GraceSeconds;if(TickUntilLeaves(c,Phase.Recovery,60)<len-.01f){cutCastle++;if(grace>len)cutCastle+=1000;}}
+        Assert(cutCastle<1000&&cutCastle<60,"Recovery dice only fire after the grace, so a Recovery is rarely cut short");
+
+        // 5. HuntShare: rolling share of the last 10 minutes in Warning, Hunt or hostile Return.
+        var hs=StartOn(CaseBook.Castle);hs.Record(Evidence.Induction);for(int t=0;t<53;t++)hs.Tick(1,false);
+        Assert(hs.HuntShare==0,"no threat yet");hs.BeginWarning();for(int t=0;t<47;t++)hs.Tick(1,false);
+        Assert(hs.Phase==Phase.Recovery&&Math.Abs(hs.HuntShare-.47f)<.011f,"9 s warning + 38 s hunt in the first 100 s = 0.47");
+        for(int t=0;t<500;t++){hs.ForceDread(0);hs.Tick(1,false);}Assert(Math.Abs(hs.HuntShare-47/600f)<.003f,"after 600 s the share is over the last 10 minutes");
+        for(int t=0;t<120;t++){hs.ForceDread(0);hs.Tick(1,false);}Assert(hs.HuntShare<.001f&&hs.Hunts==1,"a hunt more than 10 minutes ago no longer counts");
+        var hsr=StartOn(CaseBook.Castle);hsr.Record(Evidence.Induction);hsr.Record(Evidence.Handprint);hsr.Record(Evidence.Voice);hsr.BeginWarning();hsr.Tick(9,false);hsr.Tick(38,false);
+        foreach(var title in CaseBook.Castle.NoteTitles)hsr.Read(title);Correct(hsr);hsr.RestorePower();for(int t=0;t<100;t++)hsr.Tick(1,false);hsr.Seal(12,true,true);for(int t=0;t<30;t++)hsr.Tick(1,false);
+        Assert(hsr.Phase==Phase.Return&&Math.Abs(hsr.HuntShare-77/177f)<.01f,"the hostile Return counts as threat time ((47 + 30) / 177 s)");
+
+        // 4. The 10-minute session model, 2,000 seeds: wave I against the same castle with the damping off.
+        float meanAfter,p50,p90,cv,pinned;System.Collections.Generic.List<float> gaps;int low,threats;
+        Console.WriteLine(SessionReport("off(pre-wave-I)",RecoveryMech(),0,out float offAfter,out _,out _,out _,out _,out float offPinned,out _,out _));
+        string lit=SessionReport("castle lit",HuntRules.Castle,0,out meanAfter,out p50,out p90,out cv,out gaps,out pinned,out low,out threats);Console.WriteLine(lit);
+        Assert(offAfter>.5f&&offPinned>60,"the model reproduces the runaway without wave I (critic: 52-63 %, Dread pinned)");
+        Assert(meanAfter<=.30f&&p50<=.25f&&p90<=.30f,"hunt + warning time is at most 30 % of a 10-minute run");
+        Assert(cv>=.4f&&Quantile(gaps,.1f)>=30&&Quantile(gaps,.9f)>=150,"quiet gaps vary from about 40 s to several minutes (CV >= 0.4)");
+        Assert(pinned<5&&low>threats/4,"Dread no longer pins at 100, and hunts still start below the boundary");
+        string dk=SessionReport("castle 25% dark",HuntRules.Castle,.25f,out meanAfter,out p50,out p90,out cv,out gaps,out pinned,out low,out threats);Console.WriteLine(dk);
+        Assert(meanAfter<=.32f&&p90<=.32f&&cv>=.4f,"a darker player stays near the target too");
     }
 }
