@@ -53,7 +53,7 @@ Applies with `patch -p1` on `b428a8e`; compiles (check_source PASS 1071 with it 
 1. `Game.cs`: castle `Case.FrameSource = () => Time.frameCount` (death first in any script order).
 2. `Game.cs` `PhaseChanged`: in the castle the Won audio (`ending`, `evidence_filed`, focus) waits one frame and plays only if the phase is still Won; log `HC_DEATH_OVER_WIN` when Dead replaces a win. Interface already reads `Case.Phase` every frame, so the results screen follows the final phase. Bellwether path unchanged.
 3. `Investigator.cs` `Hide`: `Game.Case.TryDoorHeld()` instead of `DoorHeld`, log `HC_DOOR_HELD hide= dread= held=`.
-4. Callers must keep calling `Die()` on a grab even if the phase reads Won in that frame (Presence currently gates on its own hunt state; a grab logged in the Won frame must still call `Case.Die()`).
+4. Every grab must call `Case.Die()` even if the phase already reads Won in that frame; the rules then decide (death first). Not verified here whether Presence's grab paths (`Presence.cs:200, 849, 1789`) can skip `Die()` once the phase is Won; F2/F0 should check that against the r11 natural2 log (`:658` grab, `:664` Won).
 
 ## What a windowed run must prove
 - [ ] Two unforced natural runs: Warning + Hunt + Return ≤ 22 %; one hunt-free gap ≥ 120 s after the first hunt; Dread < 85 at t=480; one no-tell hunt below Dread 70; first-hunt delay spread ≥ 60 s over three runs.
