@@ -11,5 +11,13 @@
   ],
   "selected": "Cinematic",
   "background_prompt": "Create a clean background artwork asset from this selected original horror-game UI concept. Preserve the exact house architecture, camera composition, rainy night atmosphere, amber porch light, desaturated woodland, wet path and subtle ground mist. REMOVE absolutely ALL text, letters, numbers, wordmarks, metrics, icons, lines, borders, buttons, coordinates and other UI marks from every part of the image. Reconstruct their underlying dark photographic background naturally. The left approximately 42 percent must remain a very dark quiet gradient/woodland area suitable for live ivory text, with no busy high-contrast details. House occupies right side. 16:9 landscape. This is only a text-free game menu background, not a flattened interface. No logos or watermarks.",
-  "note": "Concept text is reference only. MenuBackdrop contains no text; all displayed information and controls are live native UI."
+  "note": "Concept text is reference only. MenuBackdrop contains no text; all displayed information and controls are live native UI.",
+  "title_screen": {
+    "model": "gpt_image_2_5 (Higgsfield CLI, 2k, quality high, 16:9)",
+    "job": "cc99ba72-efb5-432e-9108-49f1baabb55b",
+    "prompt_file": "docs/haunted-castle/refs/title_1.prompt.txt",
+    "prompt": "Painted cinematic key art, oil-on-canvas texture, night. A gothic castle on a black crag above a still moat of dark red water that reflects two moons: one large bone-white moon low on the left, one small blood-red moon higher on the right. Bruised violet and deep teal sky with thin high cloud, a few hard stars. The castle is mostly in shadow; one gatehouse window glows warm candlelight, and a lowered drawbridge chain catches moonlight. On the tallest tower a gaunt winged figure crouches in silhouette against the white moon. Low mist on the water. Heavy blacks, muted palette, no saturation spikes, no aurora, no bokeh. No text, no letters, no logo, no watermark, no frame. Composition: castle on the right two thirds, the left third dark sky and water for text. 16:9.",
+    "output": "Resources/UI/CastleBackdrop.png (center-cropped to 16:9, Lanczos to 2560x1440)",
+    "note": "Title key art for the Haunted Castle map. Text-free; all title text is live native UI."
+  }
 }

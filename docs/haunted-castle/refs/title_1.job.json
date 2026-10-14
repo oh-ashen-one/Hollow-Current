@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": "2026-10-14T03:51:33.997259Z",
+    "display_name": "GPT Image 2.5",
+    "id": "cc99ba72-efb5-432e-9108-49f1baabb55b",
+    "job_type": "gpt_image_2_5",
+    "min_result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261014_035133_cc99ba72-efb5-432e-9108-49f1baabb55b_min.webp",
+    "params": {
+      "aspect_ratio": "16:9",
+      "height": 1520,
+      "medias": [],
+      "model": "flare",
+      "prompt": "Painted cinematic key art, oil-on-canvas texture, night. A gothic castle on a black crag above a still moat of dark red water that reflects two moons: one large bone-white moon low on the left, one small blood-red moon higher on the right. Bruised violet and deep teal sky with thin high cloud, a few hard stars. The castle is mostly in shadow; one gatehouse window glows warm candlelight, and a lowered drawbridge chain catches moonlight. On the tallest tower a gaunt winged figure crouches in silhouette against the white moon. Low mist on the water. Heavy blacks, muted palette, no saturation spikes, no aurora, no bokeh. No text, no letters, no logo, no watermark, no frame. Composition: castle on the right two thirds, the left third dark sky and water for text. 16:9.",
+      "quality": "high",
+      "reference_elements": [],
+      "remove_bg": false,
+      "resolution": "2k",
+      "width": 2688
+    },
+    "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_2zvVnl9EoYfI8MLTT0o86igIRfR/hf_20261014_035133_cc99ba72-efb5-432e-9108-49f1baabb55b.png",
+    "status": "completed"
+  }
+]

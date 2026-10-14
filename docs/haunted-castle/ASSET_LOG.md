@@ -75,3 +75,13 @@ synthetic-reverb convolution; deterministic seeds; loops are periodic by constru
 | `voice_cc_kit`, `voice_cc_ending` | eSpeak NG, Count treatment from `CASTLE_FX` | 0 |
 
 No `ASSET_LICENSES.md` line is needed: everything here is generated from our own scripts (eSpeak NG output is redistributable per the existing voice entries).
+
+## Title screen key art (piece T1, `hc/title`)
+
+2026-10-13, Higgsfield CLI, one job, `docs/haunted-castle/gen.sh title_1 16:9`. The owner rejected the procedural title backdrop ("PS2 slop"); this replaces `Resources/UI/CastleBackdrop.png`.
+
+| Job id | Model | Credits | Prompt | Output |
+|---|---|---|---|---|
+| `cc99ba72-efb5-432e-9108-49f1baabb55b` | `gpt_image_2_5` (2k, high, 16:9; delivered 2688x1520) | 2.75 (`higgsfield account transactions` spend row) | `refs/title_1.prompt.txt` | Full-res PNG not committed (6.2 MB, regenerate with gen.sh). Committed: `refs/title_1.preview.webp` (1280 wide), `refs/title_1.job.json`. Shipped: `Resources/UI/CastleBackdrop.png` (centre-cropped to 16:9, Lanczos to 2560x1440, 4.9 MB; importer max size raised to 4096) |
+
+Accepted on the first job (no second job needed): no text, painterly, mean luma of the left 30 % at 1920 wide = 19.1 (limit 60), one small winged silhouette on the tallest tower against the white moon, two moons (bone-white left, blood-red right).
