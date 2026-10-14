@@ -77,7 +77,8 @@ namespace HollowCurrent
                 return;
             }
             next-=dt;if(next>0)return;
-            if(!approachingHunt&&rhythm.AppearanceDue)Trigger();else Dread();
+            if(!approachingHunt&&rhythm.AppearanceDue)Trigger();
+            else{if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=rhythm canSurprise="+rhythm.CanSurprise+" age="+rhythm.Age.ToString("F0"));Dread();}
             next=Random.Range(22f,38f);
         }
         public void Dread()
@@ -114,9 +115,9 @@ namespace HollowCurrent
             if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
             if(!firstBasement&&!rhythm.AppearanceDue)return false;
             if(!IsCastle&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false; // Bellwether only (critic r10 #26)
-            if(!(IsCastle&&Castle&&Castle.ApparitionPoint(out var point))&&!VisiblePoint(out point)){if(!firstBasement)Dread();return false;}
+            if(!(IsCastle&&Castle&&Castle.ApparitionPoint(out var point))&&!VisiblePoint(out point)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=no_visible_point");if(!firstBasement)Dread();return false;}
             bool rush=!firstBasement&&Events%3==2;
-            if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true))return false;
+            if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=manifest_refused at="+point+" "+game.Creature.DiagnosticState);return false;}
             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
             Pulse(point,firstBasement?3:5);Events++;rhythm.RecordAppearance(Random.value);
             next=Random.Range(28f,40f);

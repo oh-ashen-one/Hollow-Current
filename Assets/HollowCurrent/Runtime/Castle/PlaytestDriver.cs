@@ -489,8 +489,11 @@ namespace HollowCurrent
             yield return Torch(true);
             float end=Time.realtimeSinceStartup+30;
             while(c.Phase==Phase.Hunt&&!game.Creature.CanSeePlayer&&Time.realtimeSinceStartup<end){input.Look=game.Creature.HeadPosition;yield return null;}
-            bool seen=game.Creature.CanSeePlayer;
+            // Torch off first, then hide in the same frame he sees her (WitnessHide samples his sight at that instant).
             yield return Torch(false);
+            float again=Time.realtimeSinceStartup+10;
+            while(c.Phase==Phase.Hunt&&!game.Creature.CanSeePlayer&&Time.realtimeSinceStartup<again){input.Look=game.Creature.HeadPosition;yield return null;}
+            bool seen=game.Creature.CanSeePlayer;
             if(near)game.Player.Hide(near);
             yield return Step("witnessed_hide","seenBeforeHiding="+seen+" torch="+game.Player.TorchOn+" hide="+(near?near.name:"none")+" flight="+game.Creature.DiagnosticState);
         }
