@@ -61,12 +61,20 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
 
 ## Not done or not passing (needs a window: schedule after the stream)
 
-1. **Throwables never flew** (`HC_THROW=0`, poltergeist 0). Rebake the castle and build with `8485c6a`, then run `fear` and read the `HC_PLAY_THROW_PROBE` lines.
+1. **Throwables never flew** (`HC_THROW=0`, poltergeist 0).
+   - hc/throws (`9619946`) found the causes:
+     - The hall table's collision box is 0.95 m tall against a 0.775 m top, so the sight line was blocked.
+     - The castle throwables were static-batched.
+   - It fixes both. After item 7, run `fear` and confirm `HC_THROW` and a poltergeist count above 0.
 2. **Bellwether automated route:** `-hc-verify` in the combined player; expect `HC_NATIVE_ROUTE_PASS`. Not run on this build.
 3. **Title captures:** at 2560x1440 and at 1920x1080 (`-hc-capture <dir> -hc-capture-shots S7 -hc-capture-size 1920x1080`), compared with `.wt/title/docs/haunted-castle/rounds/r10/title_mock.png`. Not run.
 4. **A near-miss on this build** (it is a 1-in-3 roll; rerun escape or fear until one rolls) and its crawl path wall check.
 5. **Unchecked features:** Long Night (`-hc-long-night`, escape mode), the death penalty (a death and a checkpoint retry), door held, and the rare line. These are compiled and wired but not exercised.
-6. **Missing clip:** `voice_cc_contain`. F4 can add it via `tools/generate_open_voice.py --castle`.
+6. **`voice_cc_contain`:** added by hc/throws (merged in `9619946`). It ships after the next build.
+7. **Re-prepare and re-bake the castle before the next build** (`HouseLighting.PrepareAndBakeCastle`, then `PrepareAndBake` and `NativeBuild.BuildPreparedMacAll`).
+   - The hc/throws batching fix (`NativeBuild` leaves `Throwable` parts non-static) only applies at prepare time.
+   - On the current `34a0de9` bake, `python3 tools/check_throwables_scene.py` exits 1: 38 of 38 throwables are batching-static.
+   - It must exit 0 on the new bake before the throw proof is rerun. Expected log lines: `HC_THROW` or `HC_THROW_SKIP reason=`, and `HC_PLAY_THROW_PROBE`.
 
 ## Rules for the next integrator
 
@@ -74,6 +82,11 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
 - Bakes use `-batchmode -quit` (graphics). Import and build add `-nographics`.
 - **Any `.cs` change stales both receipts.** Re-run `HouseLighting.PrepareAndBakeCastle` and `PrepareAndBake` before `NativeBuild.BuildPreparedMacAll`. Only castle-only paths leave the Bellwether receipt alone.
 - **Scripted runs need a window**, because batchmode stalls at `WaitForEndOfFrame`. Use a 1920x1080 window, and never while the owner streams.
+
+## Worktrees
+
+- Removed 2026-10-14: `.wt/{audio2,count11,dread,grabs,scares,throws,title,wallart}`. Each was merged into `haunted-castle`, on origin and clean.
+- Kept: `.wt/wallart-art` (`hc/wallart-art`). It has no remote branch and has uncommitted `Resources/Castle/Portraits/`.
 
 ## For Codex
 Wall-art handoff (7 castle canvases, 3 Blood Ledger pages, 1 claw-scores decal; prompts, specs, checker, fallback prompts, licence lines): `docs/haunted-castle/CODEX_HANDOFF.md`. Runtime patch for per-frame paintings and animated pupils (integrator applies, needs a castle re-bake): `docs/haunted-castle/wallart_runtime.patch`. Piece T2 status: `docs/haunted-castle/handoffs/wallart.md`.
