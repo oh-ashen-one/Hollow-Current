@@ -104,7 +104,7 @@ namespace HollowCurrent
             if(Vector3.Distance(source,transform.position)<=radius)
             {
                 Memory.Observe(source.x,source.y,source.z);if(NativeVerification.Requested&&!NativeVerification.ProfileOnly)Debug.Log("HC_HEARD "+source+" "+DiagnosticState);
-                if(count!=null)lastSeen=source;   // r10 #29: a heard position is a last known place too
+                if(count!=null)Remember(source,false);   // r10 #29: a heard position is a last known place too
             }
         }
         public void WitnessHide(Vector3 spot)
@@ -112,7 +112,7 @@ namespace HollowCurrent
             if((count!=null?huntOn&&CountSees():Game.Case.Phase==Phase.Hunt&&Sees())) {witnessedHide=true;knownHide=spot;Memory.Observe(spot.x,spot.y,spot.z);}
             else return;
             // Castle (r10 #16/#28): he saw her go in. Whatever he is doing, he will come and open it (CountHunt starts it).
-            if(count!=null){lastSeen=spot;pendingWitnessed=true;Debug.Log("HC_COUNT_WITNESSED hide at "+spot+" "+DiagnosticState);}
+            if(count!=null){Remember(spot,true);pendingWitnessed=true;Debug.Log("HC_COUNT_WITNESSED hide at "+spot+" "+DiagnosticState);}
         }
         public void LeaveHide()
         {
@@ -412,7 +412,7 @@ namespace HollowCurrent
             // Item 14: after a survived hunt his first glide goes to the last place he saw, heard or watched you hide (r10 #29:
             // also in a hostile return, after the courtyard swoop).
             if(swooping){}
-            else if(lastSeen.HasValue)GoLearned(player);
+            else if(MemoryFresh("hunt start"))GoLearned(player);
             else HearPlayerRoughly();
             Debug.Log("HC_HUNT_SPAWN hostileReturn="+hostile+" noTell="+Game.Case.NoTellHunt+" keptPerch="+keepPerch+" "+DiagnosticState);
         }
@@ -427,23 +427,47 @@ namespace HollowCurrent
         bool swooping;
         bool BeginReturnSwoop()
         {
+            // The announcement does not depend on the flight: dispatch speaks and the card beat fires even if the swoop is skipped.
+            Game.Sound.Speak("cc_dispatch");RaiseBeat("return-swoop"); // voice_cc_dispatch (hc/audio3); Game shows the card on the beat
             var root=Game.World.Root;var pts=count.ReturnSwoopLocal;
             if(!root||pts==null||pts.Length<2){Debug.Log("HC_COUNT_RETURN_SWOOP skipped reason=no root or swoop points");return false;}
-            route.Clear();routeAt=0;routeGoal=root.TransformPoint(pts[pts.Length-1]);
-            transform.position=root.TransformPoint(pts[0]);
-            var legs=new System.Text.StringBuilder();
-            for(int i=1;i<pts.Length;i++){var w=root.TransformPoint(pts[i]);legs.Append(" leg"+i+"clear="+Clear(i==1?transform.position:route[route.Count-1],w));route.Add(w);}
+            var start=root.TransformPoint(pts[0]);
+            if(Physics.CheckSphere(start+Vector3.up*.8f,count.FlightClearRadius+.2f,FlightMask,QueryTriggerInteraction.Ignore)){Debug.Log("HC_COUNT_RETURN_SWOOP skipped reason=start "+start+" is inside geometry");return false;}
+            // r10b N9: a blocked leg is re-routed through the nearest clear detour (raised, then to either side); if there is none the
+            // swoop is skipped rather than flown through a wall.
+            var legs=new List<Vector3>();var prev=start;var log=new System.Text.StringBuilder();
+            for(int i=1;i<pts.Length;i++)
+            {
+                var target=root.TransformPoint(pts[i]);
+                if(Clear(prev,target)){legs.Add(target);prev=target;log.Append(" leg"+i+"=clear");continue;}
+                if(!SwoopDetour(prev,target,out var via)){Debug.Log("HC_COUNT_RETURN_SWOOP skipped reason=leg "+i+" "+prev+"->"+target+" blocked, no clear detour"+log);return false;}
+                legs.Add(via);legs.Add(target);prev=target;log.Append(" leg"+i+"=detour via "+via);
+            }
+            route.Clear();route.AddRange(legs);routeAt=0;routeGoal=legs[legs.Count-1];transform.position=start;
             var first=route[0]-transform.position;first.y=0;if(first.sqrMagnitude>.01f)transform.rotation=Quaternion.LookRotation(first);
-            swooping=true;flight=Flight.Travel;travelToPerch=false;pendingPerch=-1;perchIndex=-1;speedNow=count.GlideTightSpeed;
-            Game.Sound.Speak("cc_dispatch");RaiseBeat("return-swoop"); // voice_cc_dispatch (hc/audio3); Game shows the card on the beat
-            Debug.Log("HC_COUNT_RETURN_SWOOP begin from="+transform.position+" to="+routeGoal+legs+" "+DiagnosticState);
+            swooping=true;flight=Flight.Travel;travelToPerch=false;pendingPerch=-1;perchIndex=-1;speedNow=count.GlideTightSpeed;legLoudness=1;
+            Debug.Log("HC_COUNT_RETURN_SWOOP begin from="+start+" to="+routeGoal+log+" "+DiagnosticState);
             return true;
+        }
+        // Nearest clear point between a and b: the midpoint raised 1-4 m, then pushed 1.5-4.5 m to either side (raised a little).
+        bool SwoopDetour(Vector3 a,Vector3 b,out Vector3 via)
+        {
+            var mid=(a+b)*.5f;var along=b-a;along.y=0;var side=along.sqrMagnitude>.01f?Vector3.Cross(Vector3.up,along.normalized):Vector3.right;
+            var candidates=new List<Vector3>();
+            for(float up=1;up<=4;up+=1)candidates.Add(mid+Vector3.up*up);
+            for(float off=1.5f;off<=4.5f;off+=1.5f)foreach(int sign in new[]{1,-1})candidates.Add(mid+side*(sign*off)+Vector3.up*1.5f);
+            foreach(var c in candidates)
+            {
+                if(Physics.CheckSphere(c+Vector3.up*.8f,count.FlightClearRadius,FlightMask,QueryTriggerInteraction.Ignore))continue;
+                if(Clear(a,c)&&Clear(c,b)){via=c;return true;}
+            }
+            via=mid;return false;
         }
         void EndReturnSwoop()
         {
             swooping=false;var player=Game.Player.transform.position;
             Debug.Log("HC_COUNT_RETURN_SWOOP end at="+transform.position+" "+DiagnosticState);
-            if(lastSeen.HasValue)GoLearned(player);else HearPlayerRoughly();
+            if(MemoryFresh("return swoop end"))GoLearned(player);else HearPlayerRoughly();
             BeginSearch(new Vector3(Memory.X,Memory.Y,Memory.Z));
         }
         void CountEndHunt()
@@ -531,7 +555,7 @@ namespace HollowCurrent
             {
                 int candidate=(i+attempt)%perches.Count;Ledge(candidate,out var feet,out _);
                 if(!PlanRoute(feet,true))continue;
-                pendingPerch=candidate;travelToPerch=true;flight=retreat?Flight.Retreat:Flight.Travel;return true;
+                pendingPerch=candidate;travelToPerch=true;flight=retreat?Flight.Retreat:Flight.Travel;PickLegLoudness(retreat?"retreat":"perch");return true;
             }
             Debug.Log("HC_COUNT_ROUTE abort=perch reason=no perch reachable "+DiagnosticState);BeginLand();return false;
         }
@@ -540,10 +564,11 @@ namespace HollowCurrent
             searchedAt=point;searchSerial++;
             if(!PlanRoute(point,false)){Debug.Log("HC_COUNT_ROUTE abort=search reason=no route to "+point+" "+DiagnosticState);BeginLand();return;}
             Debug.Log("HC_COUNT_SEARCH to="+point+" waypoints="+route.Count+" "+DiagnosticState);
-            travelToPerch=false;pendingPerch=-1;flight=Flight.Travel;
+            travelToPerch=false;pendingPerch=-1;flight=Flight.Travel;PickLegLoudness("search");
             Voice("cc_hunt_hungry");   // item 13: entering Search
         }
-        void BeginChase(){flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
+        int chaseRouteFails;
+        void BeginChase(){chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
@@ -600,7 +625,7 @@ namespace HollowCurrent
             }
             huntClock+=dt;SetRim(count.RimLightScale);
             Memory.Tick(dt);CanSeePlayer=!retreating&&CountSees();
-            if(CanSeePlayer){var seen=Game.Player.transform.position;Memory.Observe(seen.x,seen.y,seen.z);lastSeen=seen;}
+            if(CanSeePlayer){var seen=Game.Player.transform.position;Memory.Observe(seen.x,seen.y,seen.z);Remember(seen,true);}
             // Item 13: "found" when he regains sight of you within 6 m.
             if(CanSeePlayer&&!sawPlayer&&Vector3.Distance(transform.position,Game.Player.transform.position)<count.FoundVoiceDistance)Voice("cc_hunt_found");
             sawPlayer=CanSeePlayer;
@@ -620,8 +645,11 @@ namespace HollowCurrent
             if(pendingWitnessed&&!retreating&&!swooping&&flight!=Flight.Stagger&&flight!=Flight.NearMiss)
             {
                 pendingWitnessed=false;
-                if(Game.Player.Hidden&&witnessedHide)BeginHideVisit(true);
-                else Debug.Log("HC_COUNT_WITNESSED abort=left reason=she is no longer in that hide "+DiagnosticState);
+                // r10b N2: in a dive he keeps diving: CountChase goes for knownHide's entrance and grabs there (~0.3 s), the
+                // telegraphed fly/land/crawl/pause sequence is for hides he saw from a perch, in flight or on foot.
+                if(!Game.Player.Hidden||!witnessedHide)Debug.Log("HC_COUNT_WITNESSED abort=left reason=she is no longer in that hide "+DiagnosticState);
+                else if(flight==Flight.Chase)Debug.Log("HC_COUNT_WITNESSED chase=True reason=already diving, entrance grab "+DiagnosticState);
+                else BeginHideVisit(true);
             }
             // Item 10: once per hunt, hidden (torch off) and unwitnessed, roll for the cupboard near-miss.
             if(!nearMissRolled&&!hostile&&!retreating&&flight!=Flight.Chase&&flight!=Flight.NearMiss&&Game.Player.Hidden&&!Game.Player.TorchOn&&!witnessedHide&&huntClock>=count.NearMissAfterSeconds)
@@ -738,6 +766,8 @@ namespace HollowCurrent
             else{BeginLand();return;}
             foreach(var spot in Game.World.HidingPlaces)
                 if(spot.Kind==InteractKind.Hide&&Vector3.Distance(goal,spot.HidePoint)<.35f){goal=spot.ExitPoint;break;}
+            // r10b: a watched hide that is not in HidingPlaces (any other Hide interactable) still leads to its own exit.
+            if(witnessedHide&&player.Hidden&&Vector3.Distance(knownHide,player.transform.position)<.35f)goal=player.HideExit;
             var flat=player.transform.position-transform.position;float vertical=Mathf.Abs(flat.y);flat.y=0;float distance=flat.magnitude;
             // r10 #14: seconds until he reaches grab range at his current speed (Game's torch failure keys on the last second).
             diveEndsIn=Mathf.Max(0,distance-Profile.GrabDistance)/Mathf.Max(speedNow,1f);
@@ -760,7 +790,13 @@ namespace HollowCurrent
                 return;
             }
             replan-=dt;
-            if(replan<=0||Vector3.Distance(goal,lastChaseGoal)>1||routeAt>=route.Count){replan=Profile.ThinkInterval;lastChaseGoal=goal;PlanRoute(goal,false);}
+            if(replan<=0||Vector3.Distance(goal,lastChaseGoal)>1||routeAt>=route.Count)
+            {
+                replan=Profile.ThinkInterval;lastChaseGoal=goal;
+                // A dive with no route at all (three plans in a row, about 1 s) lands and prowls instead of hovering in place.
+                if(PlanRoute(goal,false))chaseRouteFails=0;
+                else if(++chaseRouteFails>=3){chaseRouteFails=0;Debug.Log("HC_COUNT_ROUTE abort=dive reason=no route to "+goal+" "+DiagnosticState);searchedAt=goal;BeginLand();return;}
+            }
             // A cupboard can be searched from its clear entrance only (same rule as Split Grin).
             bool knowsThisHide=player.Hidden&&((witnessedHide&&Vector3.Distance(knownHide,player.transform.position)<.35f)||
                 (Memory.Knows&&Vector3.Distance(memory,player.transform.position)<.35f));
@@ -784,8 +820,18 @@ namespace HollowCurrent
                 return;
             }
             if(contact<=0)grabMode=-1;
+            // r10b: never hover at a watched hide forever (an entrance he cannot reach or a hide with no clear front): after 3 s at
+            // the goal without a grab he gives up on it, logged, and prowls.
+            var atGoal=goal-transform.position;atGoal.y=0;
+            if(witnessedHide&&atGoal.magnitude<1)
+            {
+                hideStuck+=dt;
+                if(hideStuck>3){Debug.Log("HC_COUNT_WITNESSED abort=stuck reason=no entrance grab within 3 s at "+goal+" "+DiagnosticState);hideStuck=0;witnessedHide=false;Memory.Clear();searchedAt=goal;BeginLand();return;}
+            }
+            else hideStuck=0;
             Fly(dt,Profile.ModeReach);
         }
+        float hideStuck;
         void Fly(float dt,int mode)
         {
             if(routeAt<route.Count)
@@ -1071,7 +1117,21 @@ namespace HollowCurrent
         float huntClock,returnHearClock,dropHeight;
         bool sawPlayer;
         int grabMode=-1;
-        Vector3? lastSeen;                 // item 14: survives between hunts
+        Vector3? lastSeen;                 // item 14: survives between hunts, but ages out (r10b N8)
+        float lastSeenAt;bool lastSeenSighted;
+        // r10b N8: heard places go stale after MemoryHeardSeconds, seen ones (incl. a watched hide) after MemorySeenSeconds
+        // (Long Night x MemoryLongNightScale). A stale memory is dropped and the hunt opens from the perch instead.
+        void Remember(Vector3 at,bool sighted){lastSeen=at;lastSeenAt=Game.Case.Elapsed;lastSeenSighted=sighted;}
+        bool MemoryFresh(string when)
+        {
+            if(!lastSeen.HasValue){Debug.Log("HC_COUNT_MEMORY stale=none when="+when);return false;}
+            float age=Game.Case.Elapsed-lastSeenAt;
+            float limit=(lastSeenSighted?count.MemorySeenSeconds:count.MemoryHeardSeconds)*(LongNight?count.MemoryLongNightScale:1);
+            bool stale=age>limit;
+            Debug.Log("HC_COUNT_MEMORY stale="+stale+" age="+age.ToString("F0")+" limit="+limit.ToString("F0")+" kind="+(lastSeenSighted?"seen":"heard")+" at="+lastSeen.Value+" when="+when+(stale?" reason=too old, opening from the perch":""));
+            if(stale)lastSeen=null;
+            return !stale;
+        }
         /// <summary>True while he is diving at the investigator during a hunt (Game: torch fails for the dive).</summary>
         public bool Diving=>count!=null&&huntOn&&!choreo&&flight==Flight.Chase;
         /// <summary>r10 #14: while Diving, the estimated seconds until he is in grab range (distance over speed); otherwise
@@ -1081,6 +1141,18 @@ namespace HollowCurrent
         float diveEndsIn=float.PositiveInfinity;bool diveLastFired;
         /// <summary>Wings actually beating: visible and flying (Glide or Dive pose) faster than 0.4 m/s, in hunts and between
         /// them alike. CastleRun drives the wing loop from this, never from HuntActive (r10 #6).</summary>
+        // r10b N3: loudness of the current flight leg (0 silent glide, WingSoftVolume, 1), drawn the same way in hunts and between
+        // them; a dive is always 1. CastleRun: wing loop volume = 0.6 x WingLoudness.
+        float legLoudness=1;
+        public float WingLoudness=>WingsBeating?(flight==Flight.Chase?1:legLoudness):0;
+        void PickLegLoudness(string leg)
+        {
+            float r=Random.value;legLoudness=r<1f/3?0:r<2f/3?count.WingSoftVolume:1;
+            Debug.Log("HC_COUNT_WINGS leg="+leg+" loudness="+legLoudness.ToString("F1")+" hunt="+huntOn);
+        }
+        /// <summary>r10b N3: claw-step volume by distance only (ClawNearVolume at 2 m to ClawFarVolume at 16 m), same curve in
+        /// hunts and between them. Integrator: Soundscape's claw cue uses this instead of hunting ? .8 : .05.</summary>
+        public float ClawStepVolume=>count==null?.05f:Mathf.Lerp(count.ClawNearVolume,count.ClawFarVolume,Mathf.InverseLerp(2,16,Vector3.Distance(transform.position,Game.Player.transform.position)));
         public bool WingsBeating=>count!=null&&silhouette&&silhouette.gameObject.activeInHierarchy&&flightSpeed>.4f&&actor&&(actor.Mode==Profile.ModeMove||actor.Mode==Profile.ModeReach);
         float flightSpeed;Vector3 lastFramePosition;
         /// <summary>Beats for logs and CastleRun audio: "near-miss", "hide-open", "gatehouse", "learned", "return-swoop" (integrator: show the hostile-return card on this one).</summary>
@@ -1186,14 +1258,15 @@ namespace HollowCurrent
                             Debug.Log("HC_COUNT_PERCH flight rejected reason="+(to<0?"no perch keeps the distance rules":"no route to perch "+to));
                         }
                     }
-                    if((perchTimer<=0||!PerchFarEnough(perchIndex))&&unobserved>=count.UnobservedSeconds)TeleportPerch(perchIndex);
+                    if((perchTimer<=0||!PerchFarEnough(perchIndex))&&unobserved>=count.UnobservedSeconds)MoveUnseen();
                     break;
                 }
                 case Flight.Travel:
                 case Flight.Retreat:
+                    // r10b N3: a between-hunt flight is always flown to the end (no silent teleport mid-flight), so the wings
+                    // fade with his real landing, after a hunt as much as before one.
                     Fly(dt,Profile.ModeMove);
-                    if(unobserved>=count.UnobservedSeconds)TeleportPerch(-1);
-                    else if(routeAt>=route.Count)
+                    if(routeAt>=route.Count)
                     {
                         if(pendingPerch>=0){SetPerch(pendingPerch,BetweenPerchSeconds());Debug.Log("HC_COUNT_PERCH landed perch="+perchIndex+" "+DiagnosticState);}
                         else flight=Flight.Land;
@@ -1208,6 +1281,19 @@ namespace HollowCurrent
                     if(unobserved>=count.UnobservedSeconds)TeleportPerch(-1);
                     break;
             }
+        }
+        // r10b N3: an unseen perch move is a real (audible) flight one time in three (AudibleReperchChance), otherwise the silent
+        // move. Either way the destination is out of her sight when it is chosen.
+        void MoveUnseen()
+        {
+            float roll=Random.value;
+            if(roll<count.AudibleReperchChance)
+            {
+                int to=ChoosePerch(perchIndex,true);
+                if(to>=0&&GoToPerch(to,false)){unobserved=0;Debug.Log("HC_COUNT_PERCH flight unseen=True audible=True roll="+roll.ToString("F2")+" from="+perchIndex+" to="+to+" wings="+legLoudness.ToString("F1")+" "+DiagnosticState);return;}
+                Debug.Log("HC_COUNT_PERCH flight unseen rejected reason="+(to<0?"no hidden perch keeps the distance rules":"no route to perch "+to)+", moving silently");
+            }
+            TeleportPerch(perchIndex);
         }
         // Place him on a perch that is out of her sight. Called only while he is unobserved, so the move is never seen.
         void TeleportPerch(int exclude)
@@ -1310,7 +1396,7 @@ namespace HollowCurrent
         }
         void BeginGatehouse()
         {
-            gatehouseDone=true;gateStage=1;gateTimer=0;gateSeen=0;route.Clear();
+            gatehouseDone=true;gateStage=1;gateTimer=0;gateSeen=0;route.Clear();legLoudness=1;
             gateSpot=Battlement(out gateHover);var player=Game.Player.transform.position;
             // He drops in from above a real battlement; under the gatehouse ceiling he swoops in from beyond it, away from her.
             var away=gateSpot-player;away.y=0;away=away.sqrMagnitude>.01f?away.normalized:Vector3.forward;
@@ -1370,6 +1456,16 @@ namespace HollowCurrent
         float nearMissHold,visitGrab;
         Vector3 nearMissCrawl,nearMissOutward;
         bool LongNight=>Game.Case.Rules!=null&&Game.Case.Rules.Name=="Long Night";
+        /// <summary>False when the hide he is at has no door panel (CastleRun then skips the rattle).</summary>
+        public bool NearMissHasDoor {get;private set;}=true;
+        readonly Dictionary<Interactable,bool> hideDoors=new Dictionary<Interactable,bool>();
+        bool HideHasDoor(Interactable spot)
+        {
+            if(hideDoors.TryGetValue(spot,out var has))return has;
+            has=false;var root=Game.World.Root?Game.World.Root:spot.transform.root;
+            foreach(var t in root.GetComponentsInChildren<Transform>(true))if(t.name==spot.name+" / lower door"||t.name.StartsWith(spot.name+" / ",System.StringComparison.Ordinal)&&t.name.EndsWith("door",System.StringComparison.Ordinal)){has=true;break;}
+            hideDoors[spot]=has;return has;
+        }
         void BeginHideVisit(bool witnessed)
         {
             string tag=witnessed?"HC_COUNT_WITNESSED":"HC_COUNT_NEARMISS";
@@ -1381,7 +1477,16 @@ namespace HollowCurrent
                 float d=witnessed?Vector3.Distance(h.HidePoint,inside):Vector3.Distance(h.ExitPoint,exit);
                 if(d<best){best=d;spot=h;}
             }
-            if(!spot||best>.5f){Debug.Log(tag+" abort=spot reason=no hide within 0.5 m (best "+best.ToString("F2")+") "+DiagnosticState);return;}
+            if(!spot||best>.5f)
+            {
+                // No matching cupboard (a hide this code does not know): a witnessed hide still costs her, he dives at the place.
+                Debug.Log(tag+" abort=spot reason=no hide within 0.5 m (best "+best.ToString("F2")+")"+(witnessed?", diving at the hide point":"")+" "+DiagnosticState);
+                if(witnessed)BeginChase();
+                return;
+            }
+            // r10b N2 (S3): a hide without a door (no "<name> / lower door" panel) gets no rattle; the sequence still runs.
+            NearMissHasDoor=HideHasDoor(spot);
+            if(!NearMissHasDoor)Debug.Log(tag+" door=none reason=hide "+spot.name+" has no door panel, no rattle");
             var outward=Vector3.ProjectOnPlane(spot.ExitPoint-spot.HidePoint,Vector3.up);if(outward.sqrMagnitude<.01f)outward=-spot.transform.forward;outward.Normalize();
             float floorY=GroundUnder(spot.ExitPoint,out var g)?g.y:spot.ExitPoint.y;
             var door=spot.transform.position;nearMissOutward=outward;
@@ -1400,14 +1505,24 @@ namespace HollowCurrent
                 landing=near.position;routed=PlanRoute(landing,false);
                 if(!routed)Debug.Log(tag+" landing rejected at "+landing+" reason=no route (nearest NavMesh point)");
             }
-            if(!routed){Debug.Log(tag+" abort=route reason=no landing reachable; prowling where he is "+DiagnosticState);BeginLand();return;}
+            if(!routed)
+            {
+                // r10b N2: never a free cancel. Witnessed: he dives straight at the entrance (CountChase's entrance grab). Near-miss:
+                // there is nothing he knows, so he prowls where he is.
+                Debug.Log(tag+" abort=route reason=no landing reachable; "+(witnessed?"diving at the entrance instead":"prowling where he is")+" "+DiagnosticState);
+                if(witnessed)BeginChase();else BeginLand();
+                return;
+            }
             visitWitnessed=witnessed;
-            float dread=Game.Case.Dread;bool eligible=witnessed||dread>=count.NearMissOpenDread||LongNight;
+            // Watched: always opens, at any Dread. Near-miss: 1 in 4 at Dread >= 80 or in Long Night, and (r10b) 1 in 10 below that
+            // once she has survived a hunt, so no hide is ever a guarantee.
+            float dread=Game.Case.Dread;bool high=dread>=count.NearMissOpenDread||LongNight;bool eligible=witnessed||high||Game.Case.Survived;
+            float chance=witnessed?1:high?count.NearMissOpenChance:Game.Case.Survived?count.NearMissOpenChanceLow:0;
             float roll=witnessed?0:Random.value;
-            visitOpens=witnessed||eligible&&roll<count.NearMissOpenChance;
+            visitOpens=witnessed||roll<chance;
             flight=Flight.NearMiss;nearMissStage=1;pendingPerch=-1;travelToPerch=false;Memory.Clear();attackAttempted=true;visitGrab=0;
             Debug.Log(tag+" begin hide="+spot.name+" door="+NearMissDoor+" crawlTo="+nearMissCrawl+" landing="+landing+
-                (witnessed?"":" open="+visitOpens+" openRoll="+roll.ToString("F2")+" eligible="+eligible+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
+                (witnessed?" open=True reason=watched (any Dread)":" open="+visitOpens+" openRoll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" eligible="+eligible+(eligible?"":" reason=first hunt, below 80")+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
         }
         void NearMissTick(float dt)
         {

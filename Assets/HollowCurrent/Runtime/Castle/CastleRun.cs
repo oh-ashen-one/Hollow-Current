@@ -42,9 +42,9 @@ namespace HollowCurrent
             switch(id)
             {
                 case "near-miss":   // he breathes at the cupboard slats and rattles the door (item 10)
-                    Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);Game.Sound.Speak("cc_hunt_smell",count.HeadPosition);break;
+                    if(count.NearMissHasDoor)Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);Game.Sound.Speak("cc_hunt_smell",count.HeadPosition);break;
                 case "hide-open":   // he saw her go in: the door rattles half a second before he opens it (r10 #16)
-                    Game.Sound.Cue("door_rattle",count.NearMissDoor,.95f);break;
+                    if(count.NearMissHasDoor)Game.Sound.Cue("door_rattle",count.NearMissDoor,.95f);break;
                 case "gatehouse":   // he says cc_stay himself (Presence); the chains answer (item 11)
                     if(spots!=null)Game.Sound.Cue("drawbridge_chains",spots.DrawbridgeWinch,((CountClaudeProfile)count.Profile).GatehouseChainsVolume);break;
             }
@@ -242,7 +242,9 @@ namespace HollowCurrent
             bellCooldown-=dt;
             if(Game.Case.SealProgress>.01f&&bellCooldown<=0){bellCooldown=7;Game.Sound.Cue("chapel_bell_toll",spots.Anchor,1);}
             // r10 #6: the wing loop follows his actual flight, in hunts and between them, never the hunt state.
-            if(wings)wings.volume=Mathf.MoveTowards(wings.volume,Game.Creature.WingsBeating?.6f:0,dt/.4f*.6f);
+            // r10b N3: the leg's loudness (silent glide / soft / full, same odds in and out of hunts); it rises in 0.4 s and fades over
+            // 1.5 s as he lands, so it never cuts off.
+            if(wings){float want=.6f*Game.Creature.WingLoudness;wings.volume=Mathf.MoveTowards(wings.volume,want,dt/(want>wings.volume?.4f:1.5f)*.6f);}
             // The candle bed swells when he is near the hall candles, visible, in any phase (same rule as the flames), not by hunt state.
             bool nearCandles=Game.Creature.Actor&&Game.Creature.Actor.gameObject.activeInHierarchy&&Vector3.Distance(Game.Creature.transform.position,candles?candles.transform.position:Vector3.zero)<12;
             if(candles)candles.volume=Mathf.MoveTowards(candles.volume,nearCandles?.6f:.25f,dt*.5f);

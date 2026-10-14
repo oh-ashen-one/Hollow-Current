@@ -98,6 +98,17 @@ namespace HollowCurrent
         public float WitnessedPauseSeconds=1.6f;
         // Wave G #17: at Dread >= NearMissOpenDread or in Long Night, this share of near-misses opens the door (crawl grab).
         public float NearMissOpenDread=80f, NearMissOpenChance=.25f;
+        // r10b: below NearMissOpenDread (not Long Night), once she has survived a hunt, this share still opens.
+        public float NearMissOpenChanceLow=.1f;
+        // r10b N8: memory ages out. Heard places after MemoryHeardSeconds, seen ones after MemorySeenSeconds (x Long Night scale).
+        public float MemoryHeardSeconds=60f, MemorySeenSeconds=120f, MemoryLongNightScale=1.5f;
+        // r10b N3: between hunts this share of unseen perch moves is a real flight (wings audible) instead of a silent move.
+        public float AudibleReperchChance=.33f;
+        // r10b N3: every Travel leg (search, re-perch, fly-off; hunts and between hunts alike) is a silent glide, a soft flap or
+        // a full flap, one third each. A dive always flaps at full volume.
+        public float WingSoftVolume=.5f;
+        // r10b N3: claw steps follow distance and gait only, never the phase: ClawNearVolume within 2 m, ClawFarVolume at 16 m.
+        public float ClawNearVolume=.7f, ClawFarVolume=.12f;
         // Wave G #34: the hostile return opens with a visible swoop over the courtyard (castle-local points, sky above the
         // fountain at (0,0,10), out over the gate wall top at y 7.5) before he hunts the bridge. Nothing can kill during it.
         public UnityEngine.Vector3[] ReturnSwoopLocal={new UnityEngine.Vector3(6f,10f,12f),new UnityEngine.Vector3(0f,4.6f,9.5f),new UnityEngine.Vector3(0f,8.7f,.4f)};
