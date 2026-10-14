@@ -86,3 +86,56 @@ No `ASSET_LICENSES.md` line is needed: everything here is generated from our own
 | `cc99ba72-efb5-432e-9108-49f1baabb55b` | `gpt_image_2_5` (2k, high, 16:9; delivered 2688x1520) | 2.75 (`higgsfield account transactions` spend row) | `refs/title_1.prompt.txt` | Full-res PNG not committed (6.2 MB, regenerate with gen.sh). Committed: `refs/title_1.preview.webp` (1280 wide), `refs/title_1.job.json`. Shipped: `Resources/UI/CastleBackdrop.png` (centre-cropped to 16:9, Lanczos to 2560x1440, 4.9 MB; importer max size raised to 4096) |
 
 Accepted on the first job (no second job needed): no text, painterly, mean luma of the left 30 % at 1920 wide = 19.1 (limit 60), one small winged silhouette on the tallest tower against the white moon, two moons (bone-white left, blood-red right).
+
+## Castle audio inventory with licence and listening status (wave G, `hc/audio3`, 2026-10-14)
+
+Cost this wave: **0** (no paid generation). New this wave: `voice_cc_hint_signal`, `voice_cc_hint_trace`, `voice_cc_hint_voice`, `voice_cc_dispatch`
+(eSpeak NG, same recipe as `voice_cc_kit`). **Human listen = `not yet` for every clip**: no person has played any of these in the game; the
+critic or owner replaces the cell with a name and date once a clip is cleared. Missing-key check: `python3 tools/check_audio_keys.py`.
+
+| Clip | Origin / generator | Licence | Human listen |
+|---|---|---|---|
+| `bat_pass.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `bell_single.wav` | Derived from `chapel_bell_toll.wav` by `tools/audio_castle_sfx.py` (one strike, tail cut to 3 s) | Same Higgsfield grant as its source (derivative) | not yet |
+| `book_drop.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `candle_whisper_bed.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `chapel_bell_toll.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `claw_steps_0.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `claw_steps_1.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `claw_steps_2.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `claw_steps_3.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `crypt_blood_trickle.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `death_wail_sunrise.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `dive_whoosh.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `door_rattle.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `drawbridge_chains.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `forge_hold_hum.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `heartbeat_loop.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `knife_stick.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `orrery_tick.wav` | `tools/audio_orrery_tick.py` (synthetic) | Project CC BY 4.0 (own script) | not yet |
+| `stagger_screech.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `voice_cc_bargain.wav` | `tools/generate_open_voice.py --castle` from `cc_bargain` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_contain.wav` | `tools/generate_open_voice.py --castle` from `cc_contain` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_dispatch.wav` | `tools/generate_open_voice.py --castle` from `cc_dispatch` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_ending.wav` | `tools/generate_open_voice.py --castle` from `cc_ending` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_hint_signal.wav` | `tools/generate_open_voice.py --castle` from `cc_hint_signal` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_hint_trace.wav` | `tools/generate_open_voice.py --castle` from `cc_hint_trace` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_hint_voice.wav` | `tools/generate_open_voice.py --castle` from `cc_hint_voice` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_hunt_found.wav` | `tools/generate_open_voice.py --castle` from `cc_hunt_found` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_hunt_hungry.wav` | `tools/generate_open_voice.py --castle` from `cc_hunt_hungry` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_hunt_run.wav` | `tools/generate_open_voice.py --castle` from `cc_hunt_run` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_hunt_smell.wav` | `tools/generate_open_voice.py --castle` from `cc_hunt_smell` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_kit.wav` | `tools/generate_open_voice.py --castle` from `cc_kit` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_ledger_orrery.wav` | `tools/generate_open_voice.py --castle` from `cc_ledger_orrery` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_ledger_portrait.wav` | `tools/generate_open_voice.py --castle` from `cc_ledger_portrait` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_ledger_steward.wav` | `tools/generate_open_voice.py --castle` from `cc_ledger_steward` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_listen.wav` | `tools/generate_open_voice.py --castle` from `cc_listen` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_night.wav` | `tools/generate_open_voice.py --castle` from `cc_night` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_relic_blade.wav` | `tools/generate_open_voice.py --castle` from `cc_relic_blade` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_relic_hilt.wav` | `tools/generate_open_voice.py --castle` from `cc_relic_hilt` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_relic_moon.wav` | `tools/generate_open_voice.py --castle` from `cc_relic_moon` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_stay.wav` | `tools/generate_open_voice.py --castle` from `cc_stay` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `voice_cc_steward.wav` | `tools/generate_open_voice.py --castle` from `cc_steward` in `tools/voice-lines.json` (eSpeak NG + ffmpeg, `CASTLE_FX`) | Project CC BY 4.0 for the original line; eSpeak NG licensing note in `ASSET_LICENSES.md` | not yet |
+| `wind_battlements_loop.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
+| `wing_beats_loop.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+| `wing_wrap_grab.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |

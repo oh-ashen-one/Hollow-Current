@@ -161,5 +161,29 @@
     "rate": 112,
     "voice": "en-gb-x-rp+m7",
     "pitch": 14
+  },
+  "cc_hint_signal": {
+    "text": "The needle leans toward whatever I loved. Follow it, by all means.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 16
+  },
+  "cc_hint_trace": {
+    "text": "Hold your ash lamp to my floors. The stone keeps my signature.",
+    "rate": 110,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 15
+  },
+  "cc_hint_voice": {
+    "text": "Ask the old trumpet in a still room. I never refuse a guest.",
+    "rate": 110,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 15
+  },
+  "cc_dispatch": {
+    "text": "The gate is open. So am I. Do hurry.",
+    "rate": 106,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 14
   }
 }
