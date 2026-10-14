@@ -15,6 +15,24 @@ The build is source `ac43efa`: hc/art-exterior (`d904e77`) and hc/art-props (`41
 | Exterior kit | 6 pieces, 30 renderers, render only | Bake log `HC_EXTERIOR_KIT`. Also `HC_EXTERIOR_AXIS keep centre local z -19.5 (expected +19.5): group turned 180 degrees` |
 | Missing art | 7 portrait textures | `HC_MISSING_ART texture Castle/Portraits/Portrait_*` (Codex wall-art job, not delivered yet) |
 
+**Full proof batch on `ac43efa`** (one window at a time, 0 crashes; grab frames and the fear gatehouse visit copied to `rounds/r12/captures/r7/`):
+
+| Proof | Result | Evidence |
+|---|---|---|
+| Natural 1 (8.7 min) | **PASS** | Share 0.211 at 479 s (final 0.207); gap 203 → 395 s (192 s); Dread 36.2 at 479 s; no-tell hunts at Dread 20.0 and 20.0; 17 `governor=` lines, 1.00-1.44; 0 escalations; 1 unforced throw |
+| Natural 2 (8.7 min) | **FAIL** on share and gap | Share 0.229 at 479 s (final 0.224 > 0.22); first hunt at 220 s, then gaps 84 s and 81 s (none ≥ 120 s between hunts); Dread 49.5 at 479 s; no-tell at Dread 18.8; 17 `governor=` lines, 0.80-2.56; 2 escalations (`escalated=True`); 2 unforced throws |
+| Escalation across both | **PASS** | natural2 2 of 4 attempts |
+| `HC_DOOR_HELD` | **PASS** | Once in siege and once in fear; not in the naturals |
+| Siege | **Partial** | Near-miss begin, `open=False` (roll 0.54 vs 0.25), Recovery cut 1; 5 hunts, Dread 85.5 at the end |
+| Escape | **WON** | 0 `fix=stop`; return swoop leg1 clear, leg2 detour, `end` reached |
+| Kill | **WON, slain** | 10 `HC_COUNT_RECOIL` lines, closest joint to the lens 0.42 m before the push (never inside the wing) |
+| Death + retry | **PASS** | `HC_DEATH_PENALTY deaths=1`, Dread 58.4 after retry, relic 0 moved |
+| Bellwether `-hc-verify` | **PASS** | `HC_NATIVE_ROUTE_PASS`. First Warning at 226.98 s: slow frames there 21.6 / 21.6 / 23.7 ms, no spike. Slowest frame 33.0 ms (1.4 s, Briefing). 117 frames over 16 ms, 0 over 33 ms, 1 % low 59.9 fps, so `meets_60_fps_floor` is still **False**. Report `rounds/r12/captures/r7/verify-native-report.json` |
+| Drop grab from a dive (huntcam ×2) | mode 8, from above 3.1 / 3.6 m | t 0.31: skull centred, `claw_px=97 claw_ok=False` both runs. t 0.01: skull off-centre in huntcam1 (y 1420) |
+| Chase grab mode 9 (natural, kill) | t 0.31 centred with claws in all 4 | t 0.01: skull off-screen in 3 of 4 (natural1, natural2 ×2); kill fine |
+| Hide-open grab (fear) | **Not proven** | See above: t 0.01 behind the camera, t 0.30 `claw_ok=False`, then blocked |
+| Gatehouse visit from inside | **PASS** | `HC_COUNT_GATEHOUSE visible=3/3 kind=arch-inside`, `r7/fear_ac43efa/22_gatehouse_visit.png` |
+
 **Captures** in `rounds/r12/captures/art/` (gitignored, local only):
 - `full/`: S1-S8 and H01-H10 (hunt dive).
 - `exterior/`: 9 views from the art-exterior handoff, all 1920x1080, plus `capture_art_exterior.json`.
