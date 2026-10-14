@@ -41,7 +41,7 @@ namespace HollowCurrent
         void OnLog(string message,string stack,LogType type){foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}}
         int Tag(string t)=>tags.TryGetValue(t,out int n)?n:0;
         void OnDestroy(){Application.logMessageReceived-=OnLog;}
-        void OnApplicationQuit(){Screen.SetResolution(Game.WindowWidth,Game.WindowHeight,FullScreenMode.Windowed);}
+        // The owner's window size is put back by Game.RestoreOwnerWindow on quit.
         readonly List<string> blockers=new List<string>();
         public void Initialize(Game owner)
         {

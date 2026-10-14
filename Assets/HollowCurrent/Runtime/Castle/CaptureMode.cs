@@ -79,7 +79,7 @@ namespace HollowCurrent
             game.SelectMap(MapId.Bellwether);yield return new WaitForSecondsRealtime(2.5f);
             yield return Shot("S7_title_bellwether_"+size,"rounds/r10/title_mock_bellwether.png",Vector3.zero,Vector3.zero,"title, Bellwether selected");
             Log("TITLE DONE");
-            Screen.SetResolution(Game.WindowWidth,Game.WindowHeight,FullScreenMode.Windowed);yield return null;yield return null;
+            Game.RestoreOwnerWindow();yield return null;yield return null;
             Application.Quit();
         }
         // Camera at eye (world), looking at target; the investigator body follows.
@@ -307,7 +307,7 @@ namespace HollowCurrent
             Record("hunt_dive",samples);
             File.WriteAllText(Path.Combine(Directory,"capture.json"),"{\"unity\":\""+Application.unityVersion+"\",\"screen\":\""+Screen.width+"x"+Screen.height+"\",\"quality\":\""+QualitySettings.names[QualitySettings.GetQualityLevel()]+"\",\"antiAliasing\":"+QualitySettings.antiAliasing+",\"shadowResolution\":\""+QualitySettings.shadowResolution+"\",\"shadowDistance\":"+QualitySettings.shadowDistance+",\"targetFrameRate\":"+Application.targetFrameRate+",\"vSync\":"+QualitySettings.vSyncCount+",\"fov\":"+game.Player.View.fieldOfView+",\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");
             Log("DONE "+entries.Count+" entries");
-            Screen.SetResolution(Game.WindowWidth,Game.WindowHeight,FullScreenMode.Windowed);yield return null;yield return null;
+            Game.RestoreOwnerWindow();yield return null;yield return null;
             Application.Quit();
         }
     }

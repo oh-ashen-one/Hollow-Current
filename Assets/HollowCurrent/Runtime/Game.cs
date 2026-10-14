@@ -97,7 +97,7 @@ namespace HollowCurrent
             Loading=true;
             Map=MapCatalog.TryFromSceneName(SceneManager.GetActiveScene().name,out var sceneMap)?sceneMap:MapId.Bellwether;LoadingTarget=Map;
             SelectedMap=MapCatalog.FromPreference(PlayerPrefs.GetInt(MapCatalog.PreferenceKey,(int)Map));if(SelectedMap!=Map&&!MapAvailable(SelectedMap))SelectedMap=Map;
-            EnsureWindowed();
+            EnsureWindowed();ScriptedWindow();
             gameObject.AddComponent<PadInput>();
             uiProbe=Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-ui-probe")>=0;
             Application.targetFrameRate=90;QualitySettings.vSyncCount=0;QualitySettings.antiAliasing=4;QualitySettings.shadowResolution=ShadowResolution.Medium;QualitySettings.shadowDistance=16;
@@ -188,31 +188,31 @@ namespace HollowCurrent
                 if(NoteBody!=null)NoteBody=null;else if(Journal)Journal=false;else Paused=!Paused;
                 SavePreferences();ApplyFocus();
             }
-            if(uiProbe&&Input.anyKeyDown)Debug.Log("HC_UI_INPUT focused="+Application.isFocused+" mouse="+Input.mousePosition+" screen="+Screen.width+"x"+Screen.height);
-            if(!Started&&!Paused&&(Input.GetKeyDown(KeyCode.Return)||Input.GetKeyDown(KeyCode.KeypadEnter)))BeginInvestigation();
-            if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.Alpha1))SelectMap(MapId.Bellwether);
-            if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.Alpha2))SelectMap(MapId.Castle);
-            if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.S)){Paused=true;ApplyFocus();}
+            if(uiProbe&&RealAnyKey)Debug.Log("HC_UI_INPUT focused="+Application.isFocused+" mouse="+Input.mousePosition+" screen="+Screen.width+"x"+Screen.height);
+            if(!Started&&!Paused&&(RealKey(KeyCode.Return)||RealKey(KeyCode.KeypadEnter)))BeginInvestigation();
+            if(!Started&&!Paused&&RealKey(KeyCode.Alpha1))SelectMap(MapId.Bellwether);
+            if(!Started&&!Paused&&RealKey(KeyCode.Alpha2))SelectMap(MapId.Castle);
+            if(!Started&&!Paused&&RealKey(KeyCode.S)){Paused=true;ApplyFocus();}
             bool scripted=PlaytestDriver.Requested||CaptureMode.Requested;
-            if(!scripted&&!Started&&Input.GetKeyDown(KeyCode.Q)){Quit();return;}
+            if(!scripted&&!Started&&RealKey(KeyCode.Q)){Quit();return;}
             if(!scripted&&(Paused||Case.Terminal))
             {
-                if(Input.GetKeyDown(KeyCode.N)){Retry();return;}
-                if(Input.GetKeyDown(KeyCode.Q)){Quit();return;}
+                if(RealKey(KeyCode.N)){Retry();return;}
+                if(RealKey(KeyCode.Q)){Quit();return;}
             }
             if(Paused)
             {
-                if(Input.GetKeyDown(KeyCode.Alpha1))Player.Sensitivity=Mathf.Max(.3f,Player.Sensitivity-.15f);
-                if(Input.GetKeyDown(KeyCode.Alpha2))Player.Sensitivity=Mathf.Min(4,Player.Sensitivity+.15f);
-                if(Input.GetKeyDown(KeyCode.Alpha3))Player.Brightness=Mathf.Max(.7f,Player.Brightness-.1f);
-                if(Input.GetKeyDown(KeyCode.Alpha4))Player.Brightness=Mathf.Min(1.8f,Player.Brightness+.1f);
-                if(Input.GetKeyDown(KeyCode.Alpha5))Volume=Mathf.Max(0,Volume-.05f);
-                if(Input.GetKeyDown(KeyCode.Alpha6))Volume=Mathf.Min(1,Volume+.05f);
-                if(Input.GetKeyDown(KeyCode.I))Player.InvertY=!Player.InvertY;
-                if(Input.GetKeyDown(KeyCode.T))Subtitles=!Subtitles;
+                if(RealKey(KeyCode.Alpha1))Player.Sensitivity=Mathf.Max(.3f,Player.Sensitivity-.15f);
+                if(RealKey(KeyCode.Alpha2))Player.Sensitivity=Mathf.Min(4,Player.Sensitivity+.15f);
+                if(RealKey(KeyCode.Alpha3))Player.Brightness=Mathf.Max(.7f,Player.Brightness-.1f);
+                if(RealKey(KeyCode.Alpha4))Player.Brightness=Mathf.Min(1.8f,Player.Brightness+.1f);
+                if(RealKey(KeyCode.Alpha5))Volume=Mathf.Max(0,Volume-.05f);
+                if(RealKey(KeyCode.Alpha6))Volume=Mathf.Min(1,Volume+.05f);
+                if(RealKey(KeyCode.I))Player.InvertY=!Player.InvertY;
+                if(RealKey(KeyCode.T))Subtitles=!Subtitles;
             }
-            if(Input.GetKeyDown(KeyCode.H)&&(Started||Paused)&&!Case.Terminal)HelpHints=!HelpHints;
-            if(!scripted&&(Input.GetKeyDown(KeyCode.Escape)||(pad&&pad.Cancel&&Modal)))
+            if(RealKey(KeyCode.H)&&(Started||Paused)&&!Case.Terminal)HelpHints=!HelpHints;
+            if(!scripted&&(RealKey(KeyCode.Escape)||(pad&&pad.Cancel&&Modal)))
             {
                 if(!Started&&Paused){Paused=false;SavePreferences();}
                 else if(NoteBody!=null)NoteBody=null;
@@ -220,7 +220,7 @@ namespace HollowCurrent
                 else if(Started&&!Case.Terminal)Paused=!Paused;
                 ApplyFocus();
             }
-            if((Input.GetKeyDown(KeyCode.J)||(pad&&pad.Journal))&&Started&&!Paused&&NoteBody==null&&!Case.Terminal){Journal=!Journal;ApplyFocus();}
+            if((RealKey(KeyCode.J)||(pad&&pad.Journal))&&Started&&!Paused&&NoteBody==null&&!Case.Terminal){Journal=!Journal;ApplyFocus();}
             if(!Modal)
             {
                 float dt=Time.deltaTime;if(Map==MapId.Castle)CastleTick(dt);else Case.Tick(dt,Player.Inside);SubtitleTime-=dt;radioCooldown-=dt;
@@ -289,6 +289,25 @@ namespace HollowCurrent
         void BeginCase(){SavePreferences();Started=true;ApplyFocus();if(uiProbe)Debug.Log("HC_UI_STARTED cursor="+Cursor.lockState);}
         public void Resume(){SavePreferences();Paused=false;Journal=false;NoteBody=null;ApplyFocus();}
         // Owner rule (2026-10-14, "stop taking my mouse"): automated runs never lock or hide the cursor and never read real input.
+        // Owner rule: real keyboard input never reaches a scripted run.
+        static bool RealKey(KeyCode k)=>!ScriptedRun&&Input.GetKeyDown(k);
+        static bool RealAnyKey=>!ScriptedRun&&Input.anyKeyDown;
+        // Scripted runs open their own 1920x1080 window whatever the saved prefs say, and put the owner's saved window size back on
+        // quit (never full screen).
+        static bool scriptedWindowSet;static int ownerWidth,ownerHeight;
+        static void ScriptedWindow()
+        {
+            if(scriptedWindowSet||!ScriptedRun)return;scriptedWindowSet=true;
+            ownerWidth=Screen.width;ownerHeight=Screen.height;
+            Screen.SetResolution(WindowWidth,WindowHeight,FullScreenMode.Windowed);
+            Debug.Log("HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad (TestInput only); window 1920x1080, owner window "+ownerWidth+"x"+ownerHeight+" restored on quit");
+        }
+        public static void RestoreOwnerWindow()
+        {
+            if(!scriptedWindowSet)return;
+            int w=ownerWidth>=640?ownerWidth:WindowWidth,h=ownerHeight>=360?ownerHeight:WindowHeight;
+            Screen.SetResolution(w,h,FullScreenMode.Windowed);
+        }
         public static bool ScriptedRun=>PlaytestDriver.Requested||CaptureMode.Requested||NativeVerification.Requested;
         public void ApplyFocus(){bool modal=Modal;Time.timeScale=modal?0:1;AudioListener.pause=Loading||!Started||Paused||Journal||NoteBody!=null;Cursor.lockState=modal||ScriptedRun?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=(modal&&!PadInput.Active)||ScriptedRun;if(uiProbe)Debug.Log("HC_UI_STATE started="+Started+" paused="+Paused+" journal="+Journal+" cursor="+Cursor.lockState+" visible="+Cursor.visible+" timeScale="+Time.timeScale);}
         public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();if(Castle)Castle.NoteRead(title);}
@@ -451,7 +470,7 @@ namespace HollowCurrent
             PlayerPrefs.Save();
         }
         public void Quit(){SavePreferences();if(Automated)Debug.Log("HC_QUIT_CALLED "+Environment.StackTrace);Application.Quit();}
-        void OnApplicationQuit(){if(PlaytestDriver.Requested||CaptureMode.Requested)Debug.Log("HC_APP_QUIT t="+Time.realtimeSinceStartup.ToString("F1")+" map="+Map+" started="+Started+" paused="+Paused);}
+        void OnApplicationQuit(){RestoreOwnerWindow();if(PlaytestDriver.Requested||CaptureMode.Requested)Debug.Log("HC_APP_QUIT t="+Time.realtimeSinceStartup.ToString("F1")+" map="+Map+" started="+Started+" paused="+Paused);}
         public void RetryCheckpoint(){if(Loading||!HasCheckpoint)return;restoreCheckpoint=true;BeginReload(Map);}
         public void Retry(){if(Loading)return;checkpoints.Remove(Map);checkpointPositions.Remove(Map);restoreCheckpoint=false;BeginReload(Map);}
         void BeginReload(MapId target){LoadingTarget=target;SavePreferences();Loading=true;LoadingProgress=0;ApplyFocus();StartCoroutine(ReloadCase(target));}

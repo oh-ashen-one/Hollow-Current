@@ -120,9 +120,12 @@ namespace HollowCurrent
         }
         static Texture2D Solid(Color c){var t=new Texture2D(1,1);t.SetPixel(0,0,c.linear);t.Apply();return t;}
         void OnDestroy(){if(trackTexture)Destroy(trackTexture);if(thumbTexture)Destroy(thumbTexture);if(hoverTexture)Destroy(hoverTexture);if(artworkMaterial)Destroy(artworkMaterial);}
+        static bool RealKey(KeyCode k)=>!Game.ScriptedRun&&Input.GetKeyDown(k);
         void OnGUI()
         {
-            if(Game==null)return;Styles();paperRegions.Clear();
+            if(Game==null)return;
+            // Owner rule: a real click or key press never reaches the menus of a scripted run.
+            if(Game.ScriptedRun&&(Event.current.isMouse||Event.current.isKey||Event.current.type==EventType.ScrollWheel))Event.current.Use();Styles();paperRegions.Clear();
             RefreshMenu();if(Event.current.type==EventType.Layout)menu.Clear();
             float scale=Mathf.Min(Screen.width/1600f,Screen.height/900f);
             GUI.matrix=Matrix4x4.TRS(new Vector3((Screen.width-1600*scale)*.5f,(Screen.height-900*scale)*.5f,0),Quaternion.identity,new Vector3(scale,scale,1));
@@ -409,9 +412,9 @@ namespace HollowCurrent
         {
             if(Game==null)return;ControllerNavigation();
             if(Game==null||!Game.Journal||Game.NoteBody!=null||Game.Paused||Game.Loading)return;
-            for(int i=0;i<9;i++)if(Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i)))
+            for(int i=0;i<9;i++)if(RealKey((KeyCode)((int)KeyCode.Alpha1+i)))
             {if(i<3)anchor=i;else if(i<6)pattern=i-3;else closure=i-6;if(NativeVerification.UIOnly)Debug.Log("HC_UI_KEY_CHOICE "+(i+1));}
-            if(Input.GetKeyDown(KeyCode.Return)){if(NativeVerification.UIOnly)Debug.Log("HC_UI_KEY_SUBMIT ready="+CanSubmit());if(CanSubmit())Submit();}
+            if(RealKey(KeyCode.Return)){if(NativeVerification.UIOnly)Debug.Log("HC_UI_KEY_SUBMIT ready="+CanSubmit());if(CanSubmit())Submit();}
         }
         bool CanSubmit()=>Game.Case.MysteryReady&&anchor>=0&&pattern>=0&&closure>=0;
         void Choice(float y,string label,string[] choices,ref int selected,int key)

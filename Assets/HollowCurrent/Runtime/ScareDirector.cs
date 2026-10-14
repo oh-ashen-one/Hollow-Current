@@ -136,6 +136,7 @@ namespace HollowCurrent
                 // Castle: one throw in six is the poltergeist (everything on the table at once).
                 int thrown=IsCastle&&Castle&&Random.value<1f/6?Castle.Poltergeist():0;
                 if(thrown>0){ThrownProps+=thrown;game.Case.AddDread(game.Case.Rules.DreadThrow);Debug.Log("HC_THROW poltergeist="+thrown);}
+                else if(IsCastle)CastleThrow(point); // r11: the castle throw does not need her to see the prop; the knock is the point
                 else ThrowNearbyProp();
             }
             Debug.Log("HC_SCARE visible="+Events+" basement="+firstBasement+" rush="+rush);return true;
@@ -162,6 +163,35 @@ namespace HollowCurrent
         readonly Dictionary<string,int> skips=new Dictionary<string,int>();
         void Skip(string reason,Transform prop,float distance,float angle,string detail=null)
         {if(IsCastle)Throwable.LogSkip("director",reason,prop,distance,angle,detail,skips);}
+        // Castle throw (r11, natural run: every attempt skipped with all 38 throwables > 6 m from her and in no view): the throwable
+        // nearest the apparition within 6 m that is also within her hearing (14 m), else the throwable nearest her within 10 m. She need
+        // not see it. Logs HC_THROW castle=... or HC_THROW_SKIP reason=none_in_range with both nearest distances.
+        public bool CastleThrow(Vector3 apparition)
+        {
+            var p=game.Player.transform.position;Throwable best=null;float bestScore=float.MaxValue;string how="none";
+            float nearestToPlayer=99,nearestToApparition=99;
+            foreach(var t in Throwable.All)
+            {
+                if(!t||t.Thrown||t.GetComponent<Rigidbody>())continue;
+                var c=t.WorldCenter;float dp=Vector3.Distance(c,p),da=Vector3.Distance(c,apparition);
+                nearestToPlayer=Mathf.Min(nearestToPlayer,dp);nearestToApparition=Mathf.Min(nearestToApparition,da);
+                if(da<=6&&dp<=14&&da<bestScore){bestScore=da;best=t;how="near_apparition";}
+            }
+            if(!best)foreach(var t in Throwable.All)
+            {
+                if(!t||t.Thrown||t.GetComponent<Rigidbody>())continue;
+                float dp=Vector3.Distance(t.WorldCenter,p);
+                if(dp<=10&&dp<bestScore){bestScore=dp;best=t;how="nearest_to_player";}
+            }
+            if(!best){Debug.Log("HC_THROW_SKIP reason=none_in_range source=castle nearestToPlayer="+nearestToPlayer.ToString("F1")+" nearestToApparition="+nearestToApparition.ToString("F1")+" hearing=14 fallback=10");return false;}
+            var centre=best.WorldCenter;var away=centre-apparition;away.y=0;if(away.sqrMagnitude<.01f)away=centre-p;away.y=0;
+            away=away.sqrMagnitude<.01f?Random.onUnitSphere:away.normalized;away.y=0;
+            var velocity=away.normalized*Random.Range(2.2f,4f)+Vector3.up*Random.Range(1.8f,3f);
+            if(!best.Launch(game,velocity)){Debug.Log("HC_THROW_SKIP reason=launch_refused source=castle prop="+best.name);return false;}
+            game.Sound.Cue("knock",centre,.6f);ThrownProps++;LastThrownProp=best.transform;game.Case.AddDread(game.Case.Rules.DreadThrow);
+            Debug.Log("HC_THROW prop="+best.name+" at="+centre+" castle="+how+" toPlayer="+Vector3.Distance(centre,p).ToString("F1")+" toApparition="+Vector3.Distance(centre,apparition).ToString("F1"));
+            return true;
+        }
         public bool ThrowNearbyProp()
         {
             skips.Clear();

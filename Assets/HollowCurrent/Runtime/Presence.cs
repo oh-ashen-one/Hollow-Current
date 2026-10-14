@@ -1223,6 +1223,7 @@ namespace HollowCurrent
                     target=Mathf.Clamp(count.FlightPitchMin+Mathf.Max(0,descent)*.6f,count.FlightPitchMin,count.FlightPitchMax);
                 }
                 pitchNow=staged||capturePresentation?0:Mathf.Lerp(pitchNow,target,1-Mathf.Exp(-count.FlightPitchRate*dt));
+                if(target>0&&!staged&&!capturePresentation)pitchNow=Mathf.Max(pitchNow,count.FlightPitchMin); // r11: floor 38 deg in every airborne leg
                 SetFlightPose(pitchNow);
                 // One HC_COUNT_POSE per leg, logged once the lean has settled (0.4 s after it starts).
                 if(target>0){if(poseLegTimer<0)poseLegTimer=0;poseLegTimer+=dt;if(!poseLogged&&poseLegTimer>.4f){poseLogged=true;Debug.Log("HC_COUNT_POSE pitch="+pitchNow.ToString("F0")+" target="+target.ToString("F0")+" mode="+actor.Mode+" state="+flight+" speed="+flightSpeed.ToString("F1"));}}

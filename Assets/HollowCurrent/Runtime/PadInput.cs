@@ -60,6 +60,9 @@ namespace HollowCurrent
             // Existing automated FieldInput routes must not consume an owner's
             // physical controller. The separate editor audit uses virtual HID.
             if(NativeVerification.Requested)pad=null;
+            // Owner rule (2026-10-14): no scripted run (playtest, verify, capture) reads a physical device; a connect or disconnect
+            // can never pause it.
+            if(Game.ScriptedRun){pad=null;Connected=false;Disconnected=false;Move=Look=Navigate=Vector2.zero;Confirm=Cancel=Pause=Journal=Torch=Radio=Fire=FireHeld=UseHeld=false;ToolStep=0;Sprint=Crouch=false;previousButtons=0;return;}
             if(pad!=null&&!pad.added)pad=null;
             bool connected=pad!=null;
             Disconnected=Connected&&!connected;
