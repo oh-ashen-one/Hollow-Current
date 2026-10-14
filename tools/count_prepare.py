@@ -43,6 +43,7 @@ argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 PREVIEW = Path(argv[argv.index('--preview') + 1]) if '--preview' in argv else None
 PROOF = Path(argv[argv.index('--proof') + 1]) if '--proof' in argv else None
 ONLY_NEW = '--only-new' in argv
+DIAG = '--diag' in argv   # --diag Crawl,GrabCrawl          # print per-clip skinning blow-out metrics for Crawl/Grab/GrabDrop/GrabCrawl and stop (no export)
 RECEIPT = OUT / 'Native/CountClaude.json'
 RUNTIME_MODES = OUT.parents[2] / 'Resources/Characters/CountClaude/CountClaudeModes.json'   # shipped: the runtime detects Mode 8/9 here
 (OUT / 'Native').mkdir(parents=True, exist_ok=True)
@@ -347,6 +348,7 @@ def two_bone(upper, lower, end, target, pole):
     pu, pl, pe = (rig.pose.bones[n] for n in (upper, lower, end))
     S = pu.head.copy(); E = pl.head.copy(); W = pe.head.copy()
     a = (E - S).length; b = (W - E).length; T = Vector(target)
+    if DIAG and upper.endswith('Arm'): print('HC_IK', upper, 'a', round(a, 2), 'b', round(b, 2), 'dist', round((T - S).length, 2), 'shoulder', tuple(round(v, 2) for v in S), flush=True)
     d = min(max((T - S).length, abs(a - b) + 1e-3), a + b - 1e-3); x = (T - S).normalized(); T = S + x * d
     p = Vector(pole) - S; y = (p - x * p.dot(x)).normalized()
     alpha = math.acos(max(-1, min(1, (a * a + d * d - b * b) / (2 * a * d))))
@@ -505,29 +507,29 @@ def drop_ik(f, ph):
 def drop_lift(f): return drop_height(f)
 
 CRAWL_GRAB_SECONDS, LUNGE_M = 1.4, 1.2
-CG = {
-    'hips_x':  [(0, 70), (.20, 76), (.34, 84), (.52, 80), (.78, 58), (1, 40)],
-    'hz':      [(0, -.72), (.20, -.86), (.34, -.80), (.52, -.88), (.78, -.80), (1, -.74)],
-    'hy':      [(0, 0), (.20, .16), (.34, -.05), (.52, -LUNGE_M), (.78, -LUNGE_M + .30), (1, -LUNGE_M + .72)],
-    'lean':    [(0, 8), (.20, 4), (.52, -4), (.78, 14), (1, 30)],
+CG = {   # limb angles are kept inside the Mode 7 Crawl envelope (UpLeg <= 120, Leg <= 118, Arm <= 95, ForeArm <= 70 deg): beyond it the coat panels and forearm skin shear into shards
+    'hips_x':  [(0, 70), (.20, 74), (.34, 78), (.52, 76), (.78, 58), (1, 44)],
+    'hz':      [(0, -.72), (.20, -.78), (.34, -.74), (.52, -.80), (.78, -.66), (1, -.56)],
+    'hy':      [(0, 0), (.20, .14), (.34, -.05), (.52, -LUNGE_M), (.78, -.55), (1, -.15)],
+    'lean':    [(0, 8), (.20, 4), (.52, -4), (.78, 10), (1, 16)],
     'neck':    [(0, -52), (.20, -58), (.52, -50), (.78, -54), (1, -62)],
     'head':    [(0, -30), (.52, -26), (1, -46)],
     'jaw':     [(0, 0), (.30, -6), (.40, -34), (.80, -34), (1, -36)],
     'wspread': [(0, 0), (.30, .1), (.52, .45), (.78, .9), (1, 1.0)],
-    'wyaw':    [(0, -14), (.52, -10), (.78, 20), (1, 46)],
+    'wyaw':    [(0, -14), (.52, -10), (.78, 16), (1, 30)],
     'wbeat':   [(0, -4), (.52, 8), (.78, 22), (1, 26)],
     'wpitch':  [(0, 62), (.52, 40), (1, 14)],
     'wcurl':   [(0, -6), (1, -10)],
-    'wstr':    [(0, .82), (.52, 1.3), (1, 2.1)],
-    'rx':      [(0, .34), (.52, .30), (.78, .22), (1, .12)],         # right hand: closes on the lower centre of the lens
-    'ry':      [(0, -.77), (.34, -.60), (.52, -1.90), (.78, -1.45), (1, -1.30)],
-    'rz':      [(0, .47), (.34, .70), (.52, .30), (.78, .95), (1, 1.18)],
-    'ax':      [(0, .34), (.52, .30), (1, .42)],
-    'ay':      [(0, -.77), (.34, -.60), (.52, -1.90), (.78, -1.50), (1, -1.28)],
-    'az':      [(0, .47), (.34, .70), (.52, .30), (.78, .85), (1, 1.08)],
+    'wstr':    [(0, .82), (.52, 1.3), (1, 1.6)],
+    'rx':      [(0, .34), (.52, .30), (.78, .24), (1, .18)],         # right hand: closes on the lower centre of the lens
+    'ry':      [(0, -.77), (.34, -.72), (.52, -1.95), (.78, -1.35), (1, -1.12)],
+    'rz':      [(0, .47), (.34, .55), (.52, .30), (.78, .90), (1, 1.22)],
+    'ax':      [(0, .34), (.52, .30), (1, .34)],
+    'ay':      [(0, -.77), (.34, -.72), (.52, -1.95), (.78, -1.35), (1, -1.15)],
+    'az':      [(0, .47), (.34, .55), (.52, .30), (.78, .85), (1, 1.32)],
     'fx':      [(0, .26), (1, .30)],
-    'fy':      [(0, .40), (.34, .55), (.52, -.35), (.78, -.85), (1, -.90)],
-    'fz':      [(0, 0), (.34, .02), (.46, .30), (.62, .06), (1, 0)],
+    'fy':      [(0, .40), (.34, .55), (.52, -.20), (.70, -.40), (1, -.04)],
+    'fz':      [(0, 0), (.34, .02), (.46, .26), (.62, .04), (1, 0)],
 }
 def crawl_grab(p, ph, f):
     c = curves(f, CG)
@@ -535,11 +537,17 @@ def crawl_grab(p, ph, f):
     p.spine(c['lean'], neck=c['neck'], head=c['head']); p.r('Jaw', x=c['jaw'])
     p.legs(0, 0)
     p.wings(c['wspread'], yaw=c['wyaw'], beat=c['wbeat'], pitch=c['wpitch'], curl=c['wcurl'], stretch=c['wstr'])
+ARM_MIN_REACH = .76                      # metres; measured against the Mode 7 Crawl envelope (see limb_angle_max_deg in the receipt)
+POLE = (1.2, .3, .5)                     # elbow pole (x mirrored, y relative to the hips, z)
 def crawl_grab_ik(f, ph):
     c = curves(f, CG)
     for side, sg in (('Left', 1), ('Right', -1)):
         two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * c['fx'], c['fy'], ANKLE + c['fz']), (sg * .7, -1.2 + c['hy'], .9)); plant(side + 'Foot', sg * 8)
-        k = ('a' if sg > 0 else 'r'); two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', (sg * c[k + 'x'], c[k + 'y'], c[k + 'z']), (sg * 1.2, .3 + c['hy'], .5))
+        k = ('a' if sg > 0 else 'r'); target = Vector((sg * c[k + 'x'], c[k + 'y'], c[k + 'z']))
+        # keep the elbow inside the Crawl's range: the wrist never closer to the shoulder than ARM_MIN_REACH (a shorter reach folds the forearm past ~70 deg)
+        shoulder = rig.pose.bones[side + 'Arm'].head.copy(); gap = target - shoulder
+        if gap.length < ARM_MIN_REACH: target = shoulder + gap.normalized() * ARM_MIN_REACH
+        two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', target, (sg * POLE[0], c['hy'] + POLE[1], POLE[2]))
 
 # (name, pose fn, seconds, loop, post-IK fn, floor rule): 'plant' keeps the lowest mesh point on z=0,
 # 'lift' only lifts it back above z=0 (airborne clips), None leaves the IK-planted feet alone.
@@ -578,12 +586,22 @@ def claw_points():
 if ONLY_NEW and RECEIPT.exists():
     old_receipt = json.loads(RECEIPT.read_text()); metrics.update(old_receipt['clips'])
 RUN = CLIPS[NEW_FROM:] if ONLY_NEW else CLIPS
+if DIAG: RUN = [c for c in CLIPS if c[0] in (argv[argv.index('--diag') + 1].split(',') if len(argv) > argv.index('--diag') + 1 else ('Crawl', 'GrabCrawl'))]
+# Skinning blow-out check: every mesh edge's posed length against its rest length. Wings stretch on purpose (fan Ext stretch up to
+# ~2.2x), so the limit is 3x; anything beyond is a triangle dragged between bones that moved apart (a 'shard').
+REST_PTS = mesh_points(); EDGES = np.array([tuple(e.vertices) for e in me.edges]); REST_LEN = np.linalg.norm(REST_PTS[EDGES[:, 0]] - REST_PTS[EDGES[:, 1]], axis=1)
+EDGE_OK = REST_LEN > .002; STRETCH_LIMIT = 3.0
+SHARD_LEN = .15      # a stretched edge only reads as a visible shard once it is longer than this (metres, posed)
+def stretched(pts):
+    posed = np.linalg.norm(pts[EDGES[:, 0]] - pts[EDGES[:, 1]], axis=1)[EDGE_OK]; ratio = posed / REST_LEN[EDGE_OK]
+    bad = (ratio > STRETCH_LIMIT) & (posed > SHARD_LEN); return int(bad.sum()), float(ratio.max())
+vgroup = [max(((gname[g.group], g.weight) for g in v.groups), key=lambda t: t[1])[0] if len(v.groups) else '' for v in me.vertices]
 for name, fn, seconds, loop, ik, floor in RUN:
     end = round(seconds * FPS)
     shift = (SKIM if floor == 'skim' else 0.0) - lowest_over(fn, end, loop, ik) if floor in ('skim', 'ground') else 0.0
     action = bpy.data.actions.new(name); action.use_fake_user = True; rig.animation_data.action = action
     if action.slots: rig.animation_data.action_slot = action.slots[0]
-    prev = {}; spans = []; tops = []; lows = []; reach = []; areas = []; pitches = []; claw_reach = []
+    prev = {}; spans = []; tops = []; lows = []; reach = []; areas = []; pitches = []; claw_reach = []; stretch_n = []; stretch_max = []; limb_max = {}
     for frame in range(0, end + 1):
         ph = (frame / end) % 1.0 if loop else frame / end; f = frame / end
         if loop and frame == end: ph = 0.0
@@ -595,6 +613,15 @@ for name, fn, seconds, loop, ik, floor in RUN:
             lift_hips(-float(pts[:, 2].min())); pts = mesh_points()
         if name in LIFT:
             lift_hips(LIFT[name](f)); pts = mesh_points()
+        bad_n, bad_max = stretched(pts); stretch_n.append(bad_n); stretch_max.append(bad_max)
+        if DIAG and (frame % 6 == 0 or frame == end):
+            ratio = np.linalg.norm(pts[EDGES[:, 0]] - pts[EDGES[:, 1]], axis=1) / np.maximum(REST_LEN, 1e-6); badv = set(EDGES[(ratio > STRETCH_LIMIT) & EDGE_OK].reshape(-1).tolist()); groups = {}
+            for vi in badv: groups[vgroup[vi]] = groups.get(vgroup[vi], 0) + 1
+            print('HC_STRETCH', name, frame, 'edges>%.1fx' % STRETCH_LIMIT, bad_n, 'max ratio', round(bad_max, 2), 'bones', dict(sorted(groups.items(), key=lambda kv: -kv[1])[:6]), flush=True)
+        if DIAG and (frame % 6 == 0 or frame == end):
+            print('HC_ANGLES', name, frame, {n: round(math.degrees(rig.pose.bones[n].rotation_quaternion.angle)) for n in ('Hips', 'Spine02', 'Spine', 'neck', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'RightUpLeg', 'RightLeg', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightArm', 'RightForeArm', 'RightHand')}, flush=True)
+        for lb in ('UpLeg', 'Leg', 'Arm', 'ForeArm'):
+            limb_max[lb] = max(limb_max.get(lb, 0), *(math.degrees(rig.pose.bones[sd + lb].rotation_quaternion.angle) for sd in ('Left', 'Right')))
         pitches.append(chest_pitch_deg()); claws = claw_points(); claw_reach.append(float(-claws[:, 1].min()))
         spans.append(float(pts[:, 0].max() - pts[:, 0].min())); tops.append(float(pts[:, 2].max()))
         lows.append(float(pts[:, 2].min())); reach.append(float(-pts[:, 1].min()))
@@ -607,7 +634,7 @@ for name, fn, seconds, loop, ik, floor in RUN:
     actions[name] = (action, end, loop)
     metrics[name] = {'seconds': round(end / FPS, 3), 'loop': loop, 'hip_shift_m': round(shift, 3), 'span_m_min': round(min(spans), 3), 'span_m_max': round(max(spans), 3),
                      'top_m_max': round(max(tops), 3), 'lowest_z_min': round(min(lows), 3), 'forward_reach_m_max': round(max(reach), 3),
-                     'forward_reach_m_last': round(reach[-1], 3), 'claw_reach_m_last': round(claw_reach[-1], 3), 'chest_pitch_deg_last': round(pitches[-1], 1), 'chest_pitch_deg_max': round(max(pitches), 1), 'membrane_area_ratio_min': round(min(areas), 3), 'membrane_area_ratio_last': round(areas[-1], 3)}
+                     'forward_reach_m_last': round(reach[-1], 3), 'claw_reach_m_last': round(claw_reach[-1], 3), 'stretched_edges_max': max(stretch_n), 'stretched_edges_last': stretch_n[-1], 'edge_stretch_ratio_max': round(max(stretch_max), 2), 'limb_angle_max_deg': {k: round(v) for k, v in limb_max.items()}, 'chest_pitch_deg_last': round(pitches[-1], 1), 'chest_pitch_deg_max': round(max(pitches), 1), 'membrane_area_ratio_min': round(min(areas), 3), 'membrane_area_ratio_last': round(areas[-1], 3)}
     print('HC_CLIP', name, json.dumps(metrics[name]), flush=True)
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
@@ -712,6 +739,7 @@ if PREVIEW:
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
 update()
+if DIAG: sys.exit(0)
 if PROOF: proof(PROOF)
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)

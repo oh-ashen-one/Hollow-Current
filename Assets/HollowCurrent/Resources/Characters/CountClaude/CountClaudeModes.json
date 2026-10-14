@@ -25,7 +25,7 @@
   },
   "grab_reach_m": 1.385,
   "grab_drop_reach_m": 1.758,
-  "grab_crawl_reach_m": 1.818,
+  "grab_crawl_reach_m": 1.729,
   "grab_drop_mesh_reach_m": 1.758,
-  "grab_crawl_mesh_reach_m": 1.818
+  "grab_crawl_mesh_reach_m": 1.729
 }
