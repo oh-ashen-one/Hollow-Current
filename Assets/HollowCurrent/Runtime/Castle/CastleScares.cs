@@ -44,14 +44,20 @@ namespace HollowCurrent
         bool Ready=>game&&game.Player&&game.Player.View&&game.World!=null&&game.World.Root;
         Transform Root=>game.World.Root;
         Transform Eye=>game.Player.View.transform;
-        // Beats stay out of the phases ScareDirector.Dread and Trigger also skip, and out of menus, hiding and notes.
-        bool Calm
+        // Present: the run exists and is not paused. Running effects (a shape, a footstep sequence) only ever stop on this, never on a phase.
+        bool Present=>Ready&&!game.Modal;
+        // Active: a new beat may start. Hiding and menus defer a beat (the player's own action, not a game state).
+        // tell-safe: the only phases excluded are Briefing and Dead/Won, where no hunt can begin or be under way; Warning, Hunt, Recovery,
+        // Containment and Return all allow beats, so the scare layer is not silent exactly while a hunt is in progress.
+        bool Active=>Present&&!game.Player.Hidden&&game.Case.Phase!=Phase.Briefing&&!game.Case.Terminal;
+        // The phases in which ScareDirector.Update returns before its dread tick (Warning, Hunt, Recovery, Containment, Return).
+        // tell-safe: this property only ADDS beats (the ambient substitute below) where the director is quiet, so that their absence is not a signal.
+        bool DirectorQuiet
         {
             get
             {
-                if(!Ready||game.Modal||game.Player.Hidden)return false;
                 var phase=game.Case.Phase;
-                return phase!=Phase.Warning&&phase!=Phase.Hunt&&phase!=Phase.Recovery;
+                return phase==Phase.Warning||phase==Phase.Hunt||phase==Phase.Recovery||phase==Phase.Containment||phase==Phase.Return;
             }
         }
         void Log(string beat){LastBeat=beat;Beats++;Debug.Log("HC_SCARE_CASTLE "+beat);}
@@ -61,26 +67,58 @@ namespace HollowCurrent
             if(falseCompassTimer>0){falseCompassTimer-=Time.deltaTime;if(falseCompassTimer<=0)FalseCompass=false;}
             if(shape)TickShape();
             else if(shapeArmed)TryPlaceShape();
+            TickAmbient();
+        }
+
+        // ---- ambient substitute for the phases where the director is quiet (critic N11, scare-layer silence as a tell) ------------------
+        // ScareDirector.Update returns before its dread tick in Warning, Hunt, Recovery, Containment and Return, so without this the whole
+        // scare layer would stop for roughly 80 s around every hunt. While the director is quiet this fires a cheap, consequence-free beat
+        // on the same cadence (first after 8-30 s, then every 22-38 s): candle gutter, book drop, knife, bat, window silhouette, gallery
+        // shape, and footsteps behind when Lies. Not the bell (a summons read), not silence, not the false candle tell or compass (they
+        // would fight the real candle tell and compass during a hunt). Logged as HC_AMBIENT with the phase, for the windowed run only.
+        float ambientTimer=-1;
+        void TickAmbient()
+        {
+            if(!Present||!DirectorQuiet){ambientTimer=-1;return;}
+            if(ambientTimer<0){ambientTimer=Random.Range(8f,30f);return;}
+            ambientTimer-=Time.deltaTime;
+            if(ambientTimer>0)return;
+            ambientTimer=Random.Range(22f,38f);
+            if(AmbientBeat())Debug.Log("HC_AMBIENT phase="+game.Case.Phase+" beat="+LastBeat);
+            else Debug.Log("HC_AMBIENT phase="+game.Case.Phase+" beat=none");
+        }
+        public bool AmbientBeat()
+        {
+            if(!Active)return false;
+            float r=Random.value;
+            if(game.Case.Lies&&r<.2f&&FootstepsBehind())return true;
+            if(r<.4f&&WindowSilhouette())return true;
+            if(r<.55f&&BalustradeShape())return true;
+            int roll=Random.Range(0,4);
+            for(int i=0;i<4;i++)
+                if(TryBeat(new[]{0,1,2,4}[(roll+i)%4]))return true;
+            return false;
         }
 
         // ===================================================================================================================
         // Item 15: dread beats (no sting, no card)
         // ===================================================================================================================
-        // Picks one castle dread beat. Silence is an active beat (see Silence); its chance is one in six and rises to 0.30-0.45 once Dread
-        // reaches 60, the zone where a dice hunt is likely, so that silence is not itself a tell. A beat that cannot happen here (no book pile,
+        // Picks one castle dread beat. Silence is an active beat (see Silence). Its chance is keyed on FeltDread, what the heartbeat and the
+        // journal pulse may show, never on real Dread (critic N11: real Dread would make silence a statistical gauge): a flat 15 % at any felt
+        // level so silence also happens when the player feels calm, rising to 40 % at felt 100. A beat that cannot happen here (no book pile,
         // no knife, no bell or candles near the player) falls through to the next, and the last resort is silence. Returns false only when
-        // not Calm. DreadTick passes allowSilence=false because it has rolled silence already.
+        // not Active. DreadTick passes allowSilence=false because it has rolled silence already.
         public float SilenceChance
         {
             get
             {
-                float dread=game&&game.Case!=null?game.Case.Dread:0;
-                return dread<60?1f/6:Mathf.Lerp(.30f,.45f,Mathf.Clamp01((dread-60)/40));
+                float felt=game&&game.Case!=null?game.Case.FeltDread:0;
+                return .15f+.25f*Mathf.Clamp01((felt-40f)/60f);
             }
         }
         public bool Beat(bool allowSilence=true)
         {
-            if(!Calm)return false;
+            if(!Active)return false;
             if(allowSilence&&Random.value<SilenceChance)return Silence();
             int roll=Random.Range(0,5);
             for(int i=0;i<5;i++)
@@ -107,15 +145,15 @@ namespace HollowCurrent
             float seconds=Random.Range(6f,10f);
             silenceUntil=Time.time+seconds;
             if(DuckBed!=null)DuckBed(seconds,.1f);
-            Log("silence seconds="+seconds.ToString("F1")+" duck="+(DuckBed!=null?"wired":"unwired")+" dread="+game.Case.Dread.ToString("F0"));
+            Log("silence seconds="+seconds.ToString("F1")+" duck="+(DuckBed!=null?"wired":"unwired")+" felt="+game.Case.FeltDread.ToString("F0")+" dread="+game.Case.Dread.ToString("F0"));
             return true;
         }
 
         // ---- one castle dread tick (the whole of ScareDirector.CastleBeat) ------------------------------------------------------------
-        // Order: silence roll, lies (Dread >= LieThreshold), peripheral sightings, then Beat. Returns false only when not Calm.
+        // Order: silence roll, lies (Dread >= LieThreshold, plus a 12 % decoy of footsteps below it), peripheral sightings, then Beat. Returns false only when not Active.
         public bool DreadTick()
         {
-            if(!Calm)return false;
+            if(!Active)return false;
             if(Random.value<SilenceChance)return Silence();
             if(game.Case.Lies)
             {
@@ -123,6 +161,7 @@ namespace HollowCurrent
                 if(game.Player.Tool==1&&game.Case.Equipped&&Random.value<.5f){FalseCompassReading();return true;}
                 if(Random.value<.5f&&Lie())return true;
             }
+            else if(Random.value<.12f&&FootstepsBehind(true))return true; // decoy: steps behind also happen below the lie threshold (critic N11)
             float r=Random.value;
             if(r<.2f&&WindowSilhouette())return true;
             if(r<.35f&&BalustradeShape())return true;
@@ -130,7 +169,8 @@ namespace HollowCurrent
         }
 
         // ---- item 5 lies that need no equipment: phantom ear-trumpet and footsteps behind ---------------------------------------------
-        bool LieAllowed=>Calm&&!game.Case.HuntActive&&game.Case.Phase!=Phase.Return&&game.Case.Phase!=Phase.Containment;
+        // tell-safe: lies obey Active only, with no hunt or phase test, so a hunt neither starts nor stops one (lies are consequence-free).
+        bool LieAllowed=>Active;
         // Picks the phantom cc_listen (once per run) or footsteps behind; false when neither can happen now.
         public bool Lie()
         {
@@ -142,7 +182,7 @@ namespace HollowCurrent
         // The ear-trumpet's whisper without the ear-trumpet: cc_listen from behind and above the player, once per run.
         public bool PhantomListen()
         {
-            if(!LieAllowed||ListenPlayed||game.Case.Dread<game.Case.Rules.LieThreshold)return false;
+            if(!LieAllowed||ListenPlayed||!game.Case.Lies)return false;
             var view=Eye;var back=Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=game.Player.transform.forward;back.Normalize();
             var at=view.position-back*2f+Vector3.up*1.5f;
             if(Physics.Raycast(view.position,Vector3.up,out var ceiling,1.6f,OcclusionMask,QueryTriggerInteraction.Ignore))at.y=Mathf.Min(at.y,ceiling.point.y-.2f);
@@ -151,10 +191,10 @@ namespace HollowCurrent
             Debug.Log("HC_LIE kind=phantom_listen at="+at.ToString("F1")+" dread="+game.Case.Dread.ToString("F0"));
             return true;
         }
-        // Four or five claw steps 3-5 m behind the player, each farther away than the last, then nothing there.
-        public bool FootstepsBehind()
+        // Four or five claw steps (they always finish: nothing stops them on a phase change) 3-5 m behind the player, each farther away than the last, then nothing there.
+        public bool FootstepsBehind(bool decoy=false)
         {
-            if(!LieAllowed||Time.time<footstepsCooldown||game.Case.Dread<game.Case.Rules.LieThreshold)return false;
+            if(!LieAllowed||Time.time<footstepsCooldown||(!decoy&&!game.Case.Lies))return false;
             var player=game.Player.transform.position;var view=Eye;
             var back=-Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=-game.Player.transform.forward;back.Normalize();
             foreach(float angle in new[]{0f,20f,-20f,40f,-40f})foreach(float distance in new[]{4f,3.4f,4.8f,3f})
@@ -166,7 +206,7 @@ namespace HollowCurrent
                 if(Physics.Linecast(player+Vector3.up,hit.position+Vector3.up,OcclusionMask,QueryTriggerInteraction.Ignore))continue; // no wall between
                 footstepsCooldown=Time.time+60;
                 StartCoroutine(Footsteps(hit.position,flat.normalized));
-                Debug.Log("HC_LIE kind=footsteps_behind at="+hit.position.ToString("F1")+" distance="+flat.magnitude.ToString("F1")+" dread="+game.Case.Dread.ToString("F0"));
+                Debug.Log("HC_LIE kind=footsteps_behind at="+hit.position.ToString("F1")+" distance="+flat.magnitude.ToString("F1")+" decoy="+decoy+" dread="+game.Case.Dread.ToString("F0"));
                 return true;
             }
             return false;
@@ -176,7 +216,7 @@ namespace HollowCurrent
             int index=Random.Range(0,4);
             for(int step=0;step<5;step++)
             {
-                if(!LieAllowed)yield break; // a hunt or a menu ends it
+                if(!Ready)yield break; // only the run ending stops it; a hunt, warning or return never does (critic N11b)
                 var at=start+away*(.6f*step);
                 if(NavMesh.SamplePosition(at,out var hit,.8f,NavMesh.AllAreas))at=hit.position;
                 game.Sound.Cue("claw_steps_"+index,at,.55f);
@@ -437,7 +477,7 @@ namespace HollowCurrent
         // periphery (25 to 70 degrees off the view centre, clear line, within 18 m). False when no window qualifies.
         public bool WindowSilhouette()
         {
-            if(!Calm||silhouetteBusy)return false;
+            if(!Active||silhouetteBusy)return false;
             var eye=Eye;var root=Root;
             var options=new List<CastleWindowDef>();
             foreach(var w in CastleLayout.Windows)
@@ -482,7 +522,7 @@ namespace HollowCurrent
         bool shapeArmed;GameObject shape;float shapeAge,shapeArmedTime,shapeFade;Vector3 shapeChest;Material shapeMaterial;
         public bool BalustradeShape()
         {
-            if(!Calm||shape||shapeArmed||!OnHallFloor())return false;
+            if(!Active||shape||shapeArmed||!OnHallFloor())return false;
             shapeArmed=true;shapeArmedTime=0;
             return true;
         }
@@ -494,7 +534,7 @@ namespace HollowCurrent
         void TryPlaceShape()
         {
             shapeArmedTime+=Time.deltaTime;
-            if(shapeArmedTime>25||!Calm){shapeArmed=false;return;}
+            if(shapeArmedTime>25||!Present){shapeArmed=false;return;}
             if(!OnHallFloor())return;
             var eye=Eye;
             Vector3 chosen=default;bool found=false;float bestScore=-1;
@@ -527,7 +567,7 @@ namespace HollowCurrent
             if(!Ready){KillShape(false);return;}
             shapeAge+=Time.deltaTime;
             var eye=Eye;
-            if(shapeAge>40||!OnHallFloor()||!Calm){KillShape(false);return;}
+            if(shapeAge>40||!OnHallFloor()||!Present){KillShape(false);return;}
             var delta=shapeChest-eye.position;
             float angle=Vector3.Angle(eye.forward,delta);
             if(angle<20){KillShape(true);return;}
