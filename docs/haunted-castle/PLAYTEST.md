@@ -71,7 +71,7 @@ Write in `docs/haunted-castle/playtest/OWNER_NOTES.md` (create it), or tell the 
 
 ## Build
 
-- **Commit:** `a412df7` on `haunted-castle` (source `430a266`). It is the combined player with both maps.
+- **Commit:** `fff0de7` on `haunted-castle` (source `a290313`, with the re-posed grab clips). It is the combined player with both maps.
   - It opens as a 1920x1080 window, never full screen.
   - Automated test runs no longer take your mouse.
 - **Since the last build (wave G and wave H fear fixes):**
