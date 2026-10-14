@@ -15,7 +15,7 @@ namespace HollowCurrent
     {
         public const int Width=2560,Height=1440;
         // -hc-capture-size WxH overrides the 2560x1440 default (e.g. 1920x1080 for the title at the shipped window size).
-        static int width=Width,height=Height;
+        static int width=Width,height=Height,windowWidth=Width,windowHeight=Height;
         // S4 eye: on the lowered drawbridge (hinge z -0.45, leaf to z -6.45), 2.0 m above
         // the planks, facing the gate (+z). Sprite moons for S4 can be placed on rays from here.
         // Round 5: 14 m back from the gate along the bridge axis, 3.5 m up (height limit lifted
@@ -58,7 +58,7 @@ namespace HollowCurrent
             for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-capture-size"){var p=args[i+1].Split('x');if(p.Length==2&&int.TryParse(p[0],out var w)&&int.TryParse(p[1],out var h)){width=w;height=h;}}
             int dw=Display.main.systemWidth,dh=Display.main.systemHeight-80;int rw=width,rh=height;
             if(rw>dw||rh>dh){float k=Mathf.Min((float)dw/rw,(float)dh/rh);rw=Mathf.FloorToInt(rw*k/16)*16;rh=Mathf.RoundToInt(rw*(float)height/width);}
-            Screen.SetResolution(rw,rh,FullScreenMode.Windowed);
+            Screen.SetResolution(rw,rh,FullScreenMode.Windowed);windowWidth=rw;windowHeight=rh;
             Log("requested "+width+"x"+height+" window "+rw+"x"+rh+(rw!=width?" (largest window that fits)":"")+" display="+Display.main.systemWidth+"x"+Display.main.systemHeight);
         }
         // -hc-capture <dir> -hc-capture-title: from the combined player's title (Bellwether scene, case not started), capture the
@@ -107,6 +107,9 @@ namespace HollowCurrent
         IEnumerator Shot(string id,string reference,Vector3 eye,Vector3 target,string note="")
         {
             if(!Wanted(id)){Log(id+" skipped (shot filter)");yield break;}
+            // The window can be resized from outside mid-run (a display change resized it to 2508x1490 in r12): put the capture size
+            // back before every shot so framing stays identical across shots.
+            if(!TitleOnly&&(Screen.width!=windowWidth||Screen.height!=windowHeight)){Log("window "+Screen.width+"x"+Screen.height+" resized back to "+windowWidth+"x"+windowHeight);Screen.SetResolution(windowWidth,windowHeight,FullScreenMode.Windowed);yield return null;yield return null;yield return new WaitForSecondsRealtime(.5f);}
             yield return new WaitForEndOfFrame();
             var texture=ScreenCapture.CaptureScreenshotAsTexture();
             string file=Path.Combine(Directory,id+".png");
