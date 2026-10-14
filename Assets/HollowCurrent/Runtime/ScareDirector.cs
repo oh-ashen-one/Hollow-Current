@@ -109,7 +109,7 @@ namespace HollowCurrent
             if(!game.Case.Lies&&Random.value<.05f)
             {
                 if(Random.value<.5f&&Castle.FalseCandleTell()){Debug.Log("HC_LIE kind=false_candle decoy=True dread="+game.Case.Dread.ToString("F0"));return true;}
-                if(game.Player.Tool==1&&game.Case.Equipped){Castle.FalseCompassReading();Debug.Log("HC_LIE kind=false_compass decoy=True dread="+game.Case.Dread.ToString("F0"));return true;}
+                if(game.Player.Tool==1&&game.Case.Equipped&&Castle.FalseCompassReading()){Debug.Log("HC_LIE kind=false_compass decoy=True dread="+game.Case.Dread.ToString("F0"));return true;}
             }
             return Castle.DreadTick();
         }
@@ -129,7 +129,7 @@ namespace HollowCurrent
                 game.Case.AddDread(game.Case.Rules.DreadApparition);
                 // An apparition that lands close can become a hunt with a short tell (FEAR_PLAN item 3).
                 float near=Vector3.Distance(point,game.Player.transform.position);
-                if(near<CastleScares.EscalateRange){bool escalated=game.Case.TryEscalate();Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated);}
+                if(near<CastleScares.EscalateRange){if(Castle)Castle.Escalate(near);} // hc/scares4: logs HC_ESCALATE reason= / substitute=
             }
             if(!firstBasement&&Events%2==0)
             {
