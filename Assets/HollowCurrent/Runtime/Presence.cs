@@ -40,7 +40,7 @@ namespace HollowCurrent
                 if(!actor||actor.BoneCount<Profile.MinimumBones)throw new System.InvalidOperationException("Apparition is not a verified skinned rig");
             }
             agent=gameObject.AddComponent<NavMeshAgent>();agent.radius=Profile.AgentRadius;agent.height=Profile.AgentHeight;agent.speed=Profile.Speed;agent.angularSpeed=Profile.AngularSpeed;agent.acceleration=Profile.Acceleration;agent.stoppingDistance=Profile.StoppingDistance;
-            if(count!=null){CountRimLight();CountGoreMaterials();CacheRig();}
+            if(count!=null){CountRimLight();CountGoreMaterials();CacheRig();KeepSkinBoundsLive();}
             silhouette.gameObject.SetActive(false);agent.enabled=false;
         }
         // Magenta stand-in (no rig, no animator controller) so a map runs before its hunter art lands.
@@ -860,7 +860,8 @@ namespace HollowCurrent
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+height.ToString("F2")+" reason="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
                     if(atHideEntrance)OpenHideDoor(player.HideExit);
                     grabMode=CommitGrab(atHideEntrance,grabMode);
-                    BeginGrabCam("dive",atHideEntrance);
+                    // count18: a grab at a hide entrance is a hide open even when the dive delivered it (path label for the proof).
+                    BeginGrabCam(atHideEntrance?"hideopen":"dive",atHideEntrance);
                 }
                 actor.Pose(grabMode);
                 // huntClock, not PhaseTime: a hostile-return hunt (F1) runs inside Phase Return.
@@ -1319,7 +1320,7 @@ namespace HollowCurrent
         void BeginGrabCam(string path,bool hide=false)
         {
             if(grabCam)return;
-            grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
+            doorClampLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
         }
         void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;Debug.Log("HC_COUNT_GRABCAM end path="+grabCamKind+" reason="+why);}
         // count17: commit a grab. GrabDrop needs headroom for its own fall (GrabDropClipTop over his floor); without it the grab is
@@ -1345,6 +1346,11 @@ namespace HollowCurrent
             }
             if(hide)
             {
+                // count18: remember the door geometry; ClampToDoor keeps him on her floor, outside the door plane and within
+                // DoorLateral of the door's axis for the whole presentation.
+                hideFeet=feet;hideOutward=outward;hideDoorDistance=.43f;
+                foreach(var h in Game.World.HidingPlaces)
+                    if(h&&h.Kind==InteractKind.Hide&&Vector3.Distance(h.ExitPoint,p.HideExit)<.6f){var d=h.transform.position-feet;d.y=0;hideDoorDistance=Mathf.Max(.1f,Vector3.Dot(d,outward));break;}
                 var at=feet+outward*count.StandOffFor(mode);at.y=feet.y;
                 transform.SetPositionAndRotation(at,Quaternion.LookRotation(-outward));hideGrabLocked=true;
                 Debug.Log("HC_COUNT_GRAB placed=door at="+at+" standOff="+count.StandOffFor(mode).ToString("F2")+" mode="+mode);
@@ -1356,6 +1362,7 @@ namespace HollowCurrent
             var cam=Game.Player.View;if(!cam)return;float dt=Time.unscaledDeltaTime;grabCamT+=dt;
             // Claws ~GrabCamClawDistance from the lens, in the kill presentation and in a hide grab (he is in the door opening).
             if(grabKill||grabHide)FrameClaws(cam,dt);
+            if(grabHide)ClampToDoor();
             // Turn the view to his skull (biased toward the claws) over GrabCamTurnSeconds, then hold it there. No cut.
             var head=actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
             var claws=handL&&handR?(handL.position+handR.position)*.5f:head-Vector3.up*.6f;
@@ -1382,6 +1389,39 @@ namespace HollowCurrent
             if(move>0)move=Mathf.Min(move,Mathf.Max(0,ClosestJoint(eye)-count.CameraClearance));   // never closer than the clearance
             transform.position-=away*move;
         }
+        // count18 (r7b fear t=1.00: logged centred, not on screen): the skinned mesh's bounds came from the bind pose, so a
+        // far-reaching grab pose was frustum-culled while it was in front of the lens. Bounds now follow the pose.
+        void KeepSkinBoundsLive()
+        {
+            int n=0;foreach(var skin in silhouette.GetComponentsInChildren<SkinnedMeshRenderer>(true)){skin.updateWhenOffscreen=true;n++;}
+            Debug.Log("HC_COUNT_SKIN_BOUNDS live renderers="+n);
+        }
+        Vector3 hideFeet,hideOutward;float hideDoorDistance=.43f;bool doorClampLogged;
+        void ClampToDoor()
+        {
+            var local=transform.position-hideFeet;local.y=0;float along=Vector3.Dot(local,hideOutward);var lateral=local-hideOutward*along;
+            float minAlong=hideDoorDistance+count.DoorOutside;bool clamped=false;
+            if(along<minAlong){along=minAlong;clamped=true;}
+            if(lateral.magnitude>count.DoorLateral){lateral=lateral.normalized*count.DoorLateral;clamped=true;}
+            var at=hideFeet+hideOutward*along+lateral;at.y=hideFeet.y;   // feet on her floor, never below it
+            if(Mathf.Abs(transform.position.y-at.y)>.001f)clamped=true;
+            transform.position=at;
+            if(clamped&&!doorClampLogged){doorClampLogged=true;Debug.Log("HC_COUNT_GRABCAM clamp=door along="+along.ToString("F2")+" lateral="+lateral.magnitude.ToString("F2")+" doorDistance="+hideDoorDistance.ToString("F2")+" floor="+hideFeet.y.ToString("F2"));}
+        }
+        // Visible = any of his renderers' bounds in the view frustum and a clear line from the lens to his skull or chest.
+        string VisibleToCamera(Camera cam,Vector3 head)
+        {
+            var planes=GeometryUtility.CalculateFrustumPlanes(cam);bool inFrustum=false;
+            foreach(var r in silhouette.GetComponentsInChildren<Renderer>())if(r.enabled&&r.gameObject.activeInHierarchy&&GeometryUtility.TestPlanesAABB(planes,r.bounds)){inFrustum=true;break;}
+            if(!inFrustum)return "False reason=outside frustum";
+            var eye=cam.transform.position;var chest=transform.position+Vector3.up*1.0f;
+            foreach(var target in new[]{head,chest})
+            {
+                if(!Physics.Linecast(eye,target,out var hit,FlightMask,QueryTriggerInteraction.Ignore)||hit.collider.transform.IsChildOf(transform))return "True";
+            }
+            Physics.Linecast(eye,head,out var block,FlightMask,QueryTriggerInteraction.Ignore);
+            return "False reason=occluded by "+(block.collider?block.collider.name:"?");
+        }
         void LogGrabCam(Camera cam,Vector3 head)
         {
             var v=cam.WorldToViewportPoint(head);bool centre=v.z>0&&v.x>=.2f&&v.x<=.8f&&v.y>=.2f&&v.y<=.8f;
@@ -1391,7 +1431,7 @@ namespace HollowCurrent
                 if(!hand)continue;var a=cam.WorldToScreenPoint(hand.position-cam.transform.right*count.ClawWidth*.5f);var b=cam.WorldToScreenPoint(hand.position+cam.transform.right*count.ClawWidth*.5f);
                 if(a.z>0&&b.z>0)claw=Mathf.Max(claw,Mathf.Abs(b.x-a.x)*2560f/Mathf.Max(1,cam.pixelWidth));
             }
-            Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" path="+grabCamKind+" blend="+(grabCamT<count.GrabCamTurnSeconds?"turning":"done")+" kill="+grabKill+" mode="+actor.Mode+" skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_centre60="+centre+
+            Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" path="+grabCamKind+" visible="+VisibleToCamera(cam,head)+" pos="+transform.position+" blend="+(grabCamT<count.GrabCamTurnSeconds?"turning":"done")+" kill="+grabKill+" mode="+actor.Mode+" skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_centre60="+centre+
                 " claw_px="+claw.ToString("F0")+" claw_ok="+(claw>=200)+" eyeToSkull="+Vector3.Distance(cam.transform.position,head).ToString("F2")+" headAboveEye="+(head.y-cam.transform.position.y).ToString("F2"));
         }
         float ClosestJoint(Vector3 point)
