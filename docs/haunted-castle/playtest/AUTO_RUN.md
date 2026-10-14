@@ -1,6 +1,22 @@
 # Automated castle playthroughs: waves G-K (windowed checklist, 2026-10-14)
 
-## Round 7 (latest): art pass, build `ac43efa`
+## Round 7b (latest): hc/count17 + hc/art-exterior2, build `e57a00d`
+
+Merges: hc/count17 `b61a396` (`360094f`), hc/art-exterior2 `ac99131` (`9ce9b8c`). Castle and Bellwether re-baked (Presence.cs is shared); the art capture now lowers the drawbridge for `gate_out_S6`. All checks pass; batch of 7 runs, 0 crashes. Captures in `rounds/r12/captures/r7b/` (local).
+
+| Proof | Result | Evidence |
+|---|---|---|
+| `HC_EXTERIOR_AXIS` | **ok**, no correction | `HC_EXTERIOR_AXIS ok keep centre local (2.3, 29.9, 20.4)`; kit 6 pieces, 38 renderers |
+| Missing art | Only the 7 portraits (bake time) | Runtime `HC_MISSING_ART=0` in the fear summary |
+| Watched hide grab (fear) | **claw_ok=True at t 0.30 with blend=done**, path label is `dive` (`hide=True`), not `hideopen` | `HC_COUNT_GRAB from=door reason=headroom ceiling=3.00 needs=4.82 mode=8->9`, `placed=door standOff=2.33`. t 0.01 turning (skull off-centre, 179 px); t 0.16 done, centred, 175 px (False); t 0.30 done, centred, 238 px (True); t 1.00 done, logged centred but 162 px (False). In `fear/20_grabcam_grab_t1.00.png` he is not visible (view on dark floor tiles, skull 0.28 m below the eye): possibly occluded or under the floor. The HUD prompt "[E] Leave hiding place" stays on screen during the grab |
+| Fear | **WON**, 0 blockers | `wallCrossings=0` both hunts; no-tell `changedFrames=0`; battlement `withClearLine=90/90`; gatehouse `visible=3/3 arch-inside` |
+| Great hall frame time | mean 11.15 ms, p99 11.59 ms, worst 17.43 ms, 3 over 16.7 ms | `HC_PLAY_FRAMES` |
+| Crypt 118.89 ms frame | **Explained: capture artefact, not the crypt** | Two runs: the only frame over 33 ms is frame 1 right after the screenshot (122.05 / 122.25 ms), with `texDelta=-8294400` (the 1920x1080x4 screenshot texture freed), 0 GC, 0 nav builds, 0 audio loads, no streaming loads. Sampled again after 1 s: max 22.10 / 16.58 ms, 0 frames over 33 ms, p99 11.76 / 11.74 ms. Release-player profiler markers were valid but reported nothing |
+| Bellwether `-hc-verify` | **PASS** | First Warning 229.25 s: 21.6 / 21.7 ms, no spike. Slowest 33.4 ms (Dead, 424.6 s); 143 frames over 16 ms, 1 over 33 ms; `meets_60_fps_floor` False |
+| Exterior brightness (mean of 255) | battlement_out 27.9 (was 12.3), courtyard_keep 38.2, gate_out_S6 10.8 | The keep in `courtyard_keep` shows stone courses and lit windows; both moons clear of the keep in S4 and courtyard_keep. In `gate_out_S6` the closed gate doors fill the view, so the lowered leaf is not visible |
+| Captures | exterior ×9, S1-S8, H01-H10, titles (castle, bellwether) at 1920x1080 | `r7b/exterior`, `r7b/full`, `r7b/S7_title_*`, `r7b/fear` |
+
+## Round 7: art pass, build `ac43efa`
 
 The build is source `ac43efa`: hc/art-exterior (`d904e77`) and hc/art-props (`415eb9d`) merged, the `-hc-capture-art exterior|props` capture mode, and the capture window now resized back to the requested size before every shot. Castle bake: 7 lightmaps, 196 probes, 17 reflections. All runs used `gpu_slot`, `open -g`, a 1920x1080 window and `HC_INPUT scripted=true`. The owner's display changed during the round (3840x2160, then 3440x1440), and an outside resize spoiled the first exterior set; it was recaptured at 1920x1080.
 

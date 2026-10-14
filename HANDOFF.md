@@ -198,6 +198,12 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 - [ ] Every `HC_RECOVERY` line has a `grace=` of 30-90 s, and no dice hunt starts inside a grace (bell and gamble excepted).
 - [ ] Event Dread decays: `HC_RULES event=` falls between hunts, faster in the gatehouse.
 
+## Round 7b (build `e57a00d`): hc/count17 + hc/art-exterior2 merged
+
+- Proof table: `docs/haunted-castle/playtest/AUTO_RUN.md`, "Round 7b"; pre-merge table on `ac43efa` under "Round 7".
+- Open: natural2 share 0.224 and no between-hunt gap ≥ 120 s; watched-hide grab path label is `dive`, and at t 1.00 he is not visible; HUD prompt shows during grabs; `gate_out_S6` faces the closed gate doors; verify floor flag still False.
+- Crypt "hitch" was the screenshot encode frame (capture artefact).
+
 ## Art pass merged (round 7, build `ac43efa`)
 
 - hc/art-exterior merged as `d904e77`, hc/art-props as `415eb9d` (conflicts in `ASSET_LOG.md` and `tools/castle_verify.py` kept both sides).
