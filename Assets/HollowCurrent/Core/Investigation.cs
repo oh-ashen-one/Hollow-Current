@@ -58,7 +58,17 @@ namespace HollowCurrent
         // Dread is high enough for instruments, tells and sounds to lie (Game decides how).
         public bool Lies => Rules.LieThreshold > 0 && Dread >= Rules.LieThreshold;
         // Dread is high enough for a hide spot to refuse to open.
-        public bool DoorHeld => Rules.DoorHeldThreshold > 0 && Dread >= Rules.DoorHeldThreshold;
+        // Roll mode (castle, wave K: DoorHeldChance > 0) never holds every door; call TryDoorHeld per hide attempt.
+        public bool DoorHeld => Rules.DoorHeldChance <= 0 && Rules.DoorHeldThreshold > 0 && Dread >= Rules.DoorHeldThreshold;
+        // One hide attempt: at Dread >= DoorHeldThreshold, held with DoorHeldChance (injected dice). No roll below it.
+        public bool TryDoorHeld()
+        {
+            if (!Rules.UsesDread || Rules.DoorHeldChance <= 0 || Dread < Rules.DoorHeldThreshold || Terminal) return false;
+            if (Roll() >= Rules.DoorHeldChance) return false;
+            DoorsHeld++;
+            return true;
+        }
+        public int DoorsHeld { get; private set; }
         // This Warning is a false alarm: it ends back in Disturbance, nothing comes.
         public bool FalseWarning { get; private set; }
         // The current hunt started with no Warning (dice no-tell, Long Night, hostile Return).
@@ -255,6 +265,7 @@ namespace HollowCurrent
         public void Tick(float dt, bool inside, bool litNearby, bool inSafe)
         {
             if (dt < 0 || float.IsNaN(dt) || float.IsInfinity(dt)) throw new ArgumentOutOfRangeException(nameof(dt));
+            if (FrameSource == null) wonThisTick = false;
             if (Terminal || Phase == Phase.Briefing) return;
             Elapsed += dt;
             // Leaving the house does not freeze threat progression.
@@ -297,13 +308,15 @@ namespace HollowCurrent
         // Event Dread decays toward 0 (after the first hunt, never below DreadDecayFloor in total).
         void DecayEventDread(float dt)
         {
-            if (DreadEvent <= 0) return;
+            float above = Rules.DreadDecayAllAbove > 0 ? Math.Max(0, Dread - Rules.DreadDecayAllAbove) : 0;
+            float decaying = Math.Max(DreadEvent, above);
+            if (decaying <= 0) return;
             float rate = Phase == Phase.Recovery ? Rules.DreadDecayRecovery : Phase == Phase.Survey || Phase == Phase.Disturbance || Phase == Phase.Containment ? Rules.DreadDecayCalm : 0;
             rate *= Math.Max(0, DreadRelief);
             if (rate <= 0) return;
-            float drop = Math.Min(DreadEvent, rate * dt);
+            float drop = Math.Min(decaying, rate * dt);
             if (Hunts > 0 && Rules.DreadDecayFloor > 0) drop = Math.Min(drop, Math.Max(0, Dread - Rules.DreadDecayFloor));
-            Dread = Clamp(Dread - drop); DreadEvent = Math.Max(0, DreadEvent - drop);
+            Dread = Clamp(Dread - drop); DreadEvent = Math.Max(0, Math.Min(Dread, DreadEvent - drop));
         }
         // Survey and Containment after the first hunt: a rare flat roll, so no phase is a refuge.
         void TickQuietDice(float dt)
@@ -374,7 +387,7 @@ namespace HollowCurrent
             if (Rules.FirstHuntSeconds > 0 && Hunts == 0 && Evidence.Count >= Rules.FirstHuntEvidence)
             {
                 firstHuntClock += dt;
-                if (firstHuntAt < 0) firstHuntAt = Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
+                if (firstHuntAt < 0) firstHuntAt = Rules.FirstHuntMax > Rules.FirstHuntMin ? HuntRules.Draw(Rules.FirstHuntMin, Rules.FirstHuntSeconds, Rules.FirstHuntMax, Roll()) : Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
                 if (firstHuntClock >= firstHuntAt) { StartThreat(false); return; }
             }
             // Dice-roll hunts: banded at or above the run's boundary, a flat low roll below it after the first hunt.
@@ -453,12 +466,15 @@ namespace HollowCurrent
             diceTimer = float.NaN;
             diceHigh = Dread >= RunDreadMin;
         }
-        // Game calls this when an apparition lands within 4 m. With EventEscalationChance it
-        // becomes a hunt after a short tell (EscalationWarningSeconds, no dispatch line).
+        // Game calls this when an apparition lands within 4 m. With EventEscalationChance (Disturbance) or
+        // EscalationRecoveryChance (Recovery) it becomes a hunt after a short tell (EscalationWarningSeconds,
+        // no dispatch line). Never during the post-hunt grace.
         public bool TryEscalate()
         {
-            if (Rules.EventEscalationChance <= 0 || Terminal || Phase != Phase.Disturbance || GraceRemaining > 0) return false;
-            if (Roll() >= Rules.EventEscalationChance) return false;
+            if (Terminal || GraceRemaining > 0) return false;
+            float chance = Phase == Phase.Disturbance ? Rules.EventEscalationChance : Phase == Phase.Recovery ? Rules.EscalationRecoveryChance : 0;
+            if (chance <= 0) return false;
+            if (Roll() >= chance) return false;
             ThreatFrom = Phase;
             if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) StartHunt(true);
             else Warn(Rules.EscalationWarningSeconds, false, false, true);
@@ -496,16 +512,34 @@ namespace HollowCurrent
         public bool FinishAtVan()
         {
             if (Phase != Phase.Return) return false;
+            wonThisTick = Rules.HostileReturn; wonFrame = FrameSource != null ? FrameSource() : -1;
             Set(Phase.Won); return true;
         }
         // Automated playtest driver only (never set by the game): a grab during a hunt is
         // counted instead of ending the run, so a scripted route can finish both endings.
         public bool Invulnerable { get; set; }
         public int BlockedDeaths { get; private set; }
-        public void Die() { if (!Terminal && HuntActive) { if (Invulnerable) { BlockedDeaths++; return; } Deaths++; Set(Phase.Dead); } }
+        public void Die()
+        {
+            // Castle (wave K): a death resolved in the same tick as a win (bridge crossing or the killing blow) wins
+            // over it: death first, whatever order the callers ran in. Bellwether never sets wonThisTick.
+            if (Phase == Phase.Won && wonThisTick && (FrameSource == null || FrameSource() == wonFrame))
+            {
+                if (Invulnerable) { BlockedDeaths++; return; }
+                wonThisTick = false; HunterSlain = false; DeathOverrodeWin = true; Deaths++; Set(Phase.Dead); return;
+            }
+            if (!Terminal && HuntActive) { if (Invulnerable) { BlockedDeaths++; return; } Deaths++; Set(Phase.Dead); }
+        }
+        // A death in the same tick replaced a win (Changed fired Won, then Dead).
+        public bool DeathOverrodeWin { get; private set; }
+        // Optional injected frame counter (Game: () => Time.frameCount). Set, "the same tick" means the same frame, whatever
+        // order the frame's scripts run in (Case.Tick may run between the win and the grab). Null: since the last Tick.
+        public Func<int> FrameSource { get; set; }
+        bool wonThisTick;
+        int wonFrame = -1;
         // Castle second win: the hunter is slain (Forge/Fight). Escape stays FinishAtVan.
         public bool HunterSlain { get; private set; }
-        public bool WinByKill() { if (Terminal) return false; HunterSlain = true; Set(Phase.Won); return true; }
+        public bool WinByKill() { if (Terminal) return false; HunterSlain = true; wonThisTick = Rules.UsesDread; wonFrame = FrameSource != null ? FrameSource() : -1; Set(Phase.Won); return true; }
         void Set(Phase next)
         {
             if (next == Phase.Hunt || next == Phase.Return) huntClock = 0;

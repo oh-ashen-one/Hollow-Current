@@ -32,6 +32,9 @@ namespace HollowCurrent
         // FirstHuntSeconds. 0 = off.
         public float FirstHuntSeconds, FirstHuntJitter;
         public int FirstHuntEvidence;
+        // Wave K: when FirstHuntMax > FirstHuntMin the deadline is Draw(Min, FirstHuntSeconds, Max, roll) instead
+        // (castle 60 / 95 / 240 s after the second record); the jitter is then unused.
+        public float FirstHuntMin, FirstHuntMax;
 
         // Dice-roll hunts: every DiceIntervalMin..Max seconds in Disturbance while
         // Dread >= HuntDreadMin, roll; chance by Dread band [HuntDreadMin,60), [60,80), [80,100],
@@ -61,6 +64,8 @@ namespace HollowCurrent
         // chance the Warning is a false alarm (ends back in Disturbance). Close apparition:
         // chance TryEscalate converts it into a hunt.
         public float NoTellChance, FalseWarningChance, EventEscalationChance;
+        // Wave K: escalation chance in Recovery once the post-hunt grace has run out (never during the grace). 0 = off.
+        public float EscalationRecoveryChance;
         // Return phase is a hunt until the bridge is crossed (FinishAtVan).
         public bool HostileReturn;
 
@@ -74,6 +79,9 @@ namespace HollowCurrent
         // lowers it). Per second, times Investigation.DreadRelief: in Recovery, and in the calm phases
         // (Survey, Disturbance, Containment). After the first hunt the decay stops at DreadDecayFloor.
         public float DreadDecayRecovery, DreadDecayCalm, DreadDecayFloor;
+        // Wave K: above this total the same decay also takes ambient Dread (a careful player can bring a high
+        // Dread down without the gatehouse). 0 = only event Dread decays.
+        public float DreadDecayAllAbove;
         // Total Dread that AddDread may add during one hunt (hunt or hostile Return). 0 = no cap.
         public float HuntDreadCap;
         // After a hunt ends the dice are disarmed for GraceMin..Max seconds (drawn per hunt). 0 = none.
@@ -86,6 +94,9 @@ namespace HollowCurrent
         public float GovernorStart, GovernorGain, GovernorMax, GovernorMinWindow, GovernorQuietShare, GovernorQuietSeconds, GovernorQuietScale;
         // Lies (false readings) and held hide doors from these Dread levels. 0 = never.
         public float LieThreshold, DoorHeldThreshold;
+        // Wave K: with DoorHeldChance > 0, DoorHeldThreshold arms a per-attempt roll (Investigation.TryDoorHeld)
+        // instead of holding every door; Investigation.DoorHeld is then always false.
+        public float DoorHeldChance;
         // On a checkpoint restore after a death, Dread restarts at DeathDread.
         public bool DeathPenalty;
         public float DeathDread;
@@ -126,14 +137,14 @@ namespace HollowCurrent
         {
             Name="Bellwether",
             TimedHuntSeconds=95,TimedHuntEvidence=2,HuntDreadMin=0,HuntDreadMinSpread=0,LowDreadChance=0,
-            FirstHuntSeconds=0,FirstHuntJitter=0,FirstHuntEvidence=0,
+            FirstHuntSeconds=0,FirstHuntJitter=0,FirstHuntEvidence=0,FirstHuntMin=0,FirstHuntMax=0,DreadDecayAllAbove=0,DoorHeldChance=0,
             DiceIntervalMin=0,DiceIntervalMax=0,DiceChanceAt40=0,DiceChanceAt60=0,DiceChanceAt80=0,DiceEvidenceBonus=0,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=0,
             HuntSecondsMin=38,HuntSecondsMax=38,RecoverySecondsMin=32,RecoverySecondsMax=32,RecoveryDiceChance=0,RecoveryDiceDread=0,AnnounceRecovery=true,
             WarningSecondsMin=9,WarningSecondsMax=9,RecoveryLowChance=0,QuietPhaseChance=0,
             FeltLagMin=0,FeltLagMax=0,FeltNoise=0,FeltNoisePeriod=0,FeltCalm=0,
             FeltEpisodeGapMin=0,FeltEpisodeGapMax=0,FeltEpisodeMin=0,FeltEpisodeMax=0,FeltCalmFrom=0,FeltSpikeBelow=0,FeltSpikeMin=0,FeltSpikeMax=0,
-            NoTellChance=0,FalseWarningChance=0,EventEscalationChance=0,HostileReturn=false,
+            NoTellChance=0,FalseWarningChance=0,EventEscalationChance=0,EscalationRecoveryChance=0,HostileReturn=false,
             UsesDread=false,DreadDarkRate=0,DreadInsideRate=0,DreadSafeRecovery=0,DreadStart=0,
             DreadApparition=0,DreadThrow=0,DreadSeen=0,DreadGrabSurvived=0,
             DreadDecayRecovery=0,DreadDecayCalm=0,DreadDecayFloor=0,HuntDreadCap=0,GraceMin=0,GraceMax=0,
@@ -147,19 +158,19 @@ namespace HollowCurrent
         {
             Name="Castle",
             TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/40,
-            FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,
+            FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,FirstHuntMin=60,FirstHuntMax=240,DreadDecayAllAbove=60,DoorHeldChance=1f/6,
             DiceIntervalMin=2,DiceIntervalMax=6,DiceChanceAt40=1f/12,DiceChanceAt60=1f/6,DiceChanceAt80=1f/4,DiceEvidenceBonus=.5f,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=1.5f,
             HuntSecondsMin=25,HuntSecondsMax=50,RecoverySecondsMin=10,RecoverySecondsMax=40,RecoveryDiceChance=1f/8,RecoveryDiceDread=80,AnnounceRecovery=false,
             WarningSecondsMin=5,WarningSecondsMax=14,RecoveryLowChance=1f/16,QuietPhaseChance=1f/80,
             FeltLagMin=20,FeltLagMax=30,FeltNoise=12,FeltNoisePeriod=6,FeltCalm=12,
             FeltEpisodeGapMin=200,FeltEpisodeGapMax=600,FeltEpisodeMin=20,FeltEpisodeMax=40,FeltCalmFrom=40,FeltSpikeBelow=60,FeltSpikeMin=65,FeltSpikeMax=85,
-            NoTellChance=.25f,FalseWarningChance=.25f,EventEscalationChance=.2f,HostileReturn=true,
-            UsesDread=true,DreadDarkRate=.12f,DreadInsideRate=.05f,DreadSafeRecovery=.5f,DreadStart=0,
+            NoTellChance=.35f,FalseWarningChance=.25f,EventEscalationChance=.35f,EscalationRecoveryChance=.15f,HostileReturn=true,
+            UsesDread=true,DreadDarkRate=.08f,DreadInsideRate=.03f,DreadSafeRecovery=.5f,DreadStart=0,
             DreadApparition=12,DreadThrow=8,DreadSeen=15,DreadGrabSurvived=20,
-            DreadDecayRecovery=.4f,DreadDecayCalm=.15f,DreadDecayFloor=20,HuntDreadCap=25,GraceMin=30,GraceMax=90,
+            DreadDecayRecovery=.4f,DreadDecayCalm=.3f,DreadDecayFloor=20,HuntDreadCap=25,GraceMin=30,GraceMax=90,
             GovernorStart=.25f,GovernorGain=12,GovernorMax=3,GovernorMinWindow=300,GovernorQuietShare=.12f,GovernorQuietSeconds=180,GovernorQuietScale=.8f,
-            LieThreshold=70,DoorHeldThreshold=90,DeathPenalty=true,DeathDread=60,NailedHides=0,
+            LieThreshold=70,DoorHeldThreshold=60,DeathPenalty=true,DeathDread=60,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
         };
 
