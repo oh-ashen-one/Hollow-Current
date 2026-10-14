@@ -1,0 +1,6 @@
+{"entries":[
+{"id":"art_props_hall_skull_from_east","ref":"(r12 art review)","file":"/Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_props/art_props_hall_skull_from_east.png","size":"2416x1292","eye":"2.00,1.64,12.00","target":"-4.50,1.00,16.80","note":"fov 72"},
+{"id":"art_props_hall_west_end_skull","ref":"(r12 art review)","file":"/Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_props/art_props_hall_west_end_skull.png","size":"2416x1292","eye":"-1.50,1.64,25.00","target":"-4.50,1.00,16.80","note":"fov 72"},
+{"id":"art_props_hall_table_books","ref":"(r12 art review)","file":"/Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_props/art_props_hall_table_books.png","size":"2416x1292","eye":"1.50,1.64,21.00","target":"0.00,0.80,23.50","note":"fov 72"},
+{"id":"art_props_crypt_ceiling","ref":"(r12 art review)","file":"/Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_props/art_props_crypt_ceiling.png","size":"2416x1292","eye":"0.00,-1.56,20.00","target":"0.00,-0.20,23.00","note":"fov 72"}
+]}

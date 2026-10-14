@@ -1,0 +1,29 @@
+18:59:35 START natural1 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/natural1 natural
+19:08:37 END natural1 rc=0 secs=542 killed=0
+19:08:37 START huntcam1 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/huntcam1 huntcam
+19:10:02 END huntcam1 rc=0 secs=85 killed=0
+19:10:02 START fear -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/fear fear
+19:15:33 END fear rc=0 secs=331 killed=0
+19:15:33 START natural2 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/natural2 natural
+19:24:20 END natural2 rc=0 secs=527 killed=0
+19:24:20 START death -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/death death
+19:25:00 END death rc=0 secs=40 killed=0
+19:25:00 START escape -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/escape escape
+19:26:51 END escape rc=0 secs=111 killed=0
+19:26:51 START kill -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/kill kill
+19:28:41 END kill rc=0 secs=110 killed=0
+19:28:41 START siege -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/siege siege
+19:40:58 END siege rc=0 secs=737 killed=0
+19:40:58 START longnight -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/longnight escape -hc-long-night
+19:42:39 END longnight rc=0 secs=101 killed=0
+19:42:39 START verify -hc-verify
+19:49:45 END verify rc=0 secs=426 killed=0
+19:49:45 START cap_rooms -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_rooms
+19:50:46 END cap_rooms rc=0 secs=61 killed=0
+19:50:46 START cap_ext -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_ext -hc-capture-art exterior
+19:51:16 END cap_ext rc=0 secs=30 killed=0
+19:51:16 START cap_props -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_props -hc-capture-art props
+19:51:51 END cap_props rc=0 secs=35 killed=0
+19:51:51 START cap_title -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r12/critic/cap_title -hc-capture-title
+19:52:06 END cap_title rc=0 secs=15 killed=0
+19:52:06 SEQ DONE

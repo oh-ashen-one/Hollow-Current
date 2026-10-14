@@ -1,0 +1,51 @@
+file                                 sr ch    dur   peak  clip  rmsdB  lufs~      dc loopSeam startAbs  endAbs
+bat_pass.wav                      48000  1   1.20  0.338     0  -33.4  -32.5  0.0000     0.00    0.000   0.000
+bell_single.wav                   48000  1   2.85  0.180     0  -30.3  -31.3 -0.0000     0.02    0.024   0.000
+book_drop.wav                     48000  1   0.60  0.398     0  -27.5  -28.6  0.0000     0.00    0.398   0.000
+candle_whisper_bed.wav            48000  1   7.23  0.246     0  -26.4  -27.1 -0.0007     0.00    0.026   0.018
+chapel_bell_toll.wav              48000  1   6.90  0.210     0  -32.5  -32.9 -0.0001     0.00    0.002   0.000
+claw_steps_0.wav                  48000  1   0.30  0.398     0  -32.7  -33.4 -0.0000     0.00    0.000   0.000
+claw_steps_1.wav                  48000  1   0.30  0.398     0  -32.6  -33.3  0.0000     0.00    0.000   0.000
+claw_steps_2.wav                  48000  1   0.30  0.398     0  -28.2  -28.9  0.0000     0.00    0.002   0.002
+claw_steps_3.wav                  48000  1   0.30  0.398     0  -30.5  -31.2 -0.0000     0.00    0.000   0.000
+crypt_blood_trickle.wav           48000  1   7.24  0.237     0  -26.4  -27.0  0.0005     0.10    0.062   0.111
+death_wail_sunrise.wav            48000  1   8.92  0.178     0  -30.5  -31.1 -0.0000     0.00    0.000   0.000
+dive_whoosh.wav                   48000  1   3.33  0.185     0  -33.5  -33.7 -0.0000     0.00    0.000   0.000
+door_rattle.wav                   48000  1   2.50  0.358     0  -29.4  -29.5 -0.0000     0.00    0.002   0.002
+drawbridge_chains.wav             48000  1   7.92  0.441     0  -28.9  -29.5 -0.0001     0.00    0.000   0.000
+forge_hold_hum.wav                48000  1   5.82  0.219     0  -28.1  -28.7 -0.0001     0.26    0.021   0.061
+heartbeat_loop.wav                48000  1   6.92  0.270     0  -29.2  -30.1 -0.0000     0.11    0.236   0.000
+knife_stick.wav                   48000  1   0.50  0.398     0  -27.8  -27.5  0.0000     0.00    0.131   0.000
+orrery_tick.wav                   48000  1   0.28  0.164     0  -35.6  -36.3 -0.0000     0.00    0.000   0.000
+stagger_screech.wav               48000  1   3.86  0.153     0  -31.3  -31.9  0.0001     0.00    0.000   0.000
+voice_cc_bargain.wav              22050  1   7.54  0.423     0  -24.3  -25.0  0.0003     0.03    0.110   0.000
+voice_cc_contain.wav              22050  1   7.46  0.439     0  -24.4  -25.0  0.0003     0.01    0.047   0.000
+voice_cc_dispatch.wav             22050  1   6.64  0.417     0  -24.9  -25.4  0.0002     0.00    0.000   0.000
+voice_cc_ending.wav               22050  1   8.84  0.501     0  -24.3  -25.0  0.0002     0.00    0.000   0.000
+voice_cc_hint_signal.wav          22050  1   8.44  0.458     0  -24.5  -25.1  0.0002     0.00    0.000   0.000
+voice_cc_hint_trace.wav           22050  1   7.97  0.424     0  -24.6  -25.1  0.0002     0.00    0.000   0.000
+voice_cc_hint_voice.wav           22050  1   7.48  0.461     0  -24.2  -24.8  0.0001     0.03    0.193   0.000
+voice_cc_hunt_found.wav           22050  1   2.22  0.428     0  -25.7  -26.1  0.0001     0.00    0.000   0.000
+voice_cc_hunt_hungry.wav          22050  1   4.89  0.394     0  -25.0  -25.4  0.0002     0.00    0.000   0.000
+voice_cc_hunt_run.wav             22050  1   4.72  0.403     0  -24.9  -25.5  0.0002     0.01    0.041   0.000
+voice_cc_hunt_smell.wav           22050  1   3.60  0.348     0  -24.9  -25.4  0.0001     0.04    0.105   0.000
+voice_cc_kit.wav                  22050  1   8.08  0.530     0  -24.5  -25.0  0.0002     0.00    0.000   0.000
+voice_cc_ledger_orrery.wav        22050  1  16.71  0.460     0  -24.1  -24.7  0.0002     0.00    0.000   0.000
+voice_cc_ledger_portrait.wav      22050  1  16.03  0.414     0  -24.1  -24.7  0.0002     0.00    0.000   0.000
+voice_cc_ledger_steward.wav       22050  1  16.91  0.417     0  -24.0  -24.7  0.0002     0.01    0.066   0.000
+voice_cc_listen.wav               22050  1   5.57  0.405     0  -24.7  -25.3  0.0002     0.03    0.106   0.000
+voice_cc_night.wav                22050  1   6.43  0.335     0  -24.6  -25.2  0.0002     0.00    0.000   0.000
+voice_cc_relic_blade.wav          22050  1   7.40  0.427     0  -24.4  -25.0  0.0002     0.00    0.000   0.000
+voice_cc_relic_hilt.wav           22050  1   8.32  0.404     0  -24.4  -25.0  0.0002     0.01    0.072   0.000
+voice_cc_relic_moon.wav           22050  1   6.89  0.364     0  -24.6  -25.2  0.0002     0.01    0.061   0.000
+voice_cc_stay.wav                 22050  1   7.55  0.421     0  -24.6  -25.1  0.0003     0.00    0.000   0.000
+voice_cc_steward.wav              22050  1   7.84  0.400     0  -24.5  -25.0  0.0002     0.00    0.000   0.000
+wind_battlements_loop.wav         48000  1  10.00  0.251     0  -29.2  -29.8  0.0000     0.10    0.062   0.058
+wing_beats_loop.wav               48000  1   5.57  0.321     0  -25.8  -26.3  0.0000     0.38    0.001   0.018
+wing_wrap_grab.wav                48000  1   1.44  0.225     0  -26.9  -27.0  0.0002     0.00    0.000   0.000
+heartbeat_loop.wav           first=-0.0002 last=-0.0004 wrapJump=0.0002 medianStep=0.00000 p99.9Step=0.0027 rmsEnd=-68.7dB rmsStart=-18.3dB
+wing_beats_loop.wav          first=+0.0000 last=-0.0010 wrapJump=0.0010 medianStep=0.00021 p99.9Step=0.0042 rmsEnd=-42.5dB rmsStart=-32.9dB
+wind_battlements_loop.wav    first=-0.0048 last=-0.0036 wrapJump=0.0012 medianStep=0.00150 p99.9Step=0.0182 rmsEnd=-30.7dB rmsStart=-32.1dB
+candle_whisper_bed.wav       first=+0.0045 last=+0.0045 wrapJump=0.0000 medianStep=0.00082 p99.9Step=0.0053 rmsEnd=-29.7dB rmsStart=-30.8dB
+crypt_blood_trickle.wav      first=+0.0372 last=+0.0378 wrapJump=0.0006 medianStep=0.00073 p99.9Step=0.0134 rmsEnd=-26.6dB rmsStart=-25.2dB
+forge_hold_hum.wav           first=+0.0122 last=+0.0131 wrapJump=0.0008 medianStep=0.00064 p99.9Step=0.0048 rmsEnd=-28.9dB rmsStart=-29.5dB

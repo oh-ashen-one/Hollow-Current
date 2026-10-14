@@ -1,0 +1,64 @@
+=== natural2  run_end~509s
+threat(warn+hunt+return+false) 119s of 509s = 23.4%; after first threat (72s): 27.3%
+longest quiet gap overall: 168s (336-504); after first hunt: 168s (336-504)
+intervals: [72-111] [194-228] [294-336] [504-509]
+     29   HC_SCARE_CASTLE silence seconds=6.2 duck=wired felt=0 dread=0 pick=tick silence_roll chance=0.15 budget=1/8 gap=90 since=-
+     29   HC_COUNT_PERCH flight observed=True roll=0.09 from=2 to=5 position=(0.00, 5.45, 27.00) player=(0.00, 0.08, 18.50) enabled=False nav=False path=none destination=none seen=
+     29   HC_LIE kind=footsteps_behind at=(0.6, 0.0, 14.6) distance=4.0 decoy=True dread=1 pick=tick budget=1/6 gap=90 since=-
+     53   HC_SCARE_CASTLE candle_gutter pick=weighted w=1.25/6.25 rank=1 budget=1/6 gap=90 since=-
+     70 WARNING false=False esc=True len=1.5 from=Disturbance dread=15.2
+     72   HC_ESCALATE near=3.0 escalated=True reason=ok phase=Warning grace=0 chance=0.35 substitute=none
+     73   HC_SCARE visible=1 basement=False rush=False
+     74 HUNT#1 Hunt noTell=False from=Disturbance dread=15.3 felt=8.2 len=36.6 breaker=False
+     82   HC_COUNT_VOICE cc_hunt_hungry t=10.5 position=(5.13, 4.35, 18.93) player=(9.00, 3.28, 16.50) enabled=False nav=False path=none destination=none seen=False memory=False fl
+     84   HC_TORCH_FAIL dive last second eta=0.94
+     86   HC_COUNT_GRAB mode=9 height=0.95 reason=came in low (1.0 m) dropHeight=0.95 hideEntrance=False witnessed=False position=(8.00, 3.86, 16.34) player=(9.00, 3.28, 16.50) ena
+     94   HC_COUNT_VOICE cc_hunt_hungry t=18.9 position=(8.10, 3.25, 16.36) player=(12.04, 0.35, 6.50) enabled=False nav=False path=none destination=none seen=False memory=True fli
+    113   RECOVERY rec=11.5 grace=69.4 governor=1.00 gShare=0.127 huntShare=0.345 dread=36.5 felt=12.4
+    130   HC_SCARE_CASTLE silence seconds=9.3 duck=wired felt=18 dread=30 pick=tick silence_roll chance=0.15 budget=2/8 gap=90 since=119
+    153   HC_SCARE_CASTLE bell_single pick=weighted w=1.25/5.39 rank=1 budget=1/2 gap=240 since=-
+    156   HC_RARE_LINE cc_listen at=(-1.82, 3.22, 17.66) t=150.3
+    172   HC_SCARE_CASTLE knife_stick pick=weighted w=1.25/4.22 rank=2 budget=1/4 gap=90 since=-
+    189 WARNING false=False esc=True len=1.5 from=Disturbance dread=32.0
+    190   HC_ESCALATE near=4.5 escalated=True reason=ok phase=Warning grace=0 chance=0.35 substitute=none
+    193   HC_SCARE visible=2 basement=False rush=False
+    195 HUNT#2 Hunt noTell=False from=Disturbance dread=32.1 felt=18.3 len=33.4 breaker=False
+    196   HC_COUNT_LEARNED first glide to last known (9.00, 3.28, 16.50) (player now (9.00, 3.28, 16.50), 0.0 m away) hostileReturn=False position=(-10.00, 5.60, 16.00) player=(9.0
+    201   HC_COUNT_VOICE cc_hunt_run t=3.2 position=(-6.78, 4.16, 16.28) player=(9.00, 3.28, 16.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=
+    207   HC_COUNT_VOICE cc_hunt_hungry t=10.6 position=(7.47, 2.78, 22.54) player=(9.00, 3.28, 16.50) enabled=False nav=False path=none destination=none seen=False memory=False fl
+    211   HC_SCARE_CASTLE book_drop pick=ambient weighted w=1.25/3.11 rank=1 budget=1/6 gap=90 since=-
+    213   HC_TORCH_FAIL dive last second eta=1.00
+    215   HC_COUNT_GRAB mode=9 height=0.23 reason=came in low (0.2 m) dropHeight=0.23 hideEntrance=False witnessed=False position=(8.99, 3.51, 17.52) player=(9.00, 3.28, 16.50) ena
+    233   RECOVERY rec=36.4 grace=53.0 governor=1.00 gShare=0.243 huntShare=0.319 dread=58.2 felt=38.1
+    241   HC_SCARE_CASTLE window_silhouette pick=ambient budget=1/8 gap=90 since=-
+    264   HC_SCARE_CASTLE candle_gutter pick=weighted w=0.79/2.04 rank=1 budget=2/6 gap=90 since=208
+    279   HC_SCARE_CASTLE knife_stick pick=weighted w=0.38/1.63 rank=2 budget=2/4 gap=90 since=106
+    290 WARNING false=False esc=True len=1.5 from=Disturbance dread=48.8
+    292   HC_ESCALATE near=3.4 escalated=True reason=ok phase=Warning grace=0 chance=0.35 substitute=none
+    294   HC_SCARE visible=3 basement=False rush=True
+    296 HUNT#3 Hunt noTell=False from=Disturbance dread=48.9 felt=32.5 len=39.7 breaker=False
+    297   HC_COUNT_LEARNED first glide to last known (9.00, 3.28, 16.50) (player now (-13.52, 6.48, 2.00), 27.0 m away) hostileReturn=False position=(-3.22, 4.25, 20.51) player=(-1
+    305   HC_COUNT_VOICE cc_hunt_hungry t=10.8 position=(9.00, 3.25, 16.50) player=(-13.52, 6.48, 2.00) enabled=False nav=False path=none destination=none seen=False memory=False f
+    306   HC_SCARE_CASTLE bat_pass pick=ambient weighted w=1.25/1.63 rank=1 budget=1/6 gap=90 since=-
+    319   HC_COUNT_VOICE cc_hunt_hungry t=25.7 position=(0.69, 4.35, 26.40) player=(9.00, 3.28, 16.50) enabled=False nav=False path=none destination=none seen=False memory=True fli
+    323   HC_TORCH_FAIL dive last second eta=0.94
+    324   HC_COUNT_GRAB mode=9 height=0.49 reason=came in low (0.5 m) dropHeight=0.49 hideEntrance=False witnessed=False position=(7.98, 3.62, 16.47) player=(9.00, 3.28, 16.50) ena
+    343   RECOVERY rec=36.1 grace=186.0 governor=2.57 gShare=0.380 huntShare=0.340 dread=75.9 felt=58.5
+    356   HC_SCARE_CASTLE book_drop pick=weighted w=0.55/0.88 rank=1 budget=2/6 gap=90 since=143
+    373   HC_SCARE_CASTLE silence seconds=6.3 duck=wired felt=47 dread=64 pick=tick silence_roll chance=0.18 budget=3/8 gap=90 since=237
+    375   HC_SCARE_CASTLE candle_gutter pick=ambient weighted w=0.40/0.69 rank=1 budget=3/6 gap=90 since=114
+    387   HC_SCARE_CASTLE balustrade_shape pick=direct budget=1/3 gap=180 since=-
+    406   HC_SCARE_CASTLE bat_pass pick=weighted w=0.36/1.50 rank=1 budget=2/6 gap=90 since=94
+    432   HC_ESCALATE near=3.4 escalated=False reason=grace phase=Disturbance grace=96 chance=0.35 substitute=none
+    433   HC_THROW prop=Throwable / Candlestick at=(-12.20, 4.09, 1.25) castle=near_apparition toPlayer=2.8 toApparition=3.0
+    435   HC_SCARE visible=4 basement=False rush=False
+    454   HC_SCARE_CASTLE book_drop pick=weighted w=0.33/1.62 rank=1 budget=3/6 gap=90 since=96
+    465   HC_SCARE_CASTLE bell_single pick=weighted w=0.75/1.64 rank=1 budget=2/2 gap=240 since=316
+    496   HC_SCARE_CASTLE silence seconds=6.9 duck=wired felt=58 dread=52 pick=tick silence_roll chance=0.22 budget=4/8 gap=90 since=120
+    498   HC_PLAY phase=natural_walk_done t=493.6 case=Disturbance dread=51.1 hunts=3 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=986 hunts=3 survive
+    501   HC_PLAY phase=ledger_closed t=493.7 case=Containment dread=51.1 hunts=3 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=986 conclude=True
+    504 HUNT#4 Return noTell=True from=Containment dread=37.8 felt=50.7 len=39.7 breaker=True
+    506   HC_PLAY phase=bell_sealed t=507.4 case=Return dread=37.0 hunts=4 evidence=3 notes=4 survived=True relics=0 sword=False hits=0 blockedDeaths=986 Return huntActive=True
+    509   HC_COUNT_VOICE cc_hunt_run t=9.9 position=(1.71, 2.01, 1.20) player=(0.00, 0.08, -4.91) enabled=False nav=False path=none destination=none seen=True memory=True flight=Ch
+    509   HC_TORCH_FAIL dive last second eta=1.00
+    509   HC_PLAY_RESULT mode=natural won=True slain=False blockedDeaths=986 blockers=0
