@@ -10,7 +10,7 @@ World layout (Unity axes, azimuth measured from +Z towards +X; the player enters
   large pale moon  az -34 deg, el +55 deg, angular radius 11 deg   (upper left)
   small blood moon az +42 deg, el +42 deg, angular radius 4.2 deg   (right)
   faint green aurora band between them, el ~30 deg
-  oversized stars (angular radius 0.25-1.1 deg, a few with soft glow and cross flare)
+  point-like stars (round 12 polish: disc radius 0.03-0.08 deg with a soft 1 px edge, about 20 at 0.12 deg with a faint cross glint)
 Face convention (Unity Skybox/6 Sided): Front=+Z, Back=-Z, Left=+X, Right=-X, Up=+Y, Down=-Y.
 """
 import sys, math
@@ -151,14 +151,15 @@ def aurora(D):
     return col * (amp * .85)[..., None]
 
 def make_stars(count):
-    r = np.random.default_rng(404)
+    r = np.random.default_rng(404)                                    # same seed and draw order as before: star positions are unchanged
     v = r.normal(size=(count, 3)); v /= np.linalg.norm(v, axis=1, keepdims=True)
     mag = r.random(count) ** 3.2
-    rad = np.radians(.22 + .55 * mag + (r.random(count) < .04) * .5)   # slightly too large
+    flare = (mag > .93)                                               # about 20 stars: the brightest, with a faint cross glint
+    rad = np.radians(.03 + .05 * (1 - mag) ** 2.0 * (r.random(count) * .5 + .5))
+    rad = np.where(flare, np.radians(.12), rad)                      # (one r.random(count) consumed above, as before: tints unchanged)
     tint = r.choice(3, count, p=[.7, .2, .1])
     cols = np.array([[1, 1, 1], [.75, .85, 1.0], [1.0, .85, .65]], np.float32)[tint]
-    bright = .22 + .55 * (1 - mag * .7)
-    flare = (mag > .93)
+    bright = np.where(flare, 1.0, .55 + .45 * (1 - mag))              # point stars are a little brighter than the old blobs: they cover far fewer pixels
     return v.astype(np.float32), rad.astype(np.float32), cols, bright.astype(np.float32), flare
 
 def paint_stars(img, face, stars):
@@ -171,22 +172,23 @@ def paint_stars(img, face, stars):
         if np.arccos(np.clip(d @ RED["c"], -1, 1)) < RED["R"] * 2.4: continue
         x = (d @ r) / fd; y = (d @ u) / fd
         cx = (x + 1) / 2 * N; cy = (1 - y) / 2 * N
-        rp = rad[i] * N / 2 * (1 + x * x + y * y) * 1.0
-        reach = int(rp * (7 if flare[i] else 3)) + 2
+        rp_true = rad[i] * N / 2 * (1 + x * x + y * y)                 # radius in texels on this face
+        rp = max(rp_true, .55)                                         # never thinner than half a texel; dim by the lost area instead
+        dim = float(np.clip((rp_true / rp) ** 2, .6, 1.0))
+        reach = (9 if flare[i] else 3) + int(rp)
         x0, x1 = max(int(cx) - reach, 0), min(int(cx) + reach + 1, N)
         y0, y1 = max(int(cy) - reach, 0), min(int(cy) + reach + 1, N)
         if x0 >= x1 or y0 >= y1: continue
         gx = np.arange(x0, x1, dtype=np.float32)[None, :] + .5 - cx
         gy = np.arange(y0, y1, dtype=np.float32)[:, None] + .5 - cy
         dist = np.sqrt(gx * gx + gy * gy)
-        core = smoothstep(rp * 1.15, rp * .55, dist) * 1.0
-        halo = np.exp(-(dist / (rp * 2.2)) ** 2) * .25
-        val = core + halo
+        val = np.clip((rp - dist) / 1.0 + .5, 0, 1)                    # hard-ish disc, soft 1 px edge, no halo
         if flare[i]:
-            cross = np.exp(-(np.abs(gx) / (rp * .35))) * np.exp(-(np.abs(gy) / (rp * 6.0))) \
-                + np.exp(-(np.abs(gy) / (rp * .35))) * np.exp(-(np.abs(gx) / (rp * 6.0)))
-            val = val + cross * .25
-        img[y0:y1, x0:x1, :] += (val * bright[i])[..., None] * cols[i][None, None, :]
+            arm = 8.0 + 4 * rp
+            cross = np.clip(1 - np.abs(gx) / arm, 0, 1) ** 2 * np.clip(1 - np.abs(gy) / .9, 0, 1) \
+                + np.clip(1 - np.abs(gy) / arm, 0, 1) ** 2 * np.clip(1 - np.abs(gx) / .9, 0, 1)
+            val = val + cross * .22
+        img[y0:y1, x0:x1, :] += (val * bright[i] * dim)[..., None] * cols[i][None, None, :]
 
 def build_face(face, stars, craters):
     D = face_dirs(face)
