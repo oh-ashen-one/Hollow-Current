@@ -52,6 +52,9 @@ namespace HollowCurrent
         // count17: the GrabDrop clip falls from its own height (receipt clips.GrabDrop.top_m_max 4.722 m), so a drop needs that
         // much clear ceiling over his floor; otherwise the grab is GrabCrawl from the door.
         public float GrabDropClipTop=4.72f;
+        // count18: a door grab keeps his origin at least DoorOutside beyond the door plane (never inside or behind the wardrobe)
+        // and within DoorLateral of the door's axis, feet on her floor.
+        public float DoorOutside=.05f, DoorLateral=.3f;
         // Sword hits: he recoils SwordRecoilDistance away from her over SwordRecoilSeconds, and until SwordClearSeconds after the
         // stagger no joint (wing markers included) comes within SwordClearRadius (+0.15 m skin) of the camera.
         public float SwordRecoilDistance=1.2f, SwordRecoilSeconds=.25f, SwordClearRadius=.6f, SwordClearSeconds=1f;
