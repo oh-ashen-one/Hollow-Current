@@ -1,0 +1,31 @@
+{
+  "modes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "mode_names": {
+    "0": "Perch",
+    "1": "Glide",
+    "2": "Search",
+    "3": "Dive",
+    "4": "Stagger",
+    "5": "Death",
+    "6": "Grab",
+    "7": "Crawl",
+    "8": "GrabDrop",
+    "9": "GrabCrawl"
+  },
+  "grab_reach_m": 1.385,
+  "grab_drop_reach_m": 1.758,
+  "grab_crawl_reach_m": 1.818,
+  "grab_drop_mesh_reach_m": 1.758,
+  "grab_crawl_mesh_reach_m": 1.818
+}

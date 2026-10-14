@@ -18,15 +18,19 @@ namespace HollowCurrent.Editor
         // Sources (FBX, albedo, receipt) live outside Resources so they do not ship in the player.
         const string Source="Assets/HollowCurrent/Art/Characters/CountClaude/";
         const string Native=Source+"Native/";
-        // Animator state names, index == Mode int: 0 Perch, 1 Glide, 2 SearchGlide, 3 Dive, 4 Stagger, 5 Death, 6 Grab (wing-wrap).
-        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl"};
-        // Perch, Glide, Search and Dive loop; Stagger, Death and Grab hold their last frame (Mode stays set until the next Pose call).
-        static readonly bool[] Loops={true,true,true,true,false,false,false,true};
+        // Animator state names, index == Mode int: 0 Perch, 1 Glide, 2 SearchGlide, 3 Dive, 4 Stagger, 5 Death, 6 Grab (wing-wrap),
+        // 7 Crawl, 8 GrabDrop (falls from above onto the camera), 9 GrabCrawl (low lunge from the crawl, rears up on the lens).
+        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl","GrabDrop","GrabCrawl"};
+        // Perch, Glide, Search, Dive and Crawl loop; Stagger, Death, Grab, GrabDrop and GrabCrawl hold their last frame (Mode stays set until the next Pose call).
+        static readonly bool[] Loops={true,true,true,true,false,false,false,true,false,false};
+        // Modes 0-7 are required; 8 and 9 (tools/count_prepare.py, F5) degrade silently when their FBX is absent: no state is added and
+        // the runtime falls back to the Mode 6 wing-wrap (it reads CountClaudeModes.json beside the controller to see which exist).
+        const int RequiredModes=8;
         // Round 2 wing rig (tools/count_prepare.py): a root at each shoulder blade, a five-bone fan sharing that pivot, and
         // zero-weight end markers the runtime reads for the posed silhouette (HearthboundActor.PoseBounds). Round 3: each fan
         // bone has an Ext child that stretches its finger (translation only) and the single-sheet membrane is doubled.
         static readonly string[] WingBones={"WingL","WingR","WingFanL0","WingFanL4","WingFanR0","WingFanR4","WingFanL0End","WingFanL4End","WingFanR0End","WingFanR4End","WingFanL4Ext","WingFanR4Ext","Jaw"};
-        [Serializable] class Receipt{public float head_top_m,mesh_height_m,grab_reach_m,shoulder_width_m,rest_span_m;public int triangles,bones,wing_vertices,body_tris,membrane_tris,flesh_tris;}
+        [Serializable] class Receipt{public float head_top_m,mesh_height_m,grab_reach_m,grab_drop_reach_m,grab_crawl_reach_m,shoulder_width_m,rest_span_m;public int triangles,bones,wing_vertices,body_tris,membrane_tris,flesh_tris;public int[] modes;}
         public static void Prepare()
         {
             Directory.CreateDirectory(Folder);AssetDatabase.Refresh();
@@ -99,7 +103,9 @@ namespace HollowCurrent.Editor
             var clips=new AnimationClip[Modes.Length];
             for(int i=0;i<Modes.Length;i++)
             {
-                string path=Native+"CountClaude"+Modes[i]+".fbx";Configure(path,true);
+                string path=Native+"CountClaude"+Modes[i]+".fbx";
+                if(i>=RequiredModes&&!File.Exists(path)){Debug.Log("HC_CHARACTER_CLIP_SKIPPED "+Modes[i]+" (no "+path+"; the runtime keeps the Mode 6 grab)");continue;}
+                Configure(path,true);
                 var imported=AssetDatabase.LoadAllAssetsAtPath(path).OfType<AnimationClip>().Where(x=>!x.name.StartsWith("__preview")).ToArray();
                 if(imported.Length!=1)throw new Exception("Expected one distinct "+Modes[i]+" motion, found "+imported.Length);
                 var clip=new AnimationClip();EditorUtility.CopySerialized(imported[0],clip);clip.name=Modes[i];clip.legacy=false;
@@ -131,15 +137,17 @@ namespace HollowCurrent.Editor
             foreach(var state in machine.states)machine.RemoveState(state.state);
             for(int i=0;i<Modes.Length;i++)
             {
+                if(!clips[i])continue;
                 var state=machine.AddState(Modes[i]);state.motion=clips[i];if(i==0)machine.defaultState=state;
                 if(i==1||i==7){state.speedParameter="LocomotionRate";state.speedParameterActive=true;} // wing-beat rate follows glide speed
-                var transition=machine.AddAnyStateTransition(state);transition.hasExitTime=false;transition.duration=i==3?.08f:i==6?.06f:.2f;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.Equals,i,"Mode");
+                var transition=machine.AddAnyStateTransition(state);transition.hasExitTime=false;transition.duration=i==3?.08f:i==6||i==8||i==9?.06f:.2f;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.Equals,i,"Mode");
             }
             animator.runtimeAnimatorController=controller;
             var actor=root.AddComponent<HearthboundActor>();actor.Animator=animator;actor.Head=headTip;actor.LeftFoot=Bone("LeftFoot");actor.BoneCount=skins[0].bones.Length;
             // The prefab sits beside the folder so Resources.Load<GameObject>("Characters/CountClaude") resolves it.
             PrefabUtility.SaveAsPrefabAsset(root,"Assets/HollowCurrent/Resources/Characters/CountClaude.prefab");UnityEngine.Object.DestroyImmediate(root);AssetDatabase.SaveAssets();
-            Debug.Log("HC_COUNTCLAUDE_PASS skinned rig with wing fans, "+Modes.Length+" independent motions, head top "+receipt.head_top_m+"m, triangles "+receipt.triangles);
+            Debug.Log("HC_COUNTCLAUDE_GRABS drop="+(clips[8]?clips[8].length.ToString("0.00")+"s reach "+receipt.grab_drop_reach_m:"absent")+" crawl="+(clips[9]?clips[9].length.ToString("0.00")+"s reach "+receipt.grab_crawl_reach_m:"absent")+" receipt modes="+(receipt.modes==null?"none":string.Join(",",receipt.modes)));
+            Debug.Log("HC_COUNTCLAUDE_PASS skinned rig with wing fans, "+clips.Count(c=>c!=null)+" independent motions, head top "+receipt.head_top_m+"m, triangles "+receipt.triangles);
         }
         static void Configure(string path,bool animation)
         {
