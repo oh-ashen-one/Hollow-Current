@@ -38,7 +38,21 @@ namespace HollowCurrent
         // fear mode: counts of HC_ log lines by prefix (Application.logMessageReceived), summarised at the end.
         readonly Dictionary<string,int> tags=new Dictionary<string,int>();
         static readonly string[] Tags={"HC_LIE","HC_DUCK","HC_SCARE_CASTLE silence","HC_COUNT_WITNESSED","HC_COUNT_NEARMISS open=True","HC_COUNT_RETURN_SWOOP","HC_COUNT_DIVE_LAST","HC_RECOVERY","HC_NAIL_HIDES","HC_COUNT_PERCH flight observed=True","HC_THROW_SKIP","HC_MISSING_ART","HC_THROW ","HC_THROW poltergeist","HC_SCARE_CASTLE","HC_COUNT_PERCH moved","HC_COUNT_PERCH landed","HC_COUNT_NEARMISS begin","HC_COUNT_NEARMISS hold","HC_WARNING","HC_FALSE_WARNING","HC_HUNT_START","HC_HUNT_SPAWN hostileReturn=True","HC_COUNT_GATEHOUSE landed","HC_COUNT_VOICE","HC_TORCH_FAIL","HC_COUNT_DREAD","HC_COUNT_GRAB","HC_COUNT_LEARNED","HC_ESCALATE","HC_RARE_LINE","HC_DOOR_HELD"};
-        void OnLog(string message,string stack,LogType type){foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}}
+        void OnLog(string message,string stack,LogType type)
+        {
+            foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}
+            // Wave K: a screenshot at every grab-camera sample (commit, +0.3 s, +1.0 s, kill), named by kind and time.
+            if(message.StartsWith("HC_COUNT_GRABCAM t=",StringComparison.Ordinal))
+            {
+                string kind="grab",tt="t";
+                foreach(var part in message.Split(' ')){if(part.StartsWith("kind=",StringComparison.Ordinal))kind=part.Substring(5);if(part.StartsWith("t=",StringComparison.Ordinal))tt=part.Substring(2);}
+                pendingGrabShots.Enqueue("grabcam_"+kind+"_t"+tt);
+            }
+        }
+        readonly Queue<string> pendingGrabShots=new Queue<string>();
+        void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));}
+        bool grabShotBusy;
+        IEnumerator GrabShot(string name){grabShotBusy=true;yield return Shot(name);grabShotBusy=false;}
         int Tag(string t)=>tags.TryGetValue(t,out int n)?n:0;
         void OnDestroy(){Application.logMessageReceived-=OnLog;}
         // The owner's window size is put back by Game.RestoreOwnerWindow on quit.

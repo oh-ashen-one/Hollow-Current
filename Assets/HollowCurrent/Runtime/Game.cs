@@ -114,6 +114,9 @@ namespace HollowCurrent
             // Castle rules (HuntRules.Castle or the Long Night dial) and real dice; Bellwether is built exactly as before.
             appliedLongNight=LongNight;
             Case=Map==MapId.Castle?new Investigation(CaseBook.For(Map),()=>UnityEngine.Random.value,HuntRules.For(Map,LongNight)):new Investigation(CaseBook.For(Map));
+            // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
+            // order Presence, CastleRun and Game run in this frame.
+            if(Map==MapId.Castle)Case.FrameSource=()=>Time.frameCount;
             Case.Message+=Say;Case.Changed+=PhaseChanged;
             if(Map==MapId.Castle)Debug.Log("HC_RULES "+Case.Rules.Name+" dread="+Case.Dread.ToString("F0")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
@@ -410,6 +413,15 @@ namespace HollowCurrent
         public void Notice(string value,float seconds=2.6f){Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);Subtitle=value;SubtitleTime=seconds;}
         void PhaseChanged(Phase phase)
         {
+            // Wave K death first: Presence stops hunting once Won is set, so a grab under way when the win lands (the killing blow,
+            // the far bank, the winch) would never reach Die(). Resolve it here, before Presence hears of the win; Investigation's
+            // same-frame rule (FrameSource) turns Won into Dead.
+            if(Map==MapId.Castle&&phase==Phase.Won&&Creature&&Creature.GrabInProgress)
+            {
+                Debug.Log("HC_DEATH frame="+Time.frameCount+" beat_win=true source=phase_won "+Creature.DiagnosticState);
+                Case.Die();
+                if(Case.Phase==Phase.Dead)return; // the nested Changed(Dead) has run
+            }
             var previous=lastPhase;lastPhase=phase;
             if(Map==MapId.Castle)
             {
@@ -441,9 +453,17 @@ namespace HollowCurrent
                 World.Castle.Drawbridge.Lower();
             }
             if(phase==Phase.Containment)Sound.Speak("contain");
-            if(phase==Phase.Won)Sound.Speak("ending");
+            // Castle: a same-frame grab can still turn Won into Dead (death first), so the win's audio waits one frame.
+            if(phase==Phase.Won){if(Map==MapId.Castle)StartCoroutine(CastleWinAudio());else Sound.Speak("ending");}
+            if(phase==Phase.Dead&&Case.DeathOverrodeWin)Debug.Log("HC_DEATH_OVER_WIN deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F1"));
             if(phase==Phase.Return)Sound.Cue("containment_release",World.Anchor,.65f);
-            if(phase==Phase.Won||phase==Phase.Dead){Sound.Cue(phase==Phase.Won?"evidence_filed":"capture",Player.transform.position,.65f);ApplyFocus();}
+            if(phase==Phase.Dead||phase==Phase.Won&&Map!=MapId.Castle){Sound.Cue(phase==Phase.Won?"evidence_filed":"capture",Player.transform.position,.65f);ApplyFocus();}
+        }
+        IEnumerator CastleWinAudio()
+        {
+            yield return null;
+            if(Case.Phase!=Phase.Won)yield break;
+            Sound.Speak("ending");Sound.Cue("evidence_filed",Player.transform.position,.65f);ApplyFocus();
         }
         IEnumerator RevealFirstRecord()
         {

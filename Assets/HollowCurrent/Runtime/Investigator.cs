@@ -375,8 +375,8 @@ namespace HollowCurrent
             if(Game.Case.Phase==Phase.Briefing)return;
             if(Game.Map==MapId.Castle)
             {
-                // Above the DoorHeld threshold something holds the door from inside (FEAR_PLAN item 5).
-                if(Game.Case.DoorHeld){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name);return;}
+                // Wave K: from Dread 60, one hide attempt in six is held from inside (FEAR_PLAN item 5; injected dice).
+                if(Game.Case.TryDoorHeld()){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name+" dread="+Game.Case.Dread.ToString("F1")+" held="+Game.Case.DoorsHeld);return;}
             }
             Game.Creature.WitnessHide(spot.HidePoint);
             hiding=spot;Hidden=true;Teleport(spot.HidePoint);
