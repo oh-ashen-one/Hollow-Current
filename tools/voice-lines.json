@@ -155,5 +155,11 @@
     "rate": 108,
     "voice": "en-gb-x-rp+m7",
     "pitch": 14
+  },
+  "cc_contain": {
+    "text": "Ring it, then. Better hands than yours have put me to bed.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 14
   }
 }
