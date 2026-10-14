@@ -5,8 +5,8 @@ usage: audio_castle_sfx.py [name ...]      (no names = everything)
        audio_castle_sfx.py --check         (re-measure every file this script owns and print the table)
 
 Clips: heartbeat_loop, wind_battlements_loop, door_rattle, book_drop, knife_stick, claw_steps_0..3,
-bat_pass, bell_single (derived from chapel_bell_toll.wav). Voices voice_cc_kit / voice_cc_ending come from
-tools/generate_open_voice.py --castle (entries cc_kit, cc_ending in tools/voice-lines.json).
+bat_pass, bell_single (derived from chapel_bell_toll.wav). Voices voice_cc_kit / voice_cc_ending / voice_cc_contain come from
+tools/generate_open_voice.py --castle (entries cc_kit, cc_ending, cc_contain in tools/voice-lines.json).
 
 Method: numpy/scipy only. Damped modal synthesis (wood, stone, steel), filtered noise, filtered impulses and
 synthetic-reverb convolution. Loops are built with circular (FFT) filtering and integer-cycle modulators so the
@@ -258,7 +258,7 @@ CLIPS={'heartbeat_loop':heartbeat,'wind_battlements_loop':wind,'door_rattle':doo
        'knife_stick':knife_stick,'bat_pass':bat_pass,'bell_single':bell_single}
 for _i,_p in enumerate(CLAWS):CLIPS[f'claw_steps_{_i}']=(lambda p=_p:claw_step(p))
 LOOPS={'heartbeat_loop','wind_battlements_loop'}
-OWNED=list(CLIPS)+['voice_cc_kit','voice_cc_ending']
+OWNED=list(CLIPS)+['voice_cc_kit','voice_cc_ending','voice_cc_contain']
 
 def read(name):
     w=wave.open(str(OUT/(name+'.wav')));fr=w.getframerate();ch=w.getnchannels()
@@ -282,7 +282,7 @@ def main():
     args=sys.argv[1:]
     if '--check' in args:check();return
     names=args or list(CLIPS)
-    for v in ('voice_cc_kit','voice_cc_ending'):
+    for v in ('voice_cc_kit','voice_cc_ending','voice_cc_contain'):
         if (OUT/(v+'.wav')).exists():ensure_meta(v)
     for nme in names:
         if nme not in CLIPS:raise SystemExit('unknown clip '+nme)

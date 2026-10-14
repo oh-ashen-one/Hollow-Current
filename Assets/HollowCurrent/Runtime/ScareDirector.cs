@@ -153,17 +153,30 @@ namespace HollowCurrent
             }
             point=Vector3.zero;return false;
         }
+        // Castle only: why each candidate was passed over (HC_THROW_SKIP). Bellwether keeps the silent original path.
+        readonly Dictionary<string,int> skips=new Dictionary<string,int>();
+        void Skip(string reason,Transform prop,float distance,float angle,string detail=null)
+        {if(IsCastle)Throwable.LogSkip("director",reason,prop,distance,angle,detail,skips);}
         public bool ThrowNearbyProp()
         {
+            skips.Clear();
             foreach(var prop in props)
             {
-                if(!prop||prop.GetComponent<Rigidbody>())continue;
-                var renderers=prop.GetComponentsInChildren<Renderer>();if(renderers.Length==0)continue;
+                if(!prop)continue;
+                if(prop.GetComponent<Rigidbody>()){Skip("thrown",prop,-1,0);continue;}
+                var renderers=prop.GetComponentsInChildren<Renderer>();if(renderers.Length==0){Skip("no_renderer",prop,-1,0);continue;}
                 var visualBounds=renderers[0].bounds;foreach(var r in renderers)visualBounds.Encapsulate(r.bounds);
                 var visibleCenter=visualBounds.center;
                 var delta=visibleCenter-game.Player.View.transform.position;
-                if(delta.magnitude>6||Vector3.Angle(game.Player.View.transform.forward,delta)>65||Physics.Linecast(game.Player.View.transform.position,visibleCenter,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))continue;
-                var filters=prop.GetComponentsInChildren<MeshFilter>();if(filters.Length==0)continue;
+                float distance=delta.magnitude,angle=Vector3.Angle(game.Player.View.transform.forward,delta);
+                if(distance>6){Skip("far",prop,distance,angle);continue;}
+                if(angle>65){Skip("view_angle",prop,distance,angle);continue;}
+                // Castle: the support's collision proxy (a table box taller than the real top) does not hide what stands on it.
+                string blocker=null;
+                if(IsCastle?Throwable.SightBlocked(game.Player.View.transform.position,visibleCenter,out blocker):Physics.Linecast(game.Player.View.transform.position,visibleCenter,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)){Skip("sight_line",prop,distance,angle,blocker);continue;}
+                // Castle: a statically batched prop would not move and reads the combined batch mesh as its bounds.
+                if(IsCastle&&System.Array.Exists(renderers,r=>r.isPartOfStaticBatch)){Skip("static_batched",prop,distance,angle,"castle_scene_needs_PrepareCastle");continue;}
+                var filters=prop.GetComponentsInChildren<MeshFilter>();if(filters.Length==0){Skip("no_mesh",prop,distance,angle);continue;}
                 var bounds=new Bounds();bool first=true;
                 foreach(var filter in filters)
                 {
@@ -175,7 +188,7 @@ namespace HollowCurrent
                     }
                 }
                 float limit=prop.GetComponent<Throwable>()?.9f:.4f; // castle candlesticks stand taller than a mug
-                if(bounds.size.x>limit||bounds.size.y>limit||bounds.size.z>limit){Debug.LogError("HC_THROWABLE_BOUNDS_INVALID "+bounds);continue;}
+                if(bounds.size.x>limit||bounds.size.y>limit||bounds.size.z>limit){Debug.LogError("HC_THROWABLE_BOUNDS_INVALID "+bounds);Skip("bounds",prop,distance,angle,bounds.size.ToString("F2"));continue;}
                 var collider=prop.gameObject.AddComponent<BoxCollider>();collider.center=bounds.center;collider.size=bounds.size;Physics.IgnoreCollision(collider,game.Player.Controller);
                 var body=prop.gameObject.AddComponent<Rigidbody>();body.mass=.25f;body.collisionDetectionMode=CollisionDetectionMode.ContinuousDynamic;body.interpolation=RigidbodyInterpolation.Interpolate;
                 var impact=prop.gameObject.AddComponent<ScareImpact>();impact.Sound=game.Sound;
@@ -184,6 +197,7 @@ namespace HollowCurrent
                 if(IsCastle)game.Case.AddDread(game.Case.Rules.DreadThrow);
                 Debug.Log("HC_THROW prop="+prop.name+" at="+prop.position+" distance="+delta.magnitude.ToString("F1"));return true;
             }
+            if(IsCastle)Throwable.LogSkipSummary("director",skips,props.Count);
             return false;
         }
         void OnDestroy(){if(mistMaterial)Destroy(mistMaterial);}

@@ -18,7 +18,7 @@ Paid generations: Higgsfield CLI `higgsfield generate create seed_audio --prompt
 
 Total Seed Audio spend: 17.9 credits over 10 jobs. Job 5 returned HTTP 503 after it was accepted and charged; it was recovered with `higgsfield generate wait <id>` (no duplicate job).
 
-Voice lines: no paid generation. 15 `cc_*` entries in `tools/voice-lines.json` rendered by `python3 tools/generate_open_voice.py --castle` (eSpeak NG `en-gb-x-rp+m7`, pitch 14-18, 112-132 wpm, ffmpeg 0.88x pitch drop plus a six-tap stone-hall echo chain) into `Assets/HollowCurrent/Resources/CastleAudio/voice_cc_*.wav`.
+Voice lines: no paid generation. 15 `cc_*` entries (now 18 with `cc_kit`, `cc_ending`, `cc_contain`) in `tools/voice-lines.json` rendered by `python3 tools/generate_open_voice.py --castle` (eSpeak NG `en-gb-x-rp+m7`, pitch 14-18, 112-132 wpm, ffmpeg 0.88x pitch drop plus a six-tap stone-hall echo chain) into `Assets/HollowCurrent/Resources/CastleAudio/voice_cc_*.wav`.
 
 ## Count Claude (piece 4a, merged from ASSET_LOG_count.md)
 
@@ -73,6 +73,7 @@ synthetic-reverb convolution; deterministic seeds; loops are periodic by constru
 | `heartbeat_loop`, `wind_battlements_loop`, `door_rattle`, `book_drop`, `knife_stick`, `claw_steps_0..3`, `bat_pass` | `tools/audio_castle_sfx.py` (fully synthetic) | 0 |
 | `bell_single` | `tools/audio_castle_sfx.py` cuts one strike out of the existing `chapel_bell_toll.wav` (derived from the Higgsfield bell; no new job) | 0 |
 | `voice_cc_kit`, `voice_cc_ending` | eSpeak NG, Count treatment from `CASTLE_FX` | 0 |
+| `voice_cc_contain` | eSpeak NG, Count treatment from `CASTLE_FX` (added 2026-10-14 on `hc/throws`: `python3 tools/generate_open_voice.py --castle cc_contain`; the same pipeline reproduces the committed `voice_cc_kit.wav` byte for byte with eSpeak NG 1.52.0) | 0 |
 
 No `ASSET_LICENSES.md` line is needed: everything here is generated from our own scripts (eSpeak NG output is redistributable per the existing voice entries).
 

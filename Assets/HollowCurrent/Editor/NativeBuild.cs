@@ -90,7 +90,9 @@ namespace HollowCurrent.Editor
                 var materials=r.sharedMaterials;
                 for(int i=0;i<materials.Length;i++)materials[i]=Persist(materials[i]);
                 r.sharedMaterials=materials;
-                bool moving=r.GetComponentInParent<Door>()||r.GetComponentInParent<Interactable>();
+                // Castle Throwables move when a scare launches them: a static-batched part would stay put and report the combined
+                // batch mesh as its bounds, so ThrowNearbyProp and Poltergeist rejected every one (build 34a0de9, HC_THROW=0).
+                bool moving=r.GetComponentInParent<Door>()||r.GetComponentInParent<Interactable>()||r.GetComponentInParent<Throwable>();
                 foreach(var parent in r.GetComponentsInParent<Transform>())if(parent.name=="Porcelain doll"||parent.name=="Authored / Mug")moving=true;
                 if(moving)GameObjectUtility.SetStaticEditorFlags(r.gameObject,0);
                 if(!moving&&r.enabled)GameObjectUtility.SetStaticEditorFlags(r.gameObject,StaticEditorFlags.BatchingStatic|StaticEditorFlags.OccluderStatic|StaticEditorFlags.OccludeeStatic);

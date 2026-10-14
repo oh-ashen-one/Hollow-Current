@@ -271,18 +271,23 @@ namespace HollowCurrent
             if(!Ready||game.Modal)return 0;
             var eye=Eye;var player=game.Player.transform.position;
             var candidates=new List<Throwable>(Throwable.All);
-            int thrown=0;Vector3 sum=Vector3.zero;
+            int thrown=0;Vector3 sum=Vector3.zero;var skips=new Dictionary<string,int>();
             foreach(var item in candidates)
             {
-                if(!item||item.Thrown||item.GetComponent<Rigidbody>())continue;
-                var centre=item.WorldCenter;var delta=centre-eye.position;
-                if(delta.magnitude>6||Vector3.Angle(eye.forward,delta)>65)continue;
-                if(Physics.Linecast(eye.position,centre,OcclusionMask,QueryTriggerInteraction.Ignore))continue;
+                if(!item)continue;
+                if(item.Thrown||item.GetComponent<Rigidbody>()){Throwable.LogSkip("poltergeist","thrown",item.transform,-1,0,null,skips);continue;}
+                var centre=item.WorldCenter;var delta=centre-eye.position;float distance=delta.magnitude,angle=Vector3.Angle(eye.forward,delta);
+                if(distance>6){Throwable.LogSkip("poltergeist","far",item.transform,distance,angle,null,skips);continue;}
+                if(angle>65){Throwable.LogSkip("poltergeist","view_angle",item.transform,distance,angle,null,skips);continue;}
+                // A table's collision proxy that encloses the prop does not count as cover (see Throwable.SightBlocked).
+                if(Throwable.SightBlocked(eye.position,centre,out var blocker)){Throwable.LogSkip("poltergeist","sight_line",item.transform,distance,angle,blocker,skips);continue;}
+                if(item.StaticBatched){Throwable.LogSkip("poltergeist","static_batched",item.transform,distance,angle,"castle_scene_needs_PrepareCastle",skips);continue;}
                 var away=centre-player;away.y=0;
                 away=away.sqrMagnitude<.01f?Random.onUnitSphere:away.normalized;
                 away=Quaternion.Euler(0,Random.Range(-70f,70f),0)*away;away.y=0;
                 var velocity=away.normalized*Random.Range(2.2f,4.6f)+Vector3.up*Random.Range(1.8f,3.2f);
                 if(item.Launch(game,velocity)){thrown++;sum+=centre;}
+                else Throwable.LogSkip("poltergeist","launch_refused",item.transform,distance,angle,null,skips);
             }
             if(thrown>0)
             {
@@ -290,6 +295,7 @@ namespace HollowCurrent
                 game.Sound.Cue("knock",sum/thrown,.8f);
                 Log("poltergeist "+thrown);
             }
+            else Throwable.LogSkipSummary("poltergeist",skips,candidates.Count);
             return thrown;
         }
 

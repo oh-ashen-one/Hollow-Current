@@ -242,7 +242,7 @@ namespace HollowCurrent
                 StandNear(centre,2.2f,0);input.Look=centre;yield return Frames(6);
                 var eye=game.Player.View.transform;var delta=centre-eye.position;
                 string hitName=Physics.Linecast(eye.position,centre,out var hit,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)?hit.collider.name+"@"+hit.distance.ToString("F2")+"/"+delta.magnitude.ToString("F2"):"clear";
-                Debug.Log("HC_PLAY_THROW_PROBE "+t.name+" at="+t.position+" d="+delta.magnitude.ToString("F2")+" angle="+Vector3.Angle(eye.forward,delta).ToString("F0")+" renderers="+rs.Length+" body="+(t.GetComponent<Rigidbody>()!=null)+" line="+hitName);
+                Debug.Log("HC_PLAY_THROW_PROBE "+t.name+" at="+t.position+" d="+delta.magnitude.ToString("F2")+" angle="+Vector3.Angle(eye.forward,delta).ToString("F0")+" renderers="+rs.Length+" body="+(t.GetComponent<Rigidbody>()!=null)+" line="+hitName+" sight="+(Throwable.SightBlocked(eye.position,centre,out var sightBlocker)?sightBlocker:"clear")+" batched="+candidates[k].StaticBatched);
                 threw=game.Scares.ThrowNearbyProp();
             }
             yield return Wait(1.2f);yield return Step("throw","thrown="+threw+" prop="+(game.Scares.LastThrownProp?game.Scares.LastThrownProp.name:"none"));
