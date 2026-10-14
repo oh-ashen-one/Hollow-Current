@@ -90,18 +90,8 @@ namespace HollowCurrent
             if(dread<=20)return 0;if(dread<=45)return Mathf.Lerp(0,.15f,(dread-20)/25);if(dread<=70)return Mathf.Lerp(.15f,.35f,(dread-45)/25);
             return Mathf.Lerp(.35f,.55f,Mathf.Clamp01((dread-70)/30));
         }
-        // Investigation.FeltDread (hc/rules2: lagged, noisy, lying 0-100) once merged; the true Dread until then.
-        static Func<Investigation,float> felt;static bool feltResolved;
-        public static float FeltDread(Investigation c)
-        {
-            if(!feltResolved)
-            {
-                feltResolved=true;var p=typeof(Investigation).GetProperty("FeltDread");
-                if(p!=null&&p.PropertyType==typeof(float))felt=(Func<Investigation,float>)Delegate.CreateDelegate(typeof(Func<Investigation,float>),p.GetGetMethod());
-                Debug.Log("HC_FELT_DREAD source="+(felt!=null?"FeltDread":"Dread"));
-            }
-            return felt!=null?felt(c):c.Dread;
-        }
+        // Investigation.FeltDread (hc/rules2): Dread lagged 20-30 s, +-12 slow wobble, drifting calm while Lies; Bellwether 0.
+        public static float FeltDread(Investigation c)=>c.FeltDread;
         // Contract for F3 (critic r10 #38): an active silence. Ducks wind, room tone and heartbeat to `depth` over 1 s, holds for
         // `seconds`, restores over 3 s. Castle only.
         public void DuckBed(float seconds,float depth)

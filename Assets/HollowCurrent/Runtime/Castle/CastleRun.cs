@@ -106,6 +106,8 @@ namespace HollowCurrent
         string BellRungText()
         {
             string line=Game.Book.BellRung;float warning=Game.Case.Rules!=null?Game.Case.Rules.WarningSeconds:9;
+            // Wave G: the castle card is never numeric. Long Night (no Warning) says he is already coming.
+            if(warning<=0&&line.Contains("Get under cover."))return line.Replace("Get under cover.","He is already coming.");
             if(!line.Contains("Nine seconds"))return line;
             if(warning<=0)return line.Replace("Nine seconds: get under cover.","He is already coming.");
             return Mathf.Approximately(warning,9)?line:line.Replace("Nine seconds",Mathf.RoundToInt(warning)+" seconds");

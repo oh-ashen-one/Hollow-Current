@@ -25,6 +25,8 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
 
 ## What F0 added, besides the merges
 
+This is the wave F state. Wave G (below) supersedes the heartbeat, music, HUD, radio, torch-failure and pulse notes here.
+
 - **`Game.cs`:**
   - The castle case runs on `HuntRules.For(map, LongNight)` with real dice and the 4-argument tick. "Lit" means a candle light within 6 m; Dread recovers in the gatehouse or at the lit chapel fire.
   - The torch blacks out on a dive. Logs: `HC_WARNING`, `HC_FALSE_WARNING`, `HC_HUNT_START`.
@@ -59,57 +61,63 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
 - **Project settings:** `microphoneUsageDescription` is set (the build fails without it); `defaultIsNativeResolution` is 0 and `fullscreenMode` is 3 (Windowed).
 - **Playtest driver `fear` mode:** forced dice through the real rules, frame times, throws and beats, battlement line of sight, the gatehouse visit, and a bridge wait and crossing.
 
-## Not done or not passing (needs a window: schedule after the stream)
+## Wave G (static fixes from `docs/haunted-castle/rounds/r10/CRITIC_STATIC.md`, round-10 static critic, 4/10, 44 findings)
 
-1. **Throwables never flew** (`HC_THROW=0`, poltergeist 0).
-   - hc/throws (`9619946`) found the causes:
-     - The hall table's collision box is 0.95 m tall against a 0.775 m top, so the sight line was blocked.
-     - The castle throwables were static-batched.
-   - It fixes both. After item 7, run `fear` and confirm `HC_THROW` and a poltergeist count above 0.
-2. **Bellwether automated route:** `-hc-verify` in the combined player; expect `HC_NATIVE_ROUTE_PASS`. Not run on this build.
-3. **Title captures:** at 2560x1440 and at 1920x1080 (`-hc-capture <dir> -hc-capture-shots S7 -hc-capture-size 1920x1080`), compared with `.wt/title/docs/haunted-castle/rounds/r10/title_mock.png`. Not run.
-4. **A near-miss on this build** (it is a 1-in-3 roll; rerun escape or fear until one rolls) and its crawl path wall check.
-5. **Unchecked features:** Long Night (`-hc-long-night`, escape mode), the death penalty (a death and a checkpoint retry), door held, and the rare line. These are compiled and wired but not exercised.
-6. **`voice_cc_contain`:** added by hc/throws (merged in `9619946`). It ships after the next build.
-7. **Re-prepare and re-bake the castle before the next build** (`HouseLighting.PrepareAndBakeCastle`, then `PrepareAndBake` and `NativeBuild.BuildPreparedMacAll`).
-   - The hc/throws batching fix (`NativeBuild` leaves `Throwable` parts non-static) only applies at prepare time.
-   - On the current `34a0de9` bake, `python3 tools/check_throwables_scene.py` exits 1: 38 of 38 throwables are batching-static.
-   - It must exit 0 on the new bake before the throw proof is rerun. Expected log lines: `HC_THROW` or `HC_THROW_SKIP reason=`, and `HC_PLAY_THROW_PROBE`.
+All four wave G branches are merged; nothing from wave G is in a build yet.
 
-## Wave G (static fixes from `docs/haunted-castle/rounds/r10/CRITIC_STATIC.md`, score 4/10)
+| Piece | Branch tip | Merge | Integrator wiring |
+|---|---|---|---|
+| F0's own items | — | — | `d655eda` |
+| hc/scares2 | `347060f` | `517da28` | `c180914` |
+| hc/audio3 | `fee64f3` | `c285793` | `55cc989` (cc_dispatch key, `ASSET_LICENSES.md` lines) |
+| hc/count12 | `f5e590b` | `f92bae3` | `99fbb0b`: torch fails on `DiveLastSecond`; the `return-swoop` beat shows the card; one dispatch voice |
+| hc/rules2 | `2612896` | see `git log` | follow-up commit after the merge, below |
 
-**Merged so far:**
-- hc/scares2 `347060f` (merge `517da28`, wiring `c180914`).
-- hc/audio3 `fee64f3` (merge `c285793`; wiring and licence lines `55cc989`). `tools/check_audio_keys.py` passes: 65 uses, 18 required ids.
-- hc/count12 `f5e590b` (merge and wiring below). Wiring:
-  - The torch fails on `Creature.DiveLastSecond`, logging `HC_TORCH_FAIL dive last second`; the `Diving` rising edge is gone.
-  - The `return-swoop` beat shows the card `Game.CastleReturnSwoop`.
-  - The dispatch key is reconciled: Presence's swoop speaks `cc_dispatch`, and Game no longer speaks on Return in the castle, so the line plays once.
-- F0's own items are in `d655eda`.
+After the hc/rules2 merge:
+- **Felt Dread:** the heartbeat and journal pulse read `Investigation.FeltDread` directly.
+- **No numbers in castle warnings:** the castle Warning message and the bell card no longer say "Nine seconds". Long Night's bell card says "He is already coming.", and the HUD cue is the word "SIGNAL COLLAPSING".
+- **Logs:** `HC_RULES` and `HC_HUNT_START` now log `runDreadMin`, `felt`, `huntSeconds` and `breaker`, and `HC_RECOVERY seconds=` is new.
+- **Driver waits:**
 
-**Still to land:** hc/rules2. When it lands, switch `Soundscape.FeltDread` to the direct property.
+| Wait | Old | New |
+|---|---|---|
+| Hunt end | 45 s | 60 s |
+| Hunt tracker | 60 s | 70 s |
+| Recovery | 40 s | 50 s |
+| Ledger wait | 80 s | 100 s |
 
-**Not yet built:** nothing from wave G is in a build. The castle must be **re-prepared and re-baked** first (`PrepareAndBakeCastle`, `PrepareAndBake`, then `BuildPreparedMacAll`), and `python3 tools/check_throwables_scene.py` must exit 0 on that bake.
+- **Driver Dread forcing:** the Dread blocker and the forced Dread use `RunDreadMin`.
 
-**Pure-Python checks:** `tools/check_source.py`, `tools/check_castle_scares.py`, and `tools/check_audio_keys.py` once hc/audio3 lands.
+**Checks (pure Python):**
+- `tools/check_source.py`: PASS, 939 assertions.
+- `tools/check_castle_scares.py`: PASS.
+- `tools/check_audio_keys.py`: OK.
 
-### What the windowed run must prove (from CRITIC_STATIC.md)
+## After the stream: in this order (needs a window and the GPU slot)
 
-- [ ] A no-tell hunt shows no change in the HUD goal, radio, instrument, music, heartbeat, wing loop or voice for its first 6 s. Use a per-frame channel log over 20 forced hunts.
-- [ ] A Dread 0-39 session of at least 10 minutes after the first hunt contains at least one hunt. This needs hc/rules2's low-Dread roll; zero hunts is a fail.
-- [ ] A watched hide with the **torch off**, while he is perched or travelling, ends with the hide opened: `HC_COUNT_GRAB hideEntrance=True`, torch False.
-- [ ] A near-miss runs end to end (`HC_COUNT_NEARMISS begin`, then hold, then leave), with a door rattle and `cc_hunt_smell` heard at the slats.
-- [ ] `HC_THROW` > 0 and `HC_THROW poltergeist` > 0 **in natural play**, with 2 or more evidence and at least 60 s in Disturbance.
-- [ ] `HC_ESCALATE escalated=True` at least once in natural play.
-- [ ] No `HC_MISSING_ART` lines across a full run that includes radio presses before diagnosis.
-- [ ] `cc_listen` is heard at most once per run (`HC_RARE_LINE` + `HC_LIE kind=phantom_listen` ≤ 1).
-- [ ] The heartbeat is silent during a hunt at Dread 30, because it follows FeltDread, not the phase.
-- [ ] Bellwether: an unmodified 95/9/38/32 s cycle (`RulesTests` green). The title matches `title_mock_bellwether.png` within a 2 px offset at 2560x1440, and `HC_TITLE_FONT cinzel=True` is logged.
-- [ ] Hostile return: a death on the bridge is preceded by a telegraph the player can attribute (the dispatch line `SealedMessage`, plus `voice_cc_dispatch` from hc/audio3).
-- [ ] hc/scares2 additions:
-  - `HC_SCARE_CASTLE silence ... duck=wired` appears, and `HC_DUCK` follows it.
-  - `HC_LIE kind=footsteps_behind` fires only at Dread ≥ 70.
-  - No hunt-state change follows within 6 s of a silence.
+1. **Re-prepare and re-bake the castle:** `HouseLighting.PrepareAndBakeCastle` through `gpu_slot`.
+   - Then `python3 tools/check_throwables_scene.py` must exit 0. It exits 1 on the old `34a0de9` bake, where 38 of 38 throwables were static-batched.
+2. **Re-bake Bellwether:** `HouseLighting.PrepareAndBake`. Shared `.cs` changes stale its receipt.
+3. **Build:** `NativeBuild.BuildPreparedMacAll` (`-nographics`). The player is windowed at 1920x1080; check `HC_WINDOWED` on a plain launch.
+4. **Proof runs** (`-hc-playtest <dir> escape|kill|fear` plus targeted runs). Grep the logs for:
+   - [ ] **Throws:** `fear` with `HC_THROW` > 0 and `HC_THROW poltergeist` > 0. Natural play, with 2 or more evidence and at least 60 s in Disturbance, must also throw; otherwise `HC_THROW_SKIP reason=` explains why.
+   - [ ] **Near-miss:** runs end to end (`HC_COUNT_NEARMISS begin`, then hold, then leave), with a door rattle and `cc_hunt_smell` at the slats. At Dread ≥ 80 or in Long Night, at least one `open=True` with a crawl grab.
+   - [ ] **Watched hide:** with the **torch off**, while he is perched or travelling, ending in `HC_COUNT_WITNESSED`, then a door rattle, then `HC_COUNT_GRAB hideEntrance=True witnessed=True torch=False`.
+   - [ ] **No-tell hunt:** for its first 6 s, no change in the HUD goal, radio, instrument, music, heartbeat, wing loop (while perched), rim light or voice. Use a per-frame channel log; `BreakerOn` stays true.
+   - [ ] **Low-Dread hunt:** at Dread below `RunDreadMin`, for at least 10 minutes after the first hunt, at least one hunt starts.
+   - [ ] **Recovery hunt:** at Dread ≥ 80, a Recovery is cut short at least once. `HC_HUNT_START` and `HC_RECOVERY` lengths vary.
+   - [ ] **Hostile return:** `HC_COUNT_RETURN_SWOOP` with `leg1clear=True leg2clear=True`, then the dispatch card and `voice_cc_dispatch`, and only then a dive on the bridge.
+   - [ ] **Escalation:** `HC_ESCALATE escalated=True` at least once in natural play.
+   - [ ] **Silence beat:** `HC_SCARE_CASTLE silence ... duck=wired`, then `HC_DUCK`, with no hunt-state change within 6 s.
+   - [ ] **Missing audio:** no `HC_MISSING_ART` across a full run that includes radio presses before diagnosis.
+   - [ ] **`cc_listen`:** at most once per run (`HC_RARE_LINE` + `HC_LIE kind=phantom_listen` ≤ 1).
+   - [ ] **Heartbeat:** silent during a hunt at Dread 30; it follows FeltDread with a 20-30 s lag.
+   - [ ] **Bellwether `-hc-verify`:** `HC_NATIVE_ROUTE_PASS`, with the unchanged 95 / 9 / 38 / 32 cycle.
+   - [ ] **Title captures:** `-hc-capture <dir> -hc-capture-shots S7` at 2560x1440 (full-screen-window for that run only) and with `-hc-capture-size 1920x1080`. Compare against `rounds/r10/title_mock.png` and `title_mock_bellwether.png` within a 2 px offset, and check for `HC_TITLE_FONT cinzel=True`.
+   - [ ] **Long Night:** `-hc-long-night` with the escape route. `HC_NAIL_HIDES nailed=2`, no Warning, longer hunts.
+   - [ ] **Death and retry:** a real death, then the checkpoint retry. `HC_DEATH_PENALTY ... moved=True` and `HC_RELIC_MOVE`; Dread restarts at 60.
+5. **Frame time:** in the great hall at 1920x1080. The fear run logs `HC_PLAY_FRAMES great_hall`; the last value was 11.15 ms mean.
+6. **Blind critic round** on the new build, then update `docs/haunted-castle/playtest/AUTO_RUN.md` and `PLAYTEST.md`.
 
 ## Rules for the next integrator
 

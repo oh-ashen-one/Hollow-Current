@@ -115,7 +115,7 @@ namespace HollowCurrent
             appliedLongNight=LongNight;
             Case=Map==MapId.Castle?new Investigation(CaseBook.For(Map),()=>UnityEngine.Random.value,HuntRules.For(Map,LongNight)):new Investigation(CaseBook.For(Map));
             Case.Message+=Say;Case.Changed+=PhaseChanged;
-            if(Map==MapId.Castle)Debug.Log("HC_RULES "+Case.Rules.Name+" dread="+Case.Dread.ToString("F0"));
+            if(Map==MapId.Castle)Debug.Log("HC_RULES "+Case.Rules.Name+" dread="+Case.Dread.ToString("F0")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
             if(Map==MapId.Castle)CastleArt.ApplySkybox();
             if(!bakedHouse&&Map!=MapId.Castle)
@@ -380,7 +380,8 @@ namespace HollowCurrent
                 // no-tell hunts skip the Warning phase, so nothing here strobes or speaks for them.
                 if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" length="+Case.WarningLength.ToString("F1")+" dread="+Case.Dread.ToString("F1"));
                 if(previous==Phase.Warning&&phase!=Phase.Hunt&&!Case.Terminal)Debug.Log("HC_FALSE_WARNING ended phase="+phase);
-                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" dread="+Case.Dread.ToString("F1")+" hunts="+Case.Hunts);
+                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" huntSeconds="+Case.CurrentHuntSeconds.ToString("F1")+" breaker="+Case.BreakerOn+" hunts="+Case.Hunts);
+                if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             }
             Creature?.PhaseChanged(phase);
             if(phase==Phase.Disturbance&&!Case.Survived&&!evidenceAppearanceScheduled)

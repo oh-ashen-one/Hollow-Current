@@ -162,7 +162,7 @@ namespace HollowCurrent
             PowerRestored="Fire restored / The chapel brazier catches. The instruments steady. Above you, the bell hums by itself.",
             // Critic r10 #10: no promise of a safe window and nothing about how long it lasts.
             RecoveryMessage="Dispatch / It has gone quiet. Do not trust the quiet. Finish collecting evidence.",
-            WarningMessage="Dispatch / Nine seconds. Wings in the rafters. Get under cover, lantern off, stay quiet. The gatehouse is still open.",
+            WarningMessage="Dispatch / Wings in the rafters. Get under cover, lantern off, stay quiet. The gatehouse is still open.", // castle: never numeric (wave G)
             // Critic r10 #34: the hostile return is announced (voice_cc_dispatch carries the Count's side of it).
             SealedMessage="Dispatch / The bell is still, and the bargain with it. He is free, and he is hungry. Lower the drawbridge and run.",
             GoalNoKit="Take the instruments from the lantern cart [E].",
@@ -215,7 +215,7 @@ namespace HollowCurrent
             RelicHints=new[]{"Dispatch / The steward hid the silver blade in the reliquary below the chapel. The box opens only to the marks of his claws: use the grave-ash lantern on it.",
                 "Dispatch / The hallowed hilt sits in the orrery's empty planet socket, up in the observatory.",
                 "Dispatch / One portrait in the portrait hall is a door. The moonstone is behind it."},
-            BellRung="Dispatch / The bell tolls on its own. The bargain hears you. Nine seconds: get under cover.",
+            BellRung="Dispatch / The bell tolls on its own. The bargain hears you. Get under cover.", // castle: never numeric (wave G)
             BladeSealed="Dispatch / The reliquary box will not open. Something scored the lid; the grave-ash lantern may show where.",
             RelicFound=new[]{"Dispatch / The silver blade. Cold as a grave, bright as a coin.","Dispatch / The hallowed hilt, from the orrery's empty socket.","Dispatch / The moonstone. It hums when you face the chapel."},
         };

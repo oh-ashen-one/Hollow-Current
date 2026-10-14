@@ -251,8 +251,8 @@ namespace HollowCurrent
             for(int i=0;i<5;i++){game.Scares.Dread();yield return Wait(2.2f);}
             yield return Step("castle_beats","scareCastle="+Tag("HC_SCARE_CASTLE"));
             // 5. False warning: real dice path (interval 0 -> 2 s, hunt roll 0, no-tell roll 0.9, false-alarm roll 0).
-            if(c.Dread>=40)Blocker("dread reached 40 before the forced dice; queue alignment not guaranteed");
-            ForceDread(55,"enter the dice band for the false warning");
+            if(c.Dread>=c.RunDreadMin)Blocker("dread reached the run boundary "+c.RunDreadMin.ToString("F1")+" before the forced dice; queue alignment not guaranteed");
+            ForceDread(Mathf.Max(55,c.RunDreadMin+5),"enter the dice band for the false warning (boundary "+c.RunDreadMin.ToString("F1")+")");
             foreach(var v in new[]{0f,0f,.9f,0f})dice.Enqueue(v);
             yield return WaitFor(()=>c.Phase==Phase.Warning,20);
             yield return Step("warning","false="+c.FalseWarning+" length="+c.WarningLength.ToString("F1"));
@@ -260,7 +260,7 @@ namespace HollowCurrent
             int huntsBefore=c.Hunts;
             yield return WaitFor(()=>c.Phase!=Phase.Warning,15);
             yield return Step("false_warning_over","hunts "+huntsBefore+"->"+c.Hunts);
-            if(c.Phase==Phase.Hunt)yield return WaitFor(()=>c.Phase!=Phase.Hunt,45);
+            if(c.Phase==Phase.Hunt)yield return WaitFor(()=>c.Phase!=Phase.Hunt,60); // hunts are 25-50 s (wave G)
             // 6. No-tell hunt while hidden with the torch off (near-miss chance 1 in 3).
             var hide=FarHide();yield return Torch(false);
             if(hide)yield return Use(hide,"hiding place "+hide.Label);
@@ -274,10 +274,10 @@ namespace HollowCurrent
             if(game.Player.Hidden)yield return Press(i=>i.Use=true);
             yield return Torch(true);
             // 7. Told hunt; he sees her, then she hides in front of him (witnessed: he opens it, the driver blocks the grab).
-            yield return WaitFor(()=>c.Phase==Phase.Disturbance,40);
+            yield return WaitFor(()=>c.Phase==Phase.Disturbance,50); // recoveries are 10-40 s
             // Entering Disturbance clears the dice timer; let the first tick draw its interval before queueing.
             yield return Frames(3);
-            ForceDread(55,"keep the dice band for the second hunt");
+            ForceDread(Mathf.Max(55,c.RunDreadMin+5),"keep the dice band for the second hunt");
             foreach(var v in new[]{0f,.9f,.9f})dice.Enqueue(v); // hunt roll 0, no-tell 0.9, false alarm 0.9 -> told hunt
             yield return WaitFor(()=>c.Phase==Phase.Warning||c.Phase==Phase.Hunt,20);
             yield return Step("told_warning","false="+c.FalseWarning);
@@ -300,7 +300,7 @@ namespace HollowCurrent
             yield return Record(Evidence.Handprint,game.World.Print,2,"grave-ash lantern");
             yield return Record(Evidence.Voice,game.World.Voice,3,"ear-trumpet");
             foreach(var title in game.Book.NoteTitles)yield return Use(Find(InteractKind.Note,title),"ledger "+title);
-            if(c.Phase==Phase.Hunt||c.Phase==Phase.Warning||c.Phase==Phase.Recovery)yield return WaitFor(()=>c.Phase==Phase.Disturbance,80);
+            if(c.Phase==Phase.Hunt||c.Phase==Phase.Warning||c.Phase==Phase.Recovery)yield return WaitFor(()=>c.Phase==Phase.Disturbance,100); // a hunt (<=50 s) plus a recovery (<=40 s)
             game.Journal=true;game.ApplyFocus();yield return Shot("journal_pulse");
             bool solved=c.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd);game.Journal=false;game.ApplyFocus();
             yield return Step("ledger_closed","conclude="+solved);
@@ -316,7 +316,7 @@ namespace HollowCurrent
         IEnumerator TrackHunt(string label)
         {
             var c=game.Case;float closest=99;int wallHits=0,groundSteps=0;Vector3 last=game.Creature.transform.position;
-            float end=Time.realtimeSinceStartup+60;
+            float end=Time.realtimeSinceStartup+70; // hunts are 25-50 s (wave G)
             while(c.Phase==Phase.Hunt&&Time.realtimeSinceStartup<end)
             {
                 var at=game.Creature.transform.position;closest=Mathf.Min(closest,Vector3.Distance(at,game.Player.transform.position));
