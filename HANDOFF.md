@@ -159,8 +159,23 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 - Cause: wave G #9 interference. Any Count within 12 m, through walls and between hunts, suspended recording ("INTERFERENCE · RECORDING SUSPENDED").
 - Fixed by N4 in `feeeed6`: interference now needs a hunt, under 12 m, and line of sight. r2 natural recorded all three, and r2/r3 escape and fear had 0 blockers.
 
+**Merged:** hc/count15 `eb25966`; handoff `docs/haunted-castle/handoffs/count15.md`. It covers:
+- Flight pitch 38-68 deg nose-down live (40/48 deg in capture) and a 5.2 m/s dive.
+- Grab selection 8/9/6 by situation, with the kill pose on the floor.
+- Door-aware routing (the two wall crossings were closing service doors).
+- Wing stretch capped at 1.6x (`HC_COUNT_WING_CLAMP`).
+- A log-only learned cue, a randomised and held hungry line, and grab-survived Dread once per hunt.
+
+**Dread budget per hunt, which hc/rules4's per-hunt cap must cover:**
+
+| Source | Dread |
+|---|---|
+| Count side (Presence) | at most +35 per hunt (seen +15, grab survived +20, once each) |
+| ScareDirector | +12 per apparition, +8 per throw/poltergeist |
+
 **Pending:**
-- hc/count15 (hunt readability) and hc/rules4 (Dread decay, per-hunt cap, post-hunt grace, hunt share ≤ 30 %).
+- hc/rules4 (Dread decay, per-hunt cap, post-hunt grace, hunt share ≤ 30 %).
+- F5's regenerated grab clips (wing stretch ≤ 1.6). Their `.anim` import (`CountClaudeImport.Prepare`) needs Unity, so it waits for the window.
 - When hc/rules4 lands: wire `DreadRelief` (gatehouse 3x, within 4 m of the chapel fire 2x, else 1x).
 
 **Windowed proof lines to add (wave I):**
