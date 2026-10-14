@@ -519,6 +519,55 @@
   ],
   "tris": 4890
  },
+ "MoonstoneSword": {
+  "budget": 3000,
+  "bytes": 57564,
+  "file": "Assets/HollowCurrent/Resources/Castle/MoonstoneSword.fbx",
+  "materials": [
+   "Castle_Silver",
+   "Castle_RuneGlow",
+   "Castle_Iron",
+   "Castle_Oxblood",
+   "Castle_Moonstone"
+  ],
+  "max": [
+   0.141,
+   0.0357,
+   0.925
+  ],
+  "min": [
+   -0.141,
+   -0.0357,
+   -0.1765
+  ],
+  "notes": {},
+  "parts": {
+   "MoonstoneSword": {
+    "max": [
+     0.141,
+     0.0357,
+     0.925
+    ],
+    "min": [
+     -0.141,
+     -0.0357,
+     -0.1765
+    ],
+    "size": [
+     0.282,
+     0.0713,
+     1.1015
+    ],
+    "tris": 1648
+   }
+  },
+  "size": [
+   0.282,
+   0.0713,
+   1.1015
+  ],
+  "tris": 1648
+ },
  "Orrery": {
   "budget": 3000,
   "bytes": 54524,
@@ -699,6 +748,146 @@
    1.3
   ],
   "tris": 98
+ },
+ "RelicBlade": {
+  "budget": 3000,
+  "bytes": 37884,
+  "file": "Assets/HollowCurrent/Resources/Castle/RelicBlade.fbx",
+  "materials": [
+   "Castle_Silver",
+   "Castle_Iron",
+   "Castle_BlackStone",
+   "Castle_RuneGlow"
+  ],
+  "max": [
+   0.022,
+   0.5,
+   0.0145
+  ],
+  "min": [
+   -0.022,
+   -0.44,
+   0.0001
+  ],
+  "notes": {},
+  "parts": {
+   "RelicBlade": {
+    "max": [
+     0.022,
+     0.5,
+     0.0145
+    ],
+    "min": [
+     -0.022,
+     -0.44,
+     0.0001
+    ],
+    "size": [
+     0.044,
+     0.94,
+     0.0144
+    ],
+    "tris": 838
+   }
+  },
+  "size": [
+   0.044,
+   0.94,
+   0.0144
+  ],
+  "tris": 838
+ },
+ "RelicHilt": {
+  "budget": 3000,
+  "bytes": 40028,
+  "file": "Assets/HollowCurrent/Resources/Castle/RelicHilt.fbx",
+  "materials": [
+   "Castle_Iron",
+   "Castle_Oxblood",
+   "Castle_BlackStone"
+  ],
+  "max": [
+   0.141,
+   0.143,
+   0.0732
+  ],
+  "min": [
+   -0.141,
+   -0.116,
+   0.0018
+  ],
+  "notes": {},
+  "parts": {
+   "RelicHilt": {
+    "max": [
+     0.141,
+     0.143,
+     0.0732
+    ],
+    "min": [
+     -0.141,
+     -0.116,
+     0.0018
+    ],
+    "size": [
+     0.282,
+     0.259,
+     0.0713
+    ],
+    "tris": 802
+   }
+  },
+  "size": [
+   0.282,
+   0.259,
+   0.0713
+  ],
+  "tris": 802
+ },
+ "RelicMoonstone": {
+  "budget": 3000,
+  "bytes": 27788,
+  "file": "Assets/HollowCurrent/Resources/Castle/RelicMoonstone.fbx",
+  "materials": [
+   "Castle_Moonstone"
+  ],
+  "max": [
+   0.1082,
+   0.0889,
+   0.19
+  ],
+  "min": [
+   -0.1054,
+   -0.0998,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "RelicMoonstone": {
+    "max": [
+     0.1082,
+     0.0889,
+     0.19
+    ],
+    "min": [
+     -0.1054,
+     -0.0998,
+     0.0
+    ],
+    "size": [
+     0.2136,
+     0.1887,
+     0.19
+    ],
+    "tris": 350
+   }
+  },
+  "size": [
+   0.2136,
+   0.1887,
+   0.19
+  ],
+  "tris": 350
  },
  "Sarcophagus": {
   "budget": 3000,

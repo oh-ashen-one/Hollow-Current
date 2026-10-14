@@ -35,6 +35,8 @@ namespace HollowCurrent
             public const string StoneFont = "StoneFont", CoffinNiche = "CoffinNiche", StoneBridge = "StoneBridge";
             public const string GiantSkeleton = "GiantSkeleton", FloatingBook = "FloatingBook", Banner = "Banner", DrawbridgeChains = "DrawbridgeChains";
             // round 5 detail kit (origin = centre of the back face on the wall, base at z 0, front +Z at yaw 0)
+            // round 9 weapon art (own mesh): sword origin = centre of the grip, blade +Z; relics lie flat, origin = centre, base on z 0
+            public const string MoonstoneSword = "MoonstoneSword", RelicBlade = "RelicBlade", RelicHilt = "RelicHilt", RelicMoonstone = "RelicMoonstone";
             public const string StringCourse = "StringCourse", Corbel = "Corbel", GargoyleSpout = "GargoyleSpout", TapestryPanel = "TapestryPanel";
         }
 
@@ -50,7 +52,8 @@ namespace HollowCurrent
             Names.Pedestal, Names.Wall2m, Names.Wall4m, Names.Wall2mWindow, Names.Wall4mWindow, Names.PointedArch, Names.VaultRib,
             Names.FloorTile, Names.StairFlight, Names.GreatDoor, Names.ServiceDoor, Names.Door, Names.BanquetTable, Names.StoneFont,
             Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains,
-            Names.StringCourse, Names.Corbel, Names.GargoyleSpout, Names.TapestryPanel
+            Names.StringCourse, Names.Corbel, Names.GargoyleSpout, Names.TapestryPanel,
+            Names.MoonstoneSword, Names.RelicBlade, Names.RelicHilt, Names.RelicMoonstone
         };
 
         // The Blender FBX -> Unity axis conversion could not be verified without launching Unity. Authoring assumes the standard
@@ -79,7 +82,7 @@ namespace HollowCurrent
             return new Vector3(Mathf.Sin(a) * Mathf.Cos(e), Mathf.Sin(e), Mathf.Cos(a) * Mathf.Cos(e));
         }
 
-        struct Spec { public Color color; public float smooth, metal; public bool emissive; public Spec(Color c, float s, float m, bool e = false) { color = c; smooth = s; metal = m; emissive = e; } }
+        struct Spec { public Color color; public float smooth, metal; public bool emissive; public Color emission; public Spec(Color c, float s, float m, bool e = false, Color? em = null) { color = c; smooth = s; metal = m; emissive = e; emission = em ?? new Color(2.4f, 1.2f, .35f); } }
         // Fallback values (identical to tools/castle_common.py MATERIALS) if Resources/Castle/Materials/<name> is missing.
         static readonly Dictionary<string, Spec> Specs = new Dictionary<string, Spec>
         {
@@ -103,6 +106,8 @@ namespace HollowCurrent
             { "Castle_Canvas", new Spec(new Color(.20f, .17f, .14f), .12f, 0f) },
             { "Castle_Blood", new Spec(new Color(.22f, .012f, .02f), .95f, 0f) },
             { "Castle_Flame", new Spec(new Color(1f, .62f, .22f), 0f, 0f, true) },
+            { "Castle_RuneGlow", new Spec(new Color(.25f, .55f, 1f), .3f, 0f, true, new Color(.25f, .6f, 1.6f)) },
+            { "Castle_Moonstone", new Spec(new Color(.74f, .80f, .92f), .7f, 0f, true, new Color(.10f, .17f, .38f)) },
         };
 
         // ---- upgraded surfaces (round 2, hc/look) ---------------------------------------------------------------
@@ -385,13 +390,15 @@ namespace HollowCurrent
             if (Materials.TryGetValue(name, out var m) && m != null) return m;
             m = Resources.Load<Material>("Castle/Materials/" + name);
             if (m != null && name == "Castle_Flame" && !FlameShaderOk) m = FlameFallback();
+            // any other material on one of our custom shaders: if it did not compile, drop to the Standard fallback from Specs
+            else if (m != null && name != "Castle_Flame" && m.shader != null && m.shader.name.StartsWith("HollowCurrent/", StringComparison.Ordinal) && !m.shader.isSupported) m = null;
             if (m == null && Specs.TryGetValue(name, out var s))
             {
                 var shader = Shader.Find("Standard");
                 if (shader == null) return null;
                 m = new Material(shader) { name = name };
                 m.color = s.color; m.SetFloat("_Glossiness", s.smooth); m.SetFloat("_Metallic", s.metal);
-                if (s.emissive) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(2.4f, 1.2f, .35f)); }
+                if (s.emissive) { m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", s.emission); }
             }
             if (m != null) Materials[name] = m;
             return m;

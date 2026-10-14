@@ -32,6 +32,14 @@ def get_mat(name):
     bsdf.inputs["Base Color"].default_value = (*color, 1)
     bsdf.inputs["Roughness"].default_value = 1.0 - smooth
     bsdf.inputs["Metallic"].default_value = metal
+    if name in ("Castle_RuneGlow", "Castle_Moonstone"):
+        em = (0.25, 0.55, 1.0, 1) if name == "Castle_RuneGlow" else (0.30, 0.45, 0.9, 1)
+        for key in ("Emission Color", "Emission"):
+            if key in bsdf.inputs:
+                bsdf.inputs[key].default_value = em
+                break
+        if "Emission Strength" in bsdf.inputs:
+            bsdf.inputs["Emission Strength"].default_value = 3.0 if name == "Castle_RuneGlow" else 0.6
     if name == "Castle_Flame":
         for key in ("Emission Color", "Emission"):
             if key in bsdf.inputs:

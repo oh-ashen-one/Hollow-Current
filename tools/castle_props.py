@@ -382,17 +382,130 @@ def banner():
         b.poly([(0, 2.05), (.17, 1.85), (0, 1.55), (-.17, 1.85)], .03, .04, BRASS, 'XZ')
     return b
 
+# ---------------------------------------------------------------- the Moonstone Sword and its three relics
+RUNE, MOON = "Castle_RuneGlow", "Castle_Moonstone"
+
+def blade_loft(b, z0, z1, w, t, mat, taper_from=.78):
+    """Slender flat-hexagon blade along +Z from z0 to z1: half-width w, half-thickness t, straight edges until `taper_from` of the
+    length then a point. Flat faces at y = +-t (the rune line sits on the +y face)."""
+    n = 8
+    rings = []
+    for k in range(n + 1):
+        u = k / n
+        sc = 1.0 if u <= taper_from else max(0.0, 1 - (u - taper_from) / (1 - taper_from))
+        z = z0 + (z1 - z0) * u
+        if sc <= 1e-4:
+            rings.append([b._v((0, 0, z))])
+        else:
+            rings.append([b._v((w * sc, 0, z)), b._v((.55 * w * sc, t * sc, z)), b._v((-.55 * w * sc, t * sc, z)),
+                          b._v((-w * sc, 0, z)), b._v((-.55 * w * sc, -t * sc, z)), b._v((.55 * w * sc, -t * sc, z))])
+    for k in range(n):
+        A, B = rings[k], rings[k + 1]
+        for j in range(6):
+            j2 = (j + 1) % 6
+            if len(B) == 1:
+                b._f([A[j], A[j2], B[0]], mat, False)
+            else:
+                b._f([A[j], A[j2], B[j2], B[j]], mat, False)
+    b._f(list(reversed(rings[0])), mat)
+
+def rune_line(b, z0, z1, y_face, mat=RUNE):
+    """Engraved-and-glowing rune line: a centre strip with paired glyph ticks, on both flat faces."""
+    for fy in (1, -1):
+        y = fy * (y_face + .0006)
+        b.box((0, y, (z0 + z1) / 2), (.005, .0012, z1 - z0), mat)
+        k = 0; z = z0 + .012
+        while z < z1 - .008:
+            h = .006 + .004 * ((k * 7) % 3)
+            b.box((.0075 if k % 2 else -.0075, y, z), (.009, .0012, .0022), mat)
+            b.box((-.0075 if k % 2 else .0075, y, z + h * .6), (.0022, .0012, h), mat)
+            z += .026; k += 1
+
+def hilt_parts(b, socket_empty=False):
+    """Crossguard + collar + red-leather grip + pommel, built with the grip centred on the origin, blade side +Z.
+    Pommel bottom at z=-0.17 (stone protrudes). Used by the sword and the hilt relic."""
+    # crossguard: dark iron, arms drooping slightly to diamond finials (as on refs/relics.png)
+    b.box((0, 0, .085), (.05, .036, .03), IRON)
+    for sx in (-1, 1):
+        b.tube([(sx * .02, 0, .088), (sx * .07, 0, .084), (sx * .112, 0, .070)], [.015, .0115, .0085], 6, IRON)
+        b.lathe((sx * .124, 0, .067), [(0, -.022), (.017, 0), (0, .022)], 4, IRON, smooth=False, cap=False)
+    b.lathe((0, 0, 0), [(.021, .060), (.024, .066), (.024, .074), (.021, .078)], 8, IRON, cap=False)             # guard collar
+    # grip
+    b.lathe((0, 0, 0), [(0, -.086), (.0155, -.08), (.0165, -.07), (.0165, .052), (.0155, .060), (0, .060)], 8, OX)
+    z = -.075
+    while z < .05:
+        b.lathe((0, 0, z), [(.0163, 0), (.0188, .0025), (.0163, .0055)], 8, OX, cap=False)                      # wrap cord
+        z += .0125
+    b.lathe((0, 0, 0), [(.020, -.090), (.022, -.088), (.022, -.080), (.020, -.078)], 8, IRON, cap=False)         # pommel collar
+    # pommel: iron ball, open at the bottom for the stone
+    b.lathe((0, 0, 0), [(.0215, -.090), (.034, -.104), (.0375, -.122), (.034, -.14), (.024, -.153), (.0215, -.156)], 10, IRON, cap=False)
+    b.lathe((0, 0, 0), [(.0215, -.156), (.0185, -.148), (.024, -.138), (.026, -.125), (.02, -.108), (0, -.100)], 10, IRON, cap=False, smooth=False)
+    if socket_empty:
+        b.lathe((0, 0, -.1535), [(0, 0), (.0185, 0), (.0185, -.0008), (0, -.0008)], 10, BS, cap=False)           # dark empty socket floor
+
+def moonstone_sword():
+    """Moonstone Sword, 1.10 m overall: slender silver blade with a glowing rune line, dark iron crossguard, red-leather grip,
+    milky moonstone set in the pommel. Origin: centre of the grip; blade along +Z (tip at z=0.925), pommel stone at z=-0.17."""
+    b = Builder("MoonstoneSword")
+    blade_loft(b, .098, .925, .021, .0045, SIL)
+    rune_line(b, .17, .58, .0045)
+    hilt_parts(b)
+    sphere(b, (0, 0, -.153), .0235, MOON, seg=8)
+    return b
+
+def relic_blade():
+    """Bare blade relic, lying flat: 0.96 m along Y, blade 0.80 + tang 0.14 with two rivet holes, faint rune line. Origin: centre,
+    base on z=0."""
+    b = Builder("RelicBlade")
+    with b.xf(T(0, -.44, .0085) @ Rx(-90)):
+        blade_loft(b, .14, .94, .022, .0048, SIL)
+        b.box((0, 0, .07), (.018, .007, .14), IRON)                       # tang
+        b.box((0, 0, .145), (.032, .009, .016), IRON)                      # shoulder
+        for z in (.045, .095):
+            b.lathe((0, .0045, z), [(.0045, 0), (.0045, .0006)], 6, BS, cap=False)     # rivet holes
+        rune_line(b, .22, .60, .0048)
+    return b
+
+def relic_hilt():
+    """Hilt-and-guard relic, lying flat: crossguard across X, grip along Y, empty pommel socket (dark floor). Origin: centre, base
+    on z=0."""
+    b = Builder("RelicHilt")
+    with b.xf(T(0, .04, .0375) @ Rx(-90)):
+        hilt_parts(b, socket_empty=True)
+    return b
+
+def relic_moonstone():
+    """Fist-sized uncut moonstone, about 0.20 x 0.20 x 0.16 m: a cluster of faceted lumps with a faint blue emissive. Origin: base
+    centre on z=0."""
+    b = Builder("RelicMoonstone")
+    rnd = random.Random(777)
+    lumps = [((0, 0, .075), .095, 1.0, (0, 0, 0)), ((.045, .02, .06), .065, .9, (20, 10, 30)), ((-.04, -.03, .055), .06, .85, (-15, 25, 70)),
+             ((.01, -.055, .05), .05, .8, (10, -20, 120)), ((-.03, .05, .09), .045, .8, (30, 0, 200))]
+    for (c, r, sq, (rx, ry, rz)) in lumps:
+        prof = []
+        for i in range(7):
+            u = i / 6.0
+            ang = math.pi * (u - .5)
+            prof.append((max(.0, r * math.cos(ang)) * rnd.uniform(.82, 1.12), r * sq * math.sin(ang)))
+        prof[0] = (0, prof[0][1]); prof[-1] = (0, prof[-1][1])
+        with b.xf(T(c[0], c[1], c[2] + .02) @ Rz(rz) @ Ry(ry) @ Rx(rx)):
+            b.lathe((0, 0, 0), prof, 7, MOON, smooth=False, cap=False)
+    return b
+
 BUILDERS = [
     ("Pew", pew, 3000), ("BanquetTable", banquet_table, 3000), ("Altar", altar, 3000), ("StoneFont", stone_font, 3000),
     ("Sarcophagus", sarcophagus, 3000), ("GiantSkeleton", giant_skeleton, 15000), ("Candelabra", candelabra, 3000),
     ("FloatingBook", floating_book, 3000), ("Portrait", portrait_frame, 3000), ("Bookshelf", bookshelf, 3000),
     ("Orrery", orrery, 3000), ("Fountain", dead_fountain, 3000), ("DeadTree", dead_tree, 3000), ("Banner", banner, 3000),
+    ("MoonstoneSword", moonstone_sword, 3000), ("RelicBlade", relic_blade, 3000), ("RelicHilt", relic_hilt, 3000), ("RelicMoonstone", relic_moonstone, 3000),
 ]
 
 def spec_for(name):
     def check(info):
         if name == "GiantSkeleton":
             assert 11.4 <= info["size"][1] <= 12.6, info["size"]
+        if name == "MoonstoneSword":
+            assert 1.04 <= info["size"][2] <= 1.16, info["size"]
         if name == "Pew":
             assert approx(info["size"][0], 2.4, .05), info["size"]
         if name == "Altar":
