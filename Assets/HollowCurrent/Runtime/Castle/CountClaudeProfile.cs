@@ -167,7 +167,7 @@ namespace HollowCurrent
         // hidden NearMissAfterSeconds into the hunt.
         public float NearMissChance=.33f, NearMissAfterSeconds=4f, NearMissDoorDistance=.5f, NearMissCrawlDistance=2.2f, NearMissCrawlSpeed=1.1f, NearMissHoldSeconds=3f;
         // Item 11, gatehouse violation (once per run, after the first survived hunt).
-        public float GatehouseSafeSeconds=40f, GatehouseHoldSeconds=4f, GatehouseFallbackHeight=3.5f, GatehouseArriveSeconds=1.4f, GatehouseChainsVolume=.4f, GatehouseHeadroom=1.75f;
+        public float GatehouseSafeSeconds=40f, GatehouseHoldSeconds=4f, GatehouseArriveSeconds=1.4f, GatehouseChainsVolume=.4f;
         // The battlement (F3: gate wall top) is seen from the courtyard, not from inside: he holds past GatehouseHoldSeconds
         // while she stays in the gatehouse, until she has looked at him GatehouseSeenSeconds or GatehouseMaxHoldSeconds pass.
         public float GatehouseSeenSeconds=1.2f, GatehouseMaxHoldSeconds=14f;

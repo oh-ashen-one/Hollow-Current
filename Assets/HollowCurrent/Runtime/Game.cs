@@ -455,6 +455,7 @@ namespace HollowCurrent
         {
             if(ScriptedRun){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
             if(Case.Phase!=Phase.Dead||Creature.PresentationRemaining<=0)return;
+            if(Creature.GrabCamActive)return; // hc/count16 frames the kill itself (skull centred, claws in the lower frame)
             var direction=Creature.Actor.Head.position-Player.View.transform.position;
             if(direction.sqrMagnitude>.04f)Player.View.transform.rotation=Quaternion.Slerp(Player.View.transform.rotation,Quaternion.LookRotation(direction),Time.unscaledDeltaTime*3);
         }

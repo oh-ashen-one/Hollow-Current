@@ -227,7 +227,7 @@ namespace HollowCurrent
                 else{revealHold=0;claws.SetActive(false);}
             }
             // Far bank: crossing the lowered drawbridge after the bell is sealed escapes (same as the winch).
-            if(phase==Phase.Return&&spots.Drawbridge&&spots.Drawbridge.Lowered&&!spots.Drawbridge.Moving&&spots.DrawbridgeTrigger.Contains(player.transform.position+Vector3.up*.5f)){if(ResolveDeathBeforeWin())return;Game.Case.FinishAtVan();}
+            if(phase==Phase.Return&&spots.Drawbridge&&spots.Drawbridge.Lowered&&!spots.Drawbridge.Moving&&spots.DrawbridgeTrigger.Contains(player.transform.position+Vector3.up*.5f)){if(ResolveDeathBeforeWin()||Game.Creature&&Game.Creature.GrabCamActive)return;Game.Case.FinishAtVan();} // never cut the grab camera mid-grab (hc/count16)
             // Strike: the instrument button with the sword, at the visible hunter, during a hunt.
             if(Forge.HasSword&&player.FirePressed&&hunting&&Fight.CanBeHit)
             {
