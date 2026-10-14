@@ -144,21 +144,30 @@ POSES = [   # one per variant: curl per joint (deg), spread, hook
 LENGTHS = [1.0, 1.3, 1.6, 1.9, 2.2, 1.45]   # strand lengths, = SurrealProps.HandRootLengths
 S_MAIN = 1.75
 
+def rootlet(b, rnd, p0, outward, r0, length, steps, droop=.5, mat=None, sides=4):
+    """A thin dead root: leaves `p0` along `outward`, curls and droops, tapers to a hair."""
+    d = (Vector(outward) + Vector((0, 0, -.35))).normalized()
+    pts = [Vector(p0)]; rds = [r0]; sl = length / steps
+    for i in range(1, steps + 1):
+        d = (d + Vector((rnd.uniform(-.35, .35), rnd.uniform(-.35, .35), -droop)) * .5).normalized()
+        pts.append(pts[-1] + d * sl); rds.append(lerp(r0, .0010, (i / steps) ** .9))
+    sweep(b, pts, rds, mat or BARK, sides=sides, tile=.2, cap_end=True)
+
 def hand_root(variant):
     rnd = random.Random(9100 + variant * 37)
     L = LENGTHS[variant]
     b = Builder("HandRoot%d" % variant)
-    # main strand: top at the origin hanging -Z, wandering sideways, thick at the top, ropy and knotted
+    # main strand: top at the origin hanging -Z, an S-curve that wanders sideways, thick and knotted at the top, ropy
     n = 16; ph = rnd.uniform(0, math.tau)
     pts, rds = [], []
-    amp = .10 + .02 * variant
+    amp = .13 + .02 * variant
     for i in range(n + 1):
         k = i / n
-        x = math.sin(k * 3.1 + ph) * amp * k + math.sin(k * 9 + ph * 2) * .012 * k
-        y = math.cos(k * 2.3 + ph) * amp * .8 * k + math.cos(k * 7 + ph) * .01 * k
+        x = math.sin(k * 3.1 + ph) * amp * k ** .8 + math.sin(k * 8 + ph * 2) * .02 * k + math.sin(k * 14 + ph) * .008 * k
+        y = math.cos(k * 2.3 + ph) * amp * .8 * k ** .8 + math.cos(k * 6.5 + ph) * .018 * k
         pts.append((x, y, -k * L))
-        r = lerp(.042, S_MAIN * .0155 * .95, k ** .75)
-        r *= 1 + .14 * math.sin(k * 23 + ph) * (1 - k) + (.30 * (1 - k) if abs(k - .35 - .1 * rnd.random()) < .035 else 0)
+        r = lerp(.050, S_MAIN * .0155 * .95, k ** .7)
+        r *= 1 + .16 * math.sin(k * 21 + ph) * (1 - k) + (.38 * (1 - k) if abs(k - .30 - .12 * rnd.random()) < .045 else 0) + (.28 * (1 - k) if abs(k - .62) < .03 else 0)
         rds.append(r)
     rds[-1] = S_MAIN * .0155 * .95
     rope(b, pts, rds, BARK, strands=3, turns=1.3 + .15 * (variant % 3), converge=1.0)
@@ -167,32 +176,35 @@ def hand_root(variant):
     tend = (Vector(pts[-1]) - Vector(pts[-2])).normalized()
     add_hand(b, Vector(pts[-1]), tend, twist, S_MAIN, pose, rnd, mirror=1 if variant % 2 == 0 else -1)
     # side branches: ropes ending in smaller hands, tips kept within 0.12 m of the main hand's depth
+    branch_pts = []
     for j in range(2):
-        start = int(n * rnd.uniform(.25, .55)); p0 = Vector(pts[start])
+        start = int(n * rnd.uniform(.22, .52)); p0 = Vector(pts[start])
         s_h = .86 - .14 * j
-        drop = rnd.uniform(.38, .62) * (L - (-p0.z)) + .25
-        lat = (-1 if j == 0 else 1) * rnd.uniform(.22, .36) * (1 if variant % 2 == 0 else -1); lat2 = rnd.uniform(-.14, .14)
+        drop = rnd.uniform(.40, .64) * (L - (-p0.z)) + .25
+        lat = (-1 if j == 0 else 1) * rnd.uniform(.24, .40) * (1 if variant % 2 == 0 else -1); lat2 = rnd.uniform(-.14, .14)
         end = p0 + Vector((lat, lat2, -drop))
         bp, br = [], []
-        for i in range(12):
-            t = i / 11
-            bow = math.sin(t * math.pi) * rnd.uniform(.05, .11) * (1 if j == 0 else -1)
-            bp.append(p0 + (end - p0) * t + Vector((bow, math.sin(t * 5 + j) * .03, -.05 * math.sin(t * math.pi))))
-            br.append(lerp(rds[start] * .62, S_MAIN * s_h * .0155 * .95, t ** .8))
+        for i in range(11):
+            t = i / 10
+            bow = math.sin(t * math.pi) * rnd.uniform(.07, .14) * (1 if j == 0 else -1)
+            bp.append(p0 + (end - p0) * t + Vector((bow, math.sin(t * 4.5 + j + ph) * .045, -.06 * math.sin(t * math.pi))))
+            br.append(lerp(rds[start] * .66, S_MAIN * s_h * .0155 * .95, t ** .8) * (1 + .12 * math.sin(t * 17 + j)))
+        branch_pts.append((bp, br))
         rope(b, bp, br, BARK, strands=2, turns=1.0, converge=1.0, sides=5, core=.7)
         pose_b = dict(curl=[c + rnd.uniform(-6, 8) for c in pose["curl"]], spread=pose["spread"], hook=pose.get("hook", 0))
         add_hand(b, bp[-1], (bp[-1] - bp[-2]).normalized(), rnd.uniform(-70, 70), S_MAIN * s_h, pose_b, rnd, mirror=rnd.choice([-1, 1]))
-    # dead rootlets with no hand: short curved hairs along the whole strand
-    for j in range(6 + variant % 3):
-        start = int(n * rnd.uniform(.04, .70)); p0 = Vector(pts[start])
-        a = rnd.uniform(0, math.tau)
-        d = Vector((math.cos(a) * .9, math.sin(a) * .9, -rnd.uniform(.25, .7))).normalized()
-        rp = [p0 + Vector((math.cos(a), math.sin(a), 0)) * rds[start] * .6]; rr = [rds[start] * .30]
-        steps = rnd.randint(4, 6); sl = rnd.uniform(.05, .11)
-        for i in range(1, steps):
-            d = (d + Vector((rnd.uniform(-.3, .3), rnd.uniform(-.3, .3), -.45)) * .5).normalized()
-            rp.append(rp[-1] + d * sl); rr.append(lerp(rds[start] * .30, .0012, i / (steps - 1)))
-        sweep(b, rp, rr, BARK, sides=4, tile=.2, cap_end=True)
+    # a thick dead branch that never reaches a hand (every other variant) and many hair roots on the strand and the branches
+    if variant % 2:
+        start = int(n * rnd.uniform(.12, .30)); p0 = Vector(pts[start])
+        ang = rnd.uniform(0, math.tau)
+        rootlet(b, rnd, p0 + Vector((math.cos(ang), math.sin(ang), 0)) * rds[start] * .7, (math.cos(ang), math.sin(ang), -.3), rds[start] * .42, rnd.uniform(.55, .85), 8, .35, sides=5)
+    for j in range(7 + variant % 3):
+        start = int(n * rnd.uniform(.03, .78)); p0 = Vector(pts[start]); a = rnd.uniform(0, math.tau)
+        rootlet(b, rnd, p0 + Vector((math.cos(a), math.sin(a), 0)) * rds[start] * .65, (math.cos(a), math.sin(a), 0), rds[start] * .30, rnd.uniform(.12, .38), rnd.randint(4, 5), .45)
+    for (bp, br) in branch_pts:
+        for j in range(2):
+            i = rnd.randint(2, 8); a = rnd.uniform(0, math.tau)
+            rootlet(b, rnd, bp[i] + Vector((math.cos(a), math.sin(a), 0)) * br[i] * .6, (math.cos(a), math.sin(a), 0), br[i] * .35, rnd.uniform(.10, .26), 4, .45)
     b.notes = dict(strand_length=L)
     return b
 
@@ -354,7 +366,9 @@ def book_closed(S, leather, name, clasp=False):
         b._f([cols[0][i], cols[1][i], cols[1][i + 1], cols[0][i + 1]], leather, True, [(.01, .01), (.04, .01), (.04, .02), (.01, .02)], closed=False)
     for k in range(4):
         y = -d / 2 + d * (k + 1) / 5
-        sweep(b, [(-w / 2 - T * .52, y, T * .02), (-w / 2 - T * .54, y, T / 2), (-w / 2 - T * .52, y, T * .98)], [(.0016 * S, .0018 * S)] * 3, GILT, sides=4, up=(1, 0, 0), tile=.1, cap_end=True)
+        arc = [(x * 1.0 - (T * .02 if False else 0) + (-.0012 * S) * math.sin(math.radians(t)), y, z + .0012 * S * math.cos(math.radians(t)))
+               for (x, z), t in zip(ring, range(0, 181, 30))]
+        sweep(b, arc, [(.0016 * S, .0018 * S)] * len(arc), GILT, sides=4, up=(0, 1, 0), tile=.1, cap_end=True)
     # worn gilt corner caps on the top board
     for sx in (-1, 1):
         for sy in (-1, 1):
@@ -435,26 +449,43 @@ def rune_stroke(b, c, length, ang, zt, w=.007, h=.0025):
     with b.xf(T(c[0], c[1], zt) @ Rz(ang)):
         b.box((0, 0, 0), (w, length, h), RUNE)
 
+# angular futhark-style glyphs: each is a list of segments in a unit box (x -.5..+.5, y -.5..+.5, staves along y)
+GLYPHS = [
+    [((0, -.5), (0, .5)), ((0, .5), (.45, .15)), ((0, .1), (.45, -.25))],                         # fehu-like
+    [((-.25, -.5), (-.25, .5)), ((-.25, .5), (.25, .1)), ((.25, .1), (.25, -.5))],                # uruz-like
+    [((0, -.5), (0, .5)), ((0, .35), (.4, .1)), ((.4, .1), (0, -.15))],                           # thurisaz-like
+    [((-.2, -.5), (-.2, .5)), ((-.2, .5), (.3, .25)), ((.3, .25), (-.2, 0)), ((-.2, 0), (.3, -.5))],   # raido-like
+    [((.3, .5), (-.3, 0)), ((-.3, 0), (.3, -.5))],                                                # kaunan-like
+    [((0, -.5), (0, .5)), ((0, .5), (-.4, 0)), ((0, .5), (.4, 0))],                               # algiz-like
+    [((0, -.5), (0, .5)), ((-.35, .35), (0, 0)), ((.35, .35), (0, 0)), ((-.2, -.2), (.2, -.2))],   # mixed
+]
+
+def glyph(b, c, size, gi, z0, rot=0.0, w=.0075):
+    r = math.radians(rot); cr, sr = math.cos(r), math.sin(r)
+    def tp(p): return (c[0] + (p[0] * cr - p[1] * sr) * size, c[1] + (p[0] * sr + p[1] * cr) * size)
+    for (p, q) in GLYPHS[gi % len(GLYPHS)]:
+        a_, b__ = tp(p), tp(q)
+        ln = math.hypot(b__[0] - a_[0], b__[1] - a_[1]); ang = math.degrees(math.atan2(b__[1] - a_[1], b__[0] - a_[0])) - 90
+        rune_stroke(b, ((a_[0] + b__[0]) / 2, (a_[1] + b__[1]) / 2), ln + w * .6, ang, z0, w=w)
+
 def rune_blade(b, z0):
-    rune_stroke(b, (0, -.02), .34, 0, z0)
-    for k, (y, l, a) in enumerate(((.18, .05, 35), (.18, .05, -35), (.04, .06, 40), (.04, .06, -40), (-.12, .055, 40), (-.12, .055, -40), (-.22, .04, 0))):
-        rune_stroke(b, (0, y), l, a if a else 90, z0)
+    for i, y in enumerate((-.26, -.13, 0.0, .13, .24)):
+        glyph(b, (0, y), .095, i, z0, 0)
+    rune_stroke(b, (-.06, 0), .5, 0, z0, w=.004); rune_stroke(b, (.06, 0), .5, 0, z0, w=.004)
 
 def rune_hilt(b, z0):
-    rune_stroke(b, (0, 0), .36, 0, z0); rune_stroke(b, (0, 0), .30, 90, z0)
-    for sx in (-1, 1):
-        rune_stroke(b, (sx * .13, 0), .045, 0, z0); rune_stroke(b, (0, sx * .19), .04, 90, z0)
-    rune_stroke(b, (0, 0), .05, 45, z0); rune_stroke(b, (0, 0), .05, -45, z0)
+    glyph(b, (0, 0), .20, 5, z0, 0, w=.010)
+    for k, (cx, cy, rot) in enumerate(((-.15, 0, 90), (.15, 0, -90), (0, .17, 0), (0, -.17, 180))):
+        glyph(b, (cx, cy), .06, k, z0, rot, w=.006)
 
 def rune_moon(b, z0):
     for i in range(12):
         a = math.tau * i / 12
-        c = (math.cos(a) * .125, math.sin(a) * .125)
-        rune_stroke(b, c, .05, math.degrees(a) + 90 + (14 if i % 2 else -10), z0)
+        glyph(b, (math.cos(a) * .125, math.sin(a) * .125), .052, i, z0, math.degrees(a) - 90, w=.0055)
     for i in range(24):
         a = math.tau * (i + .5) / 24
-        rune_stroke(b, (math.cos(a) * .09, math.sin(a) * .09), .026, math.degrees(a) + 90, z0, w=.004)
-    rune_stroke(b, (0, 0), .06, 0, z0); rune_stroke(b, (0, 0), .06, 90, z0)
+        rune_stroke(b, (math.cos(a) * .075, math.sin(a) * .075), .02, math.degrees(a) + 90, z0, w=.0035)
+    glyph(b, (0, 0), .06, 6, z0, 0, w=.006)
 
 BLADE_OUTLINE = [(-.11, -.33), (.11, -.33), (.11, .20), (0, .33), (-.11, .20)]
 HILT_OUTLINE = [(-.095, -.25), (.095, -.25), (.095, -.085), (.22, -.085), (.22, .085), (.095, .085), (.095, .25), (-.095, .25), (-.095, .085), (-.22, .085), (-.22, -.085), (-.095, -.085)]
@@ -552,8 +583,10 @@ def giant_skeleton():
             b.tube([(sx_ * .12, -.02, .50), (sx_ * .27, -.15, .50), (sx_ * .34, -.32, .42)], [.045, .055, .04], 6, GBONE)
             ring = [(sx_ * .30, -.14 + .12 * math.cos(a_), .27 + .12 * math.sin(a_)) for a_ in [i * math.tau / 10 for i in range(10)]]
             b.tube(ring, .032, 5, GBONE, closed=True)
-            b.lathe((sx_ * .27, -.14, .27), [(0, -.07), (.085, -.04), (.11, .03), (.075, .08), (0, .09)], 8, BS, smooth=True)
-            b.lathe((sx_ * .06, .60, .215), [(0, -.04), (.04, -.02), (.04, .02), (0, .04)], 6, BS, smooth=True)
+            with b.xf(T(sx_ * .322, -.14, .27) @ Ry(90 * sx_)):          # eye socket: a black disc just proud of the cranium, inside the bone ring
+                b.lathe((0, 0, 0), [(0, .022), (.075, .016), (.105, -.010)], 10, BS, smooth=False)
+            with b.xf(T(sx_ * .075, .60, .235) @ Ry(70 * sx_)):         # nasal opening
+                b.lathe((0, 0, 0), [(0, .012), (.04, .008), (.055, -.004)], 8, BS, smooth=False)
             b.tube([(sx_ * .33, -.38, .14), (sx_ * .36, -.15, .08), (sx_ * .24, .18, .08)], [.035, .04, .03], 5, GBONE)
             for i in range(6):
                 yy = .02 + i * .13

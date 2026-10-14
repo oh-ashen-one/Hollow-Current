@@ -139,3 +139,23 @@ critic or owner replaces the cell with a name and date once a clip is cleared. M
 | `wind_battlements_loop.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
 | `wing_beats_loop.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
 | `wing_wrap_grab.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+
+## Round 12 art props (piece `hc/art-props`): one CustomUse job (rejected), everything shipped is procedural
+
+2026-10-14. Hand-roots, books, relic sockets and the giant skeleton are modelled in headless Blender by `tools/castle_props_r12.py`
+(Blender CPU, no network) with textures from `tools/castle_r12_textures.py` (numpy + Pillow, fixed seeds). The only paid generation was
+one CustomUse job for the hand base mesh; the result was too poor to ship, so the hand is sculpted procedurally (`add_hand`).
+
+| Step | Node / model | Credits before → after | Inputs | Output |
+|---|---|---|---|---|
+| Upload | `imageUpload` (`customuse_upload_media`, base64 JPEG q93), workflow `a895a933-7b8e-454e-864e-6bffd8dba22a` ("Hollow Current - hand-root (r12 art-props)") | 4486 → 4486 | `refs/hand_root_crop.jpg` (one hand and wrist crop of `refs/crypt.png`, background masked to flat grey, 900 px) | node `3d82e6c8-e60d-4bc1-9c28-bf3f2f9377df` |
+| Mesh | `tripoV31Mesh3d` (Tripo v3.1), single image, faceLimit 15000, 2K, isPrivate true; node `7c1895e2-bafb-4aa6-8b51-0f1c755352da` | 4486 → **4386 (100)** | the crop | `https://public.customuse.com/uploader/files/582806b9-6e5e-42f4-a503-4d55170d9545/4ecaa09c-33a7-4eaf-b510-7ee815e604c3.glb` (14,488 tris, untextured) |
+
+Review: **rejected**. The fingers fused into a paddle with one detached stub, the wrist was a flat-cut tube, and there was no usable finger
+separation to decimate (`meshDecimation` was not run; there was nothing to keep at 4k tris). One job only, per the one-paid-job rule. The
+GLB is not committed. Total CustomUse spend for this piece: **100 credits** (Tripo v3.1). Licence: [Customuse terms §4](https://customuse.com/terms) as
+for the Count (see `ASSET_LICENSES.md`); nothing generated ships, so no file needs a licence line beyond the project's own.
+
+Shipped art (all original project work, CC BY 4.0, no generated mesh): `HandRoot0..5.fbx`, `RootCrown.fbx`, `FloatingBook{Small,,Large}.fbx`,
+`BookClosed{Small,,Large}.fbx`, `RelicSocket{Blade,Hilt,Moon}.fbx`, `GiantSkeleton.fbx`, and nine materials: `Castle_BookLeatherA/B/C`,
+`Castle_BookPages`, `Castle_GiltWorn`, `Castle_RootBark`, `Castle_RootFlesh`, `Castle_BoneGrime`, `Castle_NicheStone`.
