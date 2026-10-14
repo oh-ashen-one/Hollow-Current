@@ -47,6 +47,26 @@ namespace HollowCurrent
             }
             ready=true;
         }
+        // Number of knives still circling.
+        public int ActiveKnives
+        {
+            get{int n=0;if(knives!=null)foreach(var k in knives)if(k)n++;return n;}
+        }
+        // Takes the knife nearest to `worldPoint` out of the orbit (it keeps its pose and is no longer moved here) and returns it,
+        // or null when none is left. Used by the castle dread beat that sticks one knife into the block.
+        public Transform ReleaseKnife(Vector3 worldPoint)
+        {
+            if(knives==null)return null;
+            int best=-1;float bestDistance=float.MaxValue;
+            for(int i=0;i<knives.Length;i++)
+            {
+                if(!knives[i])continue;
+                float d=(knives[i].position-worldPoint).sqrMagnitude;
+                if(d<bestDistance){bestDistance=d;best=i;}
+            }
+            if(best<0)return null;
+            var knife=knives[best];knives[best]=null;return knife;
+        }
         void Update()
         {
             if(!ready)return;

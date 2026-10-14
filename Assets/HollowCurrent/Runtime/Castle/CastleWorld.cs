@@ -23,6 +23,8 @@ namespace HollowCurrent
             public Vector3[] PerchPoints;         // feet positions: balcony W/E, rose-window ledge, library gallery, observatory, hall rafter
             public Vector3 AltarPosition;         // top centre of the chapel altar (forge)
             public Vector3[] RelicPositions;      // 0 silver blade (reliquary), 1 hallowed hilt (orrery), 2 moonstone (portrait closet)
+            public Vector3[] RelicAltPositions;   // one alternate hiding place per relic, each in a different room (kitchen, dining hall, bedchamber); see RelicAltLocal
+            public Vector3 GatehouseBattlement;   // feet position on the gate wall top above the lantern cart where a 2.5 m figure can stand
             public Bounds DrawbridgeTrigger;      // entering this on the far bank after crossing = escape
             // extras
             public Vector3 DrawbridgeWinch;       // InteractKind.Van interactable (lower the bridge)
@@ -98,6 +100,16 @@ namespace HollowCurrent
             new Vector3(-10f, 5.6f, 16f), new Vector3(11.4f, 8.6f, 26.4f), new Vector3(0, 8.1f, 19.5f),
         };
         static readonly Vector3[] RelicLocal = { new Vector3(13f, -2.55f, 21f), new Vector3(10.0f, 8.1f, 24.0f), new Vector3(12.3f, 4.3f, 14.4f) };
+        // Alternate hiding places (fear plan 7, "death costs something"): the same convention as RelicLocal, surface top + 0.1 m, on
+        // furniture a player can reach from the nav floor in front of it, one room away from the original:
+        //   0 silver blade -> kitchen butcher block top (block top 0.82), among the orbiting knives; stand at (-9.5, 0, 3.9) or (-9.5, 0, 6.1)
+        //   1 hallowed hilt -> dining hall sideboard centre (top 1.10; its throwables leave x -11 clear); stand at (-11, 0, 20.0)
+        //   2 moonstone -> bedchamber dressing table centre (top 3.95; see Bedchamber); stand at (-12.6, 3.2, 2.4)
+        static readonly Vector3[] RelicAltLocal = { new Vector3(-9.9f, .92f, 4.6f), new Vector3(-11.0f, 1.2f, 21.4f), new Vector3(-12.6f, 4.05f, 1.2f) };
+        // Gate wall top (y 7.5, the wall is 0.9 m thick on z = 0) above the lantern cart at x 3.6. The gatehouse ceiling is at 5.2, so a
+        // 2.5 m figure here stands over the roof edge and is seen against the sky from the bank, through the gate, or from the
+        // courtyard side; from inside the gatehouse it is heard (chains, voice), not seen.
+        static readonly Vector3 BattlementLocal = new Vector3(3.6f, 7.5f, 0f);
 
         CastleWorld(Transform root) { this.root = root; }
         Vector3 W(Vector3 v) => root.TransformPoint(v);
@@ -122,6 +134,9 @@ namespace HollowCurrent
             for (int i = 0; i < PerchLocal.Length; i++) p.PerchPoints[i] = W(PerchLocal[i]);
             p.RelicPositions = new Vector3[RelicLocal.Length];
             for (int i = 0; i < RelicLocal.Length; i++) p.RelicPositions[i] = W(RelicLocal[i]);
+            p.RelicAltPositions = new Vector3[RelicAltLocal.Length];
+            for (int i = 0; i < RelicAltLocal.Length; i++) p.RelicAltPositions[i] = W(RelicAltLocal[i]);
+            p.GatehouseBattlement = W(BattlementLocal);
             return p;
         }
 
@@ -152,6 +167,7 @@ namespace HollowCurrent
             Crypt();
             Reliquary();
             ServiceStair();
+            SmallProps();
             Roofline();
             foreach (var c in CastleLayout.Candles) Candle(c);
             Moonlight();
@@ -1185,6 +1201,9 @@ namespace HollowCurrent
             Note("Steward's last entry", new Vector3(-10.5f, 4.07f, 16.0f), "Steward's last entry",
                 "BLOOD LEDGER, LAST PAGE IN THE STEWARD'S HAND\n\nI have hidden the three of them where he will not look, because he does not look up or down, only across. The blade I put under the stone where the dead sleep. The hilt I gave to the stars; they have kept a socket empty for it. The stone I hid behind a face that he never could abide.\n\nIf you read this and still have your own blood, find the altar.");
             Hide("Library cabinet", new Vector3(-6.3f, 3.2f, 19.8f), 90);
+            // piles of floating books for CastleScares.Beat (a book drops from the nearest pile); head height is 5.0, so they hang above it
+            BookStack("Floating book stack A", new Vector3(-9.0f, 5.35f, 18.7f), 1);
+            BookStack("Floating book stack B", new Vector3(-12.2f, 5.35f, 13.4f), 2);
         }
 
         void PortraitHall()
@@ -1202,6 +1221,7 @@ namespace HollowCurrent
             Note("Blood Ledger page", new Vector3(-8.4f, 4.4f, 6.5f), "Blood Ledger page",
                 "BLOOD LEDGER, THE MARGRAVE'S OWN HAND\n\nFirst night: the cellarer. Second night: the cook and both her girls. The bargain asked for the household one name at a time, and I wrote each name myself because he asked me to.\n\nThe candles lean when he is near. They lean toward the thing that wants us.");
             Hide("Count's wardrobe", new Vector3(-7.7f, 3.2f, .45f), 180);
+            BookStack("Floating book stack C", new Vector3(-9.2f, 5.35f, 3.4f), 3);
         }
 
         void Observatory()
@@ -1240,6 +1260,11 @@ namespace HollowCurrent
             CryptBridgeAndPosts();
             Prop(Art.Sarcophagus, new Vector3(0, -3.2f, 22.5f), 0);
             SarcophagusRunes(new Vector3(0, -3.2f, 22.5f));
+            // Interactable over the whole sarcophagus (trigger: no collision, nav is unchanged). Kind Note is the closest existing kind;
+            // CastleRun (F2) reacts to the label "Sarcophagus" in NoteRead. Invisible: the mesh is the Sarcophagus art.
+            var sarcophagus = Interact("Sarcophagus", new Vector3(0, -3.2f + .65f, 22.5f), new Vector3(2.3f, 1.3f, 1.1f), "stone", InteractKind.Note, "Sarcophagus",
+                "The lid is carved with a sleeping margrave. The runes along the trough are warm to the touch, as if something under them were reading.", false);
+            sarcophagus.GetComponent<Collider>().isTrigger = true;
             foreach (float z in new[] { 16.5f, 26.5f })
             {
                 foreach (int side in new[] { -1, 1 }) Prop(Art.Column, new Vector3(side * 4.2f, -3.2f, z), 0);
@@ -1359,6 +1384,183 @@ namespace HollowCurrent
         void ServiceStair()
         {
             stairLoop = Proxy("StairLoop", new Vector3(-9.45f, -1.4f, 24.1f), new Vector3(4.4f, 3.0f, 1.2f), 0, true).transform;
+        }
+
+        // ---- throwable small props, book stacks, nailed hides (haunted-castle F3) ---------------------------------------------
+        // Goblets, candlesticks, plates, books, bowls, tankards and knives on the tables of the great hall, dining hall, kitchen,
+        // library and bedchamber. Each is a few primitive parts with their colliders removed under an empty root carrying a Throwable
+        // marker (no Rigidbody, no collider until thrown); the root's mesh bounds stay under 0.3 m on every axis, inside
+        // ScareDirector.ThrowNearbyProp's 0.4 m rule. Positions are castle-local on the table tops of the rooms below.
+        int throwables;
+        void Part(Transform parent, PrimitiveType type, Vector3 local, Vector3 scale, string mat, float rollZ = 0)
+        {
+            var g = GameObject.CreatePrimitive(type);
+            g.name = type.ToString(); g.transform.SetParent(parent, false);
+            g.transform.localPosition = local; g.transform.localRotation = Quaternion.Euler(0, 0, rollZ); g.transform.localScale = scale;
+            Release(g.GetComponent<Collider>());
+            var r = g.GetComponent<Renderer>(); r.sharedMaterial = mats[mat];
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        }
+        // A cylinder part: diameter and height in metres, base resting at local y0.
+        void Drum(Transform parent, float y0, float diameter, float height, string mat, float x = 0, float z = 0)
+            => Part(parent, PrimitiveType.Cylinder, new Vector3(x, y0 + height * .5f, z), new Vector3(diameter, height * .5f, diameter), mat);
+
+        enum Small { Goblet, Candlestick, Plate, Book, Bowl, Tankard, Pitcher, Knife }
+        Transform MakeThrowable(Small kind, Vector3 pos, float yaw = 0)
+        {
+            var t = new GameObject("Throwable / " + kind).transform;
+            t.SetParent(root, false); t.localPosition = pos; t.localRotation = Quaternion.Euler(0, yaw, 0);
+            switch (kind)
+            {
+                case Small.Goblet:
+                    Drum(t, 0, .07f, .01f, "silver"); Drum(t, .01f, .015f, .06f, "silver");
+                    Part(t, PrimitiveType.Sphere, new Vector3(0, .105f, 0), new Vector3(.08f, .07f, .08f), "silver");
+                    break;
+                case Small.Candlestick:
+                    Drum(t, 0, .09f, .02f, "brass"); Drum(t, .02f, .02f, .16f, "brass"); Drum(t, .18f, .05f, .015f, "brass"); Drum(t, .195f, .028f, .09f, "paper");
+                    break;
+                case Small.Plate:
+                    Drum(t, 0, .26f, .015f, "silver"); Drum(t, .015f, .17f, .006f, "metal");
+                    break;
+                case Small.Book:
+                    Part(t, PrimitiveType.Cube, new Vector3(0, .0025f, 0), new Vector3(.2f, .005f, .14f), "cloth");
+                    Part(t, PrimitiveType.Cube, new Vector3(0, .0325f, 0), new Vector3(.2f, .005f, .14f), "cloth");
+                    Part(t, PrimitiveType.Cube, new Vector3(-.0975f, .0175f, 0), new Vector3(.01f, .035f, .14f), "cloth");
+                    Part(t, PrimitiveType.Cube, new Vector3(.005f, .0175f, 0), new Vector3(.185f, .025f, .13f), "paper");
+                    break;
+                case Small.Bowl:
+                    Part(t, PrimitiveType.Sphere, new Vector3(0, .04f, 0), new Vector3(.2f, .08f, .2f), "wood");
+                    break;
+                case Small.Tankard:
+                    Drum(t, 0, .08f, .11f, "metal"); Part(t, PrimitiveType.Cube, new Vector3(.055f, .06f, 0), new Vector3(.012f, .07f, .03f), "metal");
+                    break;
+                case Small.Pitcher:
+                    Drum(t, 0, .1f, .17f, "metal"); Drum(t, .17f, .065f, .05f, "metal");
+                    break;
+                case Small.Knife:
+                    SurrealProps.NewRenderer("Blade", t, Vector3.zero, Quaternion.identity, SurrealProps.KnifeMesh, SurrealProps.KnifeMaterials, false);
+                    break;
+            }
+            t.gameObject.AddComponent<Throwable>();
+            throwables++;
+            return t;
+        }
+
+        // Positions are given as (lateral, along) on a table whose length runs along world z (the great hall and dining tables are
+        // yawed 90), so a pair mirrored about the table centre never lands on the baked goblets and plates, whichever way the mesh runs.
+        void SmallProps()
+        {
+            // Great hall banquet table: top y 0.775, centre (0, 23.7), 3.3 m long on z, 1.3 m wide on x. Plates at lateral 0.5, books
+            // on the runner between the baked candlesticks, goblets inboard of the baked ones, candlesticks near the ends.
+            const float hallTop = .775f; var hall = CastleLayout.TablePos;
+            foreach (int side in new[] { -1, 1 })
+                foreach (float along in new[] { -1.1f, 0f, 1.1f })
+                    MakeThrowable(Small.Plate, new Vector3(hall.x + side * .5f, hallTop, hall.z + along * side), 0);
+            MakeThrowable(Small.Book, new Vector3(hall.x, hallTop, hall.z + .5f), 25); MakeThrowable(Small.Book, new Vector3(hall.x, hallTop, hall.z - .5f), -40);
+            MakeThrowable(Small.Goblet, new Vector3(hall.x + .18f, hallTop, hall.z + .3f)); MakeThrowable(Small.Goblet, new Vector3(hall.x - .18f, hallTop, hall.z - .3f));
+            MakeThrowable(Small.Candlestick, new Vector3(hall.x, hallTop, hall.z + 1.5f)); MakeThrowable(Small.Candlestick, new Vector3(hall.x, hallTop, hall.z - 1.5f));
+
+            // Dining hall: table centre (-10, 16), 5.6 m on z, top y 0.792; sideboard top y 1.10 (centre x -11 stays clear for the relic).
+            const float diningTop = .792f;
+            foreach (int side in new[] { -1, 1 })
+            {
+                MakeThrowable(Small.Goblet, new Vector3(-10f + side * .22f, diningTop, 16f + side * .4f));
+                MakeThrowable(Small.Goblet, new Vector3(-10f - side * .22f, diningTop, 16f + side * 1.25f));
+                MakeThrowable(Small.Candlestick, new Vector3(-10f + side * .25f, diningTop, 16f - side * .8f));
+            }
+            MakeThrowable(Small.Book, new Vector3(-10.25f, diningTop, 16f), 70);
+            MakeThrowable(Small.Goblet, new Vector3(-12.0f, 1.1f, 21.4f)); MakeThrowable(Small.Plate, new Vector3(-11.55f, 1.1f, 21.4f));
+            MakeThrowable(Small.Goblet, new Vector3(-10.45f, 1.1f, 21.4f)); MakeThrowable(Small.Candlestick, new Vector3(-9.95f, 1.1f, 21.4f));
+
+            // Kitchen prep table: top y 0.9, x -9.6..-7.4, z 7..8; the tally note sits at its centre.
+            MakeThrowable(Small.Bowl, new Vector3(-9.2f, .9f, 7.25f)); MakeThrowable(Small.Bowl, new Vector3(-7.8f, .9f, 7.7f), 30);
+            MakeThrowable(Small.Tankard, new Vector3(-9.3f, .9f, 7.75f)); MakeThrowable(Small.Tankard, new Vector3(-7.7f, .9f, 7.25f));
+            MakeThrowable(Small.Pitcher, new Vector3(-7.95f, .9f, 7.5f));
+            MakeThrowable(Small.Knife, new Vector3(-9.05f, .9f, 7.5f), 40); MakeThrowable(Small.Knife, new Vector3(-8.95f, .9f, 7.85f), -25);
+
+            // Library reading table: top y 4.04, centre (-10.5, 16); the steward's note, the baked tome (z about 15.75) and candlestick (z 16.6) stay clear.
+            const float libraryTop = 4.04f;
+            MakeThrowable(Small.Book, new Vector3(-10.2f, libraryTop, 15.2f), 20); MakeThrowable(Small.Book, new Vector3(-10.8f, libraryTop, 16.85f), -15);
+            MakeThrowable(Small.Goblet, new Vector3(-10.75f, libraryTop, 15.25f)); MakeThrowable(Small.Goblet, new Vector3(-10.25f, libraryTop, 16.4f));
+            MakeThrowable(Small.Candlestick, new Vector3(-10.3f, libraryTop, 15.55f));
+
+            // Bedchamber dressing table (new, against the west wall): top y 3.95, x -13.2..-12.0, z 0.9..1.5. Its centre is the moonstone's alternate place.
+            Box("Dressing table", new Vector3(-12.6f, 3.2f + .375f, 1.2f), new Vector3(1.2f, .75f, .6f), "darkwood");
+            MakeThrowable(Small.Goblet, new Vector3(-13.0f, 3.95f, 1.25f)); MakeThrowable(Small.Candlestick, new Vector3(-12.2f, 3.95f, 1.25f));
+            MakeThrowable(Small.Book, new Vector3(-12.2f, 3.95f, .98f), 15);
+            Debug.Log("HC_THROWABLES placed=" + throwables);
+        }
+
+        // A pile of four open books floating in the air with one Floater on the pile. CastleScares.Beat finds the pile by its name prefix "Floating book stack" (no marker component), detaches the top child and drops it.
+        void BookStack(string name, Vector3 pos, int seed)
+        {
+            var pile = new GameObject(name).transform;
+            pile.SetParent(root, false); pile.localPosition = pos;
+            for (int i = 0; i < 4; i++)
+            {
+                var book = CastleArt.Place(Art.FloatingBook, pile, new Vector3(((i * 37) % 5 - 2) * .02f, i * .13f, ((i * 53) % 5 - 2) * .02f), Quaternion.Euler(0, (i * 71 + seed * 29) % 360, ((i % 3) - 1) * 4f));
+                book.transform.localScale = Vector3.one * 1.2f;
+            }
+            var f = pile.gameObject.AddComponent<Floater>();
+            f.phase = Mathf.Repeat(seed * .6180339f + .3f, 1); f.bobAmplitude = .1f; f.bobHertz = .15f; f.tiltDegrees = 3; f.yawDegreesPerSecond = 3;
+        }
+
+        // ---- nailed hides (Long Night) ---------------------------------------------------------------------------------------
+        // Deactivates `count` hide interactables for the rest of the run: two crossed planks appear on the cupboard door and the
+        // interactable switches off. The Hall armoire and the Confessional always stay open. Hides within 3 m of `awayFrom` (the
+        // player) are never chosen. Works on the live scene, so it also serves prepared scenes. Returns how many were nailed.
+        // World.HidingPlaces still lists them: filter on gameObject.activeInHierarchy where the hunter picks a hide to search.
+        static readonly List<Interactable> nailedHides = new List<Interactable>();
+        static readonly List<GameObject> nailPlanks = new List<GameObject>();
+        public static IReadOnlyList<Interactable> NailedHides => nailedHides;
+        public static int NailHides(int count) => NailHides(count, null);
+        public static int NailHides(int count, Vector3? awayFrom)
+        {
+            if (count <= 0) return 0;
+            var pool = new List<Interactable>();
+            foreach (var item in Object.FindObjectsByType<Interactable>(FindObjectsSortMode.None))
+            {
+                if (item.Kind != InteractKind.Hide || !item.gameObject.activeInHierarchy || nailedHides.Contains(item)) continue;
+                if (item.name == "Hall armoire" || item.name == "Confessional") continue;
+                if (awayFrom.HasValue && Vector3.Distance(item.transform.position, awayFrom.Value) < 3f) continue;
+                pool.Add(item);
+            }
+            pool.Sort((a, b) => string.CompareOrdinal(a.name, b.name));   // FindObjectsByType order is arbitrary; sort so the draw is reproducible with a seed
+            int nailed = 0;
+            while (nailed < count && pool.Count > 0)
+            {
+                int k = Random.Range(0, pool.Count);
+                Nail(pool[k]); pool.RemoveAt(k); nailed++;
+            }
+            Debug.Log("HC_NAIL_HIDES nailed=" + nailed + " of requested=" + count);
+            return nailed;
+        }
+        static void Nail(Interactable item)
+        {
+            nailedHides.Add(item);
+            var t = item.transform; var rot = t.rotation;
+            var shader = Shader.Find("Standard");
+            var wood = new Material(shader) { name = "HC castle / nailed plank", color = new Color(.12f, .07f, .04f) };
+            wood.SetFloat("_Glossiness", .1f);
+            foreach (float roll in new[] { 24f, -24f })
+            {
+                var plank = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                plank.name = "Nailed plank";
+                Release(plank.GetComponent<Collider>());
+                plank.GetComponent<Renderer>().sharedMaterial = wood;
+                plank.transform.SetParent(t.parent, true);
+                plank.transform.SetPositionAndRotation(t.position + rot * new Vector3(0, -.25f, -.07f), rot * Quaternion.Euler(0, 0, roll));
+                plank.transform.localScale = new Vector3(1.35f, .13f, .035f);
+                nailPlanks.Add(plank);
+            }
+            item.gameObject.SetActive(false);
+        }
+        // Reopens every nailed hide and removes the planks (a new run, or a retry from checkpoint).
+        public static void UnnailHides()
+        {
+            foreach (var item in nailedHides) if (item) item.gameObject.SetActive(true);
+            foreach (var plank in nailPlanks) if (plank) Release(plank);
+            nailedHides.Clear(); nailPlanks.Clear();
         }
 
         // ---- search points and navigation ------------------------------------------------------------------
