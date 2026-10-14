@@ -222,23 +222,23 @@ static class RulesTests
         Assert(Math.Abs(r.DiceChance(45,1)-.125f)<.0001f&&Math.Abs(r.DiceChance(65,1)-.25f)<.0001f&&Math.Abs(r.DiceChance(85,3)-.625f)<.0001f&&r.DiceChance(39.9f,3)==0,"dice chance by band times evidence");
 
         // Dice hunts occur / do not occur by band (one record: no first-hunt guarantee; dread held outside).
-        var low=StartOn(CaseBook.Castle,()=>0f);low.Record(Evidence.Induction);low.AddDread(39.9f);
-        Assert(TickUntilLeaves(low,Phase.Disturbance,300)==300&&low.Hunts==0,"below 40 Dread: no dice, no floor, even with a certain roll");
+        var low=StartOn(CaseBook.Castle,()=>0f);low.Record(Evidence.Induction);low.AddDread(low.RunDreadMin-.1f);
+        Assert(TickUntilLeaves(low,Phase.Disturbance,300)==300&&low.Hunts==0,"before the first hunt, below the run's boundary: no dice, no floor, even with a certain roll");
         var band=StartOn(CaseBook.Castle,()=>.2f);band.Record(Evidence.Induction);band.AddDread(45);
         Assert(TickUntilLeaves(band,Phase.Disturbance,90)==90&&band.Hunts==0,"40-60 band: 0.125 chance never beats a 0.2 roll");
         band.AddDread(20);int waited=TickUntilLeaves(band,Phase.Disturbance,30);
-        Assert(waited<=7&&band.Phase==Phase.Hunt&&band.NoTellHunt&&band.HuntActive&&band.Hunts==1&&!band.BreakerOn,"60-80 band: 0.25 chance beats 0.2; the 0.2 tell roll makes it a no-tell hunt");
+        Assert(waited<=7&&band.Phase==Phase.Hunt&&band.NoTellHunt&&band.HuntActive&&band.Hunts==1&&band.BreakerOn,"60-80 band: 0.25 chance beats 0.2; the 0.2 tell roll makes it a no-tell hunt (brazier untouched)");
         Assert(!band.Record(Evidence.Voice),"no-tell hunt still blocks records");
         var high=StartOn(CaseBook.Castle);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))high.Record(e);high.AddDread(85);
         Assert(TickUntilLeaves(high,Phase.Disturbance,30)<10&&high.Phase==Phase.Warning&&!high.FalseWarning&&!high.NoTellHunt,"80+ band with three records: deterministic 0.5 roll hunts, after a real Warning");
         high.Tick(9,false);Assert(high.Phase==Phase.Hunt&&high.Hunts==1,"rolled Warning becomes a hunt after 9 s");
 
         // Forced floor: 240 s at Dread >= 40 since the last hunt; the clock pauses below 40.
-        var floor=StartOn(CaseBook.Castle,()=>.99f);floor.Record(Evidence.Induction);floor.AddDread(45);
-        Assert(TickUntilLeaves(floor,Phase.Disturbance,300)==240&&floor.Phase==Phase.Warning&&!floor.FalseWarning&&floor.WarningLength==9,"floor forces a hunt after 240 s at Dread 45");
-        var pause=StartOn(CaseBook.Castle,()=>.99f);pause.Record(Evidence.Induction);pause.AddDread(45);
-        Assert(TickUntilLeaves(pause,Phase.Disturbance,200)==200,"200 s at Dread 45 is not enough");pause.AddDread(-10);
-        Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==100,"floor clock pauses below 40");pause.AddDread(10);
+        var floor=StartOn(CaseBook.Castle,()=>.99f);floor.Record(Evidence.Induction);floor.AddDread(floor.RunDreadMin+5);
+        Assert(TickUntilLeaves(floor,Phase.Disturbance,300)==240&&floor.Phase==Phase.Warning&&!floor.FalseWarning&&floor.WarningLength==9,"floor forces a hunt after 240 s just above the run's boundary");
+        var pause=StartOn(CaseBook.Castle,()=>.99f);pause.Record(Evidence.Induction);pause.AddDread(pause.RunDreadMin+5);
+        Assert(TickUntilLeaves(pause,Phase.Disturbance,200)==200,"200 s above the boundary is not enough");pause.AddDread(-10);
+        Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==100,"floor clock pauses below the boundary");pause.AddDread(10);
         Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==40,"floor clock resumes where it stopped");
 
         // First-hunt guarantee: two records, deadline 95 s +-25 % by roll, independent of Dread.
@@ -248,16 +248,16 @@ static class RulesTests
             Assert(TickUntilLeaves(first,Phase.Disturbance,200)==(int)pair[1]&&first.Dread==0,"first hunt guaranteed at "+pair[1]+" s for roll "+roll);
         }
 
-        // Spacing: with certain dice the next hunt never starts before Recovery (32 s) has passed.
-        var spaced=StartOn(CaseBook.Castle,()=>.01f);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))spaced.Record(e);spaced.AddDread(100);
-        float now=0,lastEnd=-1;int hunts=0;bool gapOk=true;spaced.Changed+=p=>{if(p==Phase.Hunt){hunts++;if(lastEnd>=0&&now-lastEnd<32)gapOk=false;}if(p==Phase.Recovery)lastEnd=now;};
+        // Spacing: below Dread 80 the next hunt never starts before that hunt's Recovery has passed.
+        var spaced=StartOn(CaseBook.Castle,()=>.01f);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))spaced.Record(e);spaced.AddDread(79);
+        float now=0,lastEnd=-1,recLen=0;int hunts=0;bool gapOk=true;spaced.Changed+=p=>{if(p==Phase.Hunt){hunts++;if(lastEnd>=0&&now-lastEnd<recLen-.001f)gapOk=false;}if(p==Phase.Recovery){lastEnd=now;recLen=spaced.CurrentRecoverySeconds;}};
         for(int i=0;i<1200;i++){spaced.Tick(.5f,false);now+=.5f;}
-        Assert(hunts>=5&&gapOk&&spaced.Hunts==hunts,"dice hunts repeat but never within the 32 s recovery");
+        Assert(hunts>=5&&gapOk&&spaced.Hunts==hunts,"dice hunts repeat but never within the drawn recovery below Dread 80");
 
         // False warning: Warning that ends back in Disturbance; records and MysteryReady treat it like Disturbance.
         var q=new System.Collections.Generic.Queue<float>();var fw=StartOn(CaseBook.Castle,()=>q.Count>0?q.Dequeue():.99f);
         fw.Record(Evidence.Induction);fw.Record(Evidence.Handprint);fw.BeginWarning();Assert(fw.Phase==Phase.Warning&&!fw.FalseWarning,"bell summons are never false alarms");
-        fw.Tick(9,false);fw.Tick(38,false);fw.Tick(32,false);foreach(var title in CaseBook.Castle.NoteTitles)fw.Read(title);fw.AddDread(85);
+        fw.Tick(9,false);TickUntilLeaves(fw,Phase.Hunt,60);TickUntilLeaves(fw,Phase.Recovery,60);foreach(var title in CaseBook.Castle.NoteTitles)fw.Read(title);fw.AddDread(85);
         Assert(fw.Phase==Phase.Disturbance&&fw.Survived&&!fw.MysteryReady,"survived, two records: not ready");
         q.Enqueue(.5f);q.Enqueue(.1f);q.Enqueue(.9f);q.Enqueue(.1f); // interval, hunt roll, tell roll, false-alarm roll
         TickUntilLeaves(fw,Phase.Disturbance,30);
