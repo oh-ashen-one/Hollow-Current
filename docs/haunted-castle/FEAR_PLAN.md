@@ -136,8 +136,8 @@ treat FalseWarning like Disturbance.
 **Investigation API, wave G additions (hc/rules2, critic r10 static #1-#3, #10, #12, #15)**:
 - `float FeltDread` (0–100, read-only): the only Dread reading a player-facing channel may use. It is `Dread` lagged
   by a per-run time constant `FeltLagSeconds` (20–30 s, exponential), plus slow value noise of ±12 (one knot every
-  6 s, a pure hash seeded once per run, so it never consumes dice). While `Lies` is set it drifts toward calm
-  (`HuntRules.FeltCalm` = 12) instead of Dread. It never reads the run's boundary, so no heartbeat or pulse level
+  6 s, a pure hash seeded once per run, so it never consumes dice), plus lie episodes (wave H, below; the wave G
+  fade-to-calm while `Lies` is gone). It never reads the run's boundary, so no heartbeat or pulse level
   marks where the dice arm. Bellwether: always 0. The heartbeat (`Soundscape`) and the journal pulse (`Interface`)
   must read `FeltDread`, never `Dread`, and must not add a threshold of their own (critic #2, #3).
 - `float RunDreadMin`: this run's boundary for the banded dice and the 240 s floor, drawn 30–50 at construction
@@ -155,6 +155,28 @@ treat FalseWarning like Disturbance.
 - Construction draws, castle only, in order: boundary, felt lag, noise seed (Bellwether draws nothing). Per hunt:
   hunt length right after the tell rolls; recovery length when the hunt ends. Crossing `RunDreadMin` restarts the
   dice interval, so a queued sequence starting with an interval roll still lines up after forcing Dread upward.
+
+**Investigation API, wave H additions (hc/rules3, critic r10b N6, N7, N10, N11, N13)**:
+- **FeltDread lie episodes (N6).** Scheduled from the run's noise seed (never from dice): one starts every 200–600 s
+  (start to start, so 1–3 per 10 minutes) and lasts 20–40 s. At Dread ≥ 40 an episode can drift FeltDread toward
+  calm (12); at Dread < 60 it can drift it up to a false spike (65–85); between 40 and 60 the kind is a coin flip.
+  The drift uses the same 20–30 s lag, then FeltDread returns to Dread. `Lies` (Dread ≥ 70) no longer changes
+  FeltDread at all, so a fading heartbeat is not a "Dread ≥ 70" readout, and a rising one is not proof of danger.
+  Diagnostics: `string FeltEpisode` ("none", "calm", "spike"), `int FeltEpisodes`. A checkpoint restore reschedules
+  the next episode from the restored time. Silence frequency in `CastleScares` must key on `Case.FeltDread` (N11).
+- **No refuge phase (N7).** After the first hunt, Survey and Containment roll flat dice at `QuietPhaseChance` 1/80 per
+  roll; Recovery below Dread 80 rolls at `RecoveryLowChance` 1/16 (1/8 at ≥ 80 as before). A threat from Containment
+  returns to Containment (a told one cuts the brazier again). `Phase ThreatFrom` names the phase a threat started
+  from (Disturbance, Recovery, Survey, Containment; Containment for the hostile Return); log it in `HC_HUNT_START`.
+- **Drawn warnings (N10).** Every told or false Warning draws `CurrentWarningSeconds` 5–14 s (median 9;
+  `WarningSecondsMin/Max`), so length never identifies a false alarm (tested: same distribution). Escalation keeps
+  its 1.5 s tell and sets `bool EscalatedWarning` before `Changed` fires; never infer escalation from the length.
+- **Driver determinism (N13).** `void ForceDread(float target)` (automated driver only) sets Dread exactly and restarts
+  the dice schedule, so a queued sequence always reads: interval, hunt roll, tell roll, false-alarm roll (dice only),
+  warning length (told or false), hunt length (at hunt start); the recovery length is drawn when the hunt ends.
+- **Bellwether proof (N12).** `python3 tools/bellwether_fuzz.py` compiles the checked-in c4b24c1 Core
+  (`Tests/BellwetherReference/`) and the current Core against `Tests/BellwetherFuzz.cs`, runs 4,000 seeds x 300
+  random operations with live random dice, and exits 1 on any difference.
 
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;

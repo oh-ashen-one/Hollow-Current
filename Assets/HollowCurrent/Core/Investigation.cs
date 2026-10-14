@@ -38,6 +38,7 @@ namespace HollowCurrent
                 FeltLagSeconds = Rules.FeltLagMax > Rules.FeltLagMin ? Rules.FeltLagMin + (Rules.FeltLagMax - Rules.FeltLagMin) * Roll() : Rules.FeltLagMin;
                 if (Rules.FeltNoise > 0) feltSeed = (uint)(Roll() * 16777216f);
                 feltBase = Dread;
+                ScheduleFeltEpisode(0);
             }
         }
         public Phase Phase { get; private set; } = Phase.Briefing;
@@ -68,8 +69,16 @@ namespace HollowCurrent
         public int Deaths { get; private set; }
         // The last checkpoint restore applied the death penalty (Game moves the next relic or page).
         public bool DeathPenaltyApplied { get; private set; }
-        // Seconds the current Warning lasts (WarningSeconds, or EscalationWarningSeconds).
+        // Seconds the current Warning lasts: drawn WarningSecondsMin..Max for told and false
+        // warnings alike (Bellwether 9), or EscalationWarningSeconds after TryEscalate.
         public float WarningLength { get; private set; }
+        public float CurrentWarningSeconds => WarningLength;
+        // This Warning is the short tell of TryEscalate (set before Changed fires). Use this, never the
+        // length, to tell an escalation from a told or false Warning: those are drawn 5-14 s.
+        public bool EscalatedWarning { get; private set; }
+        // The phase the current threat (Warning or Hunt) started from: Disturbance, Recovery,
+        // Survey, Containment (dice or bell), or Containment for the hostile Return. For logs.
+        public Phase ThreatFrom { get; private set; }
         // This hunt's length and this Recovery's length (drawn when each starts; Bellwether 38 / 32).
         // UI and dispatch text must read these, never print a fixed number.
         public float CurrentHuntSeconds { get; private set; }
@@ -78,11 +87,17 @@ namespace HollowCurrent
         // only: never drive a player-facing channel from it.
         public float RunDreadMin { get; private set; }
         // What the player may feel: Dread lagged by FeltLagSeconds (20-30 s per run), with slow
-        // +-12 noise, drifting to calm while Lies. 0-100. Drive heartbeat and journal pulse from
-        // this, never from Dread. Always 0 when the map has no dread.
+        // +-12 noise, and seeded lie episodes (1-3 per 10 min, 20-40 s: a drift to calm at Dread >= 40,
+        // a false spike at Dread < 60). 0-100. Drive heartbeat, journal pulse and silence frequency
+        // from this, never from Dread. Always 0 when the map has no dread.
         public float FeltDread => Rules.UsesDread ? Clamp(feltBase + Rules.FeltNoise * FeltNoiseAt(Elapsed)) : 0;
         public float FeltLagSeconds { get; private set; }
-        float feltBase;               // lagged Dread (or calm while Lies), before noise
+        // Diagnostics: the running felt lie episode ("none", "calm", "spike") and how many have started.
+        public string FeltEpisode => feltEpisodeKind == 1 ? "calm" : feltEpisodeKind == 2 ? "spike" : "none";
+        public int FeltEpisodes { get; private set; }
+        float feltBase;               // lagged Dread (or the episode target), before noise
+        int feltEpisodeKind;          // 0 none, 1 calm, 2 spike
+        float feltEpisodeEnd, feltEpisodeTarget, feltNextEpisodeAt = float.MaxValue;
         uint feltSeed;                // per-run noise seed
         float huntClock;              // floor clock: Disturbance time with Dread >= RunDreadMin since the last hunt
         float diceTimer = float.NaN;  // seconds to the next dice roll; NaN = not yet drawn
@@ -121,7 +136,7 @@ namespace HollowCurrent
             DeathPenaltyApplied=afterDeath&&Rules.DeathPenalty&&Rules.UsesDread;
             Dread=!Rules.UsesDread?0:DeathPenaltyApplied?Clamp(Rules.DeathDread):Clamp(saved.Dread);
             if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
-            feltBase=Dread;firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
+            feltBase=Dread;feltEpisodeKind=0;if(Rules.UsesDread)ScheduleFeltEpisode(Elapsed);firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
             Set(!Equipped?Phase.Briefing:Diagnosed?Phase.Containment:Evidence.Count>0?Phase.Disturbance:Phase.Survey);
         }
@@ -186,7 +201,8 @@ namespace HollowCurrent
             {
                 if (inSafe) Dread = Clamp(Dread - Rules.DreadSafeRecovery * dt);
                 else if (inside) Dread = Clamp(Dread + (litNearby ? Rules.DreadInsideRate : Rules.DreadDarkRate) * dt);
-                float target = Lies ? Rules.FeltCalm : Dread;
+                UpdateFeltEpisode();
+                float target = feltEpisodeKind == 1 ? Rules.FeltCalm : feltEpisodeKind == 2 ? feltEpisodeTarget : Dread;
                 feltBase += (target - feltBase) * (FeltLagSeconds > 0 ? 1 - (float)Math.Exp(-dt / FeltLagSeconds) : 1);
             }
             if (Phase == Phase.Disturbance) TickDisturbance(dt);
@@ -207,15 +223,46 @@ namespace HollowCurrent
                 if (PhaseTime >= CurrentRecoverySeconds) Set(Diagnosed ? Phase.Containment : Phase.Disturbance);
                 else TickRecoveryDice(dt);
             }
+            else if (Phase == Phase.Survey || Phase == Phase.Containment) TickQuietDice(dt);
         }
-        // Recovery is not a guaranteed quiet window at high Dread.
-        void TickRecoveryDice(float dt)
+        // Survey and Containment after the first hunt: a rare flat roll, so no phase is a refuge.
+        void TickQuietDice(float dt)
         {
-            if (Rules.RecoveryDiceChance <= 0 || Rules.DiceIntervalMax <= 0 || Dread < Rules.RecoveryDiceDread) return;
+            if (Rules.QuietPhaseChance <= 0 || Rules.DiceIntervalMax <= 0 || Hunts == 0) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
-            if (Roll() < Rules.RecoveryDiceChance) { StartThreat(true); return; }
+            if (Roll() < Rules.QuietPhaseChance) { StartThreat(true); return; }
+            diceTimer = NextDiceInterval();
+        }
+        // Felt lie episodes, scheduled from the noise seed (never from Dice).
+        void ScheduleFeltEpisode(float from)
+        {
+            feltNextEpisodeAt = Rules.FeltEpisodeGapMax > 0 ? from + Lerp(Rules.FeltEpisodeGapMin, Rules.FeltEpisodeGapMax, Unit(101, FeltEpisodes)) : float.MaxValue;
+        }
+        void UpdateFeltEpisode()
+        {
+            if (feltEpisodeKind != 0 && Elapsed >= feltEpisodeEnd) feltEpisodeKind = 0;
+            if (feltEpisodeKind != 0 || Elapsed < feltNextEpisodeAt) return;
+            int i = FeltEpisodes;
+            bool calm = Dread >= Rules.FeltCalmFrom, spike = Dread < Rules.FeltSpikeBelow;
+            feltEpisodeKind = calm && spike ? (Unit(202, i) < .5f ? 1 : 2) : calm ? 1 : 2;
+            feltEpisodeEnd = Elapsed + Lerp(Rules.FeltEpisodeMin, Rules.FeltEpisodeMax, Unit(303, i));
+            feltEpisodeTarget = Lerp(Rules.FeltSpikeMin, Rules.FeltSpikeMax, Unit(404, i));
+            FeltEpisodes++;
+            ScheduleFeltEpisode(feltNextEpisodeAt);
+        }
+        float Unit(uint salt, int i) => (Knot(feltSeed ^ unchecked(salt * 0x85ebca6bu), i) + 1) * .5f;
+        static float Lerp(float a, float b, float t) => a + (b - a) * t;
+        // Recovery is not a guaranteed quiet window at high Dread.
+        void TickRecoveryDice(float dt)
+        {
+            float chance = Dread >= Rules.RecoveryDiceDread ? Rules.RecoveryDiceChance : Rules.RecoveryLowChance;
+            if (chance <= 0 || Rules.DiceIntervalMax <= 0) return;
+            if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
+            diceTimer -= dt;
+            if (diceTimer > 0) return;
+            if (Roll() < chance) { StartThreat(true); return; }
             diceTimer = NextDiceInterval();
         }
         // Smooth value noise in [-1,1], one knot every FeltNoisePeriod seconds (pure hash, no Random).
@@ -272,13 +319,15 @@ namespace HollowCurrent
         // A rolled or forced hunt: no-tell, false alarm (dice only) or a normal Warning.
         void StartThreat(bool fromDice)
         {
+            ThreatFrom = Phase;
             // No-tell starts leave BreakerOn alone: the brazier and room tone must not announce them.
             if (Rules.WarningSeconds <= 0 || Rules.NoTellChance > 0 && Roll() < Rules.NoTellChance) { StartHunt(true); return; }
             bool falseAlarm = fromDice && Rules.FalseWarningChance > 0 && Roll() < Rules.FalseWarningChance;
-            Warn(Rules.WarningSeconds, falseAlarm, true);
+            Warn(DrawWarningSeconds(), falseAlarm, true);
         }
-        void Warn(float seconds, bool falseAlarm, bool say)
+        void Warn(float seconds, bool falseAlarm, bool say, bool escalated = false)
         {
+            EscalatedWarning = escalated;
             BreakerOn = false;
             WarningLength = seconds;
             FalseWarning = falseAlarm;
@@ -300,15 +349,27 @@ namespace HollowCurrent
         {
             if (!Rules.UsesDread || Terminal) return false;
             if (Phase != Phase.Survey && Phase != Phase.Disturbance && Phase != Phase.Recovery) return false;
+            ThreatFrom = Phase;
             StartHunt(true);
             return true;
         }
         public void BeginWarning()
         {
             if (Terminal || Phase == Phase.Return || Phase == Phase.Containment) return;
+            ThreatFrom = Phase;
             // Summons (the bell) always come true. Long Night has no Warning phase.
             if (Rules.WarningSeconds <= 0) { StartHunt(true); return; }
-            Warn(Rules.WarningSeconds, false, true);
+            Warn(DrawWarningSeconds(), false, true);
+        }
+        float DrawWarningSeconds() => Rules.WarningSecondsMax > Rules.WarningSecondsMin ? HuntRules.Draw(Rules.WarningSecondsMin, Rules.WarningSeconds, Rules.WarningSecondsMax, Roll()) : Rules.WarningSeconds;
+        // Automated playtest driver only: set Dread exactly and restart the dice schedule, so the next
+        // value the driver queues is always consumed as an interval (then hunt roll, tell roll, false-alarm
+        // roll, warning length, hunt length). Ignored for Dread when the map has no dread.
+        public void ForceDread(float target)
+        {
+            if (Rules.UsesDread && !float.IsNaN(target) && !float.IsInfinity(target)) Dread = Clamp(target);
+            diceTimer = float.NaN;
+            diceHigh = Dread >= RunDreadMin;
         }
         // Game calls this when an apparition lands within 4 m. With EventEscalationChance it
         // becomes a hunt after a short tell (EscalationWarningSeconds, no dispatch line).
@@ -316,8 +377,9 @@ namespace HollowCurrent
         {
             if (Rules.EventEscalationChance <= 0 || Terminal || Phase != Phase.Disturbance) return false;
             if (Roll() >= Rules.EventEscalationChance) return false;
+            ThreatFrom = Phase;
             if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) StartHunt(true);
-            else Warn(Rules.EscalationWarningSeconds, false, false);
+            else Warn(Rules.EscalationWarningSeconds, false, false, true);
             return true;
         }
         // Clamped 0-100; ignored when the map has no dread.
@@ -335,7 +397,7 @@ namespace HollowCurrent
             if (SealProgress >= 1)
             {
                 // Hostile Return: the escape is a tell-less hunt until the bridge is crossed.
-                if (Rules.HostileReturn) { Hunts++; NoTellHunt = true; }
+                if (Rules.HostileReturn) { Hunts++; NoTellHunt = true; ThreatFrom = Phase.Containment; }
                 Set(Phase.Return);
                 Say(Book.SealedMessage);
             }
@@ -356,9 +418,9 @@ namespace HollowCurrent
         void Set(Phase next)
         {
             if (next == Phase.Hunt || next == Phase.Return) huntClock = 0;
-            if (next != Phase.Warning) FalseWarning = false;
+            if (next != Phase.Warning) { FalseWarning = false; EscalatedWarning = false; }
             if (next != Phase.Hunt && next != Phase.Return) NoTellHunt = false;
-            if (next == Phase.Disturbance || next == Phase.Recovery) diceTimer = float.NaN;
+            if (next == Phase.Disturbance || next == Phase.Recovery || next == Phase.Survey || next == Phase.Containment) diceTimer = float.NaN;
             Phase = next; PhaseTime = 0; Changed?.Invoke(next);
         }
         void Say(string value) => Message?.Invoke(value);
