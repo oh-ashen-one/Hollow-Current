@@ -71,7 +71,7 @@ All four wave G branches are merged; nothing from wave G is in a build yet.
 | hc/scares2 | `347060f` | `517da28` | `c180914` |
 | hc/audio3 | `fee64f3` | `c285793` | `55cc989` (cc_dispatch key, `ASSET_LICENSES.md` lines) |
 | hc/count12 | `f5e590b` | `f92bae3` | `99fbb0b`: torch fails on `DiveLastSecond`; the `return-swoop` beat shows the card; one dispatch voice |
-| hc/rules2 | `2612896` | see `git log` | follow-up commit after the merge, below |
+| hc/rules2 | `2612896` | `e6b0aa1` | `53da00f`, below |
 
 After the hc/rules2 merge:
 - **Felt Dread:** the heartbeat and journal pulse read `Investigation.FeltDread` directly.
