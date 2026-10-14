@@ -1,6 +1,43 @@
-# Automated castle playthroughs: waves G-I (windowed checklist, 2026-10-14)
+# Automated castle playthroughs: waves G-K (windowed checklist, 2026-10-14)
 
-## Round 5 (latest): build `0b08422` (source `3bff23e`, the r11 fixes)
+## Round 6 (latest): wave K, build `253372f`
+
+The build is source `8a953e9`: hc/rules6, count16, scares4 and audio4 merged, plus F0's death-before-win. Batch 5 ran on `0236fa4` (source `782c856`); verify and fear were rerun on `253372f`. All runs went through `gpu_slot` with `open -g`, a 1920x1080 window and `HC_INPUT scripted=true`.
+
+| Proof | Result | Evidence |
+|---|---|---|
+| Bellwether `-hc-verify` | **PASS** (rerun) | `HC_NATIVE_ROUTE_PASS`. The first try on `0236fa4` failed: the 9.1 s loading-screen shader warm-up delayed loading. The warm-up is now reverted |
+| Verify hitch at the first Warning | **Not fixed, not reproduced** | This run: slowest frame 103.6 ms at 84 s (Survey, upstairs) and 42.6 ms at 407 s (basement). There was no spike at the first Warning. Spikes move from run to run with the window in the background on a shared machine. 206 frames over 16 ms, so `meets_60_fps_floor` stays False |
+| Fear: no-tell first leg silent, first 6 s | **PASS** | `HC_COUNT_LEG first=silent reason=notell`; `changedFrames=0 wingMaxDelta=0.000 rimLines=0 smellLines=0` |
+| Fear: watched hide, grab camera | **PASS** | `kind=hide mode=8`. Skull in the centre 60 % at t 0.01, 0.31 and 1.01; `claw_ok` True at 0.01 and 1.01 (234 / 314 px), False at 0.31 (137 px) |
+| Chase grab camera (huntcam ×2, natural) | **PASS**, drop from above | `HC_COUNT_GRAB mode=8 reason=from above (3.6-3.7 m)`, close in 1.41 / 1.56 s. Skull in the centre at every sample; `claw_ok` True at 0.01 and 1.01, False at 0.31 (121 px, he is 2.6 m above her eye mid-drop) |
+| Bridge chase grab camera (fear return) | **Partial** | `kind=chase mode=9`: at t 0.01 the skull is off-screen (`skull_in_centre60=False claw_px=0`) on two samples; at 0.31 and 1.01 it is centred (claws 300 / 193 px) |
+| Fear: `wallCrossings` | **PASS** | 0 in both hunts |
+| Fear: swoop | **PASS** | `HC_COUNT_LEG first=silent reason=return`, leg2 detour |
+| Death over win (bridge) | **PASS (logged)** | `HC_DEATH frame=… beat_win=true died=False blocked=True` on each frame. The driver's invulnerability blocked the kill, so the grab camera kept the win from firing until the driver teleported her (one blocker: "bridge walk did not reach the far bank") |
+| Gatehouse visit from inside | **PASS** | `HC_COUNT_GATEHOUSE visible=3/3 kind=arch-inside`, landed. Capture `rounds/r12/captures/fear/23_gatehouse_visit.png` |
+| Door held | **PASS** | `HC_DOOR_HELD` in the fear and siege runs (at Dread ≥ 60) |
+| Escape | **WON**, 0 blockers | 0 `fix=stop` stall lines; return swoop leg2 detour |
+| Kill | **WON, slain** | `HC_COUNT_RECOIL closest=0.58/0.49/0.29 pushed=0.19/0.28/0.48` |
+| Death + retry | **PASS** | Penalty applied, Dread 58.4, relic 0 moved |
+| Siege | **PASS** attempt 1 | Near-miss `open=True` (roll 0.21) and Recovery cut to Hunt |
+| Natural 1 (8.7 min) | **PASS** on the critic's test | Final share 0.199; gap 95 → 364 s (269 s); Dread 20 at 479 s; no-tell hunt at Dread 12.1; governor 1.68 |
+| Natural 2 (8.7 min) | **FAIL** on share | Final share 0.245 (> 0.22); gap 203 → 387 s (184 s); Dread 60.3 at 479 s; governor up to 2.20 |
+| Escalation across both naturals | **PASS** | natural2: `HC_ESCALATE escalated=True reason=ok`. Other attempts failed on `reason=roll` or `reason=grace`, and one became a `substitute=bat_pass` |
+| Unforced throws | natural1 0, natural2 2 | |
+
+**Frame time, great hall at 1920x1080** (fear rerun):
+
+| Mean | p99 | Worst | Over 16.7 ms | Slot GPU busy before / after |
+|---|---|---|---|---|
+| 11.12 ms | 11.35 ms | 17.00 ms | 1 | 0 % / 14 % |
+
+**Captures** in `rounds/r12/captures/`:
+- `S7_title_{castle,bellwether}_1920x1080.png`.
+- `huntcam1/` and `huntcam2/`: natural chase, drop from above; `grabcam_chase_t0.01/0.31/1.01`.
+- `fear/`: watched-hide grab `grabcam_hide_t*`, bridge chase grab `grabcam_chase_t*` (mode 9) and the gatehouse visit from inside.
+
+## Round 5: build `0b08422`
 
 **What changed:** every real device is ignored in scripted runs (`HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad`); scripted runs open their own 1920x1080 window and restore the owner's size on quit; castle throws no longer need her to see the prop; flight pitch has a 38 deg floor. There was no `HC_GAMEPAD` line in any run.
 
