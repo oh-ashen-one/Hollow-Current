@@ -73,6 +73,9 @@ namespace HollowCurrent
         // warnings alike (Bellwether 9), or EscalationWarningSeconds after TryEscalate.
         public float WarningLength { get; private set; }
         public float CurrentWarningSeconds => WarningLength;
+        // This Warning is the short tell of TryEscalate (set before Changed fires). Use this, never the
+        // length, to tell an escalation from a told or false Warning: those are drawn 5-14 s.
+        public bool EscalatedWarning { get; private set; }
         // The phase the current threat (Warning or Hunt) started from: Disturbance, Recovery,
         // Survey, Containment (dice or bell), or Containment for the hostile Return. For logs.
         public Phase ThreatFrom { get; private set; }
@@ -317,8 +320,9 @@ namespace HollowCurrent
             bool falseAlarm = fromDice && Rules.FalseWarningChance > 0 && Roll() < Rules.FalseWarningChance;
             Warn(DrawWarningSeconds(), falseAlarm, true);
         }
-        void Warn(float seconds, bool falseAlarm, bool say)
+        void Warn(float seconds, bool falseAlarm, bool say, bool escalated = false)
         {
+            EscalatedWarning = escalated;
             BreakerOn = false;
             WarningLength = seconds;
             FalseWarning = falseAlarm;
@@ -370,7 +374,7 @@ namespace HollowCurrent
             if (Roll() >= Rules.EventEscalationChance) return false;
             ThreatFrom = Phase;
             if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) StartHunt(true);
-            else Warn(Rules.EscalationWarningSeconds, false, false);
+            else Warn(Rules.EscalationWarningSeconds, false, false, true);
             return true;
         }
         // Clamped 0-100; ignored when the map has no dread.
@@ -409,7 +413,7 @@ namespace HollowCurrent
         void Set(Phase next)
         {
             if (next == Phase.Hunt || next == Phase.Return) huntClock = 0;
-            if (next != Phase.Warning) FalseWarning = false;
+            if (next != Phase.Warning) { FalseWarning = false; EscalatedWarning = false; }
             if (next != Phase.Hunt && next != Phase.Return) NoTellHunt = false;
             if (next == Phase.Disturbance || next == Phase.Recovery || next == Phase.Survey || next == Phase.Containment) diceTimer = float.NaN;
             Phase = next; PhaseTime = 0; Changed?.Invoke(next);

@@ -544,6 +544,9 @@ static class RulesTests
             if(!(nt.Phase==Phase.Hunt&&nt.NoTellHunt&&nt.CurrentHuntSeconds==38&&dq.Count==0)){driverOk=false;why="no-tell "+boundary+"/"+entry+" "+nt.Phase;}
         }
         Assert(driverOk,"driver queues line up after ForceDread for boundaries 30-50 and any entry Dread "+why);
+        bool escFlag=false;var ef=StartOn(CaseBook.Castle,()=>.1f);ef.Record(Evidence.Induction);ef.Changed+=p=>{if(p==Phase.Warning)escFlag=ef.EscalatedWarning;};
+        Assert(ef.TryEscalate()&&escFlag&&ef.EscalatedWarning&&ef.CurrentWarningSeconds==1.5f,"escalation is flagged before Changed fires");TickUntilLeaves(ef,Phase.Warning,10);Assert(!ef.EscalatedWarning,"flag clears when the Warning ends");
+        var shortTold=StartOn(CaseBook.Castle,()=>0f);shortTold.Record(Evidence.Induction);shortTold.BeginWarning();Assert(shortTold.CurrentWarningSeconds==5&&!shortTold.EscalatedWarning,"a short told Warning is not an escalation");
         var fd=StartOn(CaseBook.Castle);fd.ForceDread(150);Assert(fd.Dread==100,"ForceDread clamps");var fdb=Start();fdb.ForceDread(80);Assert(fdb.Dread==0,"ForceDread ignores Dread on Bellwether");
     }
 }
