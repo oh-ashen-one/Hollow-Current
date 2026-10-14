@@ -16,13 +16,11 @@ namespace HollowCurrent
         public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCrawlId=7,ModeGrabDropId=8,ModeGrabCrawlId=9,ModeCount=10;
         public int ModeGrab=ModeGrabId;
         // Set either to -1 to never use that variant.
-        // GrabCrawl is off (-1) until F5 fixes the limb skinning shards in its final pose (hc/grabs follow-up): on-foot grabs
-        // fall back to the Mode 6 wing-wrap.
-        public int ModeGrabDrop=ModeGrabDropId, ModeGrabCrawl=-1;
+        public int ModeGrabDrop=ModeGrabDropId, ModeGrabCrawl=ModeGrabCrawlId; // GrabCrawl re-enabled after hc/grabs fef50da (skinning fix)
         // GrabDrop when he was at least this far above the player (height decays at GrabDropHeightDecay m/s, so it means
         // "he came down on you", not "he once flew past high up"). Reaches from F5's receipt (grab_drop_reach_m /
         // grab_crawl_reach_m); until it lands they equal the wing-wrap reach so the camera stand-off rule holds.
-        public float GrabDropMinHeight=2f, GrabDropHeightDecay=1f, GrabDropReach=1.758f, GrabCrawlReach=1.818f; // receipt grab_drop_reach_m / grab_crawl_reach_m (hc/grabs)
+        public float GrabDropMinHeight=2f, GrabDropHeightDecay=1f, GrabDropReach=1.758f, GrabCrawlReach=1.729f; // receipt grab_drop_reach_m / grab_crawl_reach_m (hc/grabs)
         // Mode 7 Crawl, a stooped four-limbed knuckle-walk (top 1.75 m) under 2.0 m lintels. Used on foot at service
         // doors and wherever the clear height over the floor is lower than CrawlCeiling (Glide clip top 2.33 m + margin).
         public int ModeCrawl=ModeCrawlId;
@@ -72,7 +70,7 @@ namespace HollowCurrent
         public float GrabReach=1.39f, CameraClearance=.6f;   // r8 forward wing-wrap (receipt grab_reach_m)
         public float GrabStandOff=>GrabReach+CameraClearance+.05f;
         /// <summary>Stand-off for a grab presentation in Animator mode <paramref name="mode"/>: its reach + CameraClearance.</summary>
-        // Modes 8/9 are grounded clips (hover 0): exactly their reach + CameraClearance (2.36 / 2.42 m).
+        // Modes 8/9 are grounded clips (hover 0): exactly their reach + CameraClearance (2.36 / 2.33 m).
         public float StandOffFor(int mode)=>mode==ModeGrabDropId?GrabDropReach+CameraClearance:mode==ModeGrabCrawlId?GrabCrawlReach+CameraClearance:GrabStandOff;
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,

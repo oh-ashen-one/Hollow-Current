@@ -170,8 +170,9 @@ namespace HollowCurrent
             if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.Alpha1))SelectMap(MapId.Bellwether);
             if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.Alpha2))SelectMap(MapId.Castle);
             if(!Started&&!Paused&&Input.GetKeyDown(KeyCode.S)){Paused=true;ApplyFocus();}
-            if(!Started&&Input.GetKeyDown(KeyCode.Q)){Quit();return;}
-            if(Paused||Case.Terminal)
+            bool scripted=PlaytestDriver.Requested||CaptureMode.Requested;
+            if(!scripted&&!Started&&Input.GetKeyDown(KeyCode.Q)){Quit();return;}
+            if(!scripted&&(Paused||Case.Terminal))
             {
                 if(Input.GetKeyDown(KeyCode.N)){Retry();return;}
                 if(Input.GetKeyDown(KeyCode.Q)){Quit();return;}
@@ -188,7 +189,7 @@ namespace HollowCurrent
                 if(Input.GetKeyDown(KeyCode.T))Subtitles=!Subtitles;
             }
             if(Input.GetKeyDown(KeyCode.H)&&(Started||Paused)&&!Case.Terminal)HelpHints=!HelpHints;
-            if(Input.GetKeyDown(KeyCode.Escape)||(pad&&pad.Cancel&&Modal))
+            if(!scripted&&(Input.GetKeyDown(KeyCode.Escape)||(pad&&pad.Cancel&&Modal)))
             {
                 if(!Started&&Paused){Paused=false;SavePreferences();}
                 else if(NoteBody!=null)NoteBody=null;
@@ -384,7 +385,8 @@ namespace HollowCurrent
             if(!Automated){PlayerPrefs.SetInt(LongNightKey,LongNight?1:0);PlayerPrefs.SetInt(MicKey,MicEnabled?1:0);PlayerPrefs.SetFloat(MicThresholdKey,MicThreshold);}
             PlayerPrefs.Save();
         }
-        public void Quit(){SavePreferences();Application.Quit();}
+        public void Quit(){SavePreferences();if(Automated)Debug.Log("HC_QUIT_CALLED "+Environment.StackTrace);Application.Quit();}
+        void OnApplicationQuit(){if(PlaytestDriver.Requested||CaptureMode.Requested)Debug.Log("HC_APP_QUIT t="+Time.realtimeSinceStartup.ToString("F1")+" map="+Map+" started="+Started+" paused="+Paused);}
         public void RetryCheckpoint(){if(Loading||!HasCheckpoint)return;restoreCheckpoint=true;BeginReload(Map);}
         public void Retry(){if(Loading)return;checkpoints.Remove(Map);checkpointPositions.Remove(Map);restoreCheckpoint=false;BeginReload(Map);}
         void BeginReload(MapId target){LoadingTarget=target;SavePreferences();Loading=true;LoadingProgress=0;ApplyFocus();StartCoroutine(ReloadCase(target));}
