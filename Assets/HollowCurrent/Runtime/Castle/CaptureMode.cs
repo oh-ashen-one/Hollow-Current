@@ -148,18 +148,49 @@ namespace HollowCurrent
             {
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(1.5f);
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
-                if(v.id=="crypt_ceiling")
-                {
-                    var samples=new List<float>();float end=Time.realtimeSinceStartup+6;
-                    while(Time.realtimeSinceStartup<end){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
-                    samples.Sort();float sum=0;foreach(var x in samples)sum+=x;
-                    Log("FRAMETIME crypt frames="+samples.Count+" mean="+(sum/samples.Count).ToString("F2")+"ms p99="+samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.99f))].ToString("F2")+"ms max="+samples[samples.Count-1].ToString("F2")+"ms");
-                }
+                if(v.id=="crypt_ceiling"){yield return CryptFrames("after_shot");yield return new WaitForSecondsRealtime(1);yield return CryptFrames("settled");}
             }
             File.WriteAllText(Path.Combine(Directory,"capture_art_"+set+".json"),"{\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");
             Log("ART DONE "+set+" "+entries.Count+" entries");
             Game.RestoreOwnerWindow();yield return null;yield return null;
             Application.Quit();
+        }
+        // Crypt frame-time sample with hitch markers (r12 crypt 118.89 ms frame): per frame it records GC collections, managed allocation,
+        // texture memory and streaming loads, and the profiler markers that a release player exposes (Valid=False when it does not).
+        // Every frame over 33 ms is logged with what changed in it; audio clips that finished loading during the window are counted.
+        IEnumerator CryptFrames(string window)
+        {
+            string[] markers={"GC.Collect","Shader.CreateGPUProgram","Texture.AwakeUploadFromMainThread","AsyncUploadManager.AsyncResourceUpload","Loading.ReadObject","NavMesh.BuildNavMeshData","AudioClip.LoadAudioData","Camera.Render","Gfx.WaitForPresentOnGfxThread"};
+            var recs=new List<Unity.Profiling.ProfilerRecorder>();
+            foreach(var m in markers)recs.Add(Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Internal,m));
+            var alloc=Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Memory,"GC Allocated In Frame");
+            var texMem=Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Memory,"Texture Memory");
+            var valid=new StringBuilder();for(int i=0;i<markers.Length;i++)valid.Append(markers[i]+"="+recs[i].Valid+" ");
+            Log("CRYPT_MARKERS "+window+" "+valid+"GCAllocInFrame="+alloc.Valid+" TextureMemory="+texMem.Valid);
+            int audioLoaded0=0;foreach(var c in Resources.FindObjectsOfTypeAll<AudioClip>())if(c.loadState==AudioDataLoadState.Loaded)audioLoaded0++;
+            int nav0=CastleWorld.NavBuilds;
+            int g0=GC.CollectionCount(0),g1=GC.CollectionCount(1),g2=GC.CollectionCount(2);
+            ulong tex=Texture.currentTextureMemory;
+            var samples=new List<float>();float start=Time.realtimeSinceStartup,end=start+6;int hitches=0;
+            while(Time.realtimeSinceStartup<end)
+            {
+                yield return null;
+                float ms=Time.unscaledDeltaTime*1000;samples.Add(ms);
+                int c0=GC.CollectionCount(0),c1=GC.CollectionCount(1),c2=GC.CollectionCount(2);ulong t=Texture.currentTextureMemory;
+                if(ms>33)
+                {
+                    hitches++;var sb=new StringBuilder();
+                    for(int i=0;i<markers.Length;i++)if(recs[i].Valid&&recs[i].LastValue>0)sb.Append(markers[i]+"="+(recs[i].LastValue/1e6).ToString("F2")+"ms ");
+                    Log("CRYPT_HITCH "+window+" frame="+samples.Count+" t="+(Time.realtimeSinceStartup-start).ToString("F2")+"s ms="+ms.ToString("F2")+" gc0="+(c0-g0)+" gc1="+(c1-g1)+" gc2="+(c2-g2)
+                        +" alloc="+(alloc.Valid?alloc.LastValue.ToString():"n/a")+" texDelta="+((long)t-(long)tex)+" texStreamingLoading="+Texture.streamingTextureLoadingCount+" texPending="+Texture.streamingTexturePendingLoadCount
+                        +" navBuilds="+(CastleWorld.NavBuilds-nav0)+" markers=["+sb+"]");
+                }
+                g0=c0;g1=c1;g2=c2;tex=t;
+            }
+            int audioLoaded1=0;foreach(var c in Resources.FindObjectsOfTypeAll<AudioClip>())if(c.loadState==AudioDataLoadState.Loaded)audioLoaded1++;
+            foreach(var r in recs)r.Dispose();alloc.Dispose();texMem.Dispose();
+            samples.Sort();float sum=0;foreach(var x in samples)sum+=x;
+            Log("FRAMETIME crypt_"+window+" frames="+samples.Count+" mean="+(sum/samples.Count).ToString("F2")+"ms p99="+samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.99f))].ToString("F2")+"ms max="+samples[samples.Count-1].ToString("F2")+"ms hitches_over_33ms="+hitches+" audioClipsLoadedDuring="+(audioLoaded1-audioLoaded0));
         }
         // The investigator's flashlight as in play (Investigator input is off in capture).
         void Torch(bool on){var l=game.Player.Torch;l.enabled=on;l.intensity=.85f*game.Player.Brightness;}

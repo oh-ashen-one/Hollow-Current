@@ -1597,8 +1597,11 @@ namespace HollowCurrent
 
         // Same approach as World.BuildNavigation: bake from enabled solid BoxColliders at runtime. Doors are left
         // open to the bake (Door hierarchies are skipped), triggers are ignored, the raised drawbridge blocks the gate.
+        // Count of runtime nav-mesh builds (read by the capture's crypt hitch log).
+        public static int NavBuilds;
         void BuildNavigation()
         {
+            NavBuilds++;
             var sources = new List<NavMeshBuildSource>();
             foreach (var c in root.GetComponentsInChildren<BoxCollider>())
             {
