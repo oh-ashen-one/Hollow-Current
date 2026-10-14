@@ -12,7 +12,7 @@ Each piece's own handoff is archived in `docs/haunted-castle/handoffs/<piece>.md
 ## State
 
 - **Build:** `/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app`, with both maps.
-  - Built from source `a290313`; the bake outputs are committed as `fff0de7`. The hc/grabs2 clips are imported.
+  - Built from source `3bff23e` (the r11 fixes); the bake outputs are committed as `0b08422`. The hc/grabs2 clips are imported.
   - It opens as a 1920x1080 window.
   - Bake receipts are current: Castle 5 maps, 196 probes, 17 reflections; Bellwether 4 maps, 124 probes, 9 reflections.
   - `check_throwables_scene.py` exits 0.
@@ -222,6 +222,19 @@ Full table in AUTO_RUN.md.
 2. `-hc-verify` should set a 1920x1080 window at start.
 3. Natural throws: place or seek throwables near where apparitions land.
 4. Then rerun fear and `-hc-verify`.
+
+## Round 5 (build `0b08422`)
+
+Table in AUTO_RUN.md.
+
+| Status | Proofs |
+|---|---|
+| PASS | `-hc-verify`; fear: no-tell silent first leg, `changedFrames=0`, wing 0.000, watched hide with the torch off, `wallCrossings=0`, pitch ≥ 38, grab mode 8; natural: won, 2 unforced throws, 4 apparitions, 1 escalation, grace 40-76 s |
+| FAIL | natural `huntShare` 0.362 > 0.30. Cause: the invulnerable, exposed driver gains the +25 per-hunt cap every hunt, Dread reaches 100, and at Dread ≥ 80 a hunt follows each grace |
+| Not seen | `HC_COUNT_WING_CLAMP` |
+| Not reached this run | the bridge grab (earlier rounds proved it) |
+
+The blind critic is next. No further fixes were started.
 
 ## Rules for the next integrator
 

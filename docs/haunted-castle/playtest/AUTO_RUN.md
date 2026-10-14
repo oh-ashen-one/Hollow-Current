@@ -1,6 +1,41 @@
 # Automated castle playthroughs: waves G-I (windowed checklist, 2026-10-14)
 
-## Round 4 (latest): build `fff0de7` (source `a290313`; waves G, H and I merged, hc/grabs2 clips imported)
+## Round 5 (latest): build `0b08422` (source `3bff23e`, the r11 fixes)
+
+**What changed:** every real device is ignored in scripted runs (`HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad`); scripted runs open their own 1920x1080 window and restore the owner's size on quit; castle throws no longer need her to see the prop; flight pitch has a 38 deg floor. There was no `HC_GAMEPAD` line in any run.
+
+| Proof | Result | Evidence |
+|---|---|---|
+| Bellwether `-hc-verify` | **PASS** | `HC_NATIVE_ROUTE_PASS` |
+| Fear: no-tell first leg silent | **PASS** | `HC_COUNT_LEG first=silent reason=notell leg=search` |
+| Fear: no-tell first 6 s | **PASS** | `HC_PLAY_CHANNELS … changedFrames=0 wingMaxDelta=0.000 rimLines=0 smellLines=0` over 534 frames. The one voice line is `HC_COUNT_VOICE queued cc_hunt_hungry` (played at t=10.0, outside the window). Heartbeat drift was 0.14: felt Dread following the driver's forced Dread 55 |
+| Fear: watched hide, torch off | **PASS** | `HC_COUNT_WITNESSED begin … open=True reason=watched`, then hold, then `HC_COUNT_GRAB mode=8 … hideEntrance=True witnessed=True torch=False` |
+| Fear: `wallCrossings` | **PASS** | 0 in both hunts (944 and 573 ground moves) |
+| Fear: grab mode | **PASS** | Mode 8 (watched hide). Earlier the natural huntcam (r4) showed mode 9 |
+| Fear: flight pitch | **PASS** | Every `HC_COUNT_POSE` is ≥ 38 (38-65) |
+| Fear: throw and poltergeist | **PASS** | Plate thrown, poltergeist flung 10 |
+| Fear: lies and silence | **PASS** | HC_LIE 7, silence and duck 6 |
+| Fear: swoop legs | **PASS** | `leg1=clear leg2=detour` |
+| Fear: bridge | not reached this run | Closest 4.83 m, no grab. r2 had 11 and r3 had 31 blocked bridge grabs |
+| `HC_COUNT_WING_CLAMP` | not seen | No line |
+| Natural (no forcing, 8.7 min): won | **WON**, 0 blockers | |
+| Natural: unforced throws | **PASS** | 2: candlestick and goblet, `castle=near_apparition` (2.8 m and 2.6 m from her) |
+| Natural: apparitions | **PASS** | 4 |
+| Natural: escalation | **PASS** | `escalated=True` once |
+| Natural: hunt share | **FAIL** | 0.362 at the end (0.32-0.40 through the run) against ≤ 0.30. See below |
+| Natural: Recovery grace | **PASS** | 47.4 / 75.8 / 45.1 / 39.7 s |
+
+**Why the hunt share failed:** the natural driver stands exposed and invulnerable. Every hunt added the per-hunt cap (`huntDreadAdded=25.0`), and Dread rose to 100. At Dread ≥ 80 the dice roll every 2-6 s, so hunts came back as soon as each grace ended. That gave 5 hunts in 8.7 min, including the hostile return.
+
+**Frame time, great hall at 1920x1080** (fear run):
+
+| Mean | p99 | Worst | Over 16.7 ms | Slot GPU busy before / after |
+|---|---|---|---|---|
+| 11.16 ms | 11.61 ms | 22.37 ms | 3 | 0 % / 0 % |
+
+**Captures:** the r11 set stays as it is. This round changed only the slow-travel pitch from 35 to 38 deg, which the blind critic can see in the round-4 `hunt_natural` frames within 3 deg.
+
+## Round 4: build `fff0de7`
 
 **How it was run:**
 - Every run went through `gpu_slot` with `open -g -W -n`, in a 1920x1080 window, with `HC_CURSOR free` logged.
