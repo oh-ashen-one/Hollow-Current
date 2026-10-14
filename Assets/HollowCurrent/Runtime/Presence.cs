@@ -343,6 +343,10 @@ namespace HollowCurrent
         {
             if(flight==Flight.Dead)return;
             staggerTimer=Fight.StaggerSeconds;retreatTimer=0;flight=Flight.Stagger;contact=0;chaseClosest=99;route.Clear();actor.Pose(Profile.ModeStagger);
+            // r11 (camera inside his wing on sword hits): recoil away from her, and keep his joints out of the lens for a while.
+            if(grabCam)EndGrabCam("stagger");
+            var away=transform.position-Game.Player.View.transform.position;away.y=0;if(away.sqrMagnitude<.01f)away=-Game.Player.transform.forward;
+            recoilDir=away.normalized;recoilLeft=count.SwordRecoilDistance;clearUntil=Time.time+Fight.StaggerSeconds+count.SwordClearSeconds;
             Debug.Log("HC_COUNT_STAGGER "+DiagnosticState);
         }
         internal void CountDefeat()
@@ -367,8 +371,18 @@ namespace HollowCurrent
                 if(towards.sqrMagnitude<.01f)towards=transform.forward;towards.Normalize();
                 transform.SetPositionAndRotation(player-towards*count.StandOffFor(mode),Quaternion.LookRotation(towards));
                 silhouette.gameObject.SetActive(true);actor.Pose(mode,0,true);CanSeePlayer=false;Memory.Clear();
+                // r11: the drop grab comes down from above the lens: start with his feet GrabDropAboveEye over her eye, fall in place.
+                grabRest=transform.position;dropDy=0;dropT=0;
+                if(mode==count.ModeGrabDrop)
+                {
+                    dropDy=Mathf.Max(0,Game.Player.View.transform.position.y+count.GrabDropAboveEye-grabRest.y);transform.position=grabRest+Vector3.up*dropDy;
+                    Debug.Log("HC_COUNT_GRAB from=above dy="+dropDy.ToString("F2")+" fall="+count.GrabDropFallSeconds.ToString("F2")+" s");
+                }
+                BeginGrabCam("kill mode "+mode);grabCamT=Mathf.Min(grabCamT,count.GrabCamTurnSeconds);grabCamLog=Mathf.Min(grabCamLog,1);grabKill=true;
                 Debug.Log("HC_COUNT_GRAB_PRESENTATION mode="+mode+" standOff="+count.StandOffFor(mode).ToString("F2")+" "+DiagnosticState);return;
             }
+            if(grabCam)EndGrabCam("phase "+phase);
+            RestoreHideDoor();
             SyncHunt();
         }
         // The castle hunts while F1's Investigation.HuntActive holds (Phase Hunt, or a hostile Return), not on Phase alone:
@@ -672,8 +686,11 @@ namespace HollowCurrent
             // Item 10: once per hunt, hidden (torch off) and unwitnessed, roll for the cupboard near-miss.
             if(!nearMissRolled&&!hostile&&!retreating&&flight!=Flight.Chase&&flight!=Flight.NearMiss&&Game.Player.Hidden&&!Game.Player.TorchOn&&!witnessedHide&&huntClock>=count.NearMissAfterSeconds)
             {
-                nearMissRolled=true;float roll=Random.value;bool go=roll<count.NearMissChance;
-                Debug.Log("HC_COUNT_NEARMISS roll="+roll.ToString("F2")+" chance="+count.NearMissChance.ToString("F2")+" go="+go+" "+DiagnosticState);
+                // r11: more near-misses where it matters: he lost sight of her near the hide she is now in (0.33 -> 0.5).
+                bool lostNear=lastSeen.HasValue&&lastSeenSighted&&Game.Case.Elapsed-lastSeenAt<count.NearMissLostSeconds&&Vector3.Distance(lastSeen.Value,Game.Player.transform.position)<count.NearMissLostRadius;
+                float chance=lostNear?count.NearMissChanceLost:count.NearMissChance;
+                nearMissRolled=true;float roll=Random.value;bool go=roll<chance;
+                Debug.Log("HC_COUNT_NEARMISS attempt roll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" reason="+(lostNear?"lost her near the hide "+Vector3.Distance(lastSeen.Value,Game.Player.transform.position).ToString("F1")+" m, "+(Game.Case.Elapsed-lastSeenAt).ToString("F0")+" s ago":"base")+" go="+go+" "+DiagnosticState);
                 if(go)BeginHideVisit(false);
             }
             if(!retreating&&Game.Player.Hidden&&Game.Player.TorchOn)Hear(Game.Player.transform.position,Profile.HiddenTorchHearRadius);
@@ -843,13 +860,15 @@ namespace HollowCurrent
                 {
                     grabMode=ChooseGrab(atHideEntrance,out var why,out var height);
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+height.ToString("F2")+" reason="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
+                    if(atHideEntrance)OpenHideDoor(player.HideExit);
+                    BeginGrabCam(atHideEntrance?"hide":"chase");
                 }
                 actor.Pose(grabMode);
                 // huntClock, not PhaseTime: a hostile-return hunt (F1) runs inside Phase Return.
                 if(contact>=Profile.GrabSeconds&&huntClock>Profile.GrabGraceSeconds)Game.Case.Die();
                 return;
             }
-            if(contact<=0)grabMode=-1;
+            if(contact<=0){grabMode=-1;if(grabCam&&!capturePresentation)EndGrabCam("released");}
             // r10b: never hover at a watched hide forever (an entrance he cannot reach or a hide with no clear front): after 3 s at
             // the goal without a grab he gives up on it, logged, and prowls.
             var atGoal=goal-transform.position;atGoal.y=0;
@@ -884,7 +903,8 @@ namespace HollowCurrent
                 foreach(var door in Game.World.Doors)if(Vector3.Distance(door.transform.position,transform.position)<Profile.DoorOpenDistance)door.Open=true;
             }
             // Under a low lintel or at a service door he drops to the stooped crawl (Mode 7) on the floor.
-            if(MustCrawl(transform.position)){actor.Pose(count.ModeCrawl,speedNow*.85f);return;}
+            if(routeAt<route.Count)CheckStall(dt);
+            if(OnFoot||MustCrawl(transform.position)){actor.Pose(count.ModeCrawl,speedNow*.85f);return;}
             // Wing-beat rate follows speed but stays slow enough to read as a giant (LocomotionRate = speed / 2.05).
             actor.Pose(mode,1.2f+speedNow*.35f);
         }
@@ -897,16 +917,46 @@ namespace HollowCurrent
             var t=hit.collider.transform;
             return !t.IsChildOf(transform)&&!hit.collider.GetComponentInParent<Investigator>();
         }
+        // r11 (hostile Return hung mid-air on wall tops ~3 s): a door is opened and waited for up to DoorWaitSeconds; anything else,
+        // or a longer door wait, re-routes at once; if the new route is blocked too he lands and crawls the NavMesh (GoOnFoot).
         void OnLegBlocked(RaycastHit hit,float dt)
         {
             blockedFor+=dt;speedNow*=.5f;
             var door=hit.collider.GetComponentInParent<Door>();
             string fix;
-            if(door&&blockedFor<2f){door.Open=true;fix="wait";}
-            else if(blockedFor<3f&&PlanRoute(routeGoal,routeAir)&&!(routeAt<route.Count&&LegBlocked(transform.position,Vector3.MoveTowards(transform.position,route[routeAt],.3f),out _)))fix="replan";
-            else if(blockedFor<3f)fix="stop";
+            if(door&&blockedFor<count.DoorWaitSeconds){door.Open=true;fix="wait";}
+            else if(PlanRoute(routeGoal,routeAir)&&!NextStepBlocked())fix="replan";
+            else if(GoOnFoot())fix="crawl";
             else{fix="land";BeginLand();}
-            if(blockedLogs<40&&(fix!="wait"&&fix!="stop"||blockedFor<=dt*1.01f)){blockedLogs++;Debug.Log("HC_COUNT_LEG blocked="+(door?"door":"wall")+" fix="+fix+" hit="+hit.collider.name+" at="+hit.point+" for="+blockedFor.ToString("F1")+" state="+flight);}
+            if(fix!="wait")blockedFor=0;
+            if(blockedLogs<60&&(fix!="wait"||blockedFor<=dt*1.01f)){blockedLogs++;Debug.Log("HC_COUNT_LEG blocked="+(door?"door":"wall")+" fix="+fix+" hit="+hit.collider.name+" at="+hit.point+" state="+flight);}
+        }
+        bool NextStepBlocked()=>routeAt<route.Count&&LegBlocked(transform.position,Vector3.MoveTowards(transform.position,route[routeAt],.3f),out _);
+        // Land and crawl: drop to the ground under him and follow the NavMesh to the same goal at hover 0 (Mode 7) for OnFootSeconds.
+        float onFootUntil=-1;
+        bool OnFoot=>Time.time<onFootUntil;
+        bool GoOnFoot()
+        {
+            if(!GroundUnder(transform.position,out var ground)||LegBlocked(transform.position,ground,out _))return false;
+            onFootUntil=Time.time+count.OnFootSeconds;
+            var goal=routeGoal;bool air=routeAir;
+            if(!PlanRoute(goal,false)){onFootUntil=-1;routeAir=air;return false;}
+            route.Insert(0,ground);routeAt=0;
+            return true;
+        }
+        // Zero progress on an airborne leg for StallSeconds counts as blocked (no hovering against a wall).
+        float stallClock;Vector3 stallFrom;
+        void CheckStall(float dt)
+        {
+            bool airborne=!OnFoot&&GroundUnder(transform.position,out var g)&&transform.position.y-g.y>.5f;
+            if(!airborne||routeAt>=route.Count){stallClock=0;stallFrom=transform.position;return;}
+            stallClock+=dt;
+            if(stallClock<count.StallSeconds)return;
+            float moved=Vector3.Distance(transform.position,stallFrom);stallClock=0;stallFrom=transform.position;
+            if(moved>=count.StallMinProgress)return;
+            string fix=PlanRoute(routeGoal,routeAir)&&!NextStepBlocked()?"replan":GoOnFoot()?"crawl":"land";
+            if(fix=="land")BeginLand();
+            Debug.Log("HC_COUNT_LEG stall="+count.StallSeconds.ToString("F1")+" moved="+moved.ToString("F2")+" fix="+fix+" state="+flight+" pos="+transform.position);
         }
         bool MustCrawl(Vector3 p)
         {
@@ -918,7 +968,7 @@ namespace HollowCurrent
         float CruiseSpeed(Vector3 to)
         {
             var p=transform.position;
-            if(NearServiceDoor(p)||routeAt<route.Count&&NearServiceDoor(route[routeAt])||MustCrawl(p))return count.LandedWalkSpeed*SpeedScale;
+            if(OnFoot||NearServiceDoor(p)||routeAt<route.Count&&NearServiceDoor(route[routeAt])||MustCrawl(p))return count.LandedWalkSpeed*SpeedScale;
             var forward=new Vector3(to.x,0,to.z);var side=forward.sqrMagnitude>.0001f?Vector3.Cross(Vector3.up,forward.normalized):transform.right;
             var chest=p+Vector3.up*1.1f;
             float width=Reach(chest,side,6)+Reach(chest,-side,6);
@@ -971,7 +1021,7 @@ namespace HollowCurrent
         }
         float HoverAt(Vector3 ground,bool chasing)
         {
-            if(NearServiceDoor(ground))return 0;
+            if(NearServiceDoor(ground)||OnFoot)return 0;
             float ceiling=Physics.Raycast(ground+Vector3.up*.2f,Vector3.up,out var hit,8,FlightMask,QueryTriggerInteraction.Ignore)?hit.distance+.2f:8;
             float max=count.HoverMax*Mathf.Max(.3f,1-Tier*count.HoverTierScale);
             float hover=Mathf.Clamp(ceiling-count.BodyClearance,0,max);
@@ -1179,6 +1229,7 @@ namespace HollowCurrent
             rim.range=count.RimLightRange;rim.intensity=count.RimLightIntensity;rim.shadows=LightShadows.None;rim.renderMode=LightRenderMode.ForcePixel;
         }
         // ---- Wave I: flight posture, dive arms, wing-tip clamp, mode binding (r10 blind critic) -----------------------------
+        readonly List<Transform> rigJoints=new List<Transform>();
         readonly List<Transform> wingExt=new List<Transform>();readonly List<Vector3> wingExtRest=new List<Vector3>();
         Transform armL,armR,foreL,foreR,handL,handR;
         float pitchNow,poseLegTimer=-1;bool poseLogged,modesLogged;
@@ -1192,6 +1243,7 @@ namespace HollowCurrent
                 else if(t.name=="LeftArm")armL=t;else if(t.name=="RightArm")armR=t;else if(t.name=="LeftForeArm")foreL=t;else if(t.name=="RightForeArm")foreR=t;
                 else if(t.name=="LeftHand")handL=t;else if(t.name=="RightHand")handR=t;
             }
+            rigJoints.AddRange(silhouette.GetComponentsInChildren<Transform>(true));
             Debug.Log("HC_COUNT_RIG wingExt="+wingExt.Count+" arms="+(armL&&armR&&foreL&&foreR&&handL&&handR));
         }
         // Pitch the whole figure about a point FlightPitchPivot above his feet (nose-down = positive).
@@ -1233,6 +1285,8 @@ namespace HollowCurrent
             }
             else if(choreoPhase==2)ReachArms(count.DiveArmReach);
             ClampWingTips();
+            KeepJointsClear();
+            if(grabCam)GrabCamFrame();
         }
         void ReachArms(float weight)
         {
@@ -1259,6 +1313,99 @@ namespace HollowCurrent
             }
             if(worst>max&&clampLogged.Add(actor.Mode))Debug.Log("HC_COUNT_WING_CLAMP mode="+actor.Mode+" stretch="+(1+worst).ToString("F2")+" clampedTo="+count.WingExtMaxStretch.ToString("F2"));
         }
+        // ---- Wave K: grab camera, drop from above, door torn open, sword recoil (r11 blind playtest critic) ------------------
+        bool grabCam,grabKill;float grabCamT,dropDy,dropT;int grabCamLog;Vector3 grabRest;string grabCamKind="";
+        /// <summary>True while a grab steers the view (integrator: Game's Dead-phase look-at may skip itself then).</summary>
+        public bool GrabCamActive=>count!=null&&grabCam;
+        void BeginGrabCam(string kind)
+        {
+            if(grabCam)return;
+            grabCam=true;grabKill=false;grabCamT=0;grabCamLog=0;grabCamKind=kind;Debug.Log("HC_COUNT_GRABCAM begin kind="+kind+" "+DiagnosticState);
+        }
+        void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;dropDy=0;Debug.Log("HC_COUNT_GRABCAM end reason="+why);}
+        void GrabCamFrame()
+        {
+            var cam=Game.Player.View;if(!cam)return;float dt=Time.unscaledDeltaTime;grabCamT+=dt;
+            // The drop: from above the lens straight down onto its stand-off (ease-in, like a fall).
+            if(grabKill&&dropDy>0)
+            {
+                dropT+=dt;float k=Mathf.Clamp01(dropT/Mathf.Max(.01f,count.GrabDropFallSeconds));
+                transform.position=grabRest+Vector3.up*dropDy*(1-k*k);if(k>=1)dropDy=0;
+            }
+            else if(grabKill)FrameClaws(cam,dt);
+            // Turn the view to his skull (biased toward the claws) over GrabCamTurnSeconds, then hold it there. No cut.
+            var head=actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
+            var claws=handL&&handR?(handL.position+handR.position)*.5f:head-Vector3.up*.6f;
+            var aim=Vector3.Lerp(head,claws,count.GrabCamClawBias);var to=aim-cam.transform.position;
+            if(to.sqrMagnitude>.0001f)
+            {
+                float k=Mathf.SmoothStep(0,1,grabCamT/Mathf.Max(.01f,count.GrabCamTurnSeconds));
+                cam.transform.rotation=Quaternion.Slerp(cam.transform.rotation,Quaternion.LookRotation(to),k);
+            }
+            // Proof in the log: at the commit frame, +0.3 s and +1.0 s.
+            if(grabCamLog==0||grabCamLog==1&&grabCamT>=.3f||grabCamLog==2&&grabCamT>=1f){grabCamLog++;LogGrabCam(cam,head);}
+        }
+        // Kill presentation: ease him so the nearer claw sits GrabCamClawDistance from the lens; no joint inside CameraClearance.
+        void FrameClaws(Camera cam,float dt)
+        {
+            if(!handL||!handR)return;
+            var eye=cam.transform.position;float near=Mathf.Min(Vector3.Distance(handL.position,eye),Vector3.Distance(handR.position,eye));
+            var away=transform.position-eye;away.y=0;if(away.sqrMagnitude<.0001f)return;away.Normalize();
+            float move=(near-count.GrabCamClawDistance)*Mathf.Clamp01(dt*6);
+            if(move>0)move=Mathf.Min(move,Mathf.Max(0,ClosestJoint(eye)-count.CameraClearance));   // never closer than the clearance
+            transform.position-=away*move;
+        }
+        void LogGrabCam(Camera cam,Vector3 head)
+        {
+            var v=cam.WorldToViewportPoint(head);bool centre=v.z>0&&v.x>=.2f&&v.x<=.8f&&v.y>=.2f&&v.y<=.8f;
+            float claw=0;
+            foreach(var hand in new[]{handL,handR})
+            {
+                if(!hand)continue;var a=cam.WorldToScreenPoint(hand.position-cam.transform.right*count.ClawWidth*.5f);var b=cam.WorldToScreenPoint(hand.position+cam.transform.right*count.ClawWidth*.5f);
+                if(a.z>0&&b.z>0)claw=Mathf.Max(claw,Mathf.Abs(b.x-a.x)*2560f/Mathf.Max(1,cam.pixelWidth));
+            }
+            Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" kind="+grabCamKind+" mode="+actor.Mode+" skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_centre60="+centre+
+                " claw_px="+claw.ToString("F0")+" claw_ok="+(claw>=200)+" eyeToSkull="+Vector3.Distance(cam.transform.position,head).ToString("F2")+" headAboveEye="+(head.y-cam.transform.position.y).ToString("F2"));
+        }
+        float ClosestJoint(Vector3 point)
+        {
+            float best=float.MaxValue;foreach(var t in rigJoints)if(t)best=Mathf.Min(best,Vector3.Distance(t.position,point));return best;
+        }
+        // Sword hits: recoil, then keep every joint (wing markers included) SwordClearRadius + 0.15 m from the lens.
+        Vector3 recoilDir;float recoilLeft,clearUntil=-1;
+        void KeepJointsClear()
+        {
+            if(choreo||staged||capturePresentation||grabCam)return;
+            var eye=Game.Player.View.transform.position;
+            if(recoilLeft>0)
+            {
+                float step=Mathf.Min(recoilLeft,count.SwordRecoilDistance/Mathf.Max(.01f,count.SwordRecoilSeconds)*Time.deltaTime);
+                var next=transform.position+recoilDir*step;
+                if(LegBlocked(transform.position,next,out _))recoilLeft=0;else{transform.position=next;recoilLeft-=step;}
+            }
+            if(Time.time>clearUntil)return;
+            float need=count.SwordClearRadius+.15f,closest=ClosestJoint(eye);
+            if(closest>=need)return;
+            var away=transform.position-eye;away.y=0;if(away.sqrMagnitude<.0001f)away=-Game.Player.transform.forward;away.Normalize();
+            transform.position+=away*(need-closest+.02f);
+            Debug.Log("HC_COUNT_RECOIL closest="+closest.ToString("F2")+" pushed="+(need-closest+.02f).ToString("F2"));
+        }
+        // A hide grab tears the door off: its door, vent and louvre panels hide until the next phase (r11: no kill behind a door).
+        readonly List<GameObject> tornDoor=new List<GameObject>();
+        void OpenHideDoor(Vector3 exit)
+        {
+            Interactable spot=null;float best=.6f;
+            foreach(var h in Game.World.HidingPlaces){if(h.Kind!=InteractKind.Hide)continue;float d=Vector3.Distance(h.ExitPoint,exit);if(d<best){best=d;spot=h;}}
+            if(!spot||!Game.World.Root){Debug.Log("HC_COUNT_GRAB door=kept reason=no hide at the exit");return;}
+            foreach(var t in Game.World.Root.GetComponentsInChildren<Transform>())
+            {
+                if(!t.name.StartsWith(spot.name+" / ",System.StringComparison.Ordinal))continue;
+                string part=t.name.Substring(spot.name.Length+3);
+                if(part.Contains("door")||part.Contains("vent")||part.Contains("louvre")){t.gameObject.SetActive(false);tornDoor.Add(t.gameObject);}
+            }
+            Debug.Log("HC_COUNT_GRAB door=torn hide="+spot.name+" panels="+tornDoor.Count);
+        }
+        void RestoreHideDoor(){foreach(var g in tornDoor)if(g)g.SetActive(true);tornDoor.Clear();}
         Light rimLight;
         float rimScale=1;
         // RimLightScale in hunts and between hunts alike (r10 #11), 1 for staged captures and the capture choreography.
@@ -1582,7 +1729,7 @@ namespace HollowCurrent
 
         // ---- Item 11: the gatehouse is not safe (once per run) ---------------------------------------------------------
         float safeClock,gateTimer;
-        bool gatehouseDone,gateHover;
+        bool gatehouseDone,gateHover,gateGround;
         float gateSeen;
         int gateStage;
         Vector3 gateSpot,gateFrom;
@@ -1595,10 +1742,10 @@ namespace HollowCurrent
         void BeginGatehouse()
         {
             gatehouseDone=true;gateStage=1;gateTimer=0;gateSeen=0;route.Clear();legLoudness=1;
-            gateSpot=Battlement(out gateHover);var player=Game.Player.transform.position;
-            // He drops in from above a real battlement; under the gatehouse ceiling he swoops in from beyond it, away from her.
+            gateSpot=VisibleGateSpot(out gateHover,out gateGround);var player=Game.Player.transform.position;
+            // He drops in from above a battlement; at the gate arch or under a ceiling he swoops in from beyond it, away from her.
             var away=gateSpot-player;away.y=0;away=away.sqrMagnitude>.01f?away.normalized:Vector3.forward;
-            gateFrom=gateHover?gateSpot+away*2.5f+Vector3.up*.6f:gateSpot+Vector3.up*3f;
+            gateFrom=gateHover||gateGround?gateSpot+away*2.5f+Vector3.up*(gateGround?1.4f:.6f):gateSpot+Vector3.up*3f;
             if(!Clear(gateFrom,gateSpot))gateFrom=Vector3.Lerp(gateSpot,gateFrom,.4f);
             transform.SetPositionAndRotation(gateFrom,Quaternion.LookRotation(-away));silhouette.gameObject.SetActive(true);
             Debug.Log("HC_COUNT_GATEHOUSE begin spot="+gateSpot+" from="+gateFrom+" hover="+gateHover+" safeSeconds="+safeClock.ToString("F1")+" "+DiagnosticState);
@@ -1616,7 +1763,7 @@ namespace HollowCurrent
             }
             else if(gateStage==2)
             {
-                actor.Pose(gateHover?Profile.ModeMove:Profile.ModeIdle,1.2f);
+                actor.Pose(gateHover?Profile.ModeMove:gateGround?Profile.ModeSearch:Profile.ModeIdle,1.2f);
                 gateSeen=ObservedByPlayer()?gateSeen+dt:gateSeen;
                 bool done=gateTimer>=count.GatehouseHoldSeconds&&(!Game.Player.InVan||gateSeen>=count.GatehouseSeenSeconds||gateTimer>=count.GatehouseMaxHoldSeconds);
                 if(done){gateStage=3;gateTimer=0;Debug.Log("HC_COUNT_GATEHOUSE leaving "+DiagnosticState);}
@@ -1628,21 +1775,37 @@ namespace HollowCurrent
                 if(k>=1){gateStage=0;flight=Flight.Away;perchIndex=-1;silhouette.gameObject.SetActive(false);unobserved=0;Debug.Log("HC_COUNT_GATEHOUSE gone "+DiagnosticState);}
             }
         }
-        // F3's CastleWorld.Points.GatehouseBattlement (gate wall top) when the scene has it, else GatehouseFallbackHeight above the lantern cart, kept GatehouseHeadroom under the ceiling (he hovers there).
-        Vector3 Battlement(out bool hover)
+        // r11 (the visit was invisible from inside the gatehouse): candidates are points along the gate-wall top around F3's
+        // battlement point, the gate arch (inside and outside) and the courtyard doorway; each is scored by how many of three body
+        // points (0.4, 1.3, 2.2 m) her eye can see by line of sight. Best wins (battlement first on ties); none visible -> gate arch.
+        Vector3 VisibleGateSpot(out bool hover,out bool ground)
         {
-            hover=false;var spots=Game.World.Castle;
-            if(spots!=null&&spots.GatehouseBattlement!=Vector3.zero)return spots.GatehouseBattlement;
-            hover=true;Vector3 cart=Game.World.Spawn;bool found=false;
-            foreach(var t in Game.World.Root.GetComponentsInChildren<Transform>(true))
-                if(t.name.EndsWith("LanternCart",System.StringComparison.Ordinal)){cart=t.position;found=true;break;}
-            if(!found&&Game.World.Root)cart=Game.World.Root.TransformPoint(new Vector3(3.6f,0,3f));
-            var spot=cart+Vector3.up*count.GatehouseFallbackHeight;
-            if(Physics.Raycast(cart+Vector3.up*.3f,Vector3.up,out var ceiling,8,FlightMask,QueryTriggerInteraction.Ignore))
-                spot.y=Mathf.Min(spot.y,ceiling.point.y-count.GatehouseHeadroom);
+            hover=false;ground=false;var root=Game.World.Root;var eye=Game.Player.View.transform.position;
+            var spots=Game.World.Castle;var list=new List<(Vector3 at,string kind)>();
+            var right=root?root.right:Vector3.right;
+            if(spots!=null&&spots.GatehouseBattlement!=Vector3.zero)
+                foreach(float dx in new[]{0f,-1.5f,1.5f,-3f,3f,-4.5f,4.5f,-6f})list.Add((spots.GatehouseBattlement+right*dx,"battlement"));
+            Vector3 arch=root?root.TransformPoint(new Vector3(0,0,0)):Vector3.zero;
+            foreach(var t in root?root.GetComponentsInChildren<Transform>(true):new Transform[0])if(t.name.EndsWith("GateArch",System.StringComparison.Ordinal)){arch=t.position;break;}
+            var inward=root?root.forward:Vector3.forward;
+            list.Add((arch+inward*.8f,"arch-inside"));list.Add((arch+inward*.8f+right*1.2f,"arch-inside"));list.Add((arch+inward*.8f-right*1.2f,"arch-inside"));
+            list.Add((arch-inward*1.4f,"arch-outside"));
+            if(spots!=null){var g=spots.Gatehouse;list.Add((new Vector3(g.center.x,g.min.y,g.max.z)+inward*1.2f,"courtyard-door"));}
+            int best=-1,bestSeen=-1;var log=new System.Text.StringBuilder();
+            for(int i=0;i<list.Count;i++)
+            {
+                int seen=0;foreach(float h in new[]{.4f,1.3f,2.2f}){var p=list[i].at+Vector3.up*h;if(!Physics.Linecast(eye,p,FlightMask,QueryTriggerInteraction.Ignore))seen++;}
+                log.Append(list[i].kind).Append(':').Append(seen).Append(' ');
+                if(seen>bestSeen){bestSeen=seen;best=i;}
+            }
+            Vector3 spot;string kind;
+            if(best>=0&&bestSeen>0){spot=list[best].at;kind=list[best].kind;}
+            else{spot=arch+inward*.8f;kind="arch-inside (fallback, nothing visible)";}
+            ground=!kind.StartsWith("battlement",System.StringComparison.Ordinal);
+            if(ground&&GroundUnder(spot,out var floor))spot=floor;
+            Debug.Log("HC_COUNT_GATEHOUSE visible="+Mathf.Max(0,bestSeen)+"/3 kind="+kind+" spot="+spot+" eye="+eye+" candidates=["+log.ToString().Trim()+"]");
             return spot;
         }
-
         // ---- Item 10 near-miss, and (wave G, r10 #16/#17/#28) the hide he opens --------------------------------------------
         // One sequence for both: fly to a landing point in front of the cupboard, crawl (Mode 7) to NearMissDoorDistance from
         // the door, hold, then either leave (near-miss) or open it: the grab at the hide entrance (HC_COUNT_GRAB hideEntrance=True).
@@ -1775,7 +1938,7 @@ namespace HollowCurrent
                 if(nearMissHold>0)return;
                 if(visitOpens)
                 {
-                    nearMissStage=4;visitGrab=0;
+                    nearMissStage=4;visitGrab=0;OpenHideDoor(Game.Player.HideExit);BeginGrabCam("hide-open");
                     // Wave I: at a hide entrance the grab is GrabDrop (it bursts the door down on her), witnessed or near-miss.
                     grabMode=PreferGrab(count.ModeGrabDrop,"GrabDrop",out var why);
                     if(!visitWitnessed)Debug.Log("HC_COUNT_NEARMISS open=True");
@@ -1792,7 +1955,7 @@ namespace HollowCurrent
             if(huntClock>Profile.GrabGraceSeconds)Game.Case.Die();
             if(Game.Case.Terminal)return;
             Debug.Log(tag+" grab blocked reason="+(huntClock<=Profile.GrabGraceSeconds?"grace":"driver invulnerability")+" "+DiagnosticState);
-            contact=0;grabMode=-1;LeaveHideVisit(false);
+            contact=0;grabMode=-1;EndGrabCam("blocked");LeaveHideVisit(false);
         }
         int PreferGrab(int mode,string state,out string why)
         {
