@@ -15,7 +15,7 @@ from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
 ROOT = Path(__file__).resolve().parents[1]
-PREFIX = "exterior2_proof"
+PREFIX = "exteriorL_proof"
 
 def lin(c):                      # display (sRGB-ish) value -> the linear value Blender's Standard transform will show again
     return tuple(float(x) ** 2.2 for x in c)
@@ -24,7 +24,7 @@ PALETTE = {  # DISPLAY colours (what the screen shows); lin() turns them into vi
     "Castle_Stone": (.40, .42, .50), "Castle_StoneWeathered": (.38, .41, .50), "Castle_StoneDark": (.24, .25, .31),
     "Castle_StoneMossy": (.27, .31, .30), "Castle_BlackStone": (.13, .14, .20), "Castle_Iron": (.17, .17, .19),
     "Castle_Oxblood": (.52, .17, .21), "Castle_ExtWindow": (.85, .58, .23), "Castle_ExtBackdrop": (.2, .2, .3),
-    "Proof_Wall": (.36, .38, .46), "Proof_Roof": (.22, .23, .29), "Proof_Blood": (.50, .12, .16), "Proof_Earth": (.13, .14, .17),
+    "Proof_Wall": (.36, .38, .46), "Proof_Roof": (.22, .23, .29), "Proof_Water": (.10, .02, .03), "Castle_Basalt": (.17, .19, .25), "Proof_Earth": (.13, .14, .17),
     "Proof_Wood": (.42, .32, .24), "Proof_Far": None, "Proof_Near": None,
 }
 
@@ -33,11 +33,11 @@ VIEWS = [  # name, eye, target (castle-local Unity coords), vertical fov, size
     ("bridge_gate", (0, 1.7, -4.2), (0, 5.2, 3), 72, (1920, 1080)),
     ("bridge_keep", (0, 1.7, -6.1), (0, 16.0, 19.5), 72, (1920, 1080)),
     ("bridge_left", (-1.2, 1.7, -3.5), (-14, 4.5, 3.0), 72, (1920, 1080)),
-    ("gate_out_S6", (0.4, 1.3, 5.6), (0.4, 3.0, -16), 72, (1920, 1080)),
+    ("gate_out_S6", (0.3, 1.64, 1.4), (0.2, 2.2, -20), 72, (1920, 1080)),
     ("courtyard_keep", (0, 1.64, 7.0), (0, 20.0, 19.5), 72, (1920, 1080)),
     ("courtyard_wall", (3.0, 1.64, 11.5), (-0.8, 9.0, 3.0), 72, (1920, 1080)),
     ("courtyard_east", (-4.0, 1.64, 9.0), (6.0, 8.0, 5.0), 72, (1920, 1080)),
-    ("battlement_out", (3.6, 9.0, -0.4), (0.5, 3.0, -14), 72, (1920, 1080)),
+    ("battlement_out", (3.6, 9.0, -0.4), (0.0, 3.0, -30), 72, (1920, 1080)),
     ("battlement_in", (3.6, 9.0, 0.4), (0, 9.0, 16), 72, (1920, 1080)),
 ]
 MOON_EYES = {  # the three the coordinator named, plus the two neighbours the captures used
@@ -95,7 +95,7 @@ def run(outdir, ext):
     # ---- proxy of the existing building massing (castle-local Unity coordinates)
     px = K("Proxy")
     cc = ext.cc
-    for nm in ("Proof_Wall", "Proof_Roof", "Proof_Blood", "Proof_Earth", "Proof_Wood"):
+    for nm in ("Proof_Wall", "Proof_Roof", "Proof_Water", "Proof_Earth", "Proof_Wood"):
         cc.MATERIALS[nm] = ((.1, .1, .1), 0, 0, False)
     def blk(x0, x1, y0, y1, z0, z1, mat="Proof_Wall"): px.box(((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2), (x1 - x0, y1 - y0, z1 - z0), mat)
     blk(-14.45, -1.5, -3.2, 6.4, -.45, .45); blk(1.5, 14.45, -3.2, 6.4, -.45, .45)
@@ -108,8 +108,8 @@ def run(outdir, ext):
     blk(-6, 6, 5.0, 5.2, -.45, 6.3, "Proof_Roof"); blk(-14, -6, 6.2, 6.4, 0, 28, "Proof_Roof"); blk(6, 14, 6.2, 6.4, 0, 28, "Proof_Roof")
     blk(-6, 6, 9.0, 9.2, 14, 28, "Proof_Roof"); blk(6, 14, 11.4, 11.6, 19.4, 28, "Proof_Roof"); blk(6, 14, 6.4, 11.6, 19.1, 19.7)
     blk(-6, 6, -.02, 0, 0, 14, "Proof_Roof")
-    for z0, z1 in ((-5.6, -.45), (28.45, 33.6)): blk(-19.5, 19.5, -.6 - .05, -.6, z0, z1, "Proof_Blood")
-    for x0, x1 in ((-19.5, -14.45), (14.45, 19.5)): blk(x0, x1, -.65, -.6, -.45, 28.45, "Proof_Blood")
+    for z0, z1 in ((-5.6, -.45), (28.45, 33.6)): blk(-19.5, 19.5, -.6 - .05, -.6, z0, z1, "Proof_Water")
+    for x0, x1 in ((-19.5, -14.45), (14.45, 19.5)): blk(x0, x1, -.65, -.6, -.45, 28.45, "Proof_Water")
     blk(-60, 60, -2.0, 0, -60.4, -5.6, "Proof_Earth")
     for x0, x1 in ((-60.5, -19.5), (19.5, 60.5)): blk(x0, x1, -2.0, 0, -5.6, 33.6, "Proof_Earth")
     blk(-60, 60, -2.0, 0, 33.6, 90, "Proof_Earth")
@@ -180,6 +180,16 @@ def run(outdir, ext):
     print("HC_PROOF_REPORT", {k_: v_ for k_, v_ in report.items() if k_ != "moon_clearance_pct_occluded"})
     if moons_only: return
 
+    if "--debug-center" in ext.ARGS:
+        for (name, eye, target, fov, size) in VIEWS:
+            if target is None: continue
+            dd = np.array(target, float) - np.array(eye, float); dd /= np.linalg.norm(dd)
+            o = Vector(U(tuple(eye))); dv = Vector(U(tuple(dd)))
+            hits = []
+            for ob in allobjs:
+                h = BVHTree.FromObject(ob, dg).ray_cast(o, dv, 200.0)
+                if h[0] is not None: hits.append((round(h[3], 2), ob.name, (round(-h[0].x, 2), round(h[0].z, 2), round(-h[0].y, 2))))
+            print("HC_CENTER", name, sorted(hits)[:3])
     # ---- render setup: four layers per view
     atlas = out / "_raw" / "atlas.png"; (out / "_raw").mkdir(exist_ok=True)
     import castle_exterior_atlas as ATL
@@ -208,6 +218,8 @@ def run(outdir, ext):
             base = m.name.split(".")[0]
             if base == "Castle_ExtWindow":
                 m.diffuse_color = (1, 0, 1, 1) if mode == "mask" else (*lin(PALETTE["Castle_ExtWindow"]), 1)
+            elif base == "Proof_Water" and mode == "mask":
+                m.diffuse_color = (0, 1, 0, 1)                    # the composite shades the moat itself (tools/castle_exterior_composite.py)
             elif mode in ("mask", "glow") and base not in ("Proof_Far", "Proof_Near"):
                 m.diffuse_color = (0, 0, 0, 1)
             elif PALETTE.get(base):

@@ -46,7 +46,7 @@
  },
  "ExtGate": {
   "budget": 30000,
-  "bytes": 64124,
+  "bytes": 66124,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtGate.fbx",
   "materials": [
    "Castle_Stone",
@@ -83,7 +83,7 @@
      4.5925,
      11.7
     ],
-    "tris": 1731
+    "tris": 1891
    }
   },
   "size": [
@@ -91,11 +91,11 @@
    4.5925,
    11.7
   ],
-  "tris": 1731
+  "tris": 1891
  },
  "ExtKeep": {
   "budget": 30000,
-  "bytes": 125516,
+  "bytes": 122300,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtKeep.fbx",
   "materials": [
    "Castle_StoneWeathered",
@@ -143,53 +143,52 @@
  },
  "ExtRock": {
   "budget": 40000,
-  "bytes": 309692,
+  "bytes": 390156,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtRock.fbx",
   "materials": [
-   "Castle_StoneDark",
-   "Castle_StoneMossy"
+   "Castle_Basalt"
   ],
   "max": [
    34.0258,
-   4.0,
+   3.7,
    15.85
   ],
   "min": [
    -34.0451,
-   -32.0,
-   -1.7071
+   -32.14,
+   -1.7241
   ],
   "notes": {},
   "parts": {
    "ExtRock": {
     "max": [
      34.0258,
-     4.0,
+     3.7,
      15.85
     ],
     "min": [
      -34.0451,
-     -32.0,
-     -1.7071
+     -32.14,
+     -1.7241
     ],
     "size": [
      68.0709,
-     36.0,
-     17.5571
+     35.84,
+     17.5741
     ],
-    "tris": 7640
+    "tris": 11250
    }
   },
   "size": [
    68.0709,
-   36.0,
-   17.5571
+   35.84,
+   17.5741
   ],
-  "tris": 7640
+  "tris": 11250
  },
  "ExtTowers": {
   "budget": 40000,
-  "bytes": 156348,
+  "bytes": 178300,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtTowers.fbx",
   "materials": [
    "Castle_StoneWeathered",
@@ -198,42 +197,42 @@
    "Castle_ExtWindow"
   ],
   "max": [
-   17.81,
-   3.86,
+   17.6864,
+   3.7364,
    29.7
   ],
   "min": [
-   -17.81,
-   -31.86,
+   -17.6864,
+   -31.7364,
    -1.3
   ],
   "notes": {},
   "parts": {
    "ExtTowers": {
     "max": [
-     17.81,
-     3.86,
+     17.6864,
+     3.7364,
      29.7
     ],
     "min": [
-     -17.81,
-     -31.86,
+     -17.6864,
+     -31.7364,
      -1.3
     ],
     "size": [
-     35.62,
-     35.72,
+     35.3728,
+     35.4728,
      31.0
     ],
-    "tris": 4865
+    "tris": 6081
    }
   },
   "size": [
-   35.62,
-   35.72,
+   35.3728,
+   35.4728,
    31.0
   ],
-  "tris": 4865
+  "tris": 6081
  },
  "ExtWalls": {
   "budget": 20000,

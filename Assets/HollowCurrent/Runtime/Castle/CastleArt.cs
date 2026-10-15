@@ -139,7 +139,7 @@ namespace HollowCurrent
         {
             { "Castle_Stone", .5f }, { "Castle_StoneWeathered", .5f }, { "Castle_StoneDark", .5f }, { "Castle_StoneMossy", .5f }, { "Castle_FlagStone", .5f }, { "Castle_BlackStone", .667f }, { "Castle_Oak", 1f }, { "Castle_OakPlank", 1f }, { "Castle_GoreSkin", 1f }, { "Castle_GoreFlesh", 1f }, { "Castle_GoreMembrane", 1f }, { "Castle_Brass", 2f },
             { "Castle_Silver", 2f }, { "Castle_Iron", 2f }, { "Castle_Oxblood", 1f }, { "Castle_Bone", 1f }, { "Castle_Paper", 2f },
-            { "Castle_Canvas", 2f }, { "Castle_Blood", .5f },
+            { "Castle_Canvas", 2f }, { "Castle_Blood", .5f }, { "Castle_Basalt", .3f },
         };
         static readonly Dictionary<string, Material> Surfaces = new Dictionary<string, Material>();
         static readonly Dictionary<string, Shader> ShaderCache = new Dictionary<string, Shader>();
