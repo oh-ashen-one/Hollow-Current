@@ -9,7 +9,10 @@
     6,
     7,
     8,
-    9
+    9,
+    10,
+    11,
+    12
   ],
   "mode_names": {
     "0": "Perch",
@@ -21,11 +24,49 @@
     "6": "Grab",
     "7": "Crawl",
     "8": "GrabDrop",
-    "9": "GrabCrawl"
+    "9": "GrabCrawl",
+    "10": "GrabSideL",
+    "11": "GrabSideR",
+    "12": "GrabDropSpin"
   },
   "grab_reach_m": 1.385,
   "grab_drop_reach_m": 1.615,
   "grab_crawl_reach_m": 1.729,
   "grab_drop_mesh_reach_m": 1.615,
-  "grab_crawl_mesh_reach_m": 1.729
+  "grab_crawl_mesh_reach_m": 1.729,
+  "grab_variants": [
+    {
+      "name": "GrabSideL",
+      "mode": 10,
+      "seconds": 1.2,
+      "claw_reach_m": 1.596,
+      "mesh_reach_m": 1.596,
+      "top_m_max": 2.182,
+      "note": "from the player's left flank (clip -X)"
+    },
+    {
+      "name": "GrabSideR",
+      "mode": 11,
+      "seconds": 1.2,
+      "claw_reach_m": 1.607,
+      "mesh_reach_m": 1.607,
+      "top_m_max": 2.182,
+      "note": "from the player's right flank (clip +X)"
+    },
+    {
+      "name": "GrabDropSpin",
+      "mode": 12,
+      "seconds": 1.9,
+      "claw_reach_m": 1.614,
+      "mesh_reach_m": 1.614,
+      "top_m_max": 4.735,
+      "note": "ceiling drop behind the player, camera spun into his face"
+    }
+  ],
+  "grab_side_reach_m": 1.607,
+  "grab_spin_reach_m": 1.614,
+  "grab_spin_yaw_deg": 120.0,
+  "grab_spin_start_s": 0.5,
+  "grab_spin_end_s": 1.15,
+  "grab_side_start_x_m": 3.4
 }

@@ -558,6 +558,112 @@ def crawl_grab_ik(f, ph):
         if gap.length < ARM_MIN_REACH: target = shoulder + gap.normalized() * ARM_MIN_REACH
         two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', target, (sg * POLE[0], c['hy'] + POLE[1], POLE[2]))
 
+# ---------------------------------------------------------------- wave L grab variants (Modes 10, 11, 12)
+# Round 12 critic: "7 of 9 grabs are the same Mode 9 low crawl lunge". Two more kill presentations, authored like Modes 8/9
+# (keyframed control tables + the same Pose/IK helpers, limbs inside the Mode 7 envelope, wing stretch <= WING_STRETCH_CAP):
+#   10 GrabSideL / 11 GrabSideR  side snatch: he arrives from the player's left / right flank, one claw crosses the frame first,
+#                                then the skull swings in to the lens (the two clips are mirror images; Generic rigs cannot mirror at runtime).
+#   12 GrabDropSpin              ceiling drop that lands BEHIND the player (all-fours landing, head down); the runtime spins the camera
+#                                (yaw <= SPIN_YAW_DEG, SPIN_START_S..SPIN_END_S) into his face, he rears up as it arrives, claws close from both sides.
+# Clip space: camera at (0, -(reach + 0.6), 1.64) looking +Y, image right = +X, so the player's LEFT is -X. Body-local targets below are
+# turned into armature space by to_world(); the body origin (ox, oy) and heading yaw are keyframed per clip.
+SIDE_SECONDS, SPIN_SECONDS = 1.2, 1.9
+SIDE_START_X = 3.4                  # metres from the frame centre where the snatch starts: outside the horizontal FOV at 2.2 m (+-2.8), so he enters the frame
+SPIN_YAW_DEG, SPIN_START_S, SPIN_END_S = 120.0, 0.5, 1.15     # runtime camera yaw schedule for GrabDropSpin (documented in the receipt)
+GRAB_VARIANT_REACH = 1.6            # final claw reach target (GrabDrop is 1.615): the stand-off stays reach + CameraClearance
+def to_world(local, ox, oy, yaw_deg):
+    c, sn = math.cos(D(yaw_deg)), math.sin(D(yaw_deg))
+    return Vector((ox + c * local[0] - sn * local[1], oy + sn * local[0] + c * local[1], local[2]))
+def guard_arm(side, target):
+    shoulder = rig.pose.bones[side + 'Arm'].head.copy(); gap = target - shoulder
+    return shoulder + gap.normalized() * ARM_MIN_REACH if gap.length < ARM_MIN_REACH else target
+
+def side_table(S):
+    # S = -1: from the player's left (x < 0), +1: from the right. Heading: facing the travel direction (-S * 90 deg), turning to the camera.
+    lead_sg = 1 if S > 0 else -1                           # the camera-side arm leads: his left arm when travelling toward -X
+    return {
+     'ox':    [(0, S * SIDE_START_X), (.12, S * 2.35), (.28, S * 1.10), (.44, S * .32), (.60, S * .04), (1, 0)],
+     'oy':    [(0, .25), (.30, .10), (.60, -.04), (1, -.10)],
+     'yaw':   [(0, -S * 55), (.22, -S * 48), (.40, -S * 30), (.52, -S * 10), (.62, 0), (1, 0)],
+     'hips_x':[(0, 52), (.25, 50), (.45, 44), (.62, 42), (1, 46)],
+     'hz':    [(0, -.46), (.25, -.40), (.45, -.34), (.62, -.32), (1, -.32)],
+     'lean':  [(0, 12), (.45, 16), (.62, 22), (1, 28)],
+     'neck':  [(0, -14), (.40, -24), (.60, -38), (1, -40)],
+     'head':  [(0, -6), (.40, -14), (.60, -26), (1, -30)],
+     'hyaw':  [(0, 0), (.10, .85), (.40, .85), (.60, .35), (.70, 0), (1, 0)],      # head yaw as a fraction of -body yaw: he looks at her while running
+     'jaw':   [(0, 0), (.25, -10), (.42, -34), (1, -36)],
+     'wspread':[(0, .55), (.30, .8), (.5, 1.0), (1, 1.0)],
+     'wyaw':  [(0, -22), (.30, -6), (.55, 24), (1, 34)],
+     'wbeat': [(0, 12), (.40, 22), (1, 26)],
+     'wpitch':[(0, 40), (.5, 20), (1, 14)],
+     'wcurl': [(0, -4), (1, -10)],
+     'wstr':  [(0, 1.2), (.5, 1.5), (1, WING_STRETCH_CAP)],
+     # lead claw sweeps across the lens as he arrives, trailing claw follows; both close at the end (local = body frame, metres)
+     'lx':    [(0, .30), (.25, .30), (.45, .20), (.62, .12), (1, .12)],
+     'ly':    [(0, -.80), (.25, -1.00), (.45, -1.08), (.62, -1.08), (1, -.95)],
+     'lz':    [(0, 1.00), (.25, 1.05), (.45, 1.10), (.62, 1.20), (1, 1.22)],
+     'tx':    [(0, .30), (.30, .32), (.62, .30), (1, .30)],
+     'ty':    [(0, -.30), (.30, -.70), (.62, -.98), (1, -.99)],
+     'tz':    [(0, .80), (.30, 1.00), (.62, 1.26), (1, 1.30)],
+     'fs':    [(0, 0), (.50, 1.0), (.62, 0), (1, 0)],      # stride amplitude (feet bound while he runs in)
+     'lead_sg': lead_sg}
+SIDE_TABLES = {'GrabSideL': side_table(-1), 'GrabSideR': side_table(1)}
+def side_c(f, tab): return {k: (cubic(f, v) if isinstance(v, list) else v) for k, v in tab.items()}
+def side_pose_for(tab):
+    def fn(p, ph, f):
+        c = side_c(f, tab)
+        p.l('Hips', x=c['ox'], y=c['oy'], z=c['hz'], raw=True); p.r('Hips', x=c['hips_x']); p.r('Hips', z=c['yaw'])
+        p.spine(c['lean'], neck=c['neck'], head=c['head'], yaw=-c['yaw'] * c['hyaw']); p.r('Jaw', x=c['jaw'])
+        p.legs(0, 0)
+        p.wings(c['wspread'], yaw=c['wyaw'], beat=c['wbeat'], pitch=c['wpitch'], curl=c['wcurl'], stretch=c['wstr'])
+    return fn
+def side_ik_for(tab):
+    def ik(f, ph):
+        c = side_c(f, tab); a = 2 * math.pi * 2.2 * min(1.0, f / .5)
+        for side, sg in (('Left', 1), ('Right', -1)):
+            ph_s = a + (0 if sg > 0 else math.pi); stride = c['fs']
+            foot = to_world((sg * .30, .30 * stride * math.sin(ph_s) + .08, ANKLE + .22 * stride * max(0.0, math.cos(ph_s))), c['ox'], c['oy'], c['yaw'])
+            two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', foot, to_world((sg * .7, -1.0, .8), c['ox'], c['oy'], c['yaw'])); plant(side + 'Foot', sg * 10 + c['yaw'])
+            lead = sg == c['lead_sg']
+            loc = (sg * (c['lx'] if lead else c['tx']), c['ly'] if lead else c['ty'], c['lz'] if lead else c['tz'])
+            two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', guard_arm(side, to_world(loc, c['ox'], c['oy'], c['yaw'])), to_world((sg * 1.1, .6, 1.0), c['ox'], c['oy'], c['yaw']))
+    return ik
+
+SPL = (.5 / SPIN_SECONDS)       # landing time (0.5 s fall, same as GrabDrop)
+SPIN = {   # all-fours landing behind the player, head down; he rears up as the camera spin arrives (lock ~ f .6), claws close from both sides
+ 'hips_x': [(0, 16), (SPL, 24), (SPL + .04, 48), (.45, 50), (.60, 46), (.74, 42), (1, 44)],
+ 'hz':     [(0, -.02), (SPL, -.10), (SPL + .04, -.46), (.45, -.46), (.60, -.40), (.74, -.34), (1, -.32)],
+ 'hy':     [(0, .10), (SPL, .06), (SPL + .04, .10), (.45, .10), (.60, .02), (.74, -.06), (1, -.09)],
+ 'lean':   [(0, 4), (SPL, 6), (.45, 4), (.74, 18), (1, 24)],
+ 'neck':   [(0, -10), (SPL, -14), (.45, -22), (.62, -44), (.74, -50), (1, -50)],
+ 'head':   [(0, -6), (.45, -8), (.70, -34), (1, -34)],
+ 'jaw':    [(0, 0), (SPL, -6), (.45, -8), (.60, -34), (1, -36)],
+ 'wspread':[(0, 1.0), (1, 1.0)],
+ 'wyaw':   [(0, -10), (SPL, 0), (SPL + .06, 34), (.45, 40), (.74, 38), (1, 38)],
+ 'wbeat':  [(0, 44), (SPL, 36), (SPL + .05, 6), (.45, 12), (.74, 24), (1, 26)],
+ 'wpitch': [(0, 14), (SPL, 20), (1, 14)],
+ 'wcurl':  [(0, -6), (1, -10)],
+ 'wstr':   [(0, WING_STRETCH_CAP), (1, WING_STRETCH_CAP)],
+ 'ax':     [(0, .40), (SPL, .40), (SPL + .04, .32), (.45, .32), (.62, .40), (.74, .34), (1, .30)],
+ 'ay':     [(0, -.50), (SPL, -.80), (SPL + .04, -.72), (.45, -.72), (.62, -.95), (.74, -1.12), (1, -1.16)],
+ 'az':     [(0, 2.35), (SPL, 1.45), (SPL + .04, .55), (.45, .55), (.62, .95), (.74, 1.28), (1, 1.30)],
+ 'fx':     [(0, .22), (SPL, .34), (1, .30)],
+ 'fy':     [(0, .14), (SPL, .20), (.45, .30), (.74, .05), (1, -.02)],
+ 'fz':     [(0, .12), (SPL, .05), (SPL + .04, 0), (1, 0)],
+}
+def spin(p, ph, f):
+    c = curves(f, SPIN)
+    p.l('Hips', y=c['hy'], z=c['hz'], raw=True); p.r('Hips', x=c['hips_x'])
+    p.spine(c['lean'], neck=c['neck'], head=c['head']); p.r('Jaw', x=c['jaw']); p.legs(0, 0)
+    p.wings(c['wspread'], yaw=c['wyaw'], beat=c['wbeat'], pitch=c['wpitch'], curl=c['wcurl'], stretch=c['wstr'])
+def spin_ik(f, ph):
+    c = curves(f, SPIN)
+    for side, sg in (('Left', 1), ('Right', -1)):
+        two_bone(side + 'UpLeg', side + 'Leg', side + 'Foot', (sg * c['fx'], c['fy'], ANKLE + c['fz']), (sg * 1.3, -1.0, .7)); plant(side + 'Foot', sg * 12)
+        two_bone(side + 'Arm', side + 'ForeArm', side + 'Hand', guard_arm(side, Vector((sg * c['ax'], c['ay'], c['az']))), (sg * 1.1, .6, 1.1))
+def spin_lift(f):
+    u = min(1.0, f / SPL); return DROP_HEIGHT * (1 - u * u)
+
 # (name, pose fn, seconds, loop, post-IK fn, floor rule): 'plant' keeps the lowest mesh point on z=0,
 # 'lift' only lifts it back above z=0 (airborne clips), None leaves the IK-planted feet alone.
 # 'skim' shifts the whole airborne clip by one constant so its lowest point over the clip is SKIM above the origin:
@@ -570,9 +676,14 @@ CLIPS = [('Perch', perch, 3.2, True, perch_ik, None), ('Glide', glide, 2.0, True
          ('Stagger', stagger, 1.3, False, None, 'plant'), ('Death', death, 2.4, False, None, 'plant'),
          ('Grab', grab, 0.9, False, None, 'skim'), ('Crawl', crawl, 1.4, True, crawl_ik, None),
          # F5: Mode 8 and 9 are authored grounded (lowest point on z=0 at every frame; GrabDrop adds its fall height on top).
-         ('GrabDrop', drop, DROP_SECONDS, False, drop_ik, 'plant'), ('GrabCrawl', crawl_grab, CRAWL_GRAB_SECONDS, False, crawl_grab_ik, 'plant')]
+         ('GrabDrop', drop, DROP_SECONDS, False, drop_ik, 'plant'), ('GrabCrawl', crawl_grab, CRAWL_GRAB_SECONDS, False, crawl_grab_ik, 'plant'),
+         # wave L variants (Modes 10-12): see the block above
+         ('GrabSideL', side_pose_for(SIDE_TABLES['GrabSideL']), SIDE_SECONDS, False, side_ik_for(SIDE_TABLES['GrabSideL']), 'plant'),
+         ('GrabSideR', side_pose_for(SIDE_TABLES['GrabSideR']), SIDE_SECONDS, False, side_ik_for(SIDE_TABLES['GrabSideR']), 'plant'),
+         ('GrabDropSpin', spin, SPIN_SECONDS, False, spin_ik, 'plant')]
+VARIANT_NAMES = ('GrabSideL', 'GrabSideR', 'GrabDropSpin')
 NEW_FROM = 8                                           # CLIPS[NEW_FROM:] are the F5 clips
-LIFT = {'GrabDrop': drop_lift}                         # extra airborne lift added after the grounding rule
+LIFT = {'GrabDrop': drop_lift, 'GrabDropSpin': spin_lift}                         # extra airborne lift added after the grounding rule
 DEFORM = [b.name for b in arm.bones]
 actions = {}; metrics = {}
 def lowest_over(fn, end, loop, ik):
@@ -610,7 +721,7 @@ for name, fn, seconds, loop, ik, floor in RUN:
     shift = (SKIM if floor == 'skim' else 0.0) - lowest_over(fn, end, loop, ik) if floor in ('skim', 'ground') else 0.0
     action = bpy.data.actions.new(name); action.use_fake_user = True; rig.animation_data.action = action
     if action.slots: rig.animation_data.action_slot = action.slots[0]
-    prev = {}; spans = []; tops = []; lows = []; reach = []; areas = []; pitches = []; claw_reach = []; stretch_n = []; stretch_max = []; limb_max = {}; wing_stretch = []
+    prev = {}; spans = []; tops = []; lows = []; reach = []; areas = []; pitches = []; claw_reach = []; stretch_n = []; stretch_max = []; limb_max = {}; wing_stretch = []; lat_reach = []
     for frame in range(0, end + 1):
         ph = (frame / end) % 1.0 if loop else frame / end; f = frame / end
         if loop and frame == end: ph = 0.0
@@ -627,12 +738,12 @@ for name, fn, seconds, loop, ik, floor in RUN:
             ratio = np.linalg.norm(pts[EDGES[:, 0]] - pts[EDGES[:, 1]], axis=1) / np.maximum(REST_LEN, 1e-6); badv = set(EDGES[(ratio > STRETCH_LIMIT) & EDGE_OK].reshape(-1).tolist()); groups = {}
             for vi in badv: groups[vgroup[vi]] = groups.get(vgroup[vi], 0) + 1
             print('HC_STRETCH', name, frame, 'edges>%.1fx' % STRETCH_LIMIT, bad_n, 'max ratio', round(bad_max, 2), 'bones', dict(sorted(groups.items(), key=lambda kv: -kv[1])[:6]), flush=True)
-        if DIAG and (frame % 6 == 0 or frame == end):
+        if DIAG and (frame % 3 == 0 or frame == end):
             print('HC_ANGLES', name, frame, {n: round(math.degrees(rig.pose.bones[n].rotation_quaternion.angle)) for n in ('Hips', 'Spine02', 'Spine', 'neck', 'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'RightUpLeg', 'RightLeg', 'LeftArm', 'LeftForeArm', 'LeftHand', 'RightArm', 'RightForeArm', 'RightHand')}, flush=True)
         for lb in ('UpLeg', 'Leg', 'Arm', 'ForeArm'):
             limb_max[lb] = max(limb_max.get(lb, 0), *(math.degrees(rig.pose.bones[sd + lb].rotation_quaternion.angle) for sd in ('Left', 'Right')))
         wing_stretch.append(getattr(pose, 'stretch_used', 1.0))
-        pitches.append(chest_pitch_deg()); claws = claw_points(); claw_reach.append(float(-claws[:, 1].min()))
+        pitches.append(chest_pitch_deg()); claws = claw_points(); claw_reach.append(float(-claws[:, 1].min())); lat_reach.append(float(np.abs(claws[:, 0]).max()))
         spans.append(float(pts[:, 0].max() - pts[:, 0].min())); tops.append(float(pts[:, 2].max()))
         lows.append(float(pts[:, 2].min())); reach.append(float(-pts[:, 1].min()))
         if frame % 6 == 0 or frame == end: areas.append(membrane_area() / REST_MEMBRANE)
@@ -645,7 +756,10 @@ for name, fn, seconds, loop, ik, floor in RUN:
     metrics[name] = {'seconds': round(end / FPS, 3), 'loop': loop, 'hip_shift_m': round(shift, 3), 'span_m_min': round(min(spans), 3), 'span_m_max': round(max(spans), 3),
                      'top_m_max': round(max(tops), 3), 'lowest_z_min': round(min(lows), 3), 'forward_reach_m_max': round(max(reach), 3),
                      'forward_reach_m_last': round(reach[-1], 3), 'claw_reach_m_last': round(claw_reach[-1], 3), 'stretched_edges_max': max(stretch_n), 'stretched_edges_last': stretch_n[-1], 'edge_stretch_ratio_max': round(max(stretch_max), 2), 'wing_stretch_max': round(max(wing_stretch), 3), 'limb_angle_max_deg': {k: round(v) for k, v in limb_max.items()}, 'chest_pitch_deg_last': round(pitches[-1], 1), 'chest_pitch_deg_max': round(max(pitches), 1), 'membrane_area_ratio_min': round(min(areas), 3), 'membrane_area_ratio_last': round(areas[-1], 3)}
-    print('HC_CLIP', name, json.dumps(metrics[name]), flush=True)
+    if name in VARIANT_NAMES:   # frame-by-frame reach (frame 0 .. last) of the grab variants, forward = toward the camera (-Y)
+        metrics[name].update({'fps': FPS, 'frames': end + 1, 'claw_reach_by_frame_m': [round(x, 3) for x in claw_reach], 'mesh_reach_by_frame_m': [round(x, 3) for x in reach],
+                              'claw_lateral_by_frame_m': [round(x, 3) for x in lat_reach]})
+    print('HC_CLIP', name, json.dumps({k: v for k, v in metrics[name].items() if not k.endswith('_by_frame_m')}), flush=True)
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
 update()
@@ -743,6 +857,64 @@ def proof(directory):
     (directory / 'grab_proof_measurements.json').write_text(json.dumps(results, indent=2) + '\n')
     print('HC_PROOF', json.dumps(results), flush=True)
 
+# ---------------------------------------------------------------- wave L proof: fixed grab camera, per-frame skull / claw framing
+GRAB_VARIANT_STANDOFF = 1.615 + CAMERA_CLEARANCE      # same stand-off as GrabDrop (reach 1.615 + 0.6); the variants' own reach is below 1.615
+def proof_variants(directory):
+    directory.mkdir(parents=True, exist_ok=True)
+    sc = bpy.context.scene; sc.render.engine = 'BLENDER_WORKBENCH'
+    sc.display.shading.light = 'STUDIO'; sc.display.shading.color_type = 'TEXTURE'; sc.display.render_aa = '8'
+    sc.render.image_settings.file_format = 'PNG'; sc.render.image_settings.color_mode = 'RGB'; sc.render.image_settings.compression = 100; sc.render.dither_intensity = 0
+    sc.world = bpy.data.worlds.new('proofv'); sc.world.color = (.03, .035, .05)
+    cam = bpy.data.objects.new('proofvcam', bpy.data.cameras.new('proofvcam')); sc.collection.objects.link(cam); sc.camera = cam
+    cam.data.sensor_fit = 'VERTICAL'; cam.data.angle = D(VFOV); cam.data.clip_start = .04; cam.data.clip_end = 75
+    head_groups = [g.index for g in body.vertex_groups if g.name in ('Head', 'Jaw')]
+    head_verts = [v.index for v in me.vertices if sum(g.weight for g in v.groups if g.group in head_groups) > .5]
+    left = [v for v in hand_verts if me.vertices[v].co.x > 0]; right = [v for v in hand_verts if me.vertices[v].co.x <= 0]
+    tan_v = math.tan(D(VFOV / 2)); aspect = PROOF_W / PROOF_H
+    results = {}
+    for clip, stem in (('GrabSideL', 'grab_side_l'), ('GrabSideR', 'grab_side_r'), ('GrabDropSpin', 'grab_drop_spin')):
+        if clip not in actions: continue
+        action, end, loop = actions[clip]; rig.animation_data.action = action
+        if action.slots: rig.animation_data.action_slot = action.slots[0]
+        sc.frame_set(end); update(); target = Vector(mesh_points()[head_verts].mean(axis=0))
+        cam.location = Vector((0, -GRAB_VARIANT_STANDOFF, EYE)); cam.rotation_euler = (target - cam.location).to_track_quat('-Z', 'Y').to_euler(); update()
+        inv = np.array(cam.matrix_world.inverted()); sc.render.resolution_x = PROOF_W; sc.render.resolution_y = PROOF_H; sc.render.resolution_percentage = 100
+        def project(pts):
+            h = np.concatenate([pts, np.ones((len(pts), 1), dtype=np.float32)], axis=1) @ inv.T; depth = -h[:, 2]
+            ok = depth > .04; d = np.where(ok, depth, 1.0)
+            return PROOF_W / 2 * (1 + (h[:, 0] / d) / (tan_v * aspect)), PROOF_H / 2 * (1 - (h[:, 1] / d) / tan_v), depth, ok
+        def span(px, py, depth, ok, idx):
+            x, y, dep, okk = px[idx], py[idx], depth[idx], ok[idx]; x, y = x[okk], y[okk]
+            if not len(x): return None
+            x0, x1 = float(np.clip(x.min(), 0, PROOF_W)), float(np.clip(x.max(), 0, PROOF_W))
+            return {'x0': round(x0), 'x1': round(x1), 'width_px': round(x1 - x0), 'cx': round(float(x.mean())), 'cy': round(float(y.mean())), 'nearest_m': round(float(dep[okk].min()), 3)}
+        frames = []; seconds = end / FPS
+        for fr in range(end + 1):
+            sc.frame_set(fr); update(); pts = mesh_points(); px, py, depth, ok = project(pts)
+            skull = span(px, py, depth, ok, head_verts); lc = span(px, py, depth, ok, left); rc = span(px, py, depth, ok, right)
+            sk_in = bool(skull and .2 * PROOF_W <= skull['cx'] <= .8 * PROOF_W and .2 * PROOF_H <= skull['cy'] <= .8 * PROOF_H)
+            claw_w = max([c['width_px'] for c in (lc, rc) if c] or [0])
+            frames.append({'t': round(fr / FPS, 3), 'skull_cx': skull and skull['cx'], 'skull_cy': skull and skull['cy'], 'skull_in_central60': sk_in, 'claw_px': claw_w,
+                           'claw_reach_m': metrics[clip]['claw_reach_by_frame_m'][fr], 'mesh_reach_m': metrics[clip]['mesh_reach_by_frame_m'][fr]})
+        first_claw = next((f['t'] for f in frames if f['claw_px'] >= 200), None); first_skull = next((f['t'] for f in frames if f['skull_in_central60']), None)
+        t30 = frames[min(end, round(.3 * FPS))]; lock = SPIN_END_S if clip == 'GrabDropSpin' else 0.0; tl = frames[min(end, round((lock + .3) * FPS))]
+        results[clip] = {'seconds': round(seconds, 3), 'camera': {'standoff_m': GRAB_VARIANT_STANDOFF, 'eye_m': EYE, 'vfov_deg': VFOV, 'look_at': [round(x, 3) for x in target]},
+                         'first_claw_ge200px_s': first_claw, 'first_skull_central60_s': first_skull, 'at_plus_0.3s': t30, 'camera_lock_s': lock, 'at_lock_plus_0.3s': tl,
+                         'final': frames[-1], 'frames': frames, 'wing_stretch_max': metrics[clip]['wing_stretch_max'], 'shard_edges_max': metrics[clip]['stretched_edges_max'],
+                         'limb_angle_max_deg': metrics[clip]['limb_angle_max_deg'], 'chest_pitch_deg_last': metrics[clip]['chest_pitch_deg_last']}
+        shots = [('pose', end), ('frame0', 0), ('t030', round(.3 * FPS))] + ([('lock_t030', round((SPIN_END_S + .3) * FPS))] if clip == 'GrabDropSpin' else [])
+        for label, frame in shots:
+            sc.frame_set(frame); update(); sc.render.filepath = str(directory / ('%s_%s.png' % (stem, label))); bpy.ops.render.render(write_still=True)
+        # contact sheet from the player's camera at six moments (small): shows the approach / spin
+        sc.render.resolution_x = 640; sc.render.resolution_y = 360; tiles = []
+        for fr in sorted({0, round(.15 * end), round(.3 * end), round(.5 * end), round(.7 * end), end}):
+            sc.frame_set(fr); update(); path = str(directory / ('_tile%d.png' % fr)); sc.render.filepath = path; bpy.ops.render.render(write_still=True)
+            im = bpy.data.images.load(path); im.reload(); arr = np.empty(im.size[0] * im.size[1] * 4, dtype=np.float32); im.pixels.foreach_get(arr); tiles.append(arr.reshape(im.size[1], im.size[0], 4)); bpy.data.images.remove(im); Path(path).unlink(missing_ok=True)
+        sheet = np.concatenate([np.concatenate(tiles[3:6], axis=1), np.concatenate(tiles[:3], axis=1)], axis=0)    # Blender image rows run bottom-up: the first array row is the bottom of the PNG
+        out = bpy.data.images.new('sheetv', sheet.shape[1], sheet.shape[0], alpha=True); out.pixels.foreach_set(sheet.reshape(-1)); out.filepath_raw = str(directory / (stem + '_sheet.png')); out.file_format = 'PNG'; out.save()
+    (directory / 'grab_variants_measurements.json').write_text(json.dumps(results, indent=1) + '\n')
+    print('HC_PROOF_VARIANTS', json.dumps({k: {x: v[x] for x in ('first_claw_ge200px_s', 'first_skull_central60_s', 'at_plus_0.3s', 'at_lock_plus_0.3s', 'final')} for k, v in results.items()}), flush=True)
+
 if PREVIEW:
     preview(PREVIEW)
     for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
@@ -753,7 +925,9 @@ rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
 update()
 if DIAG: sys.exit(0)
-if PROOF: proof(PROOF)
+if PROOF:
+    proof(PROOF)
+    if any(n in actions for n in VARIANT_NAMES): proof_variants(PROOF)
 rig.animation_data.action = None
 for b in rig.pose.bones: b.rotation_quaternion = Quaternion(); b.location = (0, 0, 0); b.scale = (1, 1, 1)
 update()
@@ -789,10 +963,17 @@ report['clips'] = {k: metrics[k] for k in sorted(metrics, key=lambda n: MODE_OF.
 # F5: forward reach of the furthest claw (hand-weighted vertices) from the origin at the final pose, and the Animator Mode of every clip.
 report['grab_drop_reach_m'] = metrics['GrabDrop']['claw_reach_m_last']; report['grab_crawl_reach_m'] = metrics['GrabCrawl']['claw_reach_m_last']
 report['grab_drop_mesh_reach_m'] = metrics['GrabDrop']['forward_reach_m_last']; report['grab_crawl_mesh_reach_m'] = metrics['GrabCrawl']['forward_reach_m_last']
+# Wave L variants: reach, duration and the camera spin schedule, for the runtime (F2 picks the mode; the stand-off is reach + CameraClearance).
+VARIANT_INFO = {'GrabSideL': 'from the player\'s left flank (clip -X)', 'GrabSideR': 'from the player\'s right flank (clip +X)', 'GrabDropSpin': 'ceiling drop behind the player, camera spun into his face'}
+report['grab_variants'] = [{'name': n, 'mode': MODE_OF[n], 'seconds': metrics[n]['seconds'], 'claw_reach_m': metrics[n]['claw_reach_m_last'], 'mesh_reach_m': metrics[n]['forward_reach_m_last'],
+                            'top_m_max': metrics[n]['top_m_max'], 'note': VARIANT_INFO[n]} for n in VARIANT_NAMES if n in metrics]
+report['grab_side_reach_m'] = max(metrics[n]['claw_reach_m_last'] for n in ('GrabSideL', 'GrabSideR') if n in metrics)
+report['grab_spin_reach_m'] = metrics['GrabDropSpin']['claw_reach_m_last']
+report['grab_spin_yaw_deg'] = SPIN_YAW_DEG; report['grab_spin_start_s'] = SPIN_START_S; report['grab_spin_end_s'] = SPIN_END_S; report['grab_side_start_x_m'] = SIDE_START_X
 report['modes'] = [MODE_OF[c[0]] for c in CLIPS]
 report['mode_names'] = {str(MODE_OF[c[0]]): c[0] for c in CLIPS}
 RECEIPT.write_text(json.dumps(report, indent=2) + '\n')
 # Shipped in Resources so the player can detect Mode 8/9 (the receipt itself stays outside Resources).
 RUNTIME_MODES.parent.mkdir(parents=True, exist_ok=True)
-RUNTIME_MODES.write_text(json.dumps({k: report[k] for k in ('modes', 'mode_names', 'grab_reach_m', 'grab_drop_reach_m', 'grab_crawl_reach_m', 'grab_drop_mesh_reach_m', 'grab_crawl_mesh_reach_m')}, indent=2) + '\n')
+RUNTIME_MODES.write_text(json.dumps({k: report[k] for k in ('modes', 'mode_names', 'grab_reach_m', 'grab_drop_reach_m', 'grab_crawl_reach_m', 'grab_drop_mesh_reach_m', 'grab_crawl_mesh_reach_m', 'grab_variants', 'grab_side_reach_m', 'grab_spin_reach_m', 'grab_spin_yaw_deg', 'grab_spin_start_s', 'grab_spin_end_s', 'grab_side_start_x_m') if k in report}, indent=2) + '\n')
 print('HC_BLENDER_EXPORT_PASS CountClaude', json.dumps(report), flush=True)
