@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Castle surface / Castle_Blood / Liquid
-  m_Shader: {fileID: 4800000, guid: 6fbdb99abbd8a4c525e6afbeedf636a5, type: 3}
+  m_Name: Castle exterior moat water
+  m_Shader: {fileID: 4800000, guid: a5d45f9f7433e9ed4f527c17b4ddbffa, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -22,28 +22,14 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs:
-    - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 2cf7d44649db122002361615d4afa004, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 23cb4c48c61f9f37bc9f8e5efcd239ac, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    - _MaskTex:
-        m_Texture: {fileID: 2800000, guid: 49eff20da4ac9daaf6b4c3713e51bf42, type: 3}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
+    m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _BumpScale: 1.15
-    - _FillAmount: 1
-    - _Sharp: 6
-    - _Tile: 0.5
+    - _Reflect: 2.2
+    - _Ripple: 0.55
+    - _Time2: 0
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
-    - _EmissionColor: {r: 0.3, g: 0.012, b: 0.02, a: 1}
-    - _Flow: {r: 0.02, g: 0.012, b: 1.7, a: 0}
+    - _CastleTint: {r: 0.012, g: 0.016, b: 0.03, a: 1}
+    - _Deep: {r: 0.016, g: 0.0018000001, b: 0.004, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
