@@ -38,7 +38,7 @@ The build is source `ac43efa`: hc/art-exterior (`d904e77`) and hc/art-props (`41
 | Natural 1 (8.7 min) | **PASS** | Share 0.211 at 479 s (final 0.207); gap 203 → 395 s (192 s); Dread 36.2 at 479 s; no-tell hunts at Dread 20.0 and 20.0; 17 `governor=` lines, 1.00-1.44; 0 escalations; 1 unforced throw |
 | Natural 2 (8.7 min) | **FAIL** on share and gap | Share 0.229 at 479 s (final 0.224 > 0.22); first hunt at 220 s, then gaps 84 s and 81 s (none ≥ 120 s between hunts); Dread 49.5 at 479 s; no-tell at Dread 18.8; 17 `governor=` lines, 0.80-2.56; 2 escalations (`escalated=True`); 2 unforced throws |
 | Escalation across both | **PASS** | natural2 2 of 4 attempts |
-| `HC_DOOR_HELD` | **PASS** | Once in siege and once in fear; not in the naturals |
+| `HC_DOOR_HELD` | **FAIL (corrected in wave L)** | Never fired. The earlier count matched the `HC_DOOR_HELD=0` field of `HC_PLAY_SUMMARY`, not a real `HC_DOOR_HELD` line. Cause: the roll only runs on a hide entry at Dread ≥ 60, and no scripted run re-entered a hide at that Dread |
 | Siege | **Partial** | Near-miss begin, `open=False` (roll 0.54 vs 0.25), Recovery cut 1; 5 hunts, Dread 85.5 at the end |
 | Escape | **WON** | 0 `fix=stop`; return swoop leg1 clear, leg2 detour, `end` reached |
 | Kill | **WON, slain** | 10 `HC_COUNT_RECOIL` lines, closest joint to the lens 0.42 m before the push (never inside the wing) |
@@ -72,7 +72,7 @@ The build is source `8a953e9`: hc/rules6, count16, scares4 and audio4 merged, pl
 | Fear: swoop | **PASS** | `HC_COUNT_LEG first=silent reason=return`, leg2 detour |
 | Death over win (bridge) | **PASS (logged)** | `HC_DEATH frame=… beat_win=true died=False blocked=True` on each frame. The driver's invulnerability blocked the kill, so the grab camera kept the win from firing until the driver teleported her (one blocker: "bridge walk did not reach the far bank") |
 | Gatehouse visit from inside | **PASS** | `HC_COUNT_GATEHOUSE visible=3/3 kind=arch-inside`, landed. Capture `rounds/r12/captures/fear/23_gatehouse_visit.png` |
-| Door held | **PASS** | `HC_DOOR_HELD` in the fear and siege runs (at Dread ≥ 60) |
+| Door held | **FAIL (corrected in wave L)** | The match was the `HC_DOOR_HELD=0` summary field; no real `HC_DOOR_HELD` line fired |
 | Escape | **WON**, 0 blockers | 0 `fix=stop` stall lines; return swoop leg2 detour |
 | Kill | **WON, slain** | `HC_COUNT_RECOIL closest=0.58/0.49/0.29 pushed=0.19/0.28/0.48` |
 | Death + retry | **PASS** | Penalty applied, Dread 58.4, relic 0 moved |
