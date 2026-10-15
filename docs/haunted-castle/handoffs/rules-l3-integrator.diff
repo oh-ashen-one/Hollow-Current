@@ -1,0 +1,73 @@
+--- a/Assets/HollowCurrent/Runtime/Game.cs	2026-10-15 00:24:41
++++ b/Assets/HollowCurrent/Runtime/Game.cs	2026-10-15 00:24:41
+@@ -33,6 +33,8 @@
+         }
+         public static bool MapAvailable(MapId map)=>Application.CanStreamedLevelBeLoaded(MapCatalog.Get(map).SceneName);
+         public Investigation Case {get;private set;}
++        // Wave L3: this castle run's plan (first-hunt band, burst/lull start), chosen against the last runs (PlayerPrefs hc.castle.runs).
++        public RunPlan RunPlan {get;private set;}
+         public CaseBook Book=>Case.Book;
+         public World World {get;private set;}
+         public Investigator Player {get;private set;}
+@@ -116,6 +118,15 @@
+             // Castle rules (HuntRules.Castle or the Long Night dial) and real dice; Bellwether is built exactly as before.
+             appliedLongNight=LongNight;
+             Case=Map==MapId.Castle?new Investigation(CaseBook.For(Map),()=>UnityEngine.Random.value,HuntRules.For(Map,LongNight)):new Investigation(CaseBook.For(Map));
++            if(Map==MapId.Castle)
++            {
++                // Wave L3 cross-run anti-repeat: a first-hunt band not used in the last two runs, the other rhythm start than last run.
++                // A checkpoint retry keeps the history (it is the same run).
++                var history=RunHistory.Parse(PlayerPrefs.GetString("hc.castle.runs",""));
++                RunPlan=history.Next(UnityEngine.Random.value,UnityEngine.Random.value);Case.UseRunPlan(RunPlan);
++                if(!restoreCheckpoint){history.Push(RunPlan);PlayerPrefs.SetString("hc.castle.runs",history.Serialize());PlayerPrefs.Save();}
++                Debug.Log("HC_RUN_PLAN band="+RunPlan.Band+" firstHunt="+RunPlan.FirstHuntMin.ToString("F0")+"-"+RunPlan.FirstHuntMax.ToString("F0")+" burstStart="+RunPlan.BurstStart+" history="+history.Serialize());
++            }
+             // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
+             // order Presence, CastleRun and Game run in this frame.
+             if(Map==MapId.Castle)Case.FrameSource=()=>Time.frameCount;
+--- a/Assets/HollowCurrent/Runtime/ScareDirector.cs	2026-10-15 00:24:41
++++ b/Assets/HollowCurrent/Runtime/ScareDirector.cs	2026-10-15 00:24:41
+@@ -30,7 +30,13 @@
+         {
+             game=owner;
+             // Castle rhythm (r10 rerun): apparitions every 60-110 s after a 60 s minimum spacing; Bellwether keeps 90 / 105-165 s.
+-            if(game.Map==MapId.Castle)rhythm.UseCastleClock(()=>Random.value); // wave L: irregular arrivals, mean ~110 s, CV ~0.54, 45-260 s
++            // Wave L3: bursts of 2-3 apparitions 40-55 s apart, then 150-280 s lulls; the run's plan picks the start; a lull holds the dice.
++            if(game.Map==MapId.Castle)
++            {
++                rhythm.UseCastleClock(()=>Random.value,game.RunPlan!=null?game.RunPlan.BurstStart:Random.value<.5f);
++                if(rhythm.TakeLullStart())game.Case.HoldDiceForLull();
++                Debug.Log("HC_SCARE_CLOCK start="+(rhythm.StartedWithBurst?"burst":"lull")+" first_in="+rhythm.DueIn.ToString("F0"));
++            }
+             foreach(var t in game.World.Root.GetComponentsInChildren<Transform>())if(t.name=="Authored / Mug")props.Add(t);
+             // Castle goblets, candlesticks, books and plates carry F3's Throwable marker.
+             if(game.Map==MapId.Castle){foreach(var t in game.World.Root.GetComponentsInChildren<Throwable>())props.Add(t.transform);Debug.Log("HC_THROWABLES director="+props.Count);}
+@@ -57,7 +63,8 @@
+             if(!game||game.Modal)return;
+             float dt=Time.deltaTime;age+=dt;activity=Mathf.Max(0,activity-dt);blackout=Mathf.Max(0,blackout-dt);
+             if(!game.Case.Equipped||game.Case.Phase==Phase.Briefing||game.Case.Phase==Phase.Return)return;
+-            rhythm.Tick(dt);
++            // Wave L3: the castle clock knows when an apparition is blocked; a due time that expires in a block is redrawn when it lifts.
++            rhythm.Tick(dt,IsCastle&&ScareRhythm.CastleBlocked(game.Case.Phase,game.Case.GraceRemaining,game.Player.Hidden,game.Modal));
+             if(previousPhase!=game.Case.Phase)
+             {
+                 previousPhase=game.Case.Phase;
+@@ -65,7 +72,8 @@
+                 // Recovery pushed the quiet window out again with hunts ~90 s apart): no rest for a Warning or hunt, 20-40 s after
+                 // Recovery. Bellwether keeps 90 / 65.
+                 if(!IsCastle&&(previousPhase==Phase.Warning||previousPhase==Phase.Hunt))rhythm.Rest(90);
+-                if(previousPhase==Phase.Recovery){rhythm.Rest(IsCastle?Random.Range(20f,40f):65);next=IsCastle?Random.Range(6f,30f):30f;} // castle: the post-hunt gap is not a clock (hc/scares3)
++                // Castle (wave L3): no rest after Recovery; the block model covers Recovery and the grace.
++                if(previousPhase==Phase.Recovery){if(!IsCastle)rhythm.Rest(65);next=IsCastle?Random.Range(6f,30f):30f;}
+             }
+             // Castle (r10 rerun): the director also runs in Recovery.
+             if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment)return;
+@@ -126,7 +134,7 @@
+             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=manifest_refused at="+point+" "+game.Creature.DiagnosticState);return false;}
+             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
+             Pulse(point,firstBasement?3:5);Events++;rhythm.RecordAppearance(Random.value);
+-            if(IsCastle)Debug.Log("HC_SCARE_CLOCK next_in="+rhythm.LastInterval.ToString("F0"));
++            if(IsCastle){bool lull=rhythm.TakeLullStart();if(lull)game.Case.HoldDiceForLull();Debug.Log("HC_SCARE_CLOCK next_in="+rhythm.LastInterval.ToString("F0")+" lull="+lull+" rescheduled="+rhythm.Rescheduled+" diceHold="+game.Case.DiceHoldRemaining.ToString("F0"));}
+             next=Random.Range(28f,40f);
+             bool escalate=false;string escalateReason="none";
+             if(IsCastle)

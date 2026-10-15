@@ -242,6 +242,17 @@ lost bridge kill)**:
   40 % 130 s + a truncated exponential (mean 400 s, cut at 300 s): mean ≈ 114 s, CV ≈ 0.74; 12 pure samples reach CV ≥ 0.5
   in 97.8 % of groups and three pooled 10-minute runs in 95 %. Low-Dread roll 1/24, first hunt `Draw(60, 95, 180)` s after
   the second record, to hold the per-run share p10 ≥ 0.13 on the critic's route.
+- **Wave L3 (hc/rules-l3, build f432fe5: CV 0.44, first hunts 89–119 s, one run without a 120 s gap):**
+  - The castle clock is bursts and lulls: 2–3 apparitions 40–55 s apart, then a 150–280 s lull; a run starts with either.
+    `ScareRhythm.Tick(dt, blocked)` with `CastleBlocked(phase, grace, hidden, modal)` (Warning, Hunt, Recovery, grace,
+    hidden, modal): a due time that expires in a block is redrawn as a fresh 40–55 s gap when the block lifts, never fired
+    at its edge; `AppearanceDue` is false while blocked.
+  - Cross-run anti-repeat (`RunHistory`/`RunPlan`, pure; Game persists `hc.castle.runs`): the first hunt falls in a band
+    (60–100 / 110–150 / 160–200 s after the second record) used in neither of the last two runs; the burst/lull start
+    alternates.
+  - Every run gets a ≥ 120 s quiet stretch: the first hunt's end holds the dice and escalation for 120 s of non-threat time
+    unless Dread ≥ 60; a lull (`HoldDiceForLull`) holds them only until that stretch has happened. No escalation before the
+    first hunt. Low-Dread roll 1/15.
 
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;
