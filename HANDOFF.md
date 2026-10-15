@@ -1,3 +1,21 @@
+# HANDOFF: Haunted Castle loop STOPPED by owner 2026-10-15 (read this section first)
+
+Branch `haunted-castle` = `hc/integ-l3` in `/Users/midir/hollow-current-haunted-castle`, pushed. Director: Fable 5.1; integrator Opus 5.5 (stopped mid proof run on owner's order, nothing left running, GPU slot free, merged worktrees removed, `.wt/wallart-art` is Codex's and untouched).
+
+**State at stop**
+- Last commit `e80fa28` (re-bake Castle + Bellwether after wave L3). Build `Builds/macOS/Hollow Current.app` is from that commit (binary 00:30:21, commit 00:30:07), windowed 1920x1080, both maps.
+- Merged since r12 (5.0/10, `docs/haunted-castle/rounds/r12/CRITIC.md`): wave L (hc/rules-l, audio-l, scares-l, count-l2 [= count-l + grabs-l], exterior-l, hall-l [= props-l]), L2 (rules-l2, count-l3), L3 (rules-l3 `f58d848`, count-l4 `44b8b6c`) plus integrator work (torch-failure 50 %, dispatch card/ledger layout, `-hc-hold-dread` siege, HC_PLAY_STATS with the critic's metrics, drawbridge un-batched, Return-grab no-stall, run-plan persistence `hc.castle.runs`). Every piece handoff is in `docs/haunted-castle/handoffs/`.
+- Static checks on `e80fa28`: check_source PASS (1132 assertions), check_castle_scares PASS, check_audio_keys OK, check_throwables_scene OK (drawbridge parts not batched), bellwether_fuzz identical (per F1/F2 on their branches; rerun to confirm on HEAD).
+- Proofs on this build were INTERRUPTED. Completed: natural1 (`HC_PLAY_STATS`: share 0.236, longest gap 260 s, first hunt 130 s, 0 of 2 hunts within 10 s of an apparition, only 2 apparitions, grabContinuity 0/2 = FAIL), fear (share 0.327, hidden survival 50 %). natural2, natural3, siege50 logs exist but were cut before their summary. `HC_RUN_PLAN` bands rotated Late/Early/Mid across the three naturals (anti-repeat works). count-l4's `root=matched skullDelta=0.00 fromLastDiveSample=0.52–0.58` shows the commit seat is continuous but the continuity window (0.5 m) still fails by a few cm; the mode 8 clip's own fall is what the window must tolerate (see `rounds/r13/CRITIC_BRIEF.md` for the continuity definition). The learned-hide bag logged 0 opens in the cut siege50 (check whether the run reached 3 visits). The previous full proof table (L2 build f432fe5) is "Round 9" in `docs/haunted-castle/playtest/AUTO_RUN.md`; this build's partial logs are `.playtest-*.log` in the clone (gitignored).
+
+**Next session, in order**
+1. Rerun the reduced proof set on the current build: natural x3 back-to-back, siege50 (`-hc-playtest <dir> siege -hc-hold-dread 60`, long enough for 6 hidden hunts), huntcam, fear, verify. Confirm: apparition CV pooled over 3 runs >= 0.5, first-hunt spread >= 45 s, share 15–30 %, gap >= 120 s in every run, hidden survival <= 85 % with `bag=` opens, drop-grab continuity, no mode 12 re-commit loop, no "Non-Legacy animations cannot be sampled" warning.
+2. If the table passes, spawn the r13 blind critic with `docs/haunted-castle/rounds/r13/CRITIC_BRIEF.md` (fill in the build hash). If not, fix (F1 rules: Core; F2 count: Presence/CountClaudeProfile) and rebuild (no bake needed for code-only changes).
+3. Known open items not in any brief: the modern-looking instrument meshes, a human listening pass on all audio (ASSET_LOG "Human listen: not yet"), the Bellwether 60-fps floor flag, Codex's wall-art portraits (`CODEX_HANDOFF.md`, 7 textures still missing).
+4. Merges to `main` need the owner.
+
+---
+
 # HANDOFF: piece F0 (integrator), Haunted Castle waves F, G and H (fear plan)
 
 Branch `haunted-castle` in `/Users/midir/hollow-current-haunted-castle` (main clone, pushed to origin). Model: Opus 5.5. Date 2026-10-14.
