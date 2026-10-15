@@ -63,11 +63,21 @@ namespace HollowCurrent
         // One hide attempt: at Dread >= DoorHeldThreshold, held with DoorHeldChance (injected dice). No roll below it.
         public bool TryDoorHeld()
         {
-            if (!Rules.UsesDread || Rules.DoorHeldChance <= 0 || Dread < Rules.DoorHeldThreshold || Terminal) return false;
-            if (Roll() >= Rules.DoorHeldChance) return false;
-            DoorsHeld++;
-            return true;
+            if (!Rules.UsesDread || Rules.DoorHeldChance <= 0 && Rules.DoorHeldBag <= 0 || Dread < Rules.DoorHeldThreshold || Terminal) return false;
+            DoorAttempts++;
+            bool held;
+            if (Rules.DoorHeldBag > 0)
+            {
+                if (doorBagLeft <= 0) { doorBagLeft = Rules.DoorHeldBag; doorHeldAt = Math.Min(Rules.DoorHeldBag - 1, (int)(Roll() * Rules.DoorHeldBag)); }
+                held = Rules.DoorHeldBag - doorBagLeft == doorHeldAt; doorBagLeft--;
+            }
+            else held = Roll() < Rules.DoorHeldChance;
+            if (held) DoorsHeld++;
+            return held;
         }
+        // Eligible hide attempts (Dread >= DoorHeldThreshold) seen by TryDoorHeld.
+        public int DoorAttempts { get; private set; }
+        int doorBagLeft, doorHeldAt;
         public int DoorsHeld { get; private set; }
         // This Warning is a false alarm: it ends back in Disturbance, nothing comes.
         public bool FalseWarning { get; private set; }
@@ -206,7 +216,7 @@ namespace HollowCurrent
             // The saved event part keeps decaying; the death penalty's Dread above the saved ambient part is event Dread too.
             float savedAmbient=Math.Max(0,saved.Dread-Math.Max(0,saved.DreadEvent));
             DreadEvent=!Rules.UsesDread?0:Math.Max(0,Math.Min(Dread,DeathPenaltyApplied?Dread-savedAmbient:saved.DreadEvent));
-            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();quietShareTime=0;GovernorAtLastGrace=1;firstThreatAt=-1;quietBeforeThreat=false;
+            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();apparitionShadow=0;apparitionAt=float.NegativeInfinity;escalationPending=false;quietShareTime=0;GovernorAtLastGrace=1;firstThreatAt=-1;quietBeforeThreat=false;
             if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
             feltBase=Dread;feltEpisodeKind=0;if(Rules.UsesDread)ScheduleFeltEpisode(Elapsed);firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
@@ -350,7 +360,7 @@ namespace HollowCurrent
         // Recovery is not a guaranteed quiet window at high Dread.
         void TickRecoveryDice(float dt)
         {
-            float chance = Dread >= Rules.RecoveryDiceDread ? Rules.RecoveryDiceChance : Rules.RecoveryLowChance;
+            float chance = DiceDread >= Rules.RecoveryDiceDread ? Rules.RecoveryDiceChance : Rules.RecoveryLowChance;
             if (chance <= 0 || Rules.DiceIntervalMax <= 0 || GraceRemaining > 0) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
@@ -376,7 +386,8 @@ namespace HollowCurrent
         }
         void TickDisturbance(float dt)
         {
-            bool dreadful = Dread >= RunDreadMin;
+            float diceDread = DiceDread;
+            bool dreadful = diceDread >= RunDreadMin;
             if (dreadful) huntClock += dt;
             // Crossing the boundary restarts the roll schedule for the new kind of roll.
             if (dreadful != diceHigh) { diceHigh = dreadful; diceTimer = float.NaN; }
@@ -397,7 +408,7 @@ namespace HollowCurrent
                 if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
                 diceTimer -= dt;
                 if (diceTimer > 0) return;
-                float chance = dreadful ? Rules.DiceChance(Dread, Evidence.Count, RunDreadMin) / Math.Max(1, Governor) : Rules.LowDreadChance;
+                float chance = dreadful ? Rules.DiceChance(diceDread, Evidence.Count, RunDreadMin) / Math.Max(1, Governor) : Rules.LowDreadChance;
                 if (Roll() < chance) { StartThreat(true); return; }
                 diceTimer = NextDiceInterval();
             }
@@ -420,7 +431,7 @@ namespace HollowCurrent
         }
         void Warn(float seconds, bool falseAlarm, bool say, bool escalated = false)
         {
-            EscalatedWarning = escalated;
+            EscalatedWarning = escalated; escalationPending = escalated;
             BreakerOn = false;
             WarningLength = seconds;
             FalseWarning = falseAlarm;
@@ -431,6 +442,7 @@ namespace HollowCurrent
         void StartHunt(bool noTell)
         {
             Hunts++;
+            previousHuntFromEscalation = LastHuntFromEscalation; LastHuntFromEscalation = escalationPending; escalationPending = false;
             FalseWarning = false;
             NoTellHunt = noTell;
             HuntDreadAdded = 0;
@@ -466,15 +478,58 @@ namespace HollowCurrent
             diceTimer = float.NaN;
             diceHigh = Dread >= RunDreadMin;
         }
+        // Wave L. ScareDirector calls this for every visible castle apparition, in place of AddDread(Rules.DreadApparition)
+        // and before TryEscalate: it counts the apparition and adds its Dread, which the dice ignore for
+        // ApparitionDiceShadowSeconds (so an apparition's bump never arms or raises the dice by itself).
+        public void NoteApparition()
+        {
+            Apparitions++;
+            float before = Dread;
+            AddDread(Rules.DreadApparition);
+            apparitionShadow = Math.Max(0, Dread - before); apparitionAt = Elapsed;
+        }
+        public int Apparitions { get; private set; }
+        float apparitionShadow, apparitionAt = float.NegativeInfinity;
+        // The Dread the dice read: Dread minus a fresh apparition's bump.
+        public float DiceDread => Math.Max(0, Dread - (Rules.ApparitionDiceShadowSeconds > 0 && Elapsed - apparitionAt < Rules.ApparitionDiceShadowSeconds ? apparitionShadow : 0));
+        // Hunt sources: whether the last two hunts (most recent first) began from an escalation.
+        public bool LastHuntFromEscalation { get; private set; }
+        bool previousHuntFromEscalation, escalationPending;
+        // The chance TryEscalate would use now (0 = blocked). Wave L policy when EscalationLit/DarkChance are set.
+        public float EscalationChanceNow(bool dark)
+        {
+            if (Terminal || GraceRemaining > 0) return 0;
+            if (Rules.EscalationLitChance > 0 || Rules.EscalationDarkChance > 0)
+            {
+                if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return 0;
+                if (Apparitions <= 1) return 0;                                            // never the run's first apparition
+                if (LastHuntFromEscalation || previousHuntFromEscalation) return 0;       // at most 1 in 3 consecutive hunts
+                return dark ? Rules.EscalationDarkChance : Rules.EscalationLitChance;
+            }
+            return Phase == Phase.Disturbance ? Rules.EventEscalationChance : Phase == Phase.Recovery ? Rules.EscalationRecoveryChance : 0;
+        }
+        // Why EscalationChanceNow is 0 (for HC_ESCALATE logs), or "ok".
+        public string EscalationBlock(bool dark)
+        {
+            if (Terminal) return "terminal"; if (GraceRemaining > 0) return "grace";
+            if (Rules.EscalationLitChance > 0 || Rules.EscalationDarkChance > 0)
+            {
+                if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return "phase";
+                if (Apparitions <= 1) return "first_apparition";
+                if (LastHuntFromEscalation || previousHuntFromEscalation) return "escalation_cap";
+            }
+            return EscalationChanceNow(dark) > 0 ? "ok" : "rules_off";
+        }
+        public bool TryEscalate() => TryEscalate(false);
         // Game calls this when an apparition lands within 4 m. With EventEscalationChance (Disturbance) or
         // EscalationRecoveryChance (Recovery) it becomes a hunt after a short tell (EscalationWarningSeconds,
         // no dispatch line). Never during the post-hunt grace.
-        public bool TryEscalate()
+        public bool TryEscalate(bool dark)
         {
-            if (Terminal || GraceRemaining > 0) return false;
-            float chance = Phase == Phase.Disturbance ? Rules.EventEscalationChance : Phase == Phase.Recovery ? Rules.EscalationRecoveryChance : 0;
+            float chance = EscalationChanceNow(dark);
             if (chance <= 0) return false;
             if (Roll() >= chance) return false;
+            escalationPending = true;
             ThreatFrom = Phase;
             if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) StartHunt(true);
             else Warn(Rules.EscalationWarningSeconds, false, false, true);
@@ -504,7 +559,7 @@ namespace HollowCurrent
             if (SealProgress >= 1)
             {
                 // Hostile Return: the escape is a tell-less hunt until the bridge is crossed.
-                if (Rules.HostileReturn) { Hunts++; NoTellHunt = true; ThreatFrom = Phase.Containment; HuntDreadAdded = 0; }
+                if (Rules.HostileReturn) { Hunts++; NoTellHunt = true; ThreatFrom = Phase.Containment; HuntDreadAdded = 0; previousHuntFromEscalation = LastHuntFromEscalation; LastHuntFromEscalation = false; }
                 Set(Phase.Return);
                 Say(Book.SealedMessage);
             }
