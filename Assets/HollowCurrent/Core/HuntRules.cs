@@ -66,6 +66,26 @@ namespace HollowCurrent
         public float NoTellChance, FalseWarningChance, EventEscalationChance;
         // Wave K: escalation chance in Recovery once the post-hunt grace has run out (never during the grace). 0 = off.
         public float EscalationRecoveryChance;
+        // Wave L escalation policy (replaces the two chances above when either is > 0): lit / dark chance in Disturbance and
+        // in Recovery after the grace; never on the run's first apparition; never when either of the last two hunts was
+        // escalation-born (at most 1 in 3 consecutive hunts). See Investigation.EscalationChanceNow.
+        public float EscalationLitChance, EscalationDarkChance;
+        // Wave L: Dread an apparition adds (Investigation.NoteApparition) is left out of the dice input for this many seconds.
+        public float ApparitionDiceShadowSeconds;
+        // Wave L: door-held bag: of every DoorHeldBag eligible hide attempts (Dread >= DoorHeldThreshold) exactly one is
+        // held, at a random position (rate 1/bag, never more than bag - 1 misses in a row ... 2 x bag - 2 at worst). 0 = the
+        // independent DoorHeldChance roll.
+        public int DoorHeldBag;
+        // Wave L, for Presence (F2): chance an unwatched near-miss opens the hide, piecewise linear over Dread:
+        // 0 -> NearMissOpen0, 40 -> NearMissOpen40, 80 -> NearMissOpen80, 100 -> NearMissOpen100.
+        public float NearMissOpen0, NearMissOpen40, NearMissOpen80, NearMissOpen100;
+        public float NearMissOpenChance(float dread)
+        {
+            float d=Math.Max(0,Math.Min(100,float.IsNaN(dread)?0:dread));
+            if(d<40)return NearMissOpen0+(NearMissOpen40-NearMissOpen0)*d/40;
+            if(d<80)return NearMissOpen40+(NearMissOpen80-NearMissOpen40)*(d-40)/40;
+            return NearMissOpen80+(NearMissOpen100-NearMissOpen80)*(d-80)/20;
+        }
         // Return phase is a hunt until the bridge is crossed (FinishAtVan).
         public bool HostileReturn;
 
@@ -145,6 +165,7 @@ namespace HollowCurrent
             FeltLagMin=0,FeltLagMax=0,FeltNoise=0,FeltNoisePeriod=0,FeltCalm=0,
             FeltEpisodeGapMin=0,FeltEpisodeGapMax=0,FeltEpisodeMin=0,FeltEpisodeMax=0,FeltCalmFrom=0,FeltSpikeBelow=0,FeltSpikeMin=0,FeltSpikeMax=0,
             NoTellChance=0,FalseWarningChance=0,EventEscalationChance=0,EscalationRecoveryChance=0,HostileReturn=false,
+            EscalationLitChance=0,EscalationDarkChance=0,ApparitionDiceShadowSeconds=0,DoorHeldBag=0,NearMissOpen0=0,NearMissOpen40=0,NearMissOpen80=0,NearMissOpen100=0,
             UsesDread=false,DreadDarkRate=0,DreadInsideRate=0,DreadSafeRecovery=0,DreadStart=0,
             DreadApparition=0,DreadThrow=0,DreadSeen=0,DreadGrabSurvived=0,
             DreadDecayRecovery=0,DreadDecayCalm=0,DreadDecayFloor=0,HuntDreadCap=0,GraceMin=0,GraceMax=0,
@@ -157,7 +178,7 @@ namespace HollowCurrent
         public static readonly HuntRules Castle=new HuntRules
         {
             Name="Castle",
-            TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/40,
+            TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/30,
             FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,FirstHuntMin=60,FirstHuntMax=240,DreadDecayAllAbove=60,DoorHeldChance=1f/6,
             DiceIntervalMin=2,DiceIntervalMax=6,DiceChanceAt40=1f/12,DiceChanceAt60=1f/6,DiceChanceAt80=1f/4,DiceEvidenceBonus=.5f,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=1.5f,
@@ -166,6 +187,7 @@ namespace HollowCurrent
             FeltLagMin=20,FeltLagMax=30,FeltNoise=12,FeltNoisePeriod=6,FeltCalm=12,
             FeltEpisodeGapMin=200,FeltEpisodeGapMax=600,FeltEpisodeMin=20,FeltEpisodeMax=40,FeltCalmFrom=40,FeltSpikeBelow=60,FeltSpikeMin=65,FeltSpikeMax=85,
             NoTellChance=.35f,FalseWarningChance=.25f,EventEscalationChance=.35f,EscalationRecoveryChance=.15f,HostileReturn=true,
+            EscalationLitChance=.15f,EscalationDarkChance=.25f,ApparitionDiceShadowSeconds=20,DoorHeldBag=5,NearMissOpen0=.02f,NearMissOpen40=.05f,NearMissOpen80=.25f,NearMissOpen100=.4f,
             UsesDread=true,DreadDarkRate=.08f,DreadInsideRate=.03f,DreadSafeRecovery=.5f,DreadStart=0,
             DreadApparition=12,DreadThrow=8,DreadSeen=15,DreadGrabSurvived=20,
             DreadDecayRecovery=.4f,DreadDecayCalm=.3f,DreadDecayFloor=20,HuntDreadCap=25,GraceMin=30,GraceMax=90,

@@ -224,6 +224,21 @@ lost bridge kill)**:
   the second record (p10–p90); the r11 driver (immortal, open, torch on) share 0.196 / 0.253, Dread at 480 s p50 59.7,
   p90 87.6.
 
+**Investigation API, wave L additions (hc/rules-l, r12 critic: hunts chained to a metronomic apparition clock)**:
+- **Apparition clock:** `ScareRhythm.CastleInterval(u1, u2)` (pure): 40 % short 45–70 s, else 70 s + a truncated exponential
+  (mean 140 s, cut at 260 s); mean ≈ 110 s, CV ≈ 0.54. `rhythm.UseCastleClock(random)` makes every castle appearance draw
+  the next (spacing 45 s) and draws the first as 0.6 × an interval (27–156 s). Bellwether keeps its fixed clock.
+- **Escalation policy:** `EscalationChanceNow(dark)`: lit 0.15 / dark 0.25 in Disturbance and in Recovery after the grace;
+  0 on the run's first apparition, 0 when either of the last two hunts was escalation-born (at most 1 in 3 consecutive),
+  0 in the grace. `TryEscalate(dark)` rolls it; `EscalationBlock(dark)` names the reason; `LastHuntFromEscalation`.
+- **Apparitions:** `NoteApparition()` counts the apparition and adds its Dread; the dice read `DiceDread`, which leaves that
+  bump out for 20 s, so an apparition cannot arm or raise the dice by itself. Low-Dread roll 1/30 (was 1/40).
+- **Door held:** a bag of 5 eligible attempts (Dread ≥ 60), one held at a random position (`DoorAttempts`, `DoorsHeld`).
+- **Near-miss open (for Presence):** `Rules.NearMissOpenChance(dread)`: 2 % at 0, 5 % at 40, 25 % at 80, 40 % at 100.
+- **Models (2,000 seeds):** hunts starting ≤ 10 s after an apparition 9 % (1 in 3 apparitions close) / 18 % (all close);
+  apparition CV 0.52; 3-run first-hunt sets spanning ≥ 45 s 96 % / 93 %; share 0.159 / 0.165 mean (p90 0.22); a ≥ 120 s
+  gap in 93 % / 91 % of runs.
+
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;
 exposes `public bool Diving` (for the integrator's torch fail), `public event Action<string> Beat` with ids
