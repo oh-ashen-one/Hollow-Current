@@ -33,6 +33,8 @@ namespace HollowCurrent
         }
         public static bool MapAvailable(MapId map)=>Application.CanStreamedLevelBeLoaded(MapCatalog.Get(map).SceneName);
         public Investigation Case {get;private set;}
+        // Wave L3: this castle run's plan (first-hunt band, burst/lull start), chosen against the last runs (PlayerPrefs hc.castle.runs).
+        public RunPlan RunPlan {get;private set;}
         public CaseBook Book=>Case.Book;
         public World World {get;private set;}
         public Investigator Player {get;private set;}
@@ -116,6 +118,15 @@ namespace HollowCurrent
             // Castle rules (HuntRules.Castle or the Long Night dial) and real dice; Bellwether is built exactly as before.
             appliedLongNight=LongNight;
             Case=Map==MapId.Castle?new Investigation(CaseBook.For(Map),()=>UnityEngine.Random.value,HuntRules.For(Map,LongNight)):new Investigation(CaseBook.For(Map));
+            if(Map==MapId.Castle)
+            {
+                // Wave L3 cross-run anti-repeat: a first-hunt band not used in the last two runs, the other rhythm start than last run.
+                // A checkpoint retry keeps the history (it is the same run).
+                var history=RunHistory.Parse(PlayerPrefs.GetString("hc.castle.runs",""));
+                RunPlan=history.Next(UnityEngine.Random.value,UnityEngine.Random.value);Case.UseRunPlan(RunPlan);
+                if(!restoreCheckpoint){history.Push(RunPlan);PlayerPrefs.SetString("hc.castle.runs",history.Serialize());PlayerPrefs.Save();}
+                Debug.Log("HC_RUN_PLAN band="+RunPlan.Band+" firstHunt="+RunPlan.FirstHuntMin.ToString("F0")+"-"+RunPlan.FirstHuntMax.ToString("F0")+" burstStart="+RunPlan.BurstStart+" history="+history.Serialize());
+            }
             // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
             // order Presence, CastleRun and Game run in this frame.
             if(Map==MapId.Castle)Case.FrameSource=()=>Time.frameCount;

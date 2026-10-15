@@ -30,7 +30,13 @@ namespace HollowCurrent
         {
             game=owner;
             // Castle rhythm (r10 rerun): apparitions every 60-110 s after a 60 s minimum spacing; Bellwether keeps 90 / 105-165 s.
-            if(game.Map==MapId.Castle)rhythm.UseCastleClock(()=>Random.value); // wave L: irregular arrivals, mean ~110 s, CV ~0.54, 45-260 s
+            // Wave L3: bursts of 2-3 apparitions 40-55 s apart, then 150-280 s lulls; the run's plan picks the start; a lull holds the dice.
+            if(game.Map==MapId.Castle)
+            {
+                rhythm.UseCastleClock(()=>Random.value,game.RunPlan!=null?game.RunPlan.BurstStart:Random.value<.5f);
+                if(rhythm.TakeLullStart())game.Case.HoldDiceForLull();
+                Debug.Log("HC_SCARE_CLOCK start="+(rhythm.StartedWithBurst?"burst":"lull")+" first_in="+rhythm.DueIn.ToString("F0"));
+            }
             foreach(var t in game.World.Root.GetComponentsInChildren<Transform>())if(t.name=="Authored / Mug")props.Add(t);
             // Castle goblets, candlesticks, books and plates carry F3's Throwable marker.
             if(game.Map==MapId.Castle){foreach(var t in game.World.Root.GetComponentsInChildren<Throwable>())props.Add(t.transform);Debug.Log("HC_THROWABLES director="+props.Count);}
@@ -57,7 +63,8 @@ namespace HollowCurrent
             if(!game||game.Modal)return;
             float dt=Time.deltaTime;age+=dt;activity=Mathf.Max(0,activity-dt);blackout=Mathf.Max(0,blackout-dt);
             if(!game.Case.Equipped||game.Case.Phase==Phase.Briefing||game.Case.Phase==Phase.Return)return;
-            rhythm.Tick(dt);
+            // Wave L3: the castle clock knows when an apparition is blocked; a due time that expires in a block is redrawn when it lifts.
+            rhythm.Tick(dt,IsCastle&&ScareRhythm.CastleBlocked(game.Case.Phase,game.Case.GraceRemaining,game.Player.Hidden,game.Modal));
             if(previousPhase!=game.Case.Phase)
             {
                 previousPhase=game.Case.Phase;
@@ -65,7 +72,8 @@ namespace HollowCurrent
                 // Recovery pushed the quiet window out again with hunts ~90 s apart): no rest for a Warning or hunt, 20-40 s after
                 // Recovery. Bellwether keeps 90 / 65.
                 if(!IsCastle&&(previousPhase==Phase.Warning||previousPhase==Phase.Hunt))rhythm.Rest(90);
-                if(previousPhase==Phase.Recovery){rhythm.Rest(IsCastle?Random.Range(20f,40f):65);next=IsCastle?Random.Range(6f,30f):30f;} // castle: the post-hunt gap is not a clock (hc/scares3)
+                // Castle (wave L3): no rest after Recovery; the block model covers Recovery and the grace.
+                if(previousPhase==Phase.Recovery){if(!IsCastle)rhythm.Rest(65);next=IsCastle?Random.Range(6f,30f):30f;}
             }
             // Castle (r10 rerun): the director also runs in Recovery.
             if(game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment)return;
@@ -126,7 +134,7 @@ namespace HollowCurrent
             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=manifest_refused at="+point+" "+game.Creature.DiagnosticState);return false;}
             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
             Pulse(point,firstBasement?3:5);Events++;rhythm.RecordAppearance(Random.value);
-            if(IsCastle)Debug.Log("HC_SCARE_CLOCK next_in="+rhythm.LastInterval.ToString("F0"));
+            if(IsCastle){bool lull=rhythm.TakeLullStart();if(lull)game.Case.HoldDiceForLull();Debug.Log("HC_SCARE_CLOCK next_in="+rhythm.LastInterval.ToString("F0")+" lull="+lull+" rescheduled="+rhythm.Rescheduled+" diceHold="+game.Case.DiceHoldRemaining.ToString("F0"));}
             next=Random.Range(28f,40f);
             bool escalate=false;string escalateReason="none";
             if(IsCastle)
