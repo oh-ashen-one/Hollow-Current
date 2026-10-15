@@ -593,6 +593,7 @@ namespace HollowCurrent
         // The grab a hide gets: GrabDrop where the ceiling at its stand-off clears the clip's fall, else GrabCrawl (else Mode 6).
         int HideGrabMode(Vector3 feet,Vector3 outward)
         {
+            if(count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl"))return count.ModeGrabCrawl;   // count-l3
             bool drop=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
             if(drop)
             {
@@ -1326,7 +1327,7 @@ namespace HollowCurrent
         }
         // ---- Wave I: flight posture, dive arms, wing-tip clamp, mode binding (r10 blind critic) -----------------------------
         readonly List<Transform> rigJoints=new List<Transform>();
-        sealed class HandVerts{public SkinnedMeshRenderer skin;public int side;public readonly List<int> indices=new List<int>();}
+        sealed class HandVerts{public SkinnedMeshRenderer skin;public int side;public readonly List<int> indices=new List<int>();public Vector3[] mesh;public BoneWeight[] weights;public Matrix4x4[] bindposes;}
         readonly List<HandVerts> handVerts=new List<HandVerts>();
         // Vertices weighted mostly (>= 0.5) to a hand bone, per renderer and side (the mesh is readable: CountClaudeImport).
         void CacheHandVertices()
@@ -1337,7 +1338,8 @@ namespace HollowCurrent
                 var mesh=skin.sharedMesh;if(!mesh||!mesh.isReadable)continue;var bones=skin.bones;
                 int l=-1,r=-1;for(int i=0;i<bones.Length;i++){if(bones[i]&&bones[i].name=="LeftHand")l=i;else if(bones[i]&&bones[i].name=="RightHand")r=i;}
                 if(l<0&&r<0)continue;
-                var hl=new HandVerts{skin=skin,side=0};var hr=new HandVerts{skin=skin,side=1};var weights=mesh.boneWeights;
+                var weights=mesh.boneWeights;var meshVerts=mesh.vertices;var binds=mesh.bindposes;
+                var hl=new HandVerts{skin=skin,side=0,mesh=meshVerts,weights=weights,bindposes=binds};var hr=new HandVerts{skin=skin,side=1,mesh=meshVerts,weights=weights,bindposes=binds};
                 for(int v=0;v<weights.Length;v++)
                 {
                     var bw=weights[v];
@@ -1443,7 +1445,7 @@ namespace HollowCurrent
             doorClampLogged=false;grabCamSnap=false;spinLogged=false;spinEndLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
             ShieldFromLantern(true);
         }
-        void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;ShieldFromLantern(false);Debug.Log("HC_COUNT_GRABCAM end path="+grabCamKind+" reason="+why);}
+        void EndGrabCam(string why){rootBlend=false;if(!grabCam)return;grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;ShieldFromLantern(false);Debug.Log("HC_COUNT_GRABCAM end path="+grabCamKind+" reason="+why);}
         // r12 (the purple grave-ash lantern recoloured him at the kill): for the grab he moves to GrabLightLayer and the lantern stops
         // lighting that layer; both are restored when the grab camera ends.
         readonly Dictionary<GameObject,int> savedLayers=new Dictionary<GameObject,int>();int savedUvMask;bool shielded;
@@ -1467,6 +1469,27 @@ namespace HollowCurrent
         // GrabCrawl from the door. A hide grab stands him in the torn door opening at the clip's stand-off from her, facing in,
         // so his skull lands in the centre band once the view has turned and the nearer claw ends about GrabCamClawDistance away.
         float spinYawStart;
+        // count-l3 (r13 f0a/f0b: every mode 8 grab rose about 3 m between the commit sample and 0.16 s): the drop clip starts with
+        // him 4.7 m up over his origin, and the origin was left at the dive's hover height. At commit the clip's first frame is
+        // sampled with the figure upright, and his origin is set so the clip's skull starts where his skull is now; the origin then
+        // eases to her floor over the clip's fall (GrabRootBlendDrop) or the crawl's lunge (GrabRootBlendCrawl).
+        bool rootBlend;float rootFromY,rootToY,rootBlendSeconds,rootT;
+        void MatchClipStart(int mode,float floorY)
+        {
+            rootBlend=false;
+            var controller=actor&&actor.Animator?actor.Animator.runtimeAnimatorController:null;if(!controller||!actor.Head)return;
+            string want=mode==count.ModeGrabDrop?"GrabDrop":"GrabCrawl";AnimationClip clip=null;
+            foreach(var c in controller.animationClips)
+                if(c&&c.name.IndexOf(want,System.StringComparison.OrdinalIgnoreCase)>=0&&c.name.IndexOf("Spin",System.StringComparison.OrdinalIgnoreCase)<0){clip=c;break;}
+            float headNow=actor.Head.position.y;
+            pitchNow=0;SetFlightPose(0);            // the grab clips are played upright
+            if(!clip){Debug.Log("HC_COUNT_GRAB root=floor reason=no "+want+" clip to sample");var p0=transform.position;p0.y=floorY;transform.position=p0;return;}
+            clip.SampleAnimation(silhouette.gameObject,0f);
+            float clipHead=actor.Head.position.y-transform.position.y;   // skull height over his origin in the clip's first frame
+            var at=transform.position;float fromY=headNow-clipHead;at.y=fromY;transform.position=at;
+            rootFromY=fromY;rootToY=floorY;rootBlendSeconds=mode==count.ModeGrabDrop?count.GrabRootBlendDrop:count.GrabRootBlendCrawl;rootT=0;rootBlend=Mathf.Abs(fromY-floorY)>.01f;
+            Debug.Log("HC_COUNT_GRAB root=matched mode="+mode+" clip="+clip.name+" headNow="+headNow.ToString("F2")+" clipHead="+clipHead.ToString("F2")+" originY="+fromY.ToString("F2")+" floor="+floorY.ToString("F2")+" blend="+rootBlendSeconds.ToString("F2")+"s"+(mode==count.ModeGrabDrop?" from=above":""));
+        }
         int CommitGrab(bool hide,int mode)
         {
             var p=Game.Player;var feet=p.transform.position;var eye=p.View.transform.position;
@@ -1485,6 +1508,7 @@ namespace HollowCurrent
                 }
                 else Debug.Log("HC_COUNT_GRAB from=above dy="+(count.GrabDropClipTop-(eye.y-feet.y)).ToString("F2")+" ceiling="+ceiling.ToString("F2")+" (the GrabDrop clip falls from "+count.GrabDropClipTop.ToString("F2")+" m)");
             }
+            if(!hide&&(mode==count.ModeGrabDrop||mode==count.ModeGrabCrawl)&&mode>=0)MatchClipStart(mode,feet.y);
             if(!hide&&(IsSide(mode)||mode==count.ModeGrabDropSpin))
             {
                 // Side snatch: his origin goes to the stand-off straight ahead of her view (the clip carries him in from her flank and
@@ -1515,8 +1539,16 @@ namespace HollowCurrent
             var cam=Game.Player.View;if(!cam)return;float dt=Time.unscaledDeltaTime;grabCamT+=dt;
             // Claws ~GrabCamClawDistance from the lens, in the kill presentation and in a hide grab (he is in the door opening).
             bool variant=IsSide(grabMode)||grabMode==count.ModeGrabDropSpin&&grabMode>=0;
-            if((grabKill||grabHide)&&!variant)FrameClaws(cam,dt);
+            if((grabKill||grabHide)&&!variant&&!rootBlend)FrameClaws(cam,dt);   // count-l3: not while the root is still easing down
             if(grabHide)ClampToDoor();
+            // count-l3: the root eases from the head-matched commit height to her floor while the clip plays (no teleport).
+            if(rootBlend)
+            {
+                rootT+=dt;   // its own clock: the kill re-entry rewinds grabCamT for the log samples
+                float k=Mathf.SmoothStep(0,1,Mathf.Clamp01(rootT/Mathf.Max(.05f,rootBlendSeconds)));
+                var at=transform.position;at.y=Mathf.Lerp(rootFromY,rootToY,k);transform.position=at;
+                if(k>=1){rootBlend=false;Debug.Log("HC_COUNT_GRAB root=landed y="+at.y.ToString("F2")+" t="+rootT.ToString("F2"));}
+            }
             // Turn the view to his skull (biased toward the claws) over GrabCamTurnSeconds, then hold it there. No cut.
             var head=actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
             var claws=handL&&handR?(handL.position+handR.position)*.5f:head-Vector3.up*.6f;
@@ -1544,10 +1576,12 @@ namespace HollowCurrent
             if(IsSide(grabMode)&&!sideChecked&&grabCamT>=.1f)SideCheck(cam);
             if(grabMode==count.ModeGrabDropSpin&&grabMode>=0&&!spinEndLogged&&grabCamT>=count.SpinEnd+.3f){spinEndLogged=true;LogGrabCam(cam,head);}
             // Proof in the log: the commit frame (turn starts), the end of the turn (the grab frame), +0.3 s and +1.0 s.
-            if(grabCamLog==0||grabCamLog==1&&grabCamT>=count.GrabCamTurnSeconds||grabCamLog==2&&grabCamT>=.3f||grabCamLog==3&&grabCamT>=1f){grabCamLog++;LogGrabCam(cam,head);}
+            // count-l3: then every 0.15 s to 1.0 s, so the per-sample eyeToSkull step resolves the motion (no 0.3 -> 1.0 gap).
+            if(grabCamLog<GrabCamSchedule.Length&&(grabCamLog==0||grabCamT>=(grabCamLog==1?count.GrabCamTurnSeconds:GrabCamSchedule[grabCamLog]))){grabCamLog++;LogGrabCam(cam,head);}
         }
         // Kill presentation: ease him so the nearer claw sits GrabCamClawDistance from the lens; no joint inside CameraClearance.
         bool spinLogged,spinEndLogged;
+        static readonly float[] GrabCamSchedule={0,.15f,.3f,.45f,.6f,.75f,.9f,1f};
         float SideSeconds=>1.2f;
         // At 0.1 s the lead claw (the hand furthest from the frame centre) must be on the side the clip came from; else swap 10/11.
         void SideCheck(Camera cam)
@@ -1605,29 +1639,49 @@ namespace HollowCurrent
         // r12 (claw_px=629 with no hand on screen): the claw measure is the projected width of each hand's own skinned vertices
         // (vertices weighted mostly to LeftHand/RightHand, baked from the current pose), keeping only points inside the frame and
         // with a clear line from the lens; the larger hand, in pixels of a 2560-wide frame.
+        // count-l3 (claw_px_proj was 0 on every sample, "0in"): BakeMesh output was put through the renderer's localToWorldMatrix,
+        // which with the import's carrier scale put every point far off screen. The hand vertices are now skinned by hand from the
+        // live bones (sum of weight x bone.localToWorldMatrix x bindpose x vertex), which is exactly what the GPU draws and does not
+        // depend on BakeMesh's scale convention. dBone= is the distance from those points' centroid to the hand bone (sanity: < 0.4 m).
+        static Vector3 SkinVertex(HandVerts hv,Transform[] bones,int idx)
+        {
+            var w=hv.weights[idx];var v=hv.mesh[idx];var sum=Vector3.zero;float total=0;
+            void Add(int bi,float wt){if(wt<=0||bi<0||bi>=bones.Length||!bones[bi])return;sum+=(bones[bi].localToWorldMatrix*hv.bindposes[bi]).MultiplyPoint3x4(v)*wt;total+=wt;}
+            Add(w.boneIndex0,w.weight0);Add(w.boneIndex1,w.weight1);Add(w.boneIndex2,w.weight2);Add(w.boneIndex3,w.weight3);
+            return total>0?sum/total:v;
+        }
         float ProjectedClawPx(Camera cam,out string detail)
         {
             detail="";float best=0;if(handVerts.Count==0){detail="no hand vertices";return 0;}
-            var eye=cam.transform.position;var baked=new Dictionary<SkinnedMeshRenderer,Vector3[]>();
-            foreach(var hv in handVerts)if(hv.skin&&!baked.ContainsKey(hv.skin)){var mesh=new Mesh();hv.skin.BakeMesh(mesh,false);baked[hv.skin]=mesh.vertices;Destroy(mesh);}
+            var eye=cam.transform.position;
             for(int side=0;side<2;side++)
             {
-                float minX=float.MaxValue,maxX=float.MinValue;int inside=0,clear=0,tested=0;
+                float minX=float.MaxValue,maxX=float.MinValue;int sampled=0,inside=0,clear=0,tested=0;string firstReject=null;var centroid=Vector3.zero;
+                Transform bone=side==0?handL:handR;
                 foreach(var hv in handVerts)
                 {
-                    if(hv.side!=side||!hv.skin)continue;
-                    var verts=baked[hv.skin];var m=hv.skin.transform.localToWorldMatrix;
-                    int step=Mathf.Max(1,hv.indices.Count/64);
+                    if(hv.side!=side||!hv.skin||hv.mesh==null)continue;
+                    var bones=hv.skin.bones;int step=Mathf.Max(1,hv.indices.Count/64);
                     for(int i=0;i<hv.indices.Count;i+=step)
                     {
-                        int idx=hv.indices[i];if(idx>=verts.Length)continue;var w=m.MultiplyPoint3x4(verts[idx]);var v=cam.WorldToViewportPoint(w);
-                        if(v.z<cam.nearClipPlane||v.x<0||v.x>1||v.y<0||v.y>1)continue;inside++;
-                        if(tested<16&&(i/step)%4==0){tested++;if(Physics.Linecast(eye,w,out var hit,FlightMask,QueryTriggerInteraction.Ignore)&&!hit.collider.transform.IsChildOf(transform))continue;clear++;}
+                        int idx=hv.indices[i];if(idx>=hv.mesh.Length)continue;
+                        var w=SkinVertex(hv,bones,idx);sampled++;centroid+=w;var v=cam.WorldToViewportPoint(w);
+                        if(v.z<cam.nearClipPlane){firstReject??="behind (z "+v.z.ToString("F2")+")";continue;}
+                        if(v.x<0||v.x>1||v.y<0||v.y>1){firstReject??="outside ("+v.x.ToString("F2")+","+v.y.ToString("F2")+")";continue;}
+                        inside++;
+                        if(tested<16&&inside%4==1)
+                        {
+                            tested++;
+                            if(Physics.Linecast(eye,w,out var hit,FlightMask,QueryTriggerInteraction.Ignore)&&!hit.collider.transform.IsChildOf(transform)&&!hit.collider.GetComponentInParent<Investigator>())
+                            {firstReject??="occluded by "+hit.collider.name;continue;}
+                            clear++;
+                        }
                         minX=Mathf.Min(minX,v.x);maxX=Mathf.Max(maxX,v.x);
                     }
                 }
                 float px=inside>0&&(tested==0||clear>0)?(maxX-minX)*2560f:0;
-                detail+=(side==0?"L":"R")+"="+px.ToString("F0")+"("+inside+"in,"+clear+"/"+tested+"clear) ";
+                float dBone=sampled>0&&bone?Vector3.Distance(centroid/sampled,bone.position):-1;
+                detail+=(side==0?"L":"R")+"="+px.ToString("F0")+"("+sampled+"pts,"+inside+"in,"+clear+"/"+tested+"clear,dBone="+dBone.ToString("F2")+(firstReject!=null?",first="+firstReject:"")+") ";
                 best=Mathf.Max(best,px);
             }
             return best;
@@ -1809,7 +1863,8 @@ namespace HollowCurrent
             var flat=feet-transform.position;flat.y=0;float distance=flat.magnitude;
             bool drop=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
             bool crawl=count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl");
-            if(hideEntrance){if(drop){why="hide entrance";return count.ModeGrabDrop;}if(crawl){why="hide entrance, GrabDrop missing";return count.ModeGrabCrawl;}}
+            // count-l3: a hide is taken with GrabCrawl from the door (a drop there starts 4.7 m up over a crawling Count: the r13 pop).
+            if(hideEntrance){if(crawl){why="hide entrance (crawl from the door)";return count.ModeGrabCrawl;}if(drop){why="hide entrance, GrabCrawl missing";return count.ModeGrabDrop;}}
             if(p.Crouched||height<count.GrabCrawlBelow)
             {
                 if(crawl){why=p.Crouched?"she is crouched":"came in low ("+height.ToString("F1")+" m)";return count.ModeGrabCrawl;}
@@ -2248,7 +2303,7 @@ namespace HollowCurrent
                     nearMissStage=4;visitGrab=0;OpenHideDoor(Game.Player.HideExit);
                     // Wave I: at a hide entrance the grab is GrabDrop (it bursts the door down on her), witnessed or near-miss;
                     // count17: only with headroom for the clip's fall, else GrabCrawl from the door (CommitGrab).
-                    grabMode=PreferGrab(count.ModeGrabDrop,"GrabDrop",out var why);
+                    grabMode=PreferGrab(count.ModeGrabCrawl,"GrabCrawl",out var why);   // count-l3: crawl from the door, no drop pop
                     grabMode=CommitGrab(true,grabMode);
                     BeginGrabCam(visitWitnessed?"hideopen":"nearmiss",true);
                     if(!visitWitnessed)Debug.Log("HC_COUNT_NEARMISS open=True");

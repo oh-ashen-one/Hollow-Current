@@ -78,6 +78,8 @@ namespace HollowCurrent
         // The grab commits at the chosen clip's stand-off (its reach + CameraClearance), so the kill presentation never moves him
         // (r12: 0.5 m -> 2.2 m pop). FrameClaws eases at most GrabCamMaxEase m/s.
         public float GrabCamMaxEase=1.2f;
+        // count-l3: after the head-matched commit the root eases to her floor over this long (the drop clip lands at 0.5 s).
+        public float GrabRootBlendDrop=.5f, GrabRootBlendCrawl=.35f;
         // A known hide is approached to the stand-off point of its grab; within this of it he commits.
         public float HideStandTolerance=.5f;
         // After the slats, an opening visit rears back to the grab's stand-off at this speed before the grab commits.
