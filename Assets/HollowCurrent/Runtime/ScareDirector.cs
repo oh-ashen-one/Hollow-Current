@@ -30,7 +30,7 @@ namespace HollowCurrent
         {
             game=owner;
             // Castle rhythm (r10 rerun): apparitions every 60-110 s after a 60 s minimum spacing; Bellwether keeps 90 / 105-165 s.
-            if(game.Map==MapId.Castle){rhythm.Spacing=60;rhythm.AppearanceBase=60;rhythm.AppearanceSpread=50;}
+            if(game.Map==MapId.Castle)rhythm.UseCastleClock(()=>Random.value); // wave L: irregular arrivals, mean ~110 s, CV ~0.54, 45-260 s
             foreach(var t in game.World.Root.GetComponentsInChildren<Transform>())if(t.name=="Authored / Mug")props.Add(t);
             // Castle goblets, candlesticks, books and plates carry F3's Throwable marker.
             if(game.Map==MapId.Castle){foreach(var t in game.World.Root.GetComponentsInChildren<Throwable>())props.Add(t.transform);Debug.Log("HC_THROWABLES director="+props.Count);}
@@ -123,10 +123,11 @@ namespace HollowCurrent
             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=manifest_refused at="+point+" "+game.Creature.DiagnosticState);return false;}
             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
             Pulse(point,firstBasement?3:5);Events++;rhythm.RecordAppearance(Random.value);
+            if(IsCastle)Debug.Log("HC_SCARE_CLOCK next_in="+rhythm.LastInterval.ToString("F0"));
             next=Random.Range(28f,40f);
             if(IsCastle)
             {
-                game.Case.AddDread(game.Case.Rules.DreadApparition);
+                game.Case.NoteApparition(); // wave L: counts the apparition (no escalation on the first) and adds its Dread, which the dice ignore for 20 s
                 // An apparition that lands close can become a hunt with a short tell (FEAR_PLAN item 3).
                 float near=Vector3.Distance(point,game.Player.transform.position);
                 if(near<CastleScares.EscalateRange){if(Castle)Castle.Escalate(near);} // hc/scares4: logs HC_ESCALATE reason= / substitute=

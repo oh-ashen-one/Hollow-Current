@@ -376,7 +376,11 @@ namespace HollowCurrent
             if(Game.Map==MapId.Castle)
             {
                 // Wave K: from Dread 60, one hide attempt in six is held from inside (FEAR_PLAN item 5; injected dice).
-                if(Game.Case.TryDoorHeld()){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name+" dread="+Game.Case.Dread.ToString("F1")+" held="+Game.Case.DoorsHeld);return;}
+                int attempts=Game.Case.DoorAttempts;
+                bool held=Game.Case.TryDoorHeld();
+                // Wave L proof line: every eligible attempt (Dread >= 60) is counted, so "5 hides at >= 60 and no HC_DOOR_HELD" is checkable.
+                if(Game.Case.DoorAttempts>attempts)Debug.Log("HC_DOOR_TRY hide="+spot.name+" held="+held+" attempt="+Game.Case.DoorAttempts+" dread="+Game.Case.Dread.ToString("F1"));
+                if(held){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name+" dread="+Game.Case.Dread.ToString("F1")+" held="+Game.Case.DoorsHeld);return;}
             }
             Game.Creature.WitnessHide(spot.HidePoint);
             hiding=spot;Hidden=true;Teleport(spot.HidePoint);

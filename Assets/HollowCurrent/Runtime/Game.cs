@@ -82,6 +82,8 @@ namespace HollowCurrent
         // the lit chapel fire are where Dread falls.
         readonly List<Light> candleLights=new List<Light>();
         bool candlesCached,litNearby,appliedLongNight;
+        // Wave L: escalation reads lit/dark (15 % / 25 %).
+        public bool LitNearby=>litNearby;
         float litCheck,rulesLog=30;
         Vector3 chapelFire;bool hasChapelFire;
         Phase lastPhase;
