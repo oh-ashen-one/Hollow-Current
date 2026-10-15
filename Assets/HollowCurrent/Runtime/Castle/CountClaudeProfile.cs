@@ -80,6 +80,12 @@ namespace HollowCurrent
         public float GrabCamMaxEase=1.2f;
         // count-l3: after the head-matched commit the root eases to her floor over this long (the drop clip lands at 0.5 s).
         public float GrabRootBlendDrop=.5f, GrabRootBlendCrawl=.35f;
+        // count-l4: commits happen within RingTolerance of the clip's stand-off ring; the high dive flares upright over the last
+        // FlareDistance; a release blocks any new grab for RecommitBlock; a committed grab holds for its clip (ClipSecondsFor).
+        // count-l4: at Dread >= BagDread the hide he keeps finding her in opens exactly once in every BagSize visits.
+        public float BagDread=50f; public int BagSize=3;
+        public float RingTolerance=.25f, FlareDistance=1.2f, RecommitBlock=2f, GrabDropPeakSkullDefault=4.2f;
+        public float ClipSecondsFor(int mode)=>mode==ModeGrabDropId?1.6f:mode==ModeGrabCrawlId?1.4f:mode==ModeGrabSideLId||mode==ModeGrabSideRId?1.2f:mode==ModeGrabDropSpinId?1.9f:.9f;
         // A known hide is approached to the stand-off point of its grab; within this of it he commits.
         public float HideStandTolerance=.5f;
         // After the slats, an opening visit rears back to the grab's stand-off at this speed before the grab commits.

@@ -344,6 +344,7 @@ namespace HollowCurrent
             if(flight==Flight.Dead)return;
             staggerTimer=Fight.StaggerSeconds;retreatTimer=0;flight=Flight.Stagger;contact=0;chaseClosest=99;route.Clear();actor.Pose(Profile.ModeStagger);
             // r11 (camera inside his wing on sword hits): recoil away from her, and keep his joints out of the lens for a while.
+            committedUntil=-1;grabMode=-1;
             if(grabCam)EndGrabCam("stagger");
             var away=transform.position-Game.Player.View.transform.position;away.y=0;if(away.sqrMagnitude<.01f)away=-Game.Player.transform.forward;
             recoilDir=away.normalized;recoilLeft=count.SwordRecoilDistance;clearUntil=Time.time+Fight.StaggerSeconds+count.SwordClearSeconds;
@@ -406,6 +407,7 @@ namespace HollowCurrent
             quietHunt=Game.Case.NoTellHunt||HostileReturn;quietReason=HostileReturn?"return":"notell";quietLeg=0;quietSeen=false;quietHeldLogged=false;
             gateStage=0;huntClock=0;seenThisHunt=false;grabSurvivedThisHunt=false;pendingVoice=null;guaranteeNext=Random.Range(count.AttackGuaranteeMin,count.AttackGuaranteeMax);chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
             silhouette.gameObject.SetActive(true);SetRim(count.RimLightScale);
+            PrimeClipCurves();
             int best=keepPerch?perchIndex:-1;
             if(best<0)
             {
@@ -875,8 +877,16 @@ namespace HollowCurrent
         void CountChase(float dt,Vector3 memory)
         {
             var player=Game.Player;Vector3 goal;
+            // count-l4: open-floor dives fly to the ring at the chosen clip's stand-off (backing out if he is inside it), so the
+            // commit happens at the stand-off with nothing to re-seat (huntcam1 committed a drop 0.51 m from her).
+            int ringMode=PredictGrab(out _);float ring=IsSide(ringMode)?0:count.StandOffFor(ringMode);
             if(witnessedHide)goal=knownHide;
-            else if(CanSeePlayer)goal=player.transform.position;
+            else if(CanSeePlayer)
+            {
+                goal=player.transform.position;
+                var away=transform.position-goal;away.y=0;
+                if(ring>0&&away.sqrMagnitude>.0001f)goal+=away.normalized*ring;
+            }
             else if(Memory.Knows)goal=memory;
             else{BeginLand();return;}
             foreach(var spot in Game.World.HidingPlaces)
@@ -940,10 +950,32 @@ namespace HollowCurrent
                     ?Vector3.Distance(new Vector3(transform.position.x,hideStand.y,transform.position.z),hideStand)<count.HideStandTolerance
                     :Vector3.Distance(new Vector3(transform.position.x,player.HideExit.y,transform.position.z),player.HideExit)<Profile.HideEntranceDistance)&&
                 !Physics.Linecast(transform.position+Vector3.up,player.HideExit+Vector3.up);
-            bool clearReach=!CaptureMode.Requested&&distance<grabReach&&vertical<(diveHigh?count.HighDiveHover+.8f:1.6f)&&!player.Hidden&&
+            bool clearReach=!CaptureMode.Requested&&distance<grabReach+count.RingTolerance&&vertical<(diveHigh?count.HighDiveHover+.8f:1.6f)&&!player.Hidden&&
                 !Physics.Linecast(transform.position+Vector3.up,player.transform.position+Vector3.up,FlightMask,QueryTriggerInteraction.Ignore);
+            // count-l4: flare upright over the last FlareDistance before the ring (the grab clips start upright: no head jump).
+            flare=Mathf.Clamp01((distance-grabReach)/Mathf.Max(.1f,count.FlareDistance));
             // count17: a committed hide grab stays committed after CommitGrab moves him to the stand-off outside the door.
-            bool touching=(clearReach&&(CanSeePlayer||contact>0))||atHideEntrance||hideGrabLocked&&player.Hidden;
+            // count-l4: any committed grab is irrevocable until its clip has played (natural1 re-committed a drop-spin 12 times
+            // because placing him exactly at the stand-off read as out of reach on the next frame). Only the sword recoil
+            // (CountStagger) or the kill end it.
+            bool committed=grabMode>=0&&Time.time<committedUntil;
+            bool touching=committed||(clearReach&&(CanSeePlayer||contact>0))||atHideEntrance||hideGrabLocked&&player.Hidden;
+            if(!committed&&touching&&grabMode<0)
+            {
+                // count-l4: no re-commit within RecommitBlock of a release, and never with his skull out of the clip's reach.
+                string blocked=null;
+                if(Time.time<recommitBlockedUntil)blocked="released "+(Time.time-(recommitBlockedUntil-count.RecommitBlock)).ToString("F1")+" s ago";
+                else if(actor.Head&&!atHideEntrance)
+                {
+                    var sk=actor.Head.position-player.View.transform.position;sk.y=0;
+                    float limit=(IsSide(wantMode)?count.SideCommitDistance:count.StandOffFor(wantMode))+count.RingTolerance+.6f;
+                    if(sk.magnitude>limit)blocked="skull "+sk.magnitude.ToString("F2")+" m out, limit "+limit.ToString("F2");
+                }
+                if(blocked!=null){touching=false;if(Time.time>=recommitLogAt){recommitLogAt=Time.time+1;Debug.Log("HC_COUNT_GRAB recommit_blocked=True reason="+blocked);}}
+            }
+            if(!touching&&actor.Head)lastDiveSkull=actor.Head.position;
+            if(!touching&&grabMode>=0&&committedUntil>0&&Time.time>=committedUntil)
+            {Debug.Log("HC_COUNT_GRAB released=clip_end mode="+grabMode);contact=0;grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam&&!capturePresentation)EndGrabCam("clip ended");}
             // Integrator (r10 rerun, hostile return): a walking player flickered in and out of GrabDistance every frame, so contact
             // reset and he chose a grab 20 times on the bridge without one kill. Contact now decays instead of resetting.
             contact=touching?contact+dt:Mathf.Max(0,contact-dt*.5f);
@@ -957,15 +989,19 @@ namespace HollowCurrent
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+height.ToString("F2")+" reason="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
                     if(atHideEntrance)OpenHideDoor(player.HideExit);
                     grabMode=CommitGrab(atHideEntrance,grabMode);
+                    committedUntil=Time.time+count.ClipSecondsFor(grabMode)-clipStartT+.25f;
                     // count18: a grab at a hide entrance is a hide open even when the dive delivered it (path label for the proof).
                     BeginGrabCam(atHideEntrance?"hideopen":"dive",atHideEntrance);
                 }
                 actor.Pose(grabMode);
                 // huntClock, not PhaseTime: a hostile-return hunt (F1) runs inside Phase Return.
                 if(contact>=Profile.GrabSeconds&&huntClock>Profile.GrabGraceSeconds)Game.Case.Die();
+                if(Game.Case.Terminal)return;
+                // The clip has played and she is still alive (the driver's invulnerability): let go, and no new grab for a while.
+                if(grabMode>=0&&Time.time>=committedUntil&&!clearReach&&!atHideEntrance){Debug.Log("HC_COUNT_GRAB released=clip_end mode="+grabMode);contact=0;grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam)EndGrabCam("clip ended");}
                 return;
             }
-            if(contact<=0){grabMode=-1;if(grabCam&&!capturePresentation)EndGrabCam("released");}
+            if(grabMode>=0&&!committed&&contact<=0){grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam&&!capturePresentation)EndGrabCam("released");}
             // r10b: never hover at a watched hide forever (an entrance he cannot reach or a hide with no clear front): after 3 s at
             // the goal without a grab he gives up on it, logged, and prowls.
             var atGoal=goal-transform.position;atGoal.y=0;
@@ -977,7 +1013,7 @@ namespace HollowCurrent
             else hideStuck=0;
             Fly(dt,Profile.ModeReach);
         }
-        float hideStuck;
+        float hideStuck,committedUntil=-1,recommitBlockedUntil=-1,recommitLogAt,flare=1;Vector3? lastDiveSkull;
         void Fly(float dt,int mode)
         {
             if(routeAt<route.Count)
@@ -1122,7 +1158,14 @@ namespace HollowCurrent
             float ceiling=Physics.Raycast(ground+Vector3.up*.2f,Vector3.up,out var hit,8,FlightMask,QueryTriggerInteraction.Ignore)?hit.distance+.2f:8;
             float max=count.HoverMax*Mathf.Max(.3f,1-Tier*count.HoverTierScale);
             float hover=Mathf.Clamp(ceiling-count.BodyClearance,0,max);
-            if(chasing)hover=diveHigh?Mathf.Clamp(ceiling-count.BodyClearance,0,count.HighDiveHover):Mathf.Min(hover,count.HoverNearPlayer);
+            // count-l4: a high dive hovers so his skull ends at the drop clip's peak skull height over her floor (the clip starts there).
+            if(chasing&&diveHigh)
+            {
+                float peak=clipSkull.TryGetValue(count.ModeGrabDrop,out var curve)?Mathf.Max(curve):count.GrabDropPeakSkullDefault;
+                float skull=actor&&actor.Head?actor.Head.position.y-transform.position.y:2.2f;
+                hover=Mathf.Clamp(peak-skull,0,Mathf.Min(ceiling-count.BodyClearance,count.HighDiveHover));
+            }
+            else if(chasing)hover=Mathf.Min(hover,count.HoverNearPlayer);
             return hover;
         }
         bool Clear(Vector3 a,Vector3 b)
@@ -1396,8 +1439,11 @@ namespace HollowCurrent
                     float descent=Mathf.Atan2(-v.y,Mathf.Max(horizontal,.01f))*Mathf.Rad2Deg;
                     target=Mathf.Clamp(count.FlightPitchMin+Mathf.Max(0,descent)*.6f,count.FlightPitchMin,count.FlightPitchMax);
                 }
-                pitchNow=staged||capturePresentation?0:Mathf.Lerp(pitchNow,target,1-Mathf.Exp(-count.FlightPitchRate*dt));
-                if(target>0&&!staged&&!capturePresentation)pitchNow=Mathf.Max(pitchNow,count.FlightPitchMin); // r11: floor 38 deg in every airborne leg
+                // count-l4: in the last FlareDistance before a grab he flares upright (the grab clips start upright).
+                bool flaring=flight==Flight.Chase&&flare<1;
+                if(flaring)target*=flare;
+                pitchNow=staged||capturePresentation?0:Mathf.Lerp(pitchNow,target,1-Mathf.Exp(-count.FlightPitchRate*(flaring?3:1)*dt));
+                if(target>0&&!staged&&!capturePresentation&&!flaring)pitchNow=Mathf.Max(pitchNow,count.FlightPitchMin); // r11: floor 38 deg in every airborne leg
                 SetFlightPose(pitchNow);
                 // One HC_COUNT_POSE per leg, logged once the lean has settled (0.4 s after it starts).
                 if(target>0){if(poseLegTimer<0)poseLegTimer=0;poseLegTimer+=dt;if(!poseLogged&&poseLegTimer>.4f){poseLogged=true;Debug.Log("HC_COUNT_POSE pitch="+pitchNow.ToString("F0")+" target="+target.ToString("F0")+" mode="+actor.Mode+" state="+flight+" speed="+flightSpeed.ToString("F1"));}}
@@ -1474,21 +1520,85 @@ namespace HollowCurrent
         // sampled with the figure upright, and his origin is set so the clip's skull starts where his skull is now; the origin then
         // eases to her floor over the clip's fall (GrabRootBlendDrop) or the crawl's lunge (GrabRootBlendCrawl).
         bool rootBlend;float rootFromY,rootToY,rootBlendSeconds,rootT;
-        void MatchClipStart(int mode,float floorY)
+        // count-l4 (r13 f0c huntcam1: root=matched headNow=4.76 clipHead=2.28, then the skull rose 1.3 m): two faults.
+        // (1) the clip was sampled on the silhouette root, which has no Animator ("Non-Legacy animations cannot be sampled ...
+        // without an Animator"), so clipHead was the dive pose, not the clip; it is now sampled on the Animator's own GameObject.
+        // (2) GrabDrop / GrabDropSpin open with an anticipation lift before the fall. The clip's skull height over his origin is
+        // sampled every 1/60 s; playback starts at the first falling frame (after the peak) whose skull height matches his skull
+        // over her floor, so the commit is continuous and the skull only ever falls (HC_COUNT_GRAB clip_start_t=). Higher than the
+        // peak: start at the peak and ease the root down. GrabCrawl starts at its first frame (no lift), head-matched as before.
+        float clipStartT;   // seconds into the grab clip where playback started (shifts the drop-spin camera window)
+        static readonly Dictionary<int,float[]> clipSkull=new Dictionary<int,float[]>();
+        const float ClipSampleStep=1f/60;
+        static string StateFor(CountClaudeProfile c,int mode)=>mode==c.ModeGrabDrop?"GrabDrop":mode==c.ModeGrabCrawl?"GrabCrawl":mode==c.ModeGrabDropSpin?"GrabDropSpin":null;
+        AnimationClip FindClip(string state)
         {
-            rootBlend=false;
-            var controller=actor&&actor.Animator?actor.Animator.runtimeAnimatorController:null;if(!controller||!actor.Head)return;
-            string want=mode==count.ModeGrabDrop?"GrabDrop":"GrabCrawl";AnimationClip clip=null;
+            var controller=actor&&actor.Animator?actor.Animator.runtimeAnimatorController:null;if(!controller||state==null)return null;
+            AnimationClip best=null;
             foreach(var c in controller.animationClips)
-                if(c&&c.name.IndexOf(want,System.StringComparison.OrdinalIgnoreCase)>=0&&c.name.IndexOf("Spin",System.StringComparison.OrdinalIgnoreCase)<0){clip=c;break;}
-            float headNow=actor.Head.position.y;
+            {
+                if(!c||c.name.IndexOf(state,System.StringComparison.OrdinalIgnoreCase)<0)continue;
+                if(state=="GrabDrop"&&c.name.IndexOf("Spin",System.StringComparison.OrdinalIgnoreCase)>=0)continue;
+                best=c;break;
+            }
+            return best;
+        }
+        // Skull height over his origin through the clip (upright), sampled on the Animator's GameObject; cached per mode.
+        float[] SkullCurve(int mode,AnimationClip clip)
+        {
+            if(clipSkull.TryGetValue(mode,out var curve))return curve;
+            var target=actor.Animator.gameObject;int n=Mathf.Max(2,Mathf.CeilToInt(clip.length/ClipSampleStep)+1);curve=new float[n];
+            for(int i=0;i<n;i++){clip.SampleAnimation(target,Mathf.Min(clip.length,i*ClipSampleStep));curve[i]=actor.Head.position.y-transform.position.y;}
+            clipSkull[mode]=curve;
+            int peak=0;for(int i=1;i<n;i++)if(curve[i]>curve[peak])peak=i;
+            Debug.Log("HC_COUNT_CLIP_SKULL mode="+mode+" clip="+clip.name+" frames="+n+" start="+curve[0].ToString("F2")+" peak="+curve[peak].ToString("F2")+"@"+(peak*ClipSampleStep).ToString("F2")+"s end="+curve[n-1].ToString("F2"));
+            return curve;
+        }
+        // Sample the drop clips' skull curves once, in Update, upright (the Animator overwrites the pose before this frame renders),
+        // so the first high dive already hovers to the real clip peak.
+        void PrimeClipCurves()
+        {
+            if(!actor||!actor.Animator||!actor.Head||!actor.Animator.isActiveAndEnabled)return;
+            var rot=silhouette.localRotation;var pos=silhouette.localPosition;
+            foreach(int m in new[]{count.ModeGrabDrop,count.ModeGrabDropSpin})
+            {
+                if(m<0||clipSkull.ContainsKey(m))continue;var clip=FindClip(StateFor(count,m));if(!clip)continue;
+                silhouette.localRotation=Quaternion.identity;silhouette.localPosition=Vector3.zero;SkullCurve(m,clip);
+            }
+            silhouette.localRotation=rot;silhouette.localPosition=pos;
+        }
+        int switchedTo=-1;
+        void MatchClipStart(int mode,float floorY,float headBefore)
+        {
+            rootBlend=false;clipStartT=0;
+            string state=StateFor(count,mode);var clip=FindClip(state);
             pitchNow=0;SetFlightPose(0);            // the grab clips are played upright
-            if(!clip){Debug.Log("HC_COUNT_GRAB root=floor reason=no "+want+" clip to sample");var p0=transform.position;p0.y=floorY;transform.position=p0;return;}
-            clip.SampleAnimation(silhouette.gameObject,0f);
-            float clipHead=actor.Head.position.y-transform.position.y;   // skull height over his origin in the clip's first frame
-            var at=transform.position;float fromY=headNow-clipHead;at.y=fromY;transform.position=at;
-            rootFromY=fromY;rootToY=floorY;rootBlendSeconds=mode==count.ModeGrabDrop?count.GrabRootBlendDrop:count.GrabRootBlendCrawl;rootT=0;rootBlend=Mathf.Abs(fromY-floorY)>.01f;
-            Debug.Log("HC_COUNT_GRAB root=matched mode="+mode+" clip="+clip.name+" headNow="+headNow.ToString("F2")+" clipHead="+clipHead.ToString("F2")+" originY="+fromY.ToString("F2")+" floor="+floorY.ToString("F2")+" blend="+rootBlendSeconds.ToString("F2")+"s"+(mode==count.ModeGrabDrop?" from=above":""));
+            if(!clip||!actor.Head){Debug.Log("HC_COUNT_GRAB root=floor reason=no "+state+" clip to sample");var p0=transform.position;p0.y=floorY;transform.position=p0;return;}
+            var curve=SkullCurve(mode,clip);
+            float want=headBefore-floorY;   // his skull over her floor right now
+            // Lower than anywhere the drop's skull goes after its peak: a drop would have to jump up first. Take the crawl instead.
+            if(mode==count.ModeGrabDrop&&want<curve[curve.Length-1]&&count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl"))
+            {
+                Debug.Log("HC_COUNT_GRAB mode=8->9 reason=skull "+want.ToString("F2")+" m over her floor is below the drop's landed skull "+curve[curve.Length-1].ToString("F2"));
+                switchedTo=count.ModeGrabCrawl;MatchClipStart(count.ModeGrabCrawl,floorY,headBefore);return;
+            }
+            int start=0;
+            if(mode!=count.ModeGrabCrawl)
+            {
+                int peak=0;for(int i=1;i<curve.Length;i++)if(curve[i]>curve[peak])peak=i;
+                start=peak;
+                if(mode==count.ModeGrabDrop)for(int i=peak;i<curve.Length;i++){start=i;if(curve[i]<=want)break;}
+            }
+            clipStartT=start*ClipSampleStep;
+            float fromY=mode==count.ModeGrabDropSpin?floorY:Mathf.Max(floorY,headBefore-curve[start]);   // never under her floor
+            var at=transform.position;at.y=fromY;transform.position=at;
+            actor.Pose(mode);actor.Animator.Play(state,0,Mathf.Clamp01(clipStartT/Mathf.Max(.01f,clip.length)));
+            rootFromY=fromY;rootToY=floorY;rootBlendSeconds=mode==count.ModeGrabCrawl?count.GrabRootBlendCrawl:Mathf.Max(.15f,count.GrabRootBlendDrop-clipStartT);rootT=0;rootBlend=fromY-floorY>.01f;
+            float skullAfter=fromY+curve[start];
+            Debug.Log("HC_COUNT_GRAB clip_start_t="+clipStartT.ToString("F2")+" mode="+mode+" clip="+clip.name+" skullFrom="+(headBefore-floorY).ToString("F2")+" skullClip="+curve[start].ToString("F2"));
+            Debug.Log("HC_COUNT_GRAB root=matched mode="+mode+" clip="+clip.name+" headNow="+headBefore.ToString("F2")+" clipHead="+curve[start].ToString("F2")+" originY="+fromY.ToString("F2")+" floor="+floorY.ToString("F2")+
+                " skullDelta="+(skullAfter-headBefore).ToString("F2")+" fromLastDiveSample="+(lastDiveSkull.HasValue?Vector3.Distance(lastDiveSkull.Value,new Vector3(transform.position.x,skullAfter,transform.position.z)).ToString("F2"):"none")+
+                " blend="+(rootBlend?rootBlendSeconds.ToString("F2")+"s":"none")+(mode==count.ModeGrabCrawl?"":" from=above"));
         }
         int CommitGrab(bool hide,int mode)
         {
@@ -1508,7 +1618,8 @@ namespace HollowCurrent
                 }
                 else Debug.Log("HC_COUNT_GRAB from=above dy="+(count.GrabDropClipTop-(eye.y-feet.y)).ToString("F2")+" ceiling="+ceiling.ToString("F2")+" (the GrabDrop clip falls from "+count.GrabDropClipTop.ToString("F2")+" m)");
             }
-            if(!hide&&(mode==count.ModeGrabDrop||mode==count.ModeGrabCrawl)&&mode>=0)MatchClipStart(mode,feet.y);
+            float headBefore=actor.Head?actor.Head.position.y:transform.position.y+2.2f;
+            if(!hide&&(mode==count.ModeGrabDrop||mode==count.ModeGrabCrawl)&&mode>=0){switchedTo=-1;MatchClipStart(mode,feet.y,headBefore);if(switchedTo>=0)mode=switchedTo;}
             if(!hide&&(IsSide(mode)||mode==count.ModeGrabDropSpin))
             {
                 // Side snatch: his origin goes to the stand-off straight ahead of her view (the clip carries him in from her flank and
@@ -1519,6 +1630,7 @@ namespace HollowCurrent
                 transform.SetPositionAndRotation(at,Quaternion.LookRotation(-dir));
                 spinYawStart=Mathf.Atan2(f.x,f.z)*Mathf.Rad2Deg;
                 Debug.Log("HC_COUNT_GRAB placed="+(mode==count.ModeGrabDropSpin?"spin":"side")+" at="+at+" standOff="+count.StandOffFor(mode).ToString("F2")+" bearing="+Vector3.SignedAngle(f,outward,Vector3.up).ToString("F0")+" mode="+mode);
+                if(mode==count.ModeGrabDropSpin)MatchClipStart(mode,feet.y,headBefore);   // count-l4: start after the anticipation lift
             }
             if(hide)
             {
@@ -1563,8 +1675,10 @@ namespace HollowCurrent
                 float k=Mathf.SmoothStep(0,1,grabCamT/Mathf.Max(.01f,count.GrabCamTurnSeconds));
                 // Drop-spin: her view is held while he falls behind her, then spun to him between SpinStart and SpinEnd.
                 bool spin=grabMode>=0&&grabMode==count.ModeGrabDropSpin;
-                if(spin)k=Mathf.SmoothStep(0,1,Mathf.InverseLerp(count.SpinStart,count.SpinEnd,grabCamT));
-                if(spin&&!spinLogged&&grabCamT>=count.SpinStart){spinLogged=true;Debug.Log("HC_COUNT_GRABCAM spin=start t="+grabCamT.ToString("F2")+" yawOff="+Mathf.DeltaAngle(camYaw0,Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg).ToString("F0"));}
+                // count-l4: the clip may start past its lift (clipStartT), so the spin window is in clip time.
+                float clipT=grabCamT+clipStartT;
+                if(spin)k=Mathf.SmoothStep(0,1,Mathf.InverseLerp(count.SpinStart,count.SpinEnd,clipT));
+                if(spin&&!spinLogged&&clipT>=count.SpinStart){spinLogged=true;Debug.Log("HC_COUNT_GRABCAM spin=start t="+grabCamT.ToString("F2")+" yawOff="+Mathf.DeltaAngle(camYaw0,Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg).ToString("F0"));}
                 // r12: he must be on screen in the commit frame. If he is not, the view cuts to him at once instead of turning.
                 // (Not for the variants: the side snatch enters the frame and the drop-spin is unseen until the spin, by design.)
                 if(!variant&&grabCamT<=dt*1.01f&&!VisibleToCamera(cam,head).StartsWith("True",System.StringComparison.Ordinal)){grabCamSnap=true;Debug.Log("HC_COUNT_GRABCAM snap=True reason=not visible in the commit frame");}
@@ -1574,7 +1688,7 @@ namespace HollowCurrent
                 cam.transform.rotation=Quaternion.Euler(Mathf.LerpAngle(camPitch0,pitch,k),Mathf.LerpAngle(camYaw0,yaw,k),0);
             }
             if(IsSide(grabMode)&&!sideChecked&&grabCamT>=.1f)SideCheck(cam);
-            if(grabMode==count.ModeGrabDropSpin&&grabMode>=0&&!spinEndLogged&&grabCamT>=count.SpinEnd+.3f){spinEndLogged=true;LogGrabCam(cam,head);}
+            if(grabMode==count.ModeGrabDropSpin&&grabMode>=0&&!spinEndLogged&&grabCamT+clipStartT>=count.SpinEnd+.3f){spinEndLogged=true;LogGrabCam(cam,head);}
             // Proof in the log: the commit frame (turn starts), the end of the turn (the grab frame), +0.3 s and +1.0 s.
             // count-l3: then every 0.15 s to 1.0 s, so the per-sample eyeToSkull step resolves the motion (no 0.3 -> 1.0 gap).
             if(grabCamLog<GrabCamSchedule.Length&&(grabCamLog==0||grabCamT>=(grabCamLog==1?count.GrabCamTurnSeconds:GrabCamSchedule[grabCamLog]))){grabCamLog++;LogGrabCam(cam,head);}
@@ -1754,7 +1868,7 @@ namespace HollowCurrent
         // frame resolves this death first.
         public bool GrabInProgress=>count!=null&&huntOn&&contact>0&&grabMode>=0;
         /// <summary>Scripted runs only (PlaytestDriver): end a grab the driver's invulnerability blocked, so the run does not stall.</summary>
-        public void ReleaseGrab(string why){if(count==null)return;contact=0;grabMode=-1;if(grabCam)EndGrabCam(why);}
+        public void ReleaseGrab(string why){if(count==null)return;contact=0;grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam)EndGrabCam(why);}
         Vector3? lastSeen;                 // item 14: survives between hunts, but ages out (r10b N8)
         float lastSeenAt;bool lastSeenSighted;
         // r10b N8: heard places go stale after MemoryHeardSeconds, seen ones (incl. a watched hide) after MemorySeenSeconds
@@ -2150,7 +2264,7 @@ namespace HollowCurrent
         Vector3 nearMissCrawl,nearMissOutward,visitStand;
         bool LongNight=>Game.Case.Rules!=null&&Game.Case.Rules.Name=="Long Night";
         // r12: within-match learning; survives between hunts (a new Game after a death starts fresh).
-        Interactable learnedHide;
+        Interactable learnedHide,bagHide;int bagPos,bagOpenAt;
         Interactable HideSpotAt(Vector3 exit)
         {
             Interactable best=null;float d=.6f;
@@ -2228,12 +2342,24 @@ namespace HollowCurrent
             bool eligible=witnessed||chance>0;
             float roll=witnessed?0:Random.value;
             visitOpens=witnessed||roll<chance;
+            // count-l4 (siege at Dread 60: 5 learned-hide visits, 0 opens): at Dread >= BagDread the hide he keeps finding her in
+            // runs on a bag: exactly one open in every BagSize visits, at a random position; the bag starts with the first visit to
+            // that hide. Other hides and lower Dread keep the per-visit roll.
+            string bagNote="";
+            if(!witnessed&&dread>=count.BagDread&&(learned||learnedHide==null||learnedHide==spot||bagHide==null))
+            {
+                if(bagHide!=spot||bagPos>=count.BagSize){bagHide=spot;bagPos=0;bagOpenAt=Random.Range(0,count.BagSize);}
+                visitOpens=bagPos==bagOpenAt;
+                bagNote=" bag="+(bagPos+1)+"/"+count.BagSize+" bagOpenAt="+(bagOpenAt+1);
+                Debug.Log("HC_COUNT_NEARMISS bag="+(bagPos+1)+"/"+count.BagSize+" openAt="+(bagOpenAt+1)+" open="+visitOpens+" hide="+spot.name+" dread="+dread.ToString("F0"));
+                bagPos++;
+            }
             // He has now found her in or near this hide: it is the one he checks first next time.
             if(learnedHide!=spot)Debug.Log("HC_COUNT_LEARNED hide="+spot.name+" reason="+(witnessed?"watched her go in":"found her in it"));
             learnedHide=spot;
             flight=Flight.NearMiss;nearMissStage=1;pendingPerch=-1;travelToPerch=false;Memory.Clear();attackAttempted=true;visitGrab=0;
             Debug.Log(tag+" begin hide="+spot.name+" door="+NearMissDoor+" crawlTo="+nearMissCrawl+" landing="+landing+
-                (witnessed?" open=True reason=watched (any Dread)":" open="+visitOpens+" openRoll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" curve="+curve.ToString("F2")+" learnedHide="+learned+" eligible="+eligible+(eligible?"":" reason=first hunt, below Dread 40")+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
+                (witnessed?" open=True reason=watched (any Dread)":" open="+visitOpens+bagNote+" openRoll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" curve="+curve.ToString("F2")+" learnedHide="+learned+" eligible="+eligible+(eligible?"":" reason=first hunt, below Dread 40")+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
         }
         void NearMissTick(float dt)
         {
