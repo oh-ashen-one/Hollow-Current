@@ -139,9 +139,12 @@ namespace HollowCurrent
             }
             else
             {
-                views.Add(("hall_skull_from_east",new Vector3(2,1.64f,12),new Vector3(-4.5f,1,16.8f)));
+                // round 13: the old eye (2, 1.64, 12) stood in the courtyard and framed the dead tree. The skull lies at about (-4.55, 0.35, 16.8)
+                // between the piers at z 15.6 and 18.6; these eyes look through the gap (z 16.05 to 18.15) from inside the hall.
+                views.Add(("hall_skull_from_east",new Vector3(1.6f,1.5f,21.6f),new Vector3(-4.55f,.4f,16.8f)));
+                views.Add(("hall_skull_close",new Vector3(-1.2f,1.3f,19.6f),new Vector3(-4.55f,.4f,16.8f)));
                 views.Add(("hall_west_end_skull",new Vector3(-1.5f,1.64f,25),new Vector3(-4.5f,1,16.8f)));
-                views.Add(("hall_table_books",new Vector3(1.5f,1.64f,21),new Vector3(0,.8f,23.5f)));
+                views.Add(("hall_table_books",new Vector3(1.1f,1.35f,21.0f),new Vector3(0,.78f,23.7f)));
                 views.Add(("crypt_ceiling",new Vector3(0,-1.56f,20),new Vector3(0,-.2f,23)));
             }
             foreach(var v in views)

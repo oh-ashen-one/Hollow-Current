@@ -861,13 +861,14 @@ namespace HollowCurrent
             for (int i = 0; i < CastleLayout.HallBooks.Length; i++)
             {
                 if (CastleLayout.NearCaptureLine(CastleLayout.HallBooks[i], 1.2f)) continue;
-                // round 12: three real open-book meshes (small, medium, large) in three worn covers, mixed so neighbours differ
-                string[] bookArt = { "FloatingBookSmall", Art.FloatingBook, "FloatingBookLarge" };
+                // round 13 (r12 critic: flat card-like floating books): three closed tomes (small, medium, large; thick boards, cover with
+                // embossing, page block, spine bands, clasp on the large one) in three worn covers, scale 2.0 so they read from the aisle
+                string[] bookArt = { "TomeSmall", "Tome", "TomeLarge" };
                 var book = ArtAt(bookArt[i % 3], CastleLayout.HallBooks[i], 0);
                 SwapCover(book, BookCovers[(i + i / 3) % 3]);
-                book.localScale = Vector3.one * 1.9f;
-                // pages tipped up toward the entrance so the open book reads from the aisle
-                book.localRotation = Quaternion.Euler(-(52 + (i * 7) % 20), (i % 2 == 0 ? 1 : -1) * (14 + i * 9), (i % 3 - 1) * 12);
+                book.localScale = Vector3.one * 2.0f;
+                // cover tipped toward the entrance so the embossing reads from the aisle
+                book.localRotation = Quaternion.Euler(-(48 + (i * 7) % 20), (i % 2 == 0 ? 1 : -1) * (14 + i * 9), (i % 3 - 1) * 12);
                 var f = book.gameObject.AddComponent<Floater>();
                 f.phase = Mathf.Repeat((i + 1) * .6180339f, 1);
                 f.bobAmplitude = .16f; f.bobHertz = .13f + .02f * (i % 3); f.tiltDegrees = 6; f.yawDegreesPerSecond = 5;
@@ -1090,17 +1091,39 @@ namespace HollowCurrent
                 Part(name + " plinth", type, centre + new Vector3(0, (top + bottom) * .5f, 0), round ? new Vector3(rimSize.x, rimH * .5f, rimSize.x) : new Vector3(rimSize.x, rimH, rimSize.z), "silver");
                 Part(name + " socket", type, centre + new Vector3(0, (top + bottom) * .5f + .002f, 0), round ? new Vector3(insetSize.x, insetH * .5f, insetSize.x) : new Vector3(insetSize.x, insetH, insetSize.z), "socket");
             }
-            if (!Niche("RelicSocketBlade", new Vector3(0, 0, -.65f), Relic.SilverBlade))
-                Socket("Blade", new Vector3(0, 0, -.65f), new Vector3(.22f, 0, .66f), new Vector3(.14f, 0, .56f));
-            if (!Niche("RelicSocketHilt", new Vector3(0, 0, 0), Relic.HallowedHilt))
+            // round 13 (hc/props-l, r12 critic: "three cans for relic sockets"): one carved tablet (RelicTablet.fbx, 7 cm slab with a gilt
+            // border and three low bosses whose pockets follow the blade, the cross-hilt and the moonstone) replaces the three tall
+            // free-standing niches. Its rune parts (RuneBlade, RuneHilt, RuneMoon) are lit by one SocketRune each. The round 12 niches and the
+            // primitives stay as fallbacks, in that order.
+            bool tablet = false;
             {
-                Socket("Hilt bar", new Vector3(0, 0, 0), new Vector3(.19f, 0, .5f), new Vector3(.11f, 0, .42f));
-                Socket("Hilt guard", new Vector3(0, 0, 0), new Vector3(.44f, 0, .17f), new Vector3(.36f, 0, .11f));
+                var placed = CastleArt.Place("RelicTablet", inlay, new Vector3(0, .046f, 0), Quaternion.identity);
+                if (placed.placeholder) Release(placed.gameObject);
+                else
+                {
+                    tablet = true;
+                    foreach (var c in placed.gameObject.GetComponentsInChildren<Collider>()) Release(c);
+                    placed.gameObject.name = "Relic tablet";
+                    foreach (var r in placed.gameObject.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    var rb = placed.gameObject.AddComponent<SocketRune>(); rb.relic = Relic.SilverBlade; rb.runePrefix = "RuneBlade";
+                    var rh = placed.gameObject.AddComponent<SocketRune>(); rh.relic = Relic.HallowedHilt; rh.runePrefix = "RuneHilt";
+                    var rm = placed.gameObject.AddComponent<SocketRune>(); rm.relic = Relic.Moonstone; rm.runePrefix = "RuneMoon";
+                }
             }
-            if (!Niche("RelicSocketMoon", new Vector3(0, 0, .65f), Relic.Moonstone))
-                Socket("Moonstone", new Vector3(0, 0, .65f), new Vector3(.4f, 0, 0), new Vector3(.32f, 0, 0), true);
+            if (!tablet)
+            {
+                if (!Niche("RelicSocketBlade", new Vector3(0, 0, -.65f), Relic.SilverBlade))
+                    Socket("Blade", new Vector3(0, 0, -.65f), new Vector3(.22f, 0, .66f), new Vector3(.14f, 0, .56f));
+                if (!Niche("RelicSocketHilt", new Vector3(0, 0, 0), Relic.HallowedHilt))
+                {
+                    Socket("Hilt bar", new Vector3(0, 0, 0), new Vector3(.19f, 0, .5f), new Vector3(.11f, 0, .42f));
+                    Socket("Hilt guard", new Vector3(0, 0, 0), new Vector3(.44f, 0, .17f), new Vector3(.36f, 0, .11f));
+                }
+                if (!Niche("RelicSocketMoon", new Vector3(0, 0, .65f), Relic.Moonstone))
+                    Socket("Moonstone", new Vector3(0, 0, .65f), new Vector3(.4f, 0, 0), new Vector3(.32f, 0, 0), true);
+            }
             // an ember in each socket: a small lit flame with a halo (billboard, no light; the bake would blacken an emissive material)
-            foreach (var z in new[] { -.65f, 0f, .65f }) SurrealProps.MakeCandleFlame(inlay, new Vector3(0, top + .01f, z), .14f, false, "Socket ember", .2f);
+            foreach (var z in new[] { -.65f, 0f, .65f }) SurrealProps.MakeCandleFlame(inlay, new Vector3(0, tablet ? .135f : top + .01f, z), tablet ? .09f : .14f, false, "Socket ember", .2f);
             // carved front: cracks and a damp stain (no chip decal: it reads as holes) 2 cm off the altar front
             foreach (var d in new[] { ("Castle_DecalCracksA", 5.8f, 1.5f), ("Castle_DecalStain", 7.0f, 1.5f) })
             {
@@ -1146,7 +1169,7 @@ namespace HollowCurrent
         {
             var rnd = new System.Random(2026);
             var placed = new List<Vector3> { new Vector3(12.2f, 2.4f, 5.0f) };
-            SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.5f, true);
+            SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.2f, true);
             int guard = 0;
             while (placed.Count < 56 && guard++ < 8000)
             {
@@ -1478,6 +1501,14 @@ namespace HollowCurrent
             MakeThrowable(Small.Book, new Vector3(hall.x, hallTop, hall.z + .5f), 25); MakeThrowable(Small.Book, new Vector3(hall.x, hallTop, hall.z - .5f), -40);
             MakeThrowable(Small.Goblet, new Vector3(hall.x + .18f, hallTop, hall.z + .3f)); MakeThrowable(Small.Goblet, new Vector3(hall.x - .18f, hallTop, hall.z - .3f));
             MakeThrowable(Small.Candlestick, new Vector3(hall.x, hallTop, hall.z + 1.5f)); MakeThrowable(Small.Candlestick, new Vector3(hall.x, hallTop, hall.z - 1.5f));
+            // round 13 (r12 critic: "no readable books" on the table): three open books lying on the runner, pages up, 0.38 m spread, not throwable
+            // (the closed ones above are). Origin of the art is the spine centre; its lowest point (hinge) sits 2 cm under it.
+            foreach (var ob in new[] { (-1.0f, -8f, 0), (0f, 12f, 1), (1.0f, 95f, 2) })
+            {
+                var open = ArtAt(Art.FloatingBook, new Vector3(hall.x, hallTop + .02f, hall.z + ob.Item1), ob.Item2);
+                open.localScale = Vector3.one * .9f; SwapCover(open, BookCovers[ob.Item3]);
+                foreach (var r in open.GetComponentsInChildren<Renderer>()) r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
 
             // Dining hall: table centre (-10, 16), 5.6 m on z, top y 0.792; sideboard top y 1.10 (centre x -11 stays clear for the relic).
             const float diningTop = .792f;

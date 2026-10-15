@@ -9,16 +9,17 @@ namespace HollowCurrent
     public sealed class SocketRune : MonoBehaviour
     {
         public Relic relic;
+        [Tooltip("Name prefix of the rune renderers this component lights (a tablet carries one component per relic).")] public string runePrefix="Rune";
         Renderer[] runes;
         CastleRun run;
         float nextLookup;
         bool lit;
         MaterialPropertyBlock block;
         static readonly int ColorId=Shader.PropertyToID("_Color");
-        void Awake()
+        void Start()
         {
             var list=new List<Renderer>();
-            foreach(var r in GetComponentsInChildren<Renderer>(true))if(r.name.StartsWith("Rune"))list.Add(r);
+            foreach(var r in GetComponentsInChildren<Renderer>(true))if(r.name.StartsWith(runePrefix))list.Add(r);
             runes=list.ToArray();
             foreach(var r in runes)r.enabled=false;
         }

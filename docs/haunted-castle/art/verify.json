@@ -749,6 +749,16 @@
   ],
   "tris": 1592
  },
+ "RelicTablet": {
+  "bytes": 95180,
+  "parts": 4,
+  "size": [
+   0.88,
+   2.04,
+   0.123
+  ],
+  "tris": 2589
+ },
  "ReliquaryBox": {
   "bytes": 20332,
   "parts": 1,
@@ -908,6 +918,36 @@
    1.9
   ],
   "tris": 208
+ },
+ "Tome": {
+  "bytes": 23516,
+  "parts": 1,
+  "size": [
+   0.26,
+   0.3,
+   0.08
+  ],
+  "tris": 246
+ },
+ "TomeLarge": {
+  "bytes": 24124,
+  "parts": 1,
+  "size": [
+   0.356,
+   0.402,
+   0.108
+  ],
+  "tris": 270
+ },
+ "TomeSmall": {
+  "bytes": 23500,
+  "parts": 1,
+  "size": [
+   0.187,
+   0.216,
+   0.058
+  ],
+  "tris": 246
  },
  "VaultRib": {
   "bytes": 20092,

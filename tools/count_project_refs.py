@@ -174,7 +174,22 @@ for it in range(32):
     tex[grow] = s[grow] / n[grow, None]; filled |= grow
 tex[~filled] = mean
 # Undersides that no reference view saw (the r8 'tan patch' at the throat) are shadow, not skin.
-under = down & ~seen
+# Round 13 (r12 critic: dark triangular holes on the forearms and wings): the shadow fill is only right for the head and torso
+# (throat, jaw). The raised forearms, the hands and the wing undersides also face down and went near-black in hard-edged UV
+# triangles, which read as holes when the player looks up at him. Those texels now take the mean colour of the mid-bright seen texels of
+# their own region (the 75th to 97th luma percentile: lit skin, membrane, coat), broken up by a soft noise so no triangle is flat.
+under = down & ~seen & ((regmap == HEAD) | (regmap == TORSO))
+rng_ = np.random.default_rng(13)
+soft = rng_.random((SIZE // 16, SIZE // 16)).astype(np.float32)
+soft = np.kron(soft, np.ones((16, 16), np.float32)); soft = (soft + np.roll(soft, 8, 0) + np.roll(soft, 8, 1)) / 3
+for reg in (FOREARM, WING, OTHER):
+    sel = down & ~seen & (regmap == reg)
+    src = seen & (regmap == reg)
+    if sel.any() and src.any():
+        lum_ = tex[src] @ np.array([.299, .587, .114], np.float32)
+        lo_, hi_ = np.percentile(lum_, (75, 97))
+        med = tex[src][(lum_ >= lo_) & (lum_ <= hi_)].mean(0)       # the lit skin of that region, not its shadows
+        tex[sel] = med[None, :] * (.72 + .36 * soft[sel])[:, None]
 tex[under] = np.array([.07, .035, .03], np.float32)
 
 # region rules
