@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using UnityEngine;
 
@@ -162,6 +163,16 @@ namespace HollowCurrent
                     var ray=new Ray(v.eye,(v.target-v.eye).normalized);var hits=new List<string>();
                     foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))if(r.enabled&&r.gameObject.activeInHierarchy&&r.bounds.IntersectRay(ray,out float d)&&d<6)hits.Add(r.name+"@"+d.ToString("F1"));
                     Log("gate_out_S6 ray renderers: "+string.Join(", ",hits));
+                    // r13 diagnosis (-hc-capture-gate-diag): the same view with each candidate hidden in turn.
+                    if(Environment.GetCommandLineArgs().Contains("-hc-capture-gate-diag"))
+                        foreach(var name in new[]{"GateArch","ExtGate","Drawbridge","ExtRock","ExtWalls"})
+                        {
+                            var off=new List<Renderer>();
+                            foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))if(r.enabled&&r.name.EndsWith(name)){r.enabled=false;off.Add(r);}
+                            Place(v.eye,v.target);yield return new WaitForSecondsRealtime(.5f);
+                            yield return Shot("art_"+set+"_gate_diag_without_"+name,"(diag)",v.eye,v.target,"hidden "+off.Count);
+                            foreach(var r in off)r.enabled=true;
+                        }
                 }
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0?3f:1.5f);
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
