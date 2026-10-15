@@ -19,11 +19,13 @@ namespace HollowCurrent.Editor
         const string Source="Assets/HollowCurrent/Art/Characters/CountClaude/";
         const string Native=Source+"Native/";
         // Animator state names, index == Mode int: 0 Perch, 1 Glide, 2 SearchGlide, 3 Dive, 4 Stagger, 5 Death, 6 Grab (wing-wrap),
-        // 7 Crawl, 8 GrabDrop (falls from above onto the camera), 9 GrabCrawl (low lunge from the crawl, rears up on the lens).
-        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl","GrabDrop","GrabCrawl"};
+        // 7 Crawl, 8 GrabDrop (falls from above onto the camera), 9 GrabCrawl (low lunge from the crawl, rears up on the lens),
+        // wave L variants: 10 GrabSideL / 11 GrabSideR (side snatch from the player's left / right flank), 12 GrabDropSpin (ceiling drop behind
+        // the player; the runtime spins the camera into his face).
+        static readonly string[] Modes={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl","GrabDrop","GrabCrawl","GrabSideL","GrabSideR","GrabDropSpin"};
         // Perch, Glide, Search, Dive and Crawl loop; Stagger, Death, Grab, GrabDrop and GrabCrawl hold their last frame (Mode stays set until the next Pose call).
-        static readonly bool[] Loops={true,true,true,true,false,false,false,true,false,false};
-        // Modes 0-7 are required; 8 and 9 (tools/count_prepare.py, F5) degrade silently when their FBX is absent: no state is added and
+        static readonly bool[] Loops={true,true,true,true,false,false,false,true,false,false,false,false,false};
+        // Modes 0-7 are required; 8 and above (tools/count_prepare.py, F5 and wave L) degrade silently when their FBX is absent: no state is added and
         // the runtime falls back to the Mode 6 wing-wrap (it reads CountClaudeModes.json beside the controller to see which exist).
         const int RequiredModes=8;
         // Round 2 wing rig (tools/count_prepare.py): a root at each shoulder blade, a five-bone fan sharing that pivot, and
@@ -140,12 +142,13 @@ namespace HollowCurrent.Editor
                 if(!clips[i])continue;
                 var state=machine.AddState(Modes[i]);state.motion=clips[i];if(i==0)machine.defaultState=state;
                 if(i==1||i==7){state.speedParameter="LocomotionRate";state.speedParameterActive=true;} // wing-beat rate follows glide speed
-                var transition=machine.AddAnyStateTransition(state);transition.hasExitTime=false;transition.duration=i==3?.08f:i==6||i==8||i==9?.06f:.2f;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.Equals,i,"Mode");
+                var transition=machine.AddAnyStateTransition(state);transition.hasExitTime=false;transition.duration=i==3?.08f:i==6||i>=8?.06f:.2f;transition.canTransitionToSelf=false;transition.AddCondition(AnimatorConditionMode.Equals,i,"Mode");
             }
             animator.runtimeAnimatorController=controller;
             var actor=root.AddComponent<HearthboundActor>();actor.Animator=animator;actor.Head=headTip;actor.LeftFoot=Bone("LeftFoot");actor.BoneCount=skins[0].bones.Length;
             // The prefab sits beside the folder so Resources.Load<GameObject>("Characters/CountClaude") resolves it.
             PrefabUtility.SaveAsPrefabAsset(root,"Assets/HollowCurrent/Resources/Characters/CountClaude.prefab");UnityEngine.Object.DestroyImmediate(root);AssetDatabase.SaveAssets();
+            Debug.Log("HC_COUNTCLAUDE_VARIANTS "+string.Join(" ",Enumerable.Range(10,Modes.Length-10).Select(m=>Modes[m]+"="+(clips[m]?clips[m].length.ToString("0.00")+"s":"absent"))));
             Debug.Log("HC_COUNTCLAUDE_GRABS drop="+(clips[8]?clips[8].length.ToString("0.00")+"s reach "+receipt.grab_drop_reach_m:"absent")+" crawl="+(clips[9]?clips[9].length.ToString("0.00")+"s reach "+receipt.grab_crawl_reach_m:"absent")+" receipt modes="+(receipt.modes==null?"none":string.Join(",",receipt.modes)));
             Debug.Log("HC_COUNTCLAUDE_PASS skinned rig with wing fans, "+clips.Count(c=>c!=null)+" independent motions, head top "+receipt.head_top_m+"m, triangles "+receipt.triangles);
         }
