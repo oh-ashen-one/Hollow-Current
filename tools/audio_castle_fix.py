@@ -12,7 +12,8 @@ usage: audio_castle_fix.py [--dry-run]
    integrated loudness equals the median of Bellwether's Resources/Audio/voice_* clips (BS.1770, same meter as
    audio_castle_sfx.py), peak capped at -3 dBFS. voice_evp / voice_whisper are Bellwether's deliberately quiet ghost
    voices and are left out of that median.
-3. Other non-loop castle clips with more than 0.25 s of trailing silence get the same trim (bell_single).
+3. Other non-loop castle clips with more than 0.25 s of trailing silence get the same trim (bell_single); castle_hide_* beats
+   use 0.15 s.
 Shipped Bellwether files (Resources/Audio, HiggsfieldAudio) are never written.
 """
 import sys,re
@@ -72,7 +73,7 @@ def main():
             if abs(g)>0.05:x=x*10**(g/20);note.append(f'gain {g:+.2f} dB')
         else:
             t=tail_len(x,sr)
-            if t>0.25:x=trim_tail(x,sr);note.append(f'tail {t:.2f} -> {tail_len(x,sr):.2f} s')
+            if t>(0.16 if name.startswith('castle_hide_') else 0.25):x=trim_tail(x,sr);note.append(f'tail {t:.2f} -> {tail_len(x,sr):.2f} s')
         if note:
             print(f'{name}: '+'; '.join(note))
             if not dry:save(p,sr,x)

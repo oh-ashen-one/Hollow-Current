@@ -4,6 +4,8 @@
 usage: python3 tools/check_audio_quality.py [-v] [--strict]
 
 Fails on (CPU-only, no Unity):
+  * castle_hide_* hidden-player beats: integrated loudness outside -30..-26 LUFS, peak at or above 0.6 full scale
+    (-4.4 dBFS) or trailing silence above 0.15 s (wave L)
   * peak above -1 dBFS (any clip)
   * loop seam: |x[0]-x[-1]| > 0.01 full scale, i.e. the step you hear when the clip is concatenated with itself
     (loops = keys played through Loop/CastleLoop/SpatialLoop in the C#, plus every *_loop clip)
@@ -54,6 +56,10 @@ def main():
         if c['isloop'] and c['seam']>SEAM_MAX:report(c,f"loop seam step {c['seam']:.4f} > {SEAM_MAX}",False)
         if c['name'].startswith('voice_') and c['name'] not in GHOST and abs(c['lufs']-med)>VOICE_TOL:
             report(c,f"voice {c['lufs']:.1f} LUFS, {c['lufs']-med:+.1f} dB from the Bellwether median {med:.1f}",True)
+        if c['name'].startswith('castle_hide_'):
+            if not -30.0<=c['lufs']<=-26.0:report(c,f"hide beat {c['lufs']:.1f} LUFS outside -30..-26",False)
+            if c['peak']>=20*np.log10(.6):report(c,f"hide beat peak {c['peak']:.1f} dBFS is at or above 0.6 full scale",False)
+            if c['tail']>0.15+0.01:report(c,f"hide beat tail {c['tail']:.2f} s > 0.15",False)
         if not c['isloop'] and c['tail']>TAIL_MAX:report(c,f"trailing silence {c['tail']:.2f} s > {TAIL_MAX}",True)
     print(f"{len(clips)} clips ({', '.join(d+' '+str(sum(c['dir']==d for c in clips)) for d in DIRS)}); Bellwether voice median {med:.2f} LUFS over {len(bell)} clips; {len(loopset&{c['name'] for c in clips})} loops")
     if verbose:

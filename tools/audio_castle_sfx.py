@@ -92,7 +92,8 @@ def ensure_meta(name):
         meta.write_text('\n'.join(body))
 def finish(name,x):
     x=np.asarray(x,dtype=np.float64);x=x-np.mean(x)
-    g_l=TARGET_LUFS-lufs(x);g_p=PEAK_CEIL-peak_db(x)
+    tgt,ceil=SPEC.get(name,(TARGET_LUFS,PEAK_CEIL))
+    g_l=tgt-lufs(x);g_p=ceil-peak_db(x)
     g=min(g_l,g_p);y=x*10**(g/20)
     write_wav(name,y)
     print(f'{name}: {len(y)/SR:.2f}s gain {g:+.1f} dB ({"peak-limited" if g_p<g_l else "loudness"}) -> {lufs(y):.1f} LUFS peak {peak_db(y):.1f} dBFS')
@@ -254,8 +255,100 @@ def bell_single():
     y=fade_in(y,.004);y=fade_out(y,1.2)                                   # tail shortened to 3 s
     return y
 
+# ---------------------------------------------------------------- wave L: hidden-player beats (castle_hide_*)
+def _env(n,a,r_,sus=1.0,curve=1.0):
+    """attack/release envelope over n samples (a,r_ in samples)"""
+    e=np.ones(n)*sus;a=max(1,min(a,n//2));r_=max(1,min(r_,n//2))
+    e[:a]=np.linspace(0,sus,a)**curve;e[-r_:]=np.linspace(sus,0,r_)**1.4;return e
+def _slatted(x,seed,rt=.28,wet=.22,lp_hz=4200):
+    """heard through cupboard slats: short cavity comb + muffling + small room"""
+    y=x+.55*np.concatenate([np.zeros(int(.0031*SR)),x])[:len(x)]+.35*np.concatenate([np.zeros(int(.0074*SR)),x])[:len(x)]
+    return room(lp(y,lp_hz),rt,wet,seed,3500)
+def castle_hide_breath(variant):
+    r=R(81+variant);dur=[4.4,3.5][variant];n=int(dur*SR);buf=np.zeros(n+SR)
+    def breath(length,kind,amp,seed):
+        k=int(length*SR);rr=R(seed);w=rr.standard_normal(k)
+        if kind=='exhale':f1,f2=(520,1500) if variant==0 else (680,1900)
+        else:f1,f2=(900,2600) if variant==0 else (1100,3000)
+        body=bp(w,f1*.8,f1*1.3)*1.0+bp(w,f2*.8,f2*1.25)*.55+lp(w,260,2)*.5
+        rasp=1+.55*lp(rr.standard_normal(k),55,2)*6;rasp=np.clip(rasp,.2,2)    # ragged, wet
+        body*=rasp
+        # hoarse voiced undertone (a growl under the air), only on exhales
+        t=np.arange(k)/SR
+        if kind=='exhale':
+            f0=64-8*t/length;ph=2*np.pi*np.cumsum(f0)/SR
+            growl=lp(sum(np.sin(h*ph)/h for h in range(1,12)),480,2)*.22*(.6+.4*np.sin(2*np.pi*3.1*t+rr.uniform(0,6)))
+            body+=growl*np.sqrt(np.mean(body**2))*2.2
+        e=_env(k,int(length*(.28 if kind=='exhale' else .55)*SR),int(length*(.45 if kind=='exhale' else .18)*SR),1.0,1.3)
+        return body/ (np.std(body)+1e-9)*e*amp
+    if variant==0:
+        plan=[(.05,'exhale',1.55,1.0),(1.9,'inhale',1.1,.72),(3.2,'exhale',1.0,.55)]
+    else:
+        plan=[(.05,'inhale',.55,.45),(.75,'exhale',2.15,1.0),(3.0,'inhale',.45,.38)]
+    for i,(t0,kind,ln,a) in enumerate(plan):add(buf,breath(ln,kind,a,100*variant+i),t0)
+    y=_slatted(buf,82+variant)[:n]
+    return fade_out(y,.1)
+def castle_hide_clawstep():
+    r=R(91);n=int(1.9*SR);buf=np.zeros(n)
+    # one heavy clawed step: three toes biting, a long drag, a body thud, heard through a door and a stone passage
+    t0=.05
+    for i,(gap,a) in enumerate(((0,1.0),(.016,.8),(.031,.6))):
+        k=int(.2*SR);t=T(k)
+        click=hp(r.standard_normal(k),2200)*np.exp(-t*1300)*a
+        ring=modal(t,[(1180*r.uniform(.97,1.03),70,.45),(2750,120,.22),(4300,190,.1)])*a
+        add(buf,click+ring,t0+gap)
+    L=int(.22*SR);drag=bp(r.standard_normal(L),1800,7500)*np.sin(np.linspace(0,np.pi,L))**1.5*.38;add(buf,drag,t0+.05)
+    k=int(.5*SR);t=T(k);pad=(modal(t,[(78,38,1.0),(150,60,.5)])+lp(r.standard_normal(k),380)*np.exp(-t*60)*.7)*(1-np.exp(-t*500))
+    add(buf,pad*1.2,t0+.006)
+    y=lp(buf,3600)
+    y=room(y,1.9,.6,92,3000,tail=2.0)
+    return fade_out(y,.12)
+def castle_hide_handle():
+    r=R(101);n=int(1.0*SR);buf=np.zeros(n+SR//2)
+    def clink(amp,f0):
+        k=int(.25*SR);t=T(k)
+        m=modal(t,[(f0*r.uniform(.96,1.04),28,.8),(f0*1.83,45,.5),(f0*2.9,70,.35),(f0*4.2,110,.2)])
+        c=hp(r.standard_normal(k),2500)*np.exp(-t*1100)*.7
+        return (m+c)*amp
+    add(buf,clink(1.0,1750),.02)                                              # latch lifts
+    for t0,a,f in ((.14,.7,1500),(.22,.85,1650),(.31,.6,1450),(.39,.75,1700),(.50,.5,1550),(.62,.38,1500),(.75,.2,1650)):
+        add(buf,clink(a,f),t0)                                                # iron ring rattling in its staple
+        add(buf,wood_hit(r,f0=r.uniform(.9,1.3),amp=.28*a,body=.6,dur=.1),t0+.004)
+    add(buf,wood_hit(r,f0=.8,amp=.8,body=1.6,dur=.2),.02)                     # door shifts in its frame
+    y=room(buf,.32,.2,102,5000,tail=1.0)
+    return fade_out(y,.12)
+def castle_hide_whisper():
+    r=R(111);dur=2.7;n=int(dur*SR);buf=np.zeros(n+SR//2)
+    vowels=[(300,870,2240),(400,1900,2500),(620,1200,2400),(730,1090,2440),(450,1000,2300),(350,2200,3000),(570,840,2410)]
+    def syl(layer,seed):
+        rr=R(seed);t=.12;out=np.zeros(n+SR//2)
+        while t<dur-.35:
+            L=int(rr.uniform(.12,.26)*SR)
+            c=rr.integers(0,5);cl=int(rr.uniform(.035,.085)*SR);w=rr.standard_normal(cl)
+            cons={0:bp(w,2600,6200),1:bp(w,5000,9500),2:bp(w,1500,7000)*.5,3:bp(w,600,4500)*.6,4:hp(w,3500)}[int(c)]
+            cons=cons/(np.std(cons)+1e-9)*.55*np.hanning(cl)
+            F=vowels[rr.integers(len(vowels))];F=[f*layer*rr.uniform(.95,1.06) for f in F]
+            v=rr.standard_normal(L)
+            vow=bp(v,F[0]*.85,F[0]*1.15)+.8*bp(v,F[1]*.88,F[1]*1.12)+.35*bp(v,F[2]*.9,F[2]*1.1)
+            vow=vow/(np.std(vow)+1e-9)*np.hanning(L)**1.3*.8
+            seg=np.concatenate([cons,vow]);i=int(t*SR);out[i:i+len(seg)]+=seg[:len(out)-i]
+            t+=len(seg)/SR+rr.uniform(.03,.11)+(rr.uniform(.18,.3) if rr.random()<.18 else 0)
+        return out
+    a=syl(1.0,112);b=syl(.9,113)
+    lag=int(.035*SR);b=np.concatenate([np.zeros(lag),b])[:len(a)]
+    x=a+.55*b
+    x=x*(.45+.55*np.sin(np.linspace(0,np.pi,len(x)))**1.2)                     # phrase swell
+    y=lp(x,7000)
+    y=room(y,.9,.32,114,4200,tail=2.9)
+    y=y[:int(2.9*SR)]
+    return fade_out(y,.12)
+SPEC={'castle_hide_breath_0':(-28.0,-6.0),'castle_hide_breath_1':(-28.0,-6.0),'castle_hide_clawstep':(-28.0,-6.0),
+      'castle_hide_handle':(-28.0,-5.0),'castle_hide_whisper':(-28.0,-6.0)}   # (LUFS target, peak ceiling dBFS): peaks < 0.6 full scale
+
 CLIPS={'heartbeat_loop':heartbeat,'wind_battlements_loop':wind,'door_rattle':door_rattle,'book_drop':book_drop,
        'knife_stick':knife_stick,'bat_pass':bat_pass,'bell_single':bell_single}
+CLIPS.update({'castle_hide_breath_0':lambda:castle_hide_breath(0),'castle_hide_breath_1':lambda:castle_hide_breath(1),
+  'castle_hide_clawstep':castle_hide_clawstep,'castle_hide_handle':castle_hide_handle,'castle_hide_whisper':castle_hide_whisper})
 for _i,_p in enumerate(CLAWS):CLIPS[f'claw_steps_{_i}']=(lambda p=_p:claw_step(p))
 LOOPS={'heartbeat_loop','wind_battlements_loop'}
 VOICES=['voice_cc_kit','voice_cc_ending','voice_cc_contain','voice_cc_hint_signal','voice_cc_hint_trace','voice_cc_hint_voice','voice_cc_dispatch']
