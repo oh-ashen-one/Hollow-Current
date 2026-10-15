@@ -26,3 +26,4 @@ docs/haunted-castle/refs/*.err
 /.*.log
 docs/haunted-castle/rounds/*/captures/
 docs/haunted-castle/playtest/auto/**/*.png
+docs/haunted-castle/playtest/auto/**/grabcam.txt
