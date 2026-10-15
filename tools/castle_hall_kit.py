@@ -179,7 +179,7 @@ def hall_vault():
     return b
 
 # ================================================================================================ candles
-def candle_head(b, c, s=1.0, taper=.30, seg=12, flame=True):
+def candle_head(b, c, s=1.0, taper=.30, seg=10, flame=True):
     """Drip pan, socket and tapered wax candle with its collar, pool and two runs, for candelabra arms (the pan sits at c)."""
     x, y, z0 = c
     k = s
@@ -205,7 +205,7 @@ def candelabra():
     stem = [(0, 0), (.20, 0), (.215, .012), (.205, .03), (.15, .06), (.095, .10), (.06, .15), (.045, .20), (.05, .24), (.07, .28), (.075, .32), (.055, .36),
             (.040, .42), (.034, .52), (.045, .58), (.062, .62), (.050, .66), (.034, .72), (.032, .84), (.040, .90), (.056, .94), (.052, .985), (.030, 1.02), (.026, 1.04),
             (.040, 1.055), (.034, 1.085), (0, 1.085)]
-    b.lathe((0, 0, 0), stem, 18, BRASS, cap=False)
+    b.lathe((0, 0, 0), stem, 12, BRASS, cap=False)
     # four arms: out and up in a scroll, ending in a drip pan; the centre candle sits on the stem top
     tops = []
     for k in range(4):
