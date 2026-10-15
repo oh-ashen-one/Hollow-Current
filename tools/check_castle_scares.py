@@ -194,13 +194,13 @@ for wanted, placeholder in zip(pairs[0::2], pairs[1::2]):
     present = (wanted + "0") in stems and (wanted + "1") in stems if wanted.endswith("_") else wanted in stems  # a trailing _ = two-variant set _0/_1
     print("hidden clip %s -> %s (%s)" % (wanted, "present" if present else "waiting on F4, placeholder " + placeholder, "ok" if ok else "MISSING"))
 
-# 4e. escalation rule seam (critic r12: hunts chained to apparitions)
-rule = body(scares, "bool RuleAllows(")
-if not rule or "first_apparition" not in rule or "recent_escalation_born" not in rule or ".15f" not in rule or ".25f" not in rule:
-    failures.append("RuleAllows must refuse the first apparition and recent escalation-born hunts and use 15 % lit / 25 % dark")
+# 4e. escalation rule seam (critic r12: hunts chained to apparitions): Escalate must use F1's policy (wave L integrator) with
+# dark = !LitNearby and must not add a roll of its own.
 esc2 = body(scares, "public bool Escalate(")
-if esc2 and "RuleAllows(" not in esc2:
-    failures.append("Escalate must consult RuleAllows")
+if not esc2 or "EscalationChanceNow(dark)" not in esc2 or "TryEscalate(dark)" not in esc2 or "EscalationBlock(dark)" not in esc2 or "!game.LitNearby" not in esc2:
+    failures.append("Escalate must use Investigation.EscalationChanceNow/TryEscalate/EscalationBlock(dark) with dark=!game.LitNearby")
+if esc2 and re.search(r"Random\.value\s*(<|>=?)\s*(pass|chance)", esc2):
+    failures.append("Escalate must not roll the escalation chance itself (TryEscalate rolls it)")
 
 # 5. Bellwether isolation: CastleScares is only reached through the castle gate in the director
 if "IsCastle" not in director:

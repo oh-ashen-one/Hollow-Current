@@ -454,31 +454,25 @@ namespace HollowCurrent
         // post-hunt grace (and sometimes still in Recovery); the rest is the 20 % roll (0.8^8 = 17 % even with every gate open). The log
         // carried no reason. This logs one: reason=ok|roll|grace|phase_<p>|range|rules_off|terminal. When the attempt is blocked by design
         // (grace, Recovery, Survey) its roll is spent on a payoff instead (50 %): a poltergeist throw, else a candle gutter, else a bat.
+        // Wave L (integrator): the policy is F1's Investigation.EscalationChanceNow / TryEscalate / EscalationBlock with dark = no lit
+        // candle near her: 15 % lit, 25 % dark, never on the run's first apparition, blocked while either of the last two hunts was
+        // escalation-born, and blocked in the post-hunt grace. TryEscalate rolls that chance itself (no extra gate here).
+        public string LastEscalateReason {get;private set;}="none";
         public bool Escalate(float near)
         {
-            var c=game.Case;float chance=c.Rules.EventEscalationChance;
+            var c=game.Case;bool dark=!game.LitNearby;float chance=c.EscalationChanceNow(dark);
             string reason,substitute="none";bool escalated=false;
-            if(chance<=0)reason="rules_off";
-            else if(c.Terminal)reason="terminal";
+            if(c.Terminal)reason="terminal";
             else if(near>=EscalateRange)reason="range";
-            // tell-safe: this mirrors the hunt-conversion rule itself (Disturbance and no post-hunt grace, as Investigation.TryEscalate); it gates
-            // whether a hunt can start, not a scare effect, and a blocked attempt still pays off below, so the apparition is never bare.
-            else if(c.Phase==Phase.Disturbance&&c.GraceRemaining<=0)
-            {
-                if(!RuleAllows(out var why))reason="rule_"+why;
-                else
-                {
-                    escalated=c.TryEscalate();
-                    reason=escalated?"ok":"roll";
-                    if(escalated)lastEscalationAt=Time.time;
-                }
-            }
+            // tell-safe: this is the hunt-conversion rule itself (Investigation.EscalationChanceNow); it gates whether a hunt can start,
+            // not a scare effect, and a blocked attempt in the grace or the wrong phase still pays off below, so the apparition is never bare.
+            else if(chance>0){escalated=c.TryEscalate(dark);reason=escalated?"ok":"roll";if(escalated)lastEscalationAt=Time.time;}
             else
             {
                 // tell-safe: only names the blocking reason for the log.
-                reason=c.Phase!=Phase.Disturbance?"phase_"+c.Phase:"grace";
+                reason=c.EscalationBlock(dark);
                 // tell-safe: the substitute fires in whatever phase the apparition came in, so a blocked escalation is not visible as a missing effect.
-                if(Active&&Random.value<.5f)
+                if((reason=="grace"||reason=="phase")&&Active&&Random.value<.5f)
                 {
                     pickNote="escalation_payoff";
                     if(Poltergeist()>0)substitute="poltergeist";
@@ -487,25 +481,9 @@ namespace HollowCurrent
                     pickNote="direct";
                 }
             }
-            Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated+" reason="+reason+" phase="+c.Phase+" grace="+c.GraceRemaining.ToString("F0")+" chance="+chance.ToString("F2")+" substitute="+substitute);
+            LastEscalateReason=reason;
+            Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated+" reason="+reason+" phase="+c.Phase+" grace="+c.GraceRemaining.ToString("F0")+" chance="+chance.ToString("F2")+" dark="+dark+" apparitions="+c.Apparitions+" lastHuntEscalated="+c.LastHuntFromEscalation+" substitute="+substitute);
             return escalated;
-        }
-
-        // The escalation rule (r12: 5 of 7 non-Return hunts began within 5 s of an apparition). Local equivalent of F1's pure
-        // HuntRules.ShouldEscalate from hc/rules-l; when that lands, replace the body of this method with one call to it:
-        //   never on the first apparition; about 15 % with the torch lit, 25 % dark; no escalation-born hunt among the last two hunts
-        //   (so at most one hunt in three is escalation-born). Investigation.TryEscalate still rolls Rules.EventEscalationChance itself, so
-        //   this gate passes with probability target / EventEscalationChance and the product is the target.
-        bool RuleAllows(out string why)
-        {
-            int apparition=game.Scares?game.Scares.Events:0;
-            if(apparition<=1){why="first_apparition";return false;}
-            int n=huntBorn.Count;
-            if(n>=1&&huntBorn[n-1]||n>=2&&huntBorn[n-2]){why="recent_escalation_born";return false;}
-            float target=game.Player.TorchOn?.15f:.25f,rules=game.Case.Rules.EventEscalationChance;
-            float pass=rules>0?Mathf.Min(1,target/rules):0;
-            if(Random.value>=pass){why="roll_p="+pass.ToString("F2");return false;}
-            why="ok";return true;
         }
 
         // ---- the apparition point (fear plan 3, critic #27) ------------------------------------------------------------------------

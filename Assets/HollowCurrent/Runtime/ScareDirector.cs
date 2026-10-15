@@ -125,12 +125,14 @@ namespace HollowCurrent
             Pulse(point,firstBasement?3:5);Events++;rhythm.RecordAppearance(Random.value);
             if(IsCastle)Debug.Log("HC_SCARE_CLOCK next_in="+rhythm.LastInterval.ToString("F0"));
             next=Random.Range(28f,40f);
+            bool escalate=false;string escalateReason="none";
             if(IsCastle)
             {
                 game.Case.NoteApparition(); // wave L: counts the apparition (no escalation on the first) and adds its Dread, which the dice ignore for 20 s
                 // An apparition that lands close can become a hunt with a short tell (FEAR_PLAN item 3).
                 float near=Vector3.Distance(point,game.Player.transform.position);
-                if(near<CastleScares.EscalateRange){if(Castle)Castle.Escalate(near);} // hc/scares4: logs HC_ESCALATE reason= / substitute=
+                if(near<CastleScares.EscalateRange){if(Castle){escalate=Castle.Escalate(near);escalateReason=Castle.LastEscalateReason;}} // hc/scares4: logs HC_ESCALATE reason= / substitute=
+                else escalateReason="range";
             }
             if(!firstBasement&&Events%2==0)
             {
@@ -140,7 +142,8 @@ namespace HollowCurrent
                 else if(IsCastle)CastleThrow(point); // r11: the castle throw does not need her to see the prop; the knock is the point
                 else ThrowNearbyProp();
             }
-            Debug.Log("HC_SCARE visible="+Events+" basement="+firstBasement+" rush="+rush);return true;
+            // Wave L: escalate= / reason= on the apparition line itself, so "hunts within 10 s of an apparition" can be audited per line.
+            Debug.Log("HC_SCARE visible="+Events+" basement="+firstBasement+" rush="+rush+(IsCastle?" t="+game.Case.Elapsed.ToString("F0")+" escalate="+(escalate?"true":"false")+" reason="+escalateReason:""));return true;
         }
         bool VisiblePoint(out Vector3 point)
         {
