@@ -1,6 +1,32 @@
 # Automated castle playthroughs: waves G-K (windowed checklist, 2026-10-14)
 
-## Round 8 (latest): wave L on `hc/integ-l`, build `abbbe6a` (+ capture-only commits to `08188e8`)
+## Round 9 (latest): wave L2 on `hc/integ-l2`, build `c8ae493` + drawbridge fix (`haunted-castle` HEAD)
+
+Merged: rules-l2 `80c9eee`, count-l3 `d04c1d2`. F0: driver `HC_RETURN_KILL would_die=true` releases a blocked Return grab at once (`Presence.ReleaseGrab`), no bridge stall; **the drawbridge leaf was static-batched at prepare, so it never lowered on screen in any build** (the `gate_out_S6` planks, and the gate in S4): `NativeBuild` now excludes `CastleDrawbridge` children from batching and `check_throwables_scene.py` fails on a batching-static drawbridge part (`batching_static_drawbridge_parts 0`). `HC_DRAWBRIDGE_AXIS ok`. The hall-l glass materials' rewritten YAML is committed (`abbbe6a`). Torch failure stays at 50 %. Castle and Bellwether re-baked. One batch, 15 runs, 0 crashes, evidence `rounds/r13/captures/f0c/` (logs and frames, local).
+
+**Critic pass test 1 (3 unforced naturals):**
+
+| Run | Within 10 s of an apparition | Apparitions (s) | First hunt | Share | Longest gap |
+|---|---|---|---|---|---|
+| natural1 | 0 / 3 | 209, 319 | 89 s | 0.279 | 161 s |
+| natural2 | 1 / 3 | 69, 177, 223, 292, 345, 414, 460 | 104 s | 0.238 | 111 s |
+| natural3 | 0 / 2 | 97, 192, 254, 422 | 119 s | 0.226 | 160 s |
+| **Result** | **1 / 8 = 12 % PASS** | pooled **10 gaps** (110, 108, 46, 69, 53, 69, 46, 95, 62, 168): **CV 0.44 FAIL** | **span 30 s FAIL** (≥ 45) | **PASS** | **natural2 111 s FAIL** |
+
+**Critic pass test 2, siege `-hc-hold-dread 60`:** 5 hidden hunts in 15 minutes (the time limit hit before 6), 5 near-miss visits (learned hide, chance 0.30), 0 opens, 0 grabs: survival 100 % (FAIL on this sample; batch 8 had 83 %). Door held 2 of 8 tries (PASS).
+
+**Critic pass test 3 (kill), grab-cam samples every 0.15 s from 0.3 s (count-l3):**
+- Visible at commit: all but two of the mode 12 re-commits.
+- HUD hidden: yes. `HC_RETURN_KILL` once (natural1, 2.1 m on the bridge), no stall in any run.
+- **Drop pop not fixed:** every mode 8 grab steps 2.1-2.9 m in eyeToSkull between t 0.01 and 0.15 (natural1 2.21, natural2 2.18, natural3 2.19, huntcam 1.33 then 2.87, death 2.14), then 1.0-1.6 m steps to 0.45 s; `root=matched` and `root=landed` both log.
+- Mode 9: max step 0.52-0.56 m (fear, natural1). Mode 10/11 side grabs: 0.94-0.96 m first step, then ≤ 0.6.
+- **Mode 12 loop:** natural1 logged 12 consecutive mode 12 commits at the same spot, each `HC_COUNT_GRABCAM end reason=released` within one sample (contact drops after the commit), so a mode 12 grab can release without a kill.
+- natural2: one grab started in dive mode 3 with the skull 12.4 m away, then mode 9.
+- Claw measure works now: `claw_px_proj` 160-450 px in later samples; 0 at many commit frames.
+
+**Other proofs:** verify PASS (slowest 86.9 ms, 2 frames over 33 ms, 1 % low 61.5 fps, floor flag False; another session's Markhor Meadow was running); fear WON, `wallCrossings=0`, battlement 90/90, gatehouse 3/3, great hall p99 11.50 ms; escape, Long Night, kill (11 RECOIL), death + retry all PASS; torch failure dives 6 of 14, hunts 3; crypt settled max 21.0 ms. `gate_out_S6` now frames the lowered bridge, chains, moat torches, far bank and ridge; S4 shows the bridge down and the gate open.
+
+## Round 8: wave L on `hc/integ-l`, build `abbbe6a` (+ capture-only commits to `08188e8`)
 
 Merged on `hc/integ-l` from `af96343`: rules-l `568f910`, audio-l `3d6776a`, scares-l `1c72f77`, count-l `dd77242` then count-l2 `289da8b` (count-l + grabs-l, modes 10-12), exterior-l `699dbfd`, props-l `f07010b`, hall-l `f1310de` then `ce6adca`. F0 shared-file work: torch failure 50 % per dive and per hunt (`8c73f7d`), castle UI card and ledger (`fd4a876`), siege `-hc-hold-dread` and `HC_PLAY_STATS` (`bfe34db`), grab-cam measures beside frames (`3ef7905`), rules-l integrator diff (`c2e1377`), escalation through F1's policy (`HC_SCARE … escalate= reason=`), near-miss base curve from `HuntRules.NearMissOpenChance`, apparition check at the clock (`ScareRhythm.DueIn`). `CountClaudeImport.Prepare`: 13 motions, `GrabSideL/R` 1.20 s, `GrabDropSpin` 1.90 s. Bakes: Castle 7 maps / 196 probes / 17 reflections, Bellwether 4 / 124 / 9. `HC_EXTERIOR_AXIS ok`, `HC_HALL_AXIS … PASS`, `HC_FLAME_RIGID` and `HC_LEAN_CHECK` PASS, `CastleFlame` compiled. Hall-l's glass, wax and dressed-stone `.mat` files had empty YAML mappings; Unity re-serialised them at import (committed). Batch 8 ran on `5245768` (before hall-l); batch 9 on `abbbe6a` (all branches). 0 crashes. Evidence: `rounds/r13/captures/f0a/` (batch 8 logs and frames) and `f0b/` (batch 9 captures), local only.
 

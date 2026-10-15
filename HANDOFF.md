@@ -198,6 +198,12 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 - [ ] Every `HC_RECOVERY` line has a `grace=` of 30-90 s, and no dice hunt starts inside a grace (bell and gamble excepted).
 - [ ] Event Dread decays: `HC_RULES event=` falls between hunts, faster in the gatehouse.
 
+## Wave L2 (round 9) on `hc/integ-l2`
+
+- Merged rules-l2 and count-l3; `haunted-castle` fast-forwarded. Results: `docs/haunted-castle/playtest/AUTO_RUN.md`, "Round 9".
+- Fixed: drawbridge leaf static-batched (never lowered on screen); driver bridge stall (`HC_RETURN_KILL`).
+- Open: pooled apparition CV 0.44 over 10 gaps; first-hunt span 30 s; natural2 longest gap 111 s; siege-held sample had 0 opens; mode 8 drop still steps ~2.2 m in the first 0.15 s; mode 12 commit/release loop.
+
 ## Wave L (round 8) on `hc/integ-l`
 
 - All nine wave L branches merged on `hc/integ-l` (order: rules-l, audio-l, scares-l, count-l / count-l2, exterior-l, props-l, hall-l); `haunted-castle` fast-forwarded to it. Build: `Builds/macOS/Hollow Current.app` from `hc/integ-l` (Castle and Bellwether baked; `CountClaudeImport.Prepare` run).
