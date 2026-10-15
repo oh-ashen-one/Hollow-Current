@@ -25,7 +25,7 @@ namespace HollowCurrent
         // as moonlit stone instead of black next to the warm-lit courtyard walls. _FillAmount multiplies albedo * (_CastleFillSky/Ground).
         const float StoneFill = 3.0f;
 
-        static Material backdrop, windows, stoneLight, stoneDark;
+        static Material backdrop, windows, stoneLight, stoneDark, basalt, moat;
 
         public static int Build(Transform root)
         {
@@ -42,7 +42,7 @@ namespace HollowCurrent
                     Release(placed.gameObject);
                     continue;
                 }
-                Skin(placed.transform, name == "ExtBackdrop");
+                Skin(placed.transform, name == "ExtBackdrop", name == "ExtRock");
                 foreach (var r in placed.transform.GetComponentsInChildren<Renderer>()) { StripCollider(r); renderers++; }
                 if (name == "ExtKeep") AxisCheck(root, group, placed.transform);
             }
@@ -76,7 +76,7 @@ namespace HollowCurrent
 
         // Stone slots take the exterior world-space family (equal-luminance tints, see CastleWorld.StoneFamily), so the kit matches the
         // veneered front wall; slate (Castle_BlackStone), iron and cloth keep the UV material CastleArt already assigned.
-        static void Skin(Transform t, bool isBackdrop)
+        static void Skin(Transform t, bool isBackdrop, bool isRock)
         {
             foreach (var r in t.GetComponentsInChildren<Renderer>())
             {
@@ -88,8 +88,9 @@ namespace HollowCurrent
                     {
                         case "Castle_Stone":
                         case "Castle_StoneWeathered": m = StoneLight(); break;
-                        case "Castle_StoneDark":
+                        case "Castle_StoneDark": m = StoneDark(); break;
                         case "Castle_StoneMossy": m = StoneDark(); break;
+                        case "Castle_Basalt": m = Basalt(); break;
                         case "Castle_ExtWindow": m = Windows(); break;
                         case "Castle_ExtBackdrop": m = Backdrop(); break;
                     }
@@ -114,6 +115,26 @@ namespace HollowCurrent
         }
         static Material StoneLight() { if (!stoneLight) stoneLight = ExtStone("Castle_StoneWeathered", new Color(.84f, .84f, .86f), "Castle exterior stone"); return stoneLight; }
         static Material StoneDark() { if (!stoneDark) stoneDark = ExtStone("Castle_StoneDark", new Color(1.9f, 1.9f, 1.85f), "Castle exterior stone dark"); return stoneDark; }
+
+        // Wave L: the rock outcrop is dark basalt (Castle_Basalt_{albedo,normal,mask}.png from tools/castle_exterior_basalt.py, 0.3 tiles per metre,
+        // CastleTriplanar, same ambient-fill boost as the exterior stone); falls back to the dark stone instance if the textures are missing.
+        static Material Basalt()
+        {
+            if (!basalt) basalt = ExtStone("Castle_Basalt", new Color(1.55f, 1.55f, 1.6f), "Castle exterior basalt");
+            return basalt ? basalt : StoneDark();
+        }
+
+        // Wave L: the moat. HollowCurrent/CastleWater (dark blood body, analytic ripples, fresnel reflection of the analytic night sky, both moons
+        // and the castle mass) replaces the flat Castle_Blood liquid strip on the four moat boxes. Null if the shader is missing: the caller keeps
+        // the old liquid. The crypt blood channels are untouched.
+        public static Material Moat()
+        {
+            if (moat) return moat;
+            var shader = Resources.Load<Shader>("Castle/Shaders/CastleWater");
+            if (shader == null || !shader.isSupported) { Debug.LogWarning("[CastleExterior] CastleWater unavailable; the moat keeps the Castle_Blood liquid"); return null; }
+            moat = new Material(shader) { name = "Castle exterior moat water" };
+            return moat;
+        }
 
         // Lit windows (round 12 polish): one atlas (Castle_ExtWindows: leaded lancet, four arrow-slit variants, the dim lit gate tympanum) through
         // the unlit HDR CastleWindow shader. Texture core #d9933a to edge #5a2e0a, dark leading; _Intensity 1.5 keeps the hottest channel under 2.0.

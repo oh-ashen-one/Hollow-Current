@@ -209,6 +209,12 @@ namespace HollowCurrent
             g.GetComponent<Collider>().enabled = collide;
             return g;
         }
+        // Wave L: moat boxes take CastleExterior's water (dark reflective blood); the Castle_Blood liquid is the fallback.
+        void Moat(GameObject g)
+        {
+            var m = CastleExterior.Moat();
+            if (m != null) g.GetComponent<Renderer>().sharedMaterial = m; else Liquid(g);
+        }
         // Castle_Blood liquid surface (scrolling normals, deep red). The Standard fallback stays red if the shader is unavailable.
         void Liquid(GameObject g)
         {
@@ -745,10 +751,10 @@ namespace HollowCurrent
         void Exterior()
         {
             // blood moat around the walls, banks beyond, bed below
-            Liquid(Box("Blood moat front", new Vector3(0, -.6f, -3.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
-            Liquid(Box("Blood moat back", new Vector3(0, -.6f, 31.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
-            Liquid(Box("Blood moat west", new Vector3(-16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
-            Liquid(Box("Blood moat east", new Vector3(16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
+            Moat(Box("Blood moat front", new Vector3(0, -.6f, -3.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
+            Moat(Box("Blood moat back", new Vector3(0, -.6f, 31.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
+            Moat(Box("Blood moat west", new Vector3(-16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
+            Moat(Box("Blood moat east", new Vector3(16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
             // bed ring only outside the footprint, so it never intrudes on the crypt
             Box("Moat bed front", new Vector3(0, -2.5f, -3.025f), new Vector3(39f, 1f, 5.15f), "earth");
             Box("Moat bed back", new Vector3(0, -2.5f, 31.025f), new Vector3(39f, 1f, 5.15f), "earth");

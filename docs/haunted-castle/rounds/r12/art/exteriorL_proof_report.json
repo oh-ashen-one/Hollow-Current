@@ -1,0 +1,85 @@
+{
+ "moon_clearance_pct_occluded": {
+  "S4/pale": {
+   "existing_pct": 0.0,
+   "with_kit_pct": 0.0,
+   "added_pct": 0.0,
+   "centre_blocked": false,
+   "added_by": {}
+  },
+  "S4/red": {
+   "existing_pct": 0.0,
+   "with_kit_pct": 0.0,
+   "added_pct": 0.0,
+   "centre_blocked": false,
+   "added_by": {}
+  },
+  "bridge_mid/pale": {
+   "existing_pct": 63.0,
+   "with_kit_pct": 63.0,
+   "added_pct": 0.0,
+   "centre_blocked": true,
+   "added_by": {}
+  },
+  "bridge_mid/red": {
+   "existing_pct": 100.0,
+   "with_kit_pct": 100.0,
+   "added_pct": 0.0,
+   "centre_blocked": true,
+   "added_by": {}
+  },
+  "bridge_end/pale": {
+   "existing_pct": 0.0,
+   "with_kit_pct": 0.0,
+   "added_pct": 0.0,
+   "centre_blocked": false,
+   "added_by": {}
+  },
+  "bridge_end/red": {
+   "existing_pct": 5.5,
+   "with_kit_pct": 5.5,
+   "added_pct": 0.0,
+   "centre_blocked": false,
+   "added_by": {}
+  },
+  "courtyard_capture/pale": {
+   "existing_pct": 3.1,
+   "with_kit_pct": 3.1,
+   "added_pct": 0.0,
+   "centre_blocked": false,
+   "added_by": {}
+  },
+  "courtyard_capture/red": {
+   "existing_pct": 20.5,
+   "with_kit_pct": 20.5,
+   "added_pct": 0.0,
+   "centre_blocked": false,
+   "added_by": {}
+  },
+  "courtyard_centre/pale": {
+   "existing_pct": 69.3,
+   "with_kit_pct": 69.3,
+   "added_pct": 0.0,
+   "centre_blocked": true,
+   "added_by": {}
+  },
+  "courtyard_centre/red": {
+   "existing_pct": 100.0,
+   "with_kit_pct": 100.0,
+   "added_pct": 0.0,
+   "centre_blocked": true,
+   "added_by": {}
+  }
+ },
+ "max_vertex_y": 50.8,
+ "vertices_inside_rooms": {
+  "west_wing": 0,
+  "east_wing": 0,
+  "great_hall": 0,
+  "gatehouse": 0,
+  "observatory": 0
+ },
+ "vertices_in_standing_spot_box": 0,
+ "vertices_in_bridge_corridor": 0,
+ "triangles_total": 25762
+}

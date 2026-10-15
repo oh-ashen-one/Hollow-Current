@@ -26,9 +26,10 @@ import castle_common as cc
 # ---- materials -----------------------------------------------------------------------------------------------------------
 # Existing castle materials are reused (CastleExterior re-skins the stone slots with the same world-space surfaces the veneer uses).
 # Two names are new: Castle_ExtGlow (unlit warm emission) and Castle_ExtBackdrop (the distant-ridge shader).
-cc.MATERIALS.update({"Castle_ExtWindow": ((.85, .58, .23), 0.0, 0.0, False), "Castle_ExtBackdrop": ((.05, .07, .12), 0.0, 0.0, False)})
-UV_TILE.update({"Castle_StoneDark": 2.0, "Castle_StoneWeathered": 2.0, "Castle_StoneMossy": 2.0, "Castle_FlagStone": 2.0})
+cc.MATERIALS.update({"Castle_Basalt": ((.16, .17, .21), .22, 0.0, True), "Castle_ExtWindow": ((.85, .58, .23), 0.0, 0.0, False), "Castle_ExtBackdrop": ((.05, .07, .12), 0.0, 0.0, False)})
+UV_TILE.update({"Castle_Basalt": 3.3, "Castle_StoneDark": 2.0, "Castle_StoneWeathered": 2.0, "Castle_StoneMossy": 2.0, "Castle_FlagStone": 2.0})
 ST, SW, SD, SM, SL = "Castle_Stone", "Castle_StoneWeathered", "Castle_StoneDark", "Castle_StoneMossy", "Castle_BlackStone"
+BS = "Castle_Basalt"
 IRON, OX, GLOW, BACK = "Castle_Iron", "Castle_Oxblood", "Castle_ExtWindow", "Castle_ExtBackdrop"
 import castle_exterior_atlas as ATL
 
@@ -58,7 +59,7 @@ class K:
     def at(s, c, yaw): return s.b.xf(T(*U(c)) @ Rz(yaw))                 # local frame at c, yaw about vertical (x toward z)
 
 # ---- primitives built from the basics ------------------------------------------------------------------------------------
-def spire(k, c, r0, h, mat=SL, seg=12, eave=.3, rod=1.3, concave=1.25):
+def spire(k, c, r0, h, mat=SL, seg=12, eave=.2, rod=1.3, concave=1.0):
     """Steep slate cone with an eave flare, a concave taper and an iron tip rod. Closed solid (apex at both ends). c = base centre."""
     prof = [(0, 0), (r0 + eave, 0), (r0 + eave * .55, .1), (r0, .32)]
     n = 10
@@ -70,7 +71,7 @@ def spire(k, c, r0, h, mat=SL, seg=12, eave=.3, rod=1.3, concave=1.25):
 
 def drum(k, cx, cz, r, y0, y1, mat, seg=20, plinth=.0):
     prof = [(0, y0)]
-    if plinth: prof += [(r + plinth, y0), (r + plinth, y0 + .5), (r + plinth * .35, y0 + .9)]
+    if plinth: prof += [(r + .12, y0), (r + .12, y0 + .5), (r, y0 + .62)]       # wave L: walls are vertical; a 12 cm batter only at the very foot
     else: prof += [(r, y0)]
     prof += [(r, y1), (0, y1)]
     k.lathe((cx, 0, cz), prof, seg, mat)
@@ -235,7 +236,8 @@ def gate():
         drum(k, dx, dz, DRUM_R, -1.3, DRUM_TOP - 1.4, ST, seg=20, plinth=.3)
         corbel_ring(k, dx, dz, DRUM_R, DRUM_TOP - 1.4, SD, seg=20, flare=.4, depth=1.4)
         merlons(k, dx, dz, DRUM_R + .3, DRUM_TOP, 12, .95, 1.0, .5, ST, phase=360 / 24)
-        k.lathe((dx, 0, dz), [(0, 3.9), (DRUM_R + .16, 3.9), (DRUM_R + .16, 4.1), (0, 4.1)], 20, SD)   # string course
+        for yb in (3.0, 7.9):
+            k.lathe((dx, 0, dz), [(0, yb), (DRUM_R + .12, yb), (DRUM_R + .12, yb + .2), (0, yb + .2)], 20, SD)   # string courses
         apo = DRUM_R * math.cos(math.radians(9))
         for j in (13, 14, 15, 16):                              # facets facing the approach (243..297 deg)
             radial_slit(k, dx, dz, apo, (j + .5) * 18, 4.6 if j % 2 else 5.5, .26, 1.5)
@@ -282,8 +284,10 @@ def towers():
     for (sx, sz), (x, z, top, sh) in CORNER.items():
         drum(k, x, z, CR, -1.3, top - 1.2, SW, seg=20, plinth=.3)
         corbel_ring(k, x, z, CR, top - 1.2, SD, seg=20, flare=.5, depth=1.2)
-        k.lathe((x, 0, z), [(0, 4.4), (CR + .16, 4.4), (CR + .16, 4.6), (0, 4.6)], 20, SD)
-        spire(k, (x, top + .05, z), CR + .35, sh, eave=.36, seg=20, rod=1.4)
+        for yb in (3.2, 6.0, 8.8):
+            if yb < top - 2.0: k.lathe((x, 0, z), [(0, yb), (CR + .12, yb), (CR + .12, yb + .2), (0, yb + .2)], 20, SD)      # string courses
+        merlons(k, x, z, CR + .3, top, 12, .9, 1.0, .5, SW, phase=360 / 24)                    # crenellated parapet, the cone rises inside it
+        spire(k, (x, top + .02, z), CR - .22, sh, eave=.12, seg=20, rod=1.4)
         face_z = (13, 14, 15, 16) if sz < 0 else (3, 4, 5, 6)      # facets facing -z (front pair) or +z (back pair)
         face_x = (9, 10) if sx < 0 else (0, 19)
         for n, j in enumerate(face_z): radial_slit(k, x, z, apo, (j + .5) * 18, (4.6, 6.6, 8.2, 5.8)[n], .26, 1.6)
@@ -335,24 +339,43 @@ def rect_d(x, z):
     x0, x1, z0, z1 = RECT
     return math.hypot(max(x0 - x, x - x1, 0.0), max(z0 - z, z - z1, 0.0))
 
+# ground-floor windows on the outer faces: (axis of the wall line, line, centre along it, half width, cap = sill - 0.1). The apron must never rise into
+# an opening (the rock is render-only; from inside it would show as a stone face in the window).
+WINDOW_CAPS = [("x", -14.45, 5.0, .6, .9), ("x", -14.45, 13.5, .6, .9), ("x", -14.45, 18.5, .6, .9),
+               ("z", -.45, -10.0, .6, .9), ("z", -.45, 8.5, .7, 1.3), ("z", -.45, 11.5, .7, 1.3),
+               ("z", -.45, 0.0, 6.3, 3.5),            # the gate wall flank carries banners (lowest tip y 4.1) and slits (y 4.9)
+               ("x", 14.45, 3.5, .7, 1.3), ("x", 14.45, 9.5, .7, 1.3), ("z", 28.45, -4.4, .7, 1.7), ("z", 28.45, 4.4, .7, 1.7)]
+
 def apron_height(x, z):
+    """Wave L: a sculpted basalt outcrop under the walls: a ridged plateau (about 2 to 4 m) that stops at an irregular cliff edge 2.4 to 3.8 m
+    from the wall and drops steeply into the moat, with stratified terraces and rubble. The bridge corridor stays open water."""
     d = rect_d(x, z)
-    n = fbm(x * .33, z * .33, 11) - .5
-    base = 2.0 - .95 * d + 1.1 * n + .22 * fbm(x * 1.4, z * 1.4, 5)
-    h = base * .6 + (math.floor(base * 3.0) / 3.0) * .4
-    if z < GATE_Z and abs(x) < 4.2:                               # the bridge corridor stays open water
+    n1 = fbm(x * .27, z * .27, 11)
+    ridge = 1 - abs(2 * fbm(x * .5 + 9, z * .5, 17) - 1)
+    edge = 2.4 + 1.4 * n1                                      # distance of the cliff edge from the wall
+    plateau = 2.5 + 1.3 * ridge + .8 * (n1 - .5)
+    t = smooth01(edge - 1.0, edge + .2, d)
+    h = plateau * (1 - t) + (-1.7) * t
+    h += .28 * (fbm(x * 1.7, z * 1.7, 5) - .5) * (1 - .7 * t)
+    if h > 0: h = h * .62 + (math.floor(h * 2.4) / 2.4) * .38                  # strata
+    for (axis, line, centre, half, cap) in WINDOW_CAPS:        # keep the openings clear
+        along = x if axis == "z" else z; dist = abs((z if axis == "z" else x) - line)
+        if dist < 4.2:
+            cap_here = cap + (4.0 - cap) * smooth01(half + .3, half + 3.4, abs(along - centre))
+            h = min(h, cap_here)
+    if z < 1.0 and abs(x) < 4.2:                                # the bridge corridor and the gate opening (wall z -0.45..0.45) stay clear
         h = -1.5 + (h + 1.5) * smooth01(2.3, 4.2, abs(x))
     return h
 
 def rock():
     k = K("ExtRock"); b = k.b
-    step = .45
+    step = .32
     xs = [-22.0 + i * step for i in range(int(44 / step) + 1)]
     zs = [-8.5 + j * step for j in range(int(46 / step) + 1)]
     H = {}
     for i, x in enumerate(xs):
         for j, z in enumerate(zs):
-            H[(i, j)] = apron_height(x, z) if rect_d(x, z) <= 4.0 else None
+            H[(i, j)] = apron_height(x, z) if rect_d(x, z) <= 4.4 else None
     V = {}
     def vert(i, j):
         if (i, j) not in V: V[(i, j)] = b._v(U((xs[i], H[(i, j)], zs[j])))
@@ -362,10 +385,8 @@ def rock():
             cs = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
             if any(H[c] is None for c in cs): continue
             if all(rect_d(xs[c[0]], zs[c[1]]) <= 0 for c in cs): continue
-            top = max(H[c] for c in cs)
-            if top < -1.0: continue
-            mat = SM if (fbm(xs[i] * .5, zs[j] * .5, 3) > .62 and top < 1.2) else SD
-            b._f([vert(*c) for c in cs], mat, False, closed=False)
+            if max(H[c] for c in cs) < -1.0: continue
+            b._f([vert(*c) for c in cs], BS, False, closed=False)
     for (cx, cz, r, hh, seed) in ((-23.5, 4.0, 3.6, 12.5, 1), (-26.5, 15.0, 4.4, 15.5, 2), (-23.8, 26.5, 3.4, 10.5, 3),
                                   (23.8, 3.0, 3.4, 11.0, 4), (26.8, 14.0, 4.5, 14.5, 5), (24.0, 27.0, 3.6, 12.0, 6),
                                   (-31.0, 8.0, 3.0, 7.5, 7), (31.0, 20.0, 3.0, 8.0, 8)):
@@ -389,10 +410,10 @@ def crag(k, cx, cz, r, hgt, seed, seg=15, rings=13):
     for i in range(rings):
         for j in range(seg):
             j2 = (j + 1) % seg
-            b._f([grid[i][j], grid[i][j2], grid[i + 1][j2], grid[i + 1][j]], SM if (i > 7 and (j + i) % 5 == 0) else SD, False, closed=False)
+            b._f([grid[i][j], grid[i][j2], grid[i + 1][j2], grid[i + 1][j]], BS, False, closed=False)
     top = b._v(U((cx + .15 * r * (fbm(seed, 2) - .5), hgt + .35, cz)))
     for j in range(seg):
-        b._f([grid[rings][j], grid[rings][(j + 1) % seg], top], SD, False, closed=False)
+        b._f([grid[rings][j], grid[rings][(j + 1) % seg], top], BS, False, closed=False)
 
 # =================================================================================================================================
 # PIECE 6: far backdrop ring. UV.x = layer id (0 far ridge, 1 near ridge, 2 mist band), UV.y = height fraction (0 base .. 1 crest).

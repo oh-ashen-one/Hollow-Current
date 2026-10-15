@@ -77,6 +77,9 @@ def basis(c):
     return e1, e2
 
 def moon_layer(D, m, craters, seed):
+    """Wave L (hc/exterior-l): textured discs, not clip art. Multi-scale albedo (broad soft maria, mid-scale mottling, fine grain), craters as
+    soft shaded dimples WITHOUT bright rim rings, a soft terminator from a fixed light direction with earthshine on the dark side, limb
+    darkening, the existing glow, and a thin atmospheric halo just outside the limb."""
     c = m["c"]; R = m["R"]
     cosang = np.clip(D @ c, -1, 1); ang = np.arccos(cosang)
     e1, e2 = basis(c)
@@ -85,9 +88,14 @@ def moon_layer(D, m, craters, seed):
     if m is PALE:
         glow += (np.array([.30, .38, .58]) * np.exp(-ang / .10)[..., None] * .55)
         glow += (np.array([.06, .09, .17]) * np.exp(-ang / .55)[..., None] * .9)
+        halo_a = .07
     else:
         glow += (np.array([.55, .05, .04]) * np.exp(-ang / .045)[..., None] * .5)
         glow += (np.array([.10, .015, .02]) * np.exp(-ang / .25)[..., None] * .8)
+        halo_a = .05
+    # thin atmospheric halo: a faint soft ring hugging the limb (no hard edge), tinted like the moon
+    halo = np.exp(-(((ang - R * 1.07) / (R * .075)) ** 2)) * halo_a + np.exp(-(((ang - R * 1.22) / (R * .16)) ** 2)) * halo_a * .35
+    glow += halo[..., None] * (col * np.array([.8, .9, 1.0], np.float32))[None, None, :]
     px = (D @ e1) / math.sin(R); py = (D @ e2) / math.sin(R)
     r2 = px * px + py * py
     alpha = np.clip((R - ang) / (math.pi / 2 / N * 1.2) + .5, 0, 1)
@@ -98,14 +106,22 @@ def moon_layer(D, m, craters, seed):
     idx = np.where(inside & (alpha > 0))
     if len(idx[0]):
         P = pn[idx]
-        mare = smoothstep(.50, .60, fbm(P * 2.1 + 5.0, 4, seed))
-        fine = fbm(P * 11.0, 4, seed + 9)
-        v = .98 - .34 * mare + .12 * (fine - .5)
-        for (cn, rc, depth) in craters:
+        broad = fbm(P * 1.5 + 5.0, 4, seed)                                       # continents and maria, soft edged
+        mare = smoothstep(.44, .66, broad)
+        mid = fbm(P * 5.5 + 2.0, 5, seed + 3)                                     # mottled highlands
+        fine = fbm(P * 26.0, 3, seed + 9)                                         # grain
+        alb = 1.02 - .27 * mare + .16 * (mid - .5) * (1 - .5 * mare) + .09 * (fine - .5)
+        for (cn, rc, depth) in craters:                                           # soft shaded dimples, bright ejecta haze, no rim ring
             d = np.linalg.norm(P - cn[None, :], axis=-1) / rc
-            v += .07 * np.exp(-((d - 1.0) / .16) ** 2) - .045 * (d < 1) * (1 - d * .5)
-        lam = np.clip(pz[idx], 0, 1) ** .30
-        surf[idx] = np.clip(v, 0, 1.15) * lam
+            alb += -.055 * depth * np.exp(-(d / .8) ** 2) + .035 * np.exp(-(((d - 1.5) / .7) ** 2)) * (1 - mare)
+        alb = np.clip(alb, .22, 1.1)
+        # light from the upper left and slightly behind the viewer: soft terminator toward the lower right, earthshine on the dark limb
+        L = np.array([-.58, .48, .66], np.float32); L /= np.linalg.norm(L)
+        ndl = P @ L
+        lit = smoothstep(-.60, .50, ndl)                                          # wide soft terminator
+        earth = .24
+        limb = np.clip(pz[idx], 0, 1) ** .16
+        surf[idx] = alb * (earth + (1 - earth) * lit) * limb
     disk = surf[..., None] * col[None, None, :] * alpha[..., None]
     if m is RED:
         disk = disk * np.array([1.0, .95, .9], np.float32)

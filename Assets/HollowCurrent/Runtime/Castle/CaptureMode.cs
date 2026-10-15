@@ -130,11 +130,11 @@ namespace HollowCurrent
                 views.Add(("bridge_gate",new Vector3(0,1.7f,-4.2f),new Vector3(0,5.2f,3)));
                 views.Add(("bridge_keep",new Vector3(0,1.7f,-6.1f),new Vector3(0,16,19.5f)));
                 views.Add(("bridge_left",new Vector3(-1.2f,1.7f,-3.5f),new Vector3(-14,4.5f,3)));
-                views.Add(("gate_out_S6",new Vector3(.4f,1.3f,5.6f),new Vector3(.4f,3,-16)));
+                views.Add(("gate_out_S6",new Vector3(.3f,1.64f,1.4f),new Vector3(.2f,2.2f,-20)));   // wave L: eye inside the arch, leaf lowered, so the frame is the bridge, moat and far bank
                 views.Add(("courtyard_keep",new Vector3(0,1.64f,7),new Vector3(0,20,19.5f)));
                 views.Add(("courtyard_wall",new Vector3(3,1.64f,11.5f),new Vector3(-.8f,9,3)));
                 views.Add(("courtyard_east",new Vector3(-4,1.64f,9),new Vector3(6,8,5)));
-                views.Add(("battlement_out",new Vector3(3.6f,9,-.4f),new Vector3(.5f,3,-14)));
+                views.Add(("battlement_out",new Vector3(3.6f,9,-.4f),new Vector3(0,3,-30)));   // wave L: looks down the approach: bridge, moat, far bank and the ridge on the horizon
                 views.Add(("battlement_in",new Vector3(3.6f,9,.4f),new Vector3(0,9,16)));
             }
             else
