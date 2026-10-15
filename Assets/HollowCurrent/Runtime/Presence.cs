@@ -612,7 +612,54 @@ namespace HollowCurrent
             float roll=Random.value;diveHigh=room&&roll<count.DropDiveShare;
             Debug.Log("HC_COUNT_DIVE style="+(diveHigh?"high":"low")+" reason="+(room?"roll "+roll.ToString("F2")+" share "+count.DropDiveShare.ToString("F2"):"no headroom (ceiling "+ceiling.ToString("F2")+")")+" ceiling="+ceiling.ToString("F2"));
         }
-        void BeginChase(){hideGrabLocked=false;PickDiveStyle();chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
+        bool spinRolled,sideRolled;
+        // ---- count-l2: the F5 wave L grabs (GrabSideL 10, GrabSideR 11, GrabDropSpin 12) --------------------------------
+        // F5 could not confirm left/right under Unity's axis mapping: the first side grab checks where its lead claw is on screen
+        // at 0.1 s and swaps the mapping for the rest of the run if it came from the wrong side (HC_COUNT_GRAB side_check=).
+        static bool sideSwapped,sideChecked;
+        bool IsSide(int mode)=>mode>=0&&(mode==count.ModeGrabSideL||mode==count.ModeGrabSideR);
+        int LeftSideMode=>sideSwapped?count.ModeGrabSideR:count.ModeGrabSideL;
+        int RightSideMode=>sideSwapped?count.ModeGrabSideL:count.ModeGrabSideR;
+        // His bearing from her view direction, degrees, + = on her right.
+        float BearingFromHerView()
+        {
+            var p=Game.Player;var f=p.View.transform.forward;f.y=0;var to=transform.position-p.transform.position;to.y=0;
+            if(f.sqrMagnitude<1e-4f||to.sqrMagnitude<1e-4f)return 0;return Vector3.SignedAngle(f,to,Vector3.up);
+        }
+        float CeilingOver(Vector3 at,float floorY)=>Physics.Raycast(at+Vector3.up*.2f,Vector3.up,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore)?hit.point.y-floorY:12;
+        // The grab this dive will end in if it commits now (hide entrances are chosen separately).
+        int PredictGrab(out string why)
+        {
+            var p=Game.Player;var feet=p.transform.position;float bearing=BearingFromHerView(),ab=Mathf.Abs(bearing);
+            var toHim=transform.position-feet;toHim.y=0;toHim=toHim.sqrMagnitude>1e-4f?toHim.normalized:-p.transform.forward;
+            if(diveHigh)
+            {
+                bool spin=count.ModeGrabDropSpin>=0&&HasModeState(count.ModeGrabDropSpin,"GrabDropSpin");
+                if(spin&&spinRolled&&ab>=count.SpinMinBearing&&ab<=count.SpinMaxYaw&&CeilingOver(feet+toHim*count.StandOffFor(count.ModeGrabDropSpin),feet.y)>=count.GrabDropSpinClipTop+.1f)
+                {why="drop behind her (she faces away, bearing "+bearing.ToString("F0")+")";return count.ModeGrabDropSpin;}
+                if(count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")){why="high dive, drop (bearing "+bearing.ToString("F0")+(spinRolled?"":", spin not rolled")+")";return count.ModeGrabDrop;}
+            }
+            if(p.Crouched||MustCrawl(transform.position)||OnFoot){int c=count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl")?count.ModeGrabCrawl:ChooseGrab(false,out _,out _);why=p.Crouched?"she is crouched":"low door / on foot";return c;}
+            if(sideRolled&&ab>=count.SideMinBearing&&ab<=count.SideMaxBearing)
+            {
+                int side=bearing<0?LeftSideMode:RightSideMode;
+                if(side>=0&&HasModeState(side,side==count.ModeGrabSideL?"GrabSideL":"GrabSideR"))
+                {
+                    if(SideClear(bearing)){why="side snatch from her "+(bearing<0?"left":"right")+" (bearing "+bearing.ToString("F0")+(sideSwapped?", mapping swapped":"")+")";return side;}
+                }
+            }
+            return ChooseGrab(false,out why,out _);
+        }
+        // The flank the side clip enters from must be open: her eye to the stand-off point and that point to the clip's start.
+        bool SideClear(float bearing)
+        {
+            var p=Game.Player;var eye=p.View.transform.position;var f=p.View.transform.forward;f.y=0;if(f.sqrMagnitude<1e-4f)return false;f.Normalize();
+            var right=Vector3.Cross(Vector3.up,f);var origin=p.transform.position+f*count.StandOffFor(count.ModeGrabSideL);
+            var start=origin+right*(bearing<0?-1:1)*count.SideStartLateral;
+            var chest=Vector3.up*1.2f;
+            return !Physics.Linecast(eye,origin+chest,FlightMask,QueryTriggerInteraction.Ignore)&&!Physics.Linecast(origin+chest,start+chest,FlightMask,QueryTriggerInteraction.Ignore);
+        }
+        void BeginChase(){hideGrabLocked=false;PickDiveStyle();spinRolled=Random.value<count.SpinShare;sideRolled=Random.value<count.SideShare;chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
@@ -849,8 +896,10 @@ namespace HollowCurrent
             var flat=player.transform.position-transform.position;float vertical=Mathf.Abs(flat.y);flat.y=0;float distance=flat.magnitude;
             // r10 #14: seconds until he reaches grab range at his current speed (Game's torch failure keys on the last second).
             // r12 (kill pop): the grab commits at the chosen clip's stand-off, so nothing moves him when she dies.
-            int wantMode=diveHigh&&count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")?count.ModeGrabDrop:ChooseGrab(false,out _,out _);
-            grabReach=count.StandOffFor(wantMode);
+            int wantMode=PredictGrab(out var wantWhy);
+            // Side snatches commit while he is still out at her flank (the clip brings him in from SideStartLateral); the rest
+            // commit at their clip's stand-off.
+            grabReach=IsSide(wantMode)?count.SideCommitDistance:count.StandOffFor(wantMode);
             diveEndsIn=Mathf.Max(0,distance-grabReach)/Mathf.Max(speedNow,1f);
             if(!diveLastFired&&diveEndsIn<=count.DiveLastSecond&&CanSeePlayer)
             {
@@ -902,7 +951,8 @@ namespace HollowCurrent
                 if(flat.sqrMagnitude>.0001f)transform.rotation=Quaternion.LookRotation(flat);
                 if(grabMode<0||contact<=dt)
                 {
-                    grabMode=ChooseGrab(atHideEntrance,out var why,out var height);
+                    string why;float height=transform.position.y-player.transform.position.y;
+                    if(atHideEntrance)grabMode=ChooseGrab(true,out why,out height);else{grabMode=wantMode;why=wantWhy;}
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+height.ToString("F2")+" reason="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
                     if(atHideEntrance)OpenHideDoor(player.HideExit);
                     grabMode=CommitGrab(atHideEntrance,grabMode);
@@ -1328,7 +1378,7 @@ namespace HollowCurrent
             float dt=Time.deltaTime;
             if(!modesLogged&&actor.Animator&&actor.Animator.isActiveAndEnabled&&actor.Animator.runtimeAnimatorController)
             {
-                modesLogged=true;string[] names={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl","GrabDrop","GrabCrawl"};var b=new System.Text.StringBuilder();
+                modesLogged=true;string[] names={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl","GrabDrop","GrabCrawl","GrabSideL","GrabSideR","GrabDropSpin"};var b=new System.Text.StringBuilder();
                 for(int i=0;i<names.Length;i++)b.Append(i).Append(':').Append(names[i]).Append('=').Append(HasModeState(i,names[i])?1:0).Append(' ');
                 Debug.Log("HC_COUNT_MODES bound="+b.ToString().Trim()+" frames=["+string.Join(",",System.Array.ConvertAll(actor.ModeFrames,f=>f.ToString()))+"]");
             }
@@ -1390,7 +1440,7 @@ namespace HollowCurrent
         void BeginGrabCam(string path,bool hide=false)
         {
             if(grabCam)return;
-            doorClampLogged=false;grabCamSnap=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
+            doorClampLogged=false;grabCamSnap=false;spinLogged=false;spinEndLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
             ShieldFromLantern(true);
         }
         void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;ShieldFromLantern(false);Debug.Log("HC_COUNT_GRABCAM end path="+grabCamKind+" reason="+why);}
@@ -1416,6 +1466,7 @@ namespace HollowCurrent
         // count17: commit a grab. GrabDrop needs headroom for its own fall (GrabDropClipTop over his floor); without it the grab is
         // GrabCrawl from the door. A hide grab stands him in the torn door opening at the clip's stand-off from her, facing in,
         // so his skull lands in the centre band once the view has turned and the nearer claw ends about GrabCamClawDistance away.
+        float spinYawStart;
         int CommitGrab(bool hide,int mode)
         {
             var p=Game.Player;var feet=p.transform.position;var eye=p.View.transform.position;
@@ -1433,6 +1484,17 @@ namespace HollowCurrent
                     mode=crawl;
                 }
                 else Debug.Log("HC_COUNT_GRAB from=above dy="+(count.GrabDropClipTop-(eye.y-feet.y)).ToString("F2")+" ceiling="+ceiling.ToString("F2")+" (the GrabDrop clip falls from "+count.GrabDropClipTop.ToString("F2")+" m)");
+            }
+            if(!hide&&(IsSide(mode)||mode==count.ModeGrabDropSpin))
+            {
+                // Side snatch: his origin goes to the stand-off straight ahead of her view (the clip carries him in from her flank and
+                // the camera stays put). Drop-spin: to the stand-off on her side of him, behind her, facing her.
+                var f=p.View.transform.forward;f.y=0;f=f.sqrMagnitude>1e-4f?f.normalized:p.transform.forward;
+                var dir=mode==count.ModeGrabDropSpin?outward:f;
+                var at=feet+dir*count.StandOffFor(mode);at.y=feet.y;
+                transform.SetPositionAndRotation(at,Quaternion.LookRotation(-dir));
+                spinYawStart=Mathf.Atan2(f.x,f.z)*Mathf.Rad2Deg;
+                Debug.Log("HC_COUNT_GRAB placed="+(mode==count.ModeGrabDropSpin?"spin":"side")+" at="+at+" standOff="+count.StandOffFor(mode).ToString("F2")+" bearing="+Vector3.SignedAngle(f,outward,Vector3.up).ToString("F0")+" mode="+mode);
             }
             if(hide)
             {
@@ -1452,28 +1514,51 @@ namespace HollowCurrent
         {
             var cam=Game.Player.View;if(!cam)return;float dt=Time.unscaledDeltaTime;grabCamT+=dt;
             // Claws ~GrabCamClawDistance from the lens, in the kill presentation and in a hide grab (he is in the door opening).
-            if(grabKill||grabHide)FrameClaws(cam,dt);
+            bool variant=IsSide(grabMode)||grabMode==count.ModeGrabDropSpin&&grabMode>=0;
+            if((grabKill||grabHide)&&!variant)FrameClaws(cam,dt);
             if(grabHide)ClampToDoor();
             // Turn the view to his skull (biased toward the claws) over GrabCamTurnSeconds, then hold it there. No cut.
             var head=actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
             var claws=handL&&handR?(handL.position+handR.position)*.5f:head-Vector3.up*.6f;
-            var aim=Vector3.Lerp(head,claws,count.GrabCamClawBias);var to=aim-cam.transform.position;
+            var aim=Vector3.Lerp(head,claws,count.GrabCamClawBias);
+            // Side snatch: the camera holds on the clip's end point (he enters the frame from her flank). After the clip, as usual.
+            if(IsSide(grabMode)&&grabCamT<SideSeconds)aim=transform.position+Vector3.up*count.SideSkullHeight;
+            var to=aim-cam.transform.position;
             if(to.sqrMagnitude>.0001f)
             {
                 // Yaw and pitch blended separately (shortest way round, up to 180 deg of yaw: she may face the wardrobe's back
                 // wall), never a roll; then the view holds on him.
                 float k=Mathf.SmoothStep(0,1,grabCamT/Mathf.Max(.01f,count.GrabCamTurnSeconds));
+                // Drop-spin: her view is held while he falls behind her, then spun to him between SpinStart and SpinEnd.
+                bool spin=grabMode>=0&&grabMode==count.ModeGrabDropSpin;
+                if(spin)k=Mathf.SmoothStep(0,1,Mathf.InverseLerp(count.SpinStart,count.SpinEnd,grabCamT));
+                if(spin&&!spinLogged&&grabCamT>=count.SpinStart){spinLogged=true;Debug.Log("HC_COUNT_GRABCAM spin=start t="+grabCamT.ToString("F2")+" yawOff="+Mathf.DeltaAngle(camYaw0,Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg).ToString("F0"));}
                 // r12: he must be on screen in the commit frame. If he is not, the view cuts to him at once instead of turning.
-                if(grabCamT<=dt*1.01f&&!VisibleToCamera(cam,head).StartsWith("True",System.StringComparison.Ordinal)){grabCamSnap=true;Debug.Log("HC_COUNT_GRABCAM snap=True reason=not visible in the commit frame");}
+                // (Not for the variants: the side snatch enters the frame and the drop-spin is unseen until the spin, by design.)
+                if(!variant&&grabCamT<=dt*1.01f&&!VisibleToCamera(cam,head).StartsWith("True",System.StringComparison.Ordinal)){grabCamSnap=true;Debug.Log("HC_COUNT_GRABCAM snap=True reason=not visible in the commit frame");}
                 if(grabCamSnap)k=1;
                 if(grabCamT<=dt*1.01f){var f=cam.transform.forward;camYaw0=Mathf.Atan2(f.x,f.z)*Mathf.Rad2Deg;camPitch0=-Mathf.Asin(Mathf.Clamp(f.y,-1,1))*Mathf.Rad2Deg;}
                 float yaw=Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg,pitch=-Mathf.Atan2(to.y,new Vector2(to.x,to.z).magnitude)*Mathf.Rad2Deg;
                 cam.transform.rotation=Quaternion.Euler(Mathf.LerpAngle(camPitch0,pitch,k),Mathf.LerpAngle(camYaw0,yaw,k),0);
             }
+            if(IsSide(grabMode)&&!sideChecked&&grabCamT>=.1f)SideCheck(cam);
+            if(grabMode==count.ModeGrabDropSpin&&grabMode>=0&&!spinEndLogged&&grabCamT>=count.SpinEnd+.3f){spinEndLogged=true;LogGrabCam(cam,head);}
             // Proof in the log: the commit frame (turn starts), the end of the turn (the grab frame), +0.3 s and +1.0 s.
             if(grabCamLog==0||grabCamLog==1&&grabCamT>=count.GrabCamTurnSeconds||grabCamLog==2&&grabCamT>=.3f||grabCamLog==3&&grabCamT>=1f){grabCamLog++;LogGrabCam(cam,head);}
         }
         // Kill presentation: ease him so the nearer claw sits GrabCamClawDistance from the lens; no joint inside CameraClearance.
+        bool spinLogged,spinEndLogged;
+        float SideSeconds=>1.2f;
+        // At 0.1 s the lead claw (the hand furthest from the frame centre) must be on the side the clip came from; else swap 10/11.
+        void SideCheck(Camera cam)
+        {
+            sideChecked=true;if(!handL||!handR)return;
+            var a=cam.WorldToViewportPoint(handL.position);var b=cam.WorldToViewportPoint(handR.position);
+            float lead=Mathf.Abs(a.x-.5f)>Mathf.Abs(b.x-.5f)?a.x:b.x;
+            bool cameFromLeft=grabMode==LeftSideMode;bool onLeft=lead<.5f;
+            if(cameFromLeft!=onLeft){sideSwapped=!sideSwapped;Debug.Log("HC_COUNT_GRAB side_check=reversed mode="+grabMode+" leadX="+lead.ToString("F2")+" expected="+(cameFromLeft?"left":"right")+" swapped="+sideSwapped+" (10/11 mapping swapped for the rest of the run)");}
+            else Debug.Log("HC_COUNT_GRAB side_check=ok mode="+grabMode+" leadX="+lead.ToString("F2")+" side="+(onLeft?"left":"right")+" swapped="+sideSwapped);
+        }
         void FrameClaws(Camera cam,float dt)
         {
             if(!handL||!handR)return;

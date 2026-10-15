@@ -13,10 +13,21 @@ namespace HollowCurrent
         // Animator "Mode" ints (HearthboundActor.Pose). 0-5 are the shared contract; 6 Grab is the wing-wrap.
         // 8 GrabDrop (falls from the vault onto the camera) and 9 GrabCrawl (four-limbed lunge from a door) are F5's clips
         // (Count_GrabDrop / Count_GrabCrawl); Presence plays them only when the controller has them, else the Mode 6 wing-wrap.
-        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCrawlId=7,ModeGrabDropId=8,ModeGrabCrawlId=9,ModeCount=10;
+        public const int ModePerch=0,ModeGlide=1,ModeSearchGlide=2,ModeDive=3,ModeStaggerId=4,ModeDeathId=5,ModeGrabId=6,ModeCrawlId=7,ModeGrabDropId=8,ModeGrabCrawlId=9,
+            ModeGrabSideLId=10,ModeGrabSideRId=11,ModeGrabDropSpinId=12,ModeCount=13;   // F5 hc/grabs-l: side snatches and the ceiling drop behind her
         public int ModeGrab=ModeGrabId;
         // Set either to -1 to never use that variant.
         public int ModeGrabDrop=ModeGrabDropId, ModeGrabCrawl=ModeGrabCrawlId; // GrabCrawl re-enabled after hc/grabs fef50da (skinning fix)
+        // Set to -1 to never use. Reaches from CountClaudeModes.json grab_variants (fallbacks below); stand-off = reach + CameraClearance.
+        public int ModeGrabSideL=ModeGrabSideLId, ModeGrabSideR=ModeGrabSideRId, ModeGrabDropSpin=ModeGrabDropSpinId;
+        public float GrabSideLReach=1.596f, GrabSideRReach=1.607f, GrabDropSpinReach=1.614f, GrabDropSpinClipTop=4.735f;
+        // GrabDropSpin camera: her view is held, then spun toward him from SpinStart to SpinEnd (receipt grab_spin_*), at most SpinMaxYaw.
+        public float SpinStart=.5f, SpinEnd=1.15f, SpinMaxYaw=120f;
+        // Selection (wave L2): a high dive with headroom ends in GrabDropSpin (when she faces away: his bearing from her view between
+        // SpinMinBearing and SpinMaxYaw) with probability SpinShare, else GrabDrop, so GrabDrop stays >= 30 % of eligible grabs.
+        // A low dive whose bearing from her view is SideMinBearing-SideMaxBearing and whose flank is clear ends in a side snatch with
+        // probability SideShare (GrabSideL from her left, GrabSideR from her right), committed within SideCommitDistance of her.
+        public float SpinMinBearing=50f, SpinShare=.45f, SideMinBearing=35f, SideMaxBearing=110f, SideShare=.6f, SideCommitDistance=3.8f, SideStartLateral=3.4f, SideSkullHeight=1.55f;
         // GrabDrop when he was at least this far above the player (height decays at GrabDropHeightDecay m/s, so it means
         // "he came down on you", not "he once flew past high up"). Reaches from F5's receipt (grab_drop_reach_m /
         // grab_crawl_reach_m); until it lands they equal the wing-wrap reach so the camera stand-off rule holds.
@@ -64,7 +75,7 @@ namespace HollowCurrent
         public float LearnedHideAfterSeconds=2.5f, LearnedHideOpenMultiplier=2f, LearnedHideOpenCap=.8f;
         // Dive styles: where the ceiling over her clears the GrabDrop clip, DropDiveShare of dives come in high (hover up to
         // HighDiveHover) and end in the drop grab; the rest come in low (GrabCrawl).
-        public float DropDiveShare=.5f, HighDiveHover=2.6f;
+        public float DropDiveShare=.6f, HighDiveHover=2.6f;
         // The grab commits at the chosen clip's stand-off (its reach + CameraClearance), so the kill presentation never moves him
         // (r12: 0.5 m -> 2.2 m pop). FrameClaws eases at most GrabCamMaxEase m/s.
         public float GrabCamMaxEase=1.2f;
@@ -135,7 +146,8 @@ namespace HollowCurrent
         public float GrabStandOff=>GrabReach+CameraClearance+.05f;
         /// <summary>Stand-off for a grab presentation in Animator mode <paramref name="mode"/>: its reach + CameraClearance.</summary>
         // Modes 8/9 are grounded clips (hover 0): exactly their reach + CameraClearance (2.36 / 2.33 m).
-        public float StandOffFor(int mode)=>mode==ModeGrabDropId?GrabDropReach+CameraClearance:mode==ModeGrabCrawlId?GrabCrawlReach+CameraClearance:GrabStandOff;
+        public float StandOffFor(int mode)=>mode==ModeGrabDropId?GrabDropReach+CameraClearance:mode==ModeGrabCrawlId?GrabCrawlReach+CameraClearance:
+            mode==ModeGrabSideLId?GrabSideLReach+CameraClearance:mode==ModeGrabSideRId?GrabSideRReach+CameraClearance:mode==ModeGrabDropSpinId?GrabDropSpinReach+CameraClearance:GrabStandOff;
 
         // Critic capture only (CaptureMode.Requested): he dives to this distance and holds instead of grabbing,
         // then feints back to a perch, so the hunt sequence shows perch, glide and dive without a kill.
@@ -212,7 +224,8 @@ namespace HollowCurrent
         // Integrator (hc/grabs2): the grab reaches come from the shipped receipt Resources/Characters/CountClaude/CountClaudeModes.json
         // (F5's tools/count_prepare.py writes it), so a re-posed clip changes the camera stand-off without a code edit. The field
         // defaults above are only the fallback when the file is missing.
-        [System.Serializable] sealed class Receipt{public float grab_reach_m,grab_drop_reach_m,grab_crawl_reach_m;}
+        [System.Serializable] sealed class Variant{public string name;public int mode;public float seconds,claw_reach_m,top_m_max;}
+        [System.Serializable] sealed class Receipt{public float grab_reach_m,grab_drop_reach_m,grab_crawl_reach_m,grab_spin_start_s,grab_spin_end_s,grab_spin_yaw_deg,grab_side_start_x_m;public Variant[] grab_variants;}
         static bool reachLogged;
         public void ApplyReceipt()
         {
@@ -224,7 +237,16 @@ namespace HollowCurrent
                 if(r.grab_reach_m>0)GrabReach=r.grab_reach_m;
                 if(r.grab_drop_reach_m>0)GrabDropReach=r.grab_drop_reach_m;
                 if(r.grab_crawl_reach_m>0)GrabCrawlReach=r.grab_crawl_reach_m;
-                if(!reachLogged){reachLogged=true;UnityEngine.Debug.Log("HC_COUNT_REACH receipt grab="+GrabReach.ToString("F3")+" drop="+GrabDropReach.ToString("F3")+" crawl="+GrabCrawlReach.ToString("F3")+" standOff drop="+StandOffFor(ModeGrabDropId).ToString("F2")+" crawl="+StandOffFor(ModeGrabCrawlId).ToString("F2"));}
+                if(r.grab_variants!=null)foreach(var v in r.grab_variants)
+                {
+                    if(v==null||v.claw_reach_m<=0)continue;
+                    if(v.mode==ModeGrabSideLId)GrabSideLReach=v.claw_reach_m;else if(v.mode==ModeGrabSideRId)GrabSideRReach=v.claw_reach_m;
+                    else if(v.mode==ModeGrabDropSpinId){GrabDropSpinReach=v.claw_reach_m;if(v.top_m_max>0)GrabDropSpinClipTop=v.top_m_max;}
+                }
+                if(r.grab_spin_end_s>r.grab_spin_start_s&&r.grab_spin_start_s>=0){SpinStart=r.grab_spin_start_s;SpinEnd=r.grab_spin_end_s;}
+                if(r.grab_spin_yaw_deg>0)SpinMaxYaw=r.grab_spin_yaw_deg;
+                if(r.grab_side_start_x_m>0)SideStartLateral=r.grab_side_start_x_m;
+                if(!reachLogged){reachLogged=true;UnityEngine.Debug.Log("HC_COUNT_REACH receipt grab="+GrabReach.ToString("F3")+" drop="+GrabDropReach.ToString("F3")+" crawl="+GrabCrawlReach.ToString("F3")+" standOff drop="+StandOffFor(ModeGrabDropId).ToString("F2")+" crawl="+StandOffFor(ModeGrabCrawlId).ToString("F2")+" sideL="+StandOffFor(ModeGrabSideLId).ToString("F2")+" sideR="+StandOffFor(ModeGrabSideRId).ToString("F2")+" spin="+StandOffFor(ModeGrabDropSpinId).ToString("F2")+" spinWindow="+SpinStart.ToString("F2")+"-"+SpinEnd.ToString("F2")+"s/"+SpinMaxYaw.ToString("F0")+"deg");}
             }
             catch(System.Exception e){UnityEngine.Debug.LogWarning("HC_COUNT_REACH receipt unreadable: "+e.Message);}
         }
