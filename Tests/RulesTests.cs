@@ -129,6 +129,7 @@ static class RulesTests
         WaveJTests();
         WaveKTests();
         WaveLTests();
+        WaveL3Tests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
@@ -187,7 +188,11 @@ static class RulesTests
     // Recovery dice mechanism itself, which the grace now mostly covers (WaveITests asserts the interplay).
     // The castle without the wave K "decay above 60" (FeltDread mechanism tests that hold Dread at 85).
     static HuntRules NoAllDecay(HuntRules from){var r=from.Clone();r.DreadDecayAllAbove=0;return r;}
-    static HuntRules RecoveryMech(){var r=HuntRules.Castle.Clone();r.Name="Castle (wave I damping off)";r.GraceMin=0;r.GraceMax=0;r.DreadDecayRecovery=0;r.DreadDecayCalm=0;r.HuntDreadCap=0;r.GovernorGain=0;return r;}
+    // The castle without the wave L3 "no escalation before the first hunt" gate: for tests of the escalation mechanism itself.
+    static HuntRules EscMech(HuntRules from){var r=from.Clone();r.EscalationNeedsFirstHunt=false;r.FirstHuntAfterHold=0;r.LullHoldSeconds=0;return r;}
+    // The castle without the wave L3 holds (for wave I-K mechanism tests that roll dice right after the first hunt).
+    static HuntRules NoHold(HuntRules from){var r=from.Clone();r.FirstHuntAfterHold=0;r.LullHoldSeconds=0;return r;}
+    static HuntRules RecoveryMech(){var r=HuntRules.Castle.Clone();r.Name="Castle (wave I damping off)";r.GraceMin=0;r.GraceMax=0;r.DreadDecayRecovery=0;r.DreadDecayCalm=0;r.HuntDreadCap=0;r.GovernorGain=0;r.FirstHuntAfterHold=0;r.LullHoldSeconds=0;return r;}
     static Investigation StartOn(CaseBook book,Func<float> random=null,HuntRules rules=null){var c=new Investigation(book,random,rules);c.Equip();c.EnterHouse();return c;}
     static int TickUntilLeaves(Investigation c,Phase phase,int maxSeconds){int t=0;while(c.Phase==phase&&t<maxSeconds){c.Tick(1,false);t++;}return t;}
     static Investigation SealedCastle()
@@ -286,7 +291,7 @@ static class RulesTests
         // Escalation: a close apparition becomes a hunt after a 1.5 s tell, with no dispatch line.
         Assert(!StartOn(CaseBook.Castle).TryEscalate(),"no escalation outside Disturbance");
         var calmEsc=StartOn(CaseBook.Castle);calmEsc.Record(Evidence.Induction);Assert(!calmEsc.TryEscalate()&&calmEsc.Phase==Phase.Disturbance,"0.5 roll does not escalate (0.35 since wave K)");
-        string said=null;var esc=StartOn(CaseBook.Castle,()=>.1f);esc.Record(Evidence.Induction);esc.NoteApparition();esc.NoteApparition();esc.Message+=m=>said=m;
+        string said=null;var esc=StartOn(CaseBook.Castle,()=>.1f,EscMech(HuntRules.Castle));esc.Record(Evidence.Induction);esc.NoteApparition();esc.NoteApparition();esc.Message+=m=>said=m;
         Assert(esc.TryEscalate()&&esc.Phase==Phase.Warning&&esc.WarningLength==1.5f&&!esc.FalseWarning&&said==null,"0.1 roll escalates into a silent 1.5 s Warning");
         Assert(!esc.TryEscalate(),"no escalation during a Warning");esc.Tick(1,false);Assert(esc.Phase==Phase.Warning,"tell still running at 1 s");
         esc.Tick(.5f,false);Assert(esc.Phase==Phase.Hunt&&!esc.NoTellHunt&&esc.Hunts==1,"escalated hunt starts at 1.5 s");
@@ -329,12 +334,12 @@ static class RulesTests
     static Investigation AfterFirstHunt(Func<float> random)
     {
         var c=StartOn(CaseBook.Castle,random);c.Record(Evidence.Induction);c.BeginWarning();TickUntilLeaves(c,Phase.Warning,30);
-        for(int t=0;t<900&&(c.Phase!=Phase.Disturbance||c.GraceRemaining>0);t++)c.Tick(1,false);return c;
+        for(int t=0;t<900&&(c.Phase!=Phase.Disturbance||c.GraceRemaining>0||c.DiceHoldRemaining>0);t++)c.Tick(1,false);return c;
     }
     static void WaveGTests()
     {
         var r=HuntRules.Castle;var b=HuntRules.Bellwether;
-        Assert(r.HuntDreadMin==40&&r.HuntDreadMinSpread==10&&Math.Abs(r.LowDreadChance-1f/24)<1e-6f,"castle boundary 30-50, low roll 1/24 (wave L2; 1/30 in L, 1/40 before)");
+        Assert(r.HuntDreadMin==40&&r.HuntDreadMinSpread==10&&Math.Abs(r.LowDreadChance-1f/15)<1e-6f,"castle boundary 30-50, low roll 1/15 (wave L3; 1/24 L2, 1/30 L, 1/40 before)");
         Assert(r.HuntSecondsMin==25&&r.HuntSeconds==38&&r.HuntSecondsMax==50&&r.RecoverySecondsMin==10&&r.RecoverySeconds==32&&r.RecoverySecondsMax==40,"castle hunt 25-50, recovery 10-40");
         Assert(Math.Abs(r.RecoveryDiceChance-.125f)<1e-6f&&r.RecoveryDiceDread==80&&!r.AnnounceRecovery,"castle recovery dice 1/8 at 80, no quiet-window line");
         Assert(r.FeltLagMin==20&&r.FeltLagMax==30&&r.FeltNoise==12&&r.FeltCalm>0,"castle FeltDread lag 20-30 s, noise 12");
@@ -366,7 +371,7 @@ static class RulesTests
         }
         float hitRate=withHunt/(float)sessions,meanWait=waitSum/Math.Max(1,waits);
         Console.WriteLine("WAVE_G low-Dread sessions="+sessions+" with_hunt_in_10min="+hitRate.ToString("F3")+" mean_wait_s="+meanWait.ToString("F1"));
-        Assert(sessions>=395&&hitRate>.9f&&meanWait>100&&meanWait<220,"Dread 0, 10 min after the first hunt: >90 % of sessions hunt, mean wait about 160 s");
+        Assert(sessions>=395&&hitRate>.9f&&meanWait>45&&meanWait<100,"Dread 0, 10 min after the first hunt: >90 % of sessions hunt, mean wait about 70 s (1/15 roll since wave L3; was 160 s at 1/40)");
         // Crossing the boundary restarts the schedule: the playtest driver's queued false warning still lines up.
         var q=new System.Collections.Generic.Queue<float>();var drv=AfterFirstHunt(()=>q.Count>0?q.Dequeue():.99f);
         drv.Tick(17,false);drv.AddDread(55-drv.Dread+Math.Max(0,drv.RunDreadMin-50));foreach(var v in new[]{0f,0f,.9f,0f})q.Enqueue(v);
@@ -412,7 +417,7 @@ static class RulesTests
         Assert(nt.Phase==Phase.Hunt&&nt.NoTellHunt&&nt.BreakerOn,"dice no-tell hunt keeps the brazier");
         var gamble=StartOn(CaseBook.Castle);gamble.Record(Evidence.Induction);Assert(gamble.BeginNoTellHunt()&&gamble.BreakerOn,"gamble no-tell hunt keeps the brazier");
         var lnb=StartOn(CaseBook.Castle,null,HuntRules.LongNight);lnb.BeginWarning();Assert(lnb.Phase==Phase.Hunt&&lnb.BreakerOn,"Long Night bell hunt keeps the brazier");
-        var lne=StartOn(CaseBook.Castle,()=>.1f,HuntRules.LongNight);lne.Record(Evidence.Induction);lne.NoteApparition();lne.NoteApparition();Assert(lne.TryEscalate()&&lne.Phase==Phase.Hunt&&lne.BreakerOn,"Long Night escalation keeps the brazier");
+        var lne=StartOn(CaseBook.Castle,()=>.1f,EscMech(HuntRules.LongNight));lne.Record(Evidence.Induction);lne.NoteApparition();lne.NoteApparition();Assert(lne.TryEscalate()&&lne.Phase==Phase.Hunt&&lne.BreakerOn,"Long Night escalation keeps the brazier");
         var told=StartOn(CaseBook.Castle);told.Record(Evidence.Induction);told.BeginWarning();Assert(!told.BreakerOn,"a told Warning still cuts the brazier");
         var bwt=Start();bwt.BeginWarning();Assert(!bwt.BreakerOn,"Bellwether warning still cuts the breaker");
 
@@ -558,7 +563,7 @@ static class RulesTests
             if(!(nt.Phase==Phase.Hunt&&nt.NoTellHunt&&nt.CurrentHuntSeconds==38&&dq.Count==0)){driverOk=false;why="no-tell "+boundary+"/"+entry+" "+nt.Phase;}
         }
         Assert(driverOk,"driver queues line up after ForceDread for boundaries 30-50 and any entry Dread "+why);
-        bool escFlag=false;var ef=StartOn(CaseBook.Castle,()=>.1f);ef.Record(Evidence.Induction);ef.NoteApparition();ef.NoteApparition();ef.Changed+=p=>{if(p==Phase.Warning)escFlag=ef.EscalatedWarning;};
+        bool escFlag=false;var ef=StartOn(CaseBook.Castle,()=>.1f,EscMech(HuntRules.Castle));ef.Record(Evidence.Induction);ef.NoteApparition();ef.NoteApparition();ef.Changed+=p=>{if(p==Phase.Warning)escFlag=ef.EscalatedWarning;};
         Assert(ef.TryEscalate()&&escFlag&&ef.EscalatedWarning&&ef.CurrentWarningSeconds==1.5f,"escalation is flagged before Changed fires");TickUntilLeaves(ef,Phase.Warning,10);Assert(!ef.EscalatedWarning,"flag clears when the Warning ends");
         var shortTold=StartOn(CaseBook.Castle,()=>0f);shortTold.Record(Evidence.Induction);shortTold.BeginWarning();Assert(shortTold.CurrentWarningSeconds==5&&!shortTold.EscalatedWarning,"a short told Warning is not an escalation");
         var fd=StartOn(CaseBook.Castle);fd.ForceDread(150);Assert(fd.Dread==100,"ForceDread clamps");var fdb=Start();fdb.ForceDread(80);Assert(fdb.Dread==0,"ForceDread ignores Dread on Bellwether");
@@ -581,18 +586,20 @@ static class RulesTests
     // Wave L2: evidence timing. false = a slower investigator (records at 10-40 / 40-120 / 120-240 s); true = the critic's natural
     // route (kit, letter, three records and the ledger by about 13 s: records at 5-15 s).
     static bool SessionCriticRoute=false;
-    static SessionResult Session(HuntRules rules,int seed,float darkShare,bool immortal=false,bool driver=false)
+    static SessionResult Session(HuntRules rules,int seed,float darkShare,bool immortal=false,bool driver=false,RunPlan plan=null)
     {
         var res=new SessionResult();var dice=new Random(seed*31+7);var p=new Random(seed*17+3);
         var c=new Investigation(CaseBook.Castle,()=>(float)dice.NextDouble(),rules);c.Equip();c.EnterHouse();if(immortal)c.ForceDread(100);
         float[] ev={10+30*(float)p.NextDouble(),40+80*(float)p.NextDouble(),120+120*(float)p.NextDouble()};
         if(SessionCriticRoute){ev[0]=5+3*(float)p.NextDouble();ev[1]=8+3*(float)p.NextDouble();ev[2]=11+4*(float)p.NextDouble();}int evi=0,apps=0;
         float nextApp=40+60*(float)p.NextDouble(),nextGate=150+100*(float)p.NextDouble(),gateLeft=0,darkSwitch=20,seenLeft=0,grabAt=-1,t=0,dt=.5f,threat=0,lastEnd=-1;
-        bool rhythmRest=false;bool dark=false,seenGiven=false,grabGiven=false,inThreat=false;var rhythm=new ScareRhythm();var ar=new Random(seed*13+5);rhythm.UseCastleClock(()=>(float)ar.NextDouble());
+        bool dark=false,seenGiven=false,grabGiven=false,inThreat=false;var rhythm=new ScareRhythm();var ar=new Random(seed*13+5);
+        // Wave L3: the block model. Apparitions only outside CastleBlocked (Warning, Hunt, Recovery, grace) and the gatehouse; an expired due
+        // time inside a block draws a fresh burst gap when the block lifts; each lull holds the dice for 120 s (HoldDice).
+        if(plan!=null)c.UseRunPlan(plan);rhythm.UseCastleClock(()=>(float)ar.NextDouble(),plan!=null?plan.BurstStart:ar.NextDouble()<.5);if(rhythm.TakeLullStart())c.HoldDiceForLull();
         c.Changed+=ph=>{bool th=ph==Phase.Warning||ph==Phase.Hunt;
             if(th&&!inThreat){if(res.FirstAt<0)res.FirstAt=t;if(lastEnd>=0)res.Gaps.Add(t-lastEnd);inThreat=true;if(c.Dread<c.RunDreadMin)res.LowStarts++;}
             if(!th&&inThreat){inThreat=false;lastEnd=t;}
-            if(ph==Phase.Recovery)rhythmRest=true;
             if(ph==Phase.Hunt){res.HuntStarts++;res.HuntStartTimes.Add(t);if(c.NoTellHunt){res.NoTellHunts++;if(c.Dread<70)res.NoTellBelow70=true;}if(res.FirstDelayAfterSecondRecord<0&&evi>=2)res.FirstDelayAfterSecondRecord=t-ev[1];}
             if(ph==Phase.Hunt){seenLeft=immortal||driver?999:p.NextDouble()<.6?(float)(p.NextDouble()*8):0;seenGiven=false;grabGiven=false;grabAt=immortal||driver?10:p.NextDouble()<.3?(float)(5+p.NextDouble()*20):-1;}};
         while(t<600)
@@ -609,10 +616,10 @@ static class RulesTests
                 if(seenLeft>0){seenLeft-=dt;c.AddDread(.3f*dt);if(!seenGiven){seenGiven=true;c.AddDread(c.Rules.DreadSeen);}}
                 if(grabAt>=0&&c.PhaseTime>=grabAt&&!grabGiven){grabGiven=true;c.AddDread(c.Rules.DreadGrabSurvived);}
             }
-            rhythm.Tick(dt);if(rhythmRest&&c.Phase!=Phase.Recovery){rhythmRest=false;rhythm.Rest(20+20*(float)ar.NextDouble());}
-            if((c.Phase==Phase.Disturbance||c.Phase==Phase.Recovery)&&rhythm.AppearanceDue&&!safe)
+            bool blocked=ScareRhythm.CastleBlocked(c.Phase,c.GraceRemaining,false,false)||safe;rhythm.Tick(dt,blocked);
+            if(!blocked&&(c.Phase==Phase.Disturbance||c.Phase==Phase.Survey)&&rhythm.AppearanceDue)
             {
-                c.NoteApparition();res.ApparitionTimes.Add(t);rhythm.RecordAppearance(0);apps++;if(apps%2==0)c.AddDread(c.Rules.DreadThrow);
+                c.NoteApparition();res.ApparitionTimes.Add(t);rhythm.RecordAppearance(0);if(rhythm.TakeLullStart())c.HoldDiceForLull();apps++;if(apps%2==0)c.AddDread(c.Rules.DreadThrow);
                 if(p.NextDouble()<SessionCloseShare){res.EscalationTries++;if(c.TryEscalate(dark))res.Escalations++;}
             }
             c.Tick(dt,!safe,!dark,safe);
@@ -705,13 +712,14 @@ static class RulesTests
         for(int k=0;k<10000;k++){float m12=0,s12=0;var w=new float[12];for(int i=0;i<12;i++){w[i]=ScareRhythm.CastleInterval((float)g12.NextDouble(),(float)g12.NextDouble());m12+=w[i];}m12/=12;foreach(var x in w)s12+=(x-m12)*(x-m12);float c12=(float)Math.Sqrt(s12/12)/m12;cv12.Add(c12);if(c12>=.5f)cv12ok++;}
         Console.WriteLine("WAVE_L2 12-sample CV of the pure draw: P(CV>=0.5)="+(cv12ok/10000f).ToString("F3")+" p10="+Quantile(cv12,.1f).ToString("F2")+" p50="+Quantile(cv12,.5f).ToString("F2"));
         Assert(cv12ok>=9000,"12 samples of the pure draw give CV >= 0.5 in >= 90 % of groups");
-        var firsts=new System.Collections.Generic.List<float>();var rr=new Random(7);
-        for(int i=0;i<2000;i++){var rh=new ScareRhythm();rh.UseCastleClock(()=>(float)rr.NextDouble());int t=0;while(!rh.AppearanceDue&&t<400){rh.Tick(1);t++;}firsts.Add(t);}
-        Assert(Quantile(firsts,0)>=27&&Quantile(firsts,1)<=181&&Quantile(firsts,.9f)-Quantile(firsts,.1f)>=45,"first castle apparition is drawn (0.6 x 45-300 s: 27-180 s, wide), no longer 65 s every run");
-        var rc=new ScareRhythm();rc.UseCastleClock(()=>.5f);while(!rc.AppearanceDue)rc.Tick(1);rc.RecordAppearance(.9f);rc.Tick(44.9f);Assert(!rc.CanSurprise,"castle spacing 45 s");rc.Tick(.2f);Assert(rc.CanSurprise,"spacing ends at 45 s");
+        // (wave L3: the castle clock is bursts and lulls; CastleInterval above stays as a pure function)
+        var firstBurst=new System.Collections.Generic.List<float>();var firstLull=new System.Collections.Generic.List<float>();var rr=new Random(7);
+        for(int i=0;i<2000;i++){var rh=new ScareRhythm();rh.UseCastleClock(()=>(float)rr.NextDouble(),i%2==0);int t=0;while(!rh.AppearanceDue&&t<400){rh.Tick(1);t++;}(i%2==0?firstBurst:firstLull).Add(t);}
+        Assert(Quantile(firstBurst,0)>=40&&Quantile(firstBurst,1)<=56&&Quantile(firstLull,0)>=150&&Quantile(firstLull,1)<=281,"first castle apparition: 40-55 s into a burst start, 150-280 s into a lull start");
+        var rc=new ScareRhythm();rc.UseCastleClock(()=>.5f,true);while(!rc.AppearanceDue)rc.Tick(1);rc.RecordAppearance(.9f);rc.Tick(39.9f);Assert(!rc.CanSurprise,"castle spacing 40 s");rc.Tick(.2f);Assert(rc.CanSurprise,"spacing ends at 40 s");
         var bwr=new ScareRhythm();bwr.RecordAppearance(0);Assert(bwr.Spacing==90&&bwr.LastInterval==0,"Bellwether rhythm unchanged without UseCastleClock");
         // 2. Escalation policy.
-        var e=StartOn(CaseBook.Castle,()=>0f);e.Record(Evidence.Induction);Assert(e.EscalationBlock(false)=="first_apparition"&&!e.TryEscalate(true),"no apparition noted yet: blocked");
+        var e=StartOn(CaseBook.Castle,()=>0f,EscMech(HuntRules.Castle));e.Record(Evidence.Induction);Assert(e.EscalationBlock(false)=="first_apparition"&&!e.TryEscalate(true),"no apparition noted yet: blocked");
         e.NoteApparition();Assert(e.Apparitions==1&&e.EscalationChanceNow(true)==0&&e.EscalationBlock(true)=="first_apparition"&&!e.TryEscalate(true),"never on the run's first apparition, even with a certain roll");
         e.NoteApparition();Assert(e.EscalationChanceNow(false)==.15f&&e.EscalationChanceNow(true)==.25f&&e.TryEscalate(true)&&e.EscalatedWarning,"second apparition: 15 % lit / 25 % dark");
         TickUntilLeaves(e,Phase.Warning,5);Assert(e.Phase==Phase.Hunt&&e.LastHuntFromEscalation,"the hunt is marked escalation-born");
@@ -737,8 +745,8 @@ static class RulesTests
         dd.Tick(19,false);Assert(dd.DiceDread<dd.RunDreadMin,"for 20 s");dd.Tick(1.5f,false);Assert(dd.DiceDread==dd.Dread,"then the bump counts (if it has not decayed)");
         int bandedFromBump=0;
         for(int seed=0;seed<400;seed++){var c=StartOn(CaseBook.Castle,Seeded(96000+seed));c.Record(Evidence.Induction);c.BeginNoTellHunt();for(int t=0;t<400&&(c.Phase!=Phase.Disturbance||c.GraceRemaining>0);t++)c.Tick(1,false);
-            c.Dice=()=>.06f;c.ForceDread(c.RunDreadMin-2);int hunts=c.Hunts;c.NoteApparition();for(int t=0;t<19;t++)c.Tick(1,false);if(c.Hunts>hunts||c.Phase==Phase.Warning)bandedFromBump++;}
-        Assert(bandedFromBump==0,"a roll that only the banded chance would pass never fires inside the 20 s after an apparition (0.06 > 1/40 low roll)");
+            c.Dice=()=>.09f;c.ForceDread(c.RunDreadMin-2);int hunts=c.Hunts;c.NoteApparition();for(int t=0;t<19;t++)c.Tick(1,false);if(c.Hunts>hunts||c.Phase==Phase.Warning)bandedFromBump++;}
+        Assert(bandedFromBump==0,"a roll that only the banded chance would pass never fires inside the 20 s after an apparition (0.09 > 1/15 low roll)");
         // 4. Door-held bag: exactly one in every five eligible attempts; the first five always include one.
         bool firstFive=true;int heldTotal=0;
         for(int seed=0;seed<1000;seed++){var c=StartOn(CaseBook.Castle,Seeded(97000+seed));c.Record(Evidence.Induction);c.ForceDread(65);int h=0;for(int i=0;i<5;i++)if(c.TryDoorHeld())h++;if(h!=1)firstFive=false;heldTotal+=h;}
@@ -760,6 +768,72 @@ static class RulesTests
         Assert(sm>=.15f&&sm<=.30f&&s90<=.30f&&smb>=.15f&&smb<=.30f&&s90b<=.30f&&s10>=.13f&&s10b>=.13f,"critic route: share 15-30 %, p10 >= 0.13");
         Assert(g120>=.9f&&g120b>=.9f&&g120c>=.9f&&g120d>=.9f,"a >= 120 s gap in >= 90 % of runs (both routes)");
         Assert(smc>=.15f&&smd>=.15f,"slow investigator: mean share >= 15 % (its p10 is reported, not asserted)");
+    }
+    // Wave L3: block model, bursts and lulls, cross-run plans, lull dice hold. Consecutive seeds are consecutive runs sharing a RunHistory.
+    static string WaveL3Report(string name,float closeShare,out float cv50,out float firstSpread,out float everyGap,out float shareMean,out float shareP10,out float within10)
+    {
+        float saved=SessionCloseShare;SessionCloseShare=closeShare;var history=new RunHistory();var pr=new Random(31337);
+        var runs=new System.Collections.Generic.List<SessionResult>();var share=new System.Collections.Generic.List<float>();float sum=0;int hunts=0,near=0,gapOk=0;var pooledCv=new System.Collections.Generic.List<float>();
+        var maxq=new System.Collections.Generic.List<float>();
+        for(int seed=0;seed<2000;seed++)
+        {
+            var plan=history.Next((float)pr.NextDouble(),(float)pr.NextDouble());var r=Session(HuntRules.Castle,seed,0,false,false,plan);history.Push(plan);runs.Add(r);
+            share.Add(r.ShareRun);sum+=r.ShareRun;maxq.Add(r.MaxQuietAfterFirst);if(r.HuntStartTimes.Count==0||r.MaxQuietAfterFirst>=120)gapOk++;
+            foreach(var h in r.HuntStartTimes){hunts++;float last=float.NegativeInfinity;foreach(var a in r.ApparitionTimes)if(a<=h)last=a;if(h-last<=10)near++;}
+        }
+        SessionCloseShare=saved;
+        int sets=0,cvOk=0;for(int i=0;i+2<runs.Count;i+=3){var pool=new System.Collections.Generic.List<float>();for(int k=i;k<i+3;k++)for(int j=1;j<runs[k].ApparitionTimes.Count;j++)pool.Add(runs[k].ApparitionTimes[j]-runs[k].ApparitionTimes[j-1]);
+            if(pool.Count<4)continue;sets++;float pm=0;foreach(var v in pool)pm+=v;pm/=pool.Count;float ps=0;foreach(var v in pool)ps+=(v-pm)*(v-pm);float cv=(float)Math.Sqrt(ps/pool.Count)/pm;pooledCv.Add(cv);if(cv>=.5f)cvOk++;}
+        int tri=0,wide=0;for(int i=0;i+2<runs.Count;i++){if(runs[i].HuntStartTimes.Count==0||runs[i+1].HuntStartTimes.Count==0||runs[i+2].HuntStartTimes.Count==0)continue;tri++;
+            float a0=runs[i].HuntStartTimes[0],a1=runs[i+1].HuntStartTimes[0],a2=runs[i+2].HuntStartTimes[0];if(Math.Max(a0,Math.Max(a1,a2))-Math.Min(a0,Math.Min(a1,a2))>=45)wide++;}
+        cv50=cvOk/(float)Math.Max(1,sets);firstSpread=wide/(float)Math.Max(1,tri);everyGap=gapOk/2000f;shareMean=sum/2000;shareP10=Quantile(share,.1f);within10=near/(float)Math.Max(1,hunts);
+        var firsts=new System.Collections.Generic.List<float>();int resched=0,apps=0;foreach(var r in runs){if(r.HuntStartTimes.Count>0)firsts.Add(r.HuntStartTimes[0]);apps+=r.ApparitionTimes.Count;}
+        return "WAVE_L3 "+name+" | 3-run pooled apparition CV p10="+Quantile(pooledCv,.1f).ToString("F2")+" p50="+Quantile(pooledCv,.5f).ToString("F2")+", sets with CV>=0.5="+cv50.ToString("F3")+" (apparitions/run "+(apps/2000f).ToString("F1")+")"
+            +" | first hunt p10/p50/p90="+Quantile(firsts,.1f).ToString("F0")+"/"+Quantile(firsts,.5f).ToString("F0")+"/"+Quantile(firsts,.9f).ToString("F0")+" s, consecutive 3-run windows spanning >=45 s="+firstSpread.ToString("F3")
+            +" | runs with a >=120 s gap after the first hunt="+everyGap.ToString("F4")+" (min longest gap "+Quantile(maxq,0).ToString("F0")+" s)"
+            +" | share mean="+shareMean.ToString("F3")+" p10="+shareP10.ToString("F3")+" p90="+Quantile(share,.9f).ToString("F3")+" | hunts <=10 s after an apparition="+within10.ToString("F3");
+    }
+    static void WaveL3Tests()
+    {
+        // Block model: a due time that expires inside a block is not fired at the block's end; a fresh 40-55 s gap is drawn.
+        var b=new ScareRhythm();b.UseCastleClock(()=>.5f,true);float due=b.DueIn;b.Tick(due+30,true);Assert(!b.AppearanceDue,"not due while blocked, even past the due time");b.Tick(.1f,false);
+        Assert(!b.AppearanceDue&&b.Rescheduled==1&&Math.Abs(b.DueIn-47.5f)<.01f,"expiry inside a block: a fresh 47.5 s gap (0.5 roll) from the block's end, not a fire at its edge");
+        var nb=new ScareRhythm();nb.UseCastleClock(()=>.5f,true);nb.Tick(nb.DueIn-5,true);nb.Tick(1,false);Assert(nb.Rescheduled==0&&!nb.AppearanceDue,"a block that ends before the due time changes nothing");nb.Tick(4.1f,false);Assert(nb.AppearanceDue,"and it comes due on time");
+        Assert(ScareRhythm.CastleBlocked(Phase.Recovery,0,false,false)&&ScareRhythm.CastleBlocked(Phase.Disturbance,5,false,false)&&ScareRhythm.CastleBlocked(Phase.Disturbance,0,true,false)&&!ScareRhythm.CastleBlocked(Phase.Disturbance,0,false,false)&&!ScareRhythm.CastleBlocked(Phase.Survey,0,false,false),"castle block: Warning/Hunt/Recovery/grace/hidden/modal");
+        // Bursts and lulls: 0.9 rolls = bursts of 3, gaps 53.5, lulls 267.
+        var bl=new ScareRhythm();bl.UseCastleClock(()=>.9f,true);var gaps=new System.Collections.Generic.List<float>();int lulls=0;
+        for(int i=0;i<8;i++){while(!bl.AppearanceDue)bl.Tick(.5f);bl.RecordAppearance(0);gaps.Add(bl.LastInterval);if(bl.TakeLullStart())lulls++;}
+        Assert(gaps[0]==53.5f&&gaps[1]==53.5f&&gaps[2]==267&&gaps[3]==53.5f&&gaps[5]==267&&lulls==2&&!bl.TakeLullStart(),"burst of 3 (gaps 40-55 s), then a 150-280 s lull, reported once");
+        var ls=new ScareRhythm();ls.UseCastleClock(()=>.1f,false);Assert(ls.TakeLullStart()&&!ls.StartedWithBurst&&Math.Abs(ls.DueIn-163)<.01f,"a lull start is reported for the dice hold");
+        // Run planner: a band used in neither of the last two runs, and the other rhythm start.
+        var h=new RunHistory();var seen=new System.Collections.Generic.List<FirstHuntBand>();bool alternate=true;bool? lastStart=null;var pr=new Random(5);
+        for(int i=0;i<300;i++){var plan=h.Next((float)pr.NextDouble(),(float)pr.NextDouble());seen.Add(plan.Band);if(lastStart.HasValue&&plan.BurstStart==lastStart.Value)alternate=false;lastStart=plan.BurstStart;h.Push(plan);h=RunHistory.Parse(h.Serialize());}
+        bool distinct=true;for(int i=0;i+2<seen.Count;i++)if(seen[i]==seen[i+1]||seen[i]==seen[i+2]||seen[i+1]==seen[i+2])distinct=false;
+        Assert(distinct&&alternate,"any three consecutive runs use all three bands; rhythm start alternates (through Serialize/Parse)");
+        Assert(RunHistory.Parse("junk").LastBand==null&&RunHistory.Parse(null).LastBurstStart==null&&RunHistory.Parse("E,M,B").Serialize()=="E,M,B","history parses safely");
+        var pe=new RunPlan{Band=FirstHuntBand.Early};var pl=new RunPlan{Band=FirstHuntBand.Late};Assert(pe.FirstHuntMin==60&&pe.FirstHuntMax==100&&pl.FirstHuntMin==160&&pl.FirstHuntMax==200,"bands 60-100 / 110-150 / 160-200 s");
+        foreach(var band in new[]{FirstHuntBand.Early,FirstHuntBand.Mid,FirstHuntBand.Late})foreach(var u in new[]{0f,.5f,.99f})
+        {var c=StartOn(CaseBook.Castle,()=>u);var plan=new RunPlan{Band=band};c.UseRunPlan(plan);c.Record(Evidence.Induction);c.Record(Evidence.Handprint);int t=TickUntilLeaves(c,Phase.Disturbance,400);
+         Assert(t>=plan.FirstHuntMin&&t<=plan.FirstHuntMax+1,"first hunt inside its planned band ("+band+", roll "+u+")");}
+        // Escalation never before the first hunt.
+        var eb=StartOn(CaseBook.Castle,()=>0f);eb.Record(Evidence.Induction);eb.NoteApparition();eb.NoteApparition();Assert(eb.EscalationBlock(false)=="before_first_hunt"&&!eb.TryEscalate(true),"no escalation before the run's first hunt");
+        // Lull dice hold: 120 s of non-threat time, unless Dread >= 60; the countdown stops in a hunt.
+        var dh=StartOn(CaseBook.Castle);dh.Record(Evidence.Induction);dh.BeginNoTellHunt();for(int t=0;t<400&&(dh.Phase!=Phase.Disturbance||dh.GraceRemaining>0);t++)dh.Tick(1,false);
+        dh.Dice=()=>0f;dh.ForceDread(10);dh.HoldDice(120);Assert(TickUntilLeaves(dh,Phase.Disturbance,300)>=120,"certain dice wait out the 120 s hold at low Dread");
+        var dh2=StartOn(CaseBook.Castle);dh2.Record(Evidence.Induction);dh2.BeginNoTellHunt();for(int t=0;t<400&&(dh2.Phase!=Phase.Disturbance||dh2.GraceRemaining>0);t++)dh2.Tick(1,false);
+        dh2.Dice=()=>0f;dh2.ForceDread(65);dh2.HoldDice(120);Assert(!dh2.DiceHeld&&TickUntilLeaves(dh2,Phase.Disturbance,300)<10,"at Dread >= 60 the hold does not apply");
+        var dh3=StartOn(CaseBook.Castle);dh3.Record(Evidence.Induction);dh3.HoldDice(120);dh3.BeginNoTellHunt();dh3.Tick(30,false);Assert(dh3.DiceHoldRemaining==120,"the hold does not count down in a hunt");
+        var bwh=Start();bwh.HoldDice(120);Assert(bwh.DiceHoldRemaining==0,"Bellwether ignores HoldDice");
+        // The r13 pass tests, critic route, 2,000 consecutive runs with plans and the block model.
+        SessionCriticRoute=true;
+        string a=WaveL3Report("critic route, 1 in 3 close",1/3f,out float cv,out float fs,out float eg,out float sm,out float s10,out float w10);Console.WriteLine(a);
+        string c2=WaveL3Report("critic route, all close",1f,out float cvb,out float fsb,out float egb,out float smb,out float s10b,out float w10b);Console.WriteLine(c2);
+        SessionCriticRoute=false;
+        Assert(cv>=.9f&&cvb>=.9f,"3-run pooled apparition CV >= 0.5 in >= 90 % of sets, with the block model");
+        Assert(fs==1&&fsb==1,"every 3 consecutive runs' first hunts span >= 45 s");
+        Assert(eg==1&&egb==1,"every run has a >= 120 s gap after its first hunt");
+        Assert(sm>=.15f&&sm<=.30f&&smb>=.15f&&smb<=.30f&&s10>=.13f&&s10b>=.13f,"share 15-30 %, p10 >= 0.13");
+        Assert(w10<=.35f&&w10b<=.35f,"<= 35 % of hunts within 10 s after an apparition");
     }
     static void WaveKTests()
     {
@@ -793,8 +867,8 @@ static class RulesTests
         int bcalls=0;var bdh=Start();bdh.Dice=()=>{bcalls++;return 0f;};Assert(!bdh.TryDoorHeld()&&bcalls==0&&!bdh.DoorHeld,"Bellwether: no door-held");
         // Addendum: escalation 35 % in Disturbance, 15 % in Recovery after the grace, never during the grace.
         // (wave L: lit 15 % / dark 25 %, never the run's first apparition; was 35 % in wave K)
-        int ok=0,okDark=0,tries=0;for(int seed=0;seed<3000;seed++){var c=StartOn(CaseBook.Castle,Seeded(83000+seed));c.Record(Evidence.Induction);c.NoteApparition();c.NoteApparition();tries++;if(c.TryEscalate(false))ok++;
-            var cd=StartOn(CaseBook.Castle,Seeded(93000+seed));cd.Record(Evidence.Induction);cd.NoteApparition();cd.NoteApparition();if(cd.TryEscalate(true))okDark++;}
+        int ok=0,okDark=0,tries=0;for(int seed=0;seed<3000;seed++){var c=StartOn(CaseBook.Castle,Seeded(83000+seed),EscMech(HuntRules.Castle));c.Record(Evidence.Induction);c.NoteApparition();c.NoteApparition();tries++;if(c.TryEscalate(false))ok++;
+            var cd=StartOn(CaseBook.Castle,Seeded(93000+seed),EscMech(HuntRules.Castle));cd.Record(Evidence.Induction);cd.NoteApparition();cd.NoteApparition();if(cd.TryEscalate(true))okDark++;}
         Assert(Math.Abs(ok/(float)tries-.15f)<.025f&&Math.Abs(okDark/(float)tries-.25f)<.03f,"Disturbance: a close apparition escalates about 15 % lit, 25 % dark");
         int rok=0,rtries=0,inGrace=0;
         for(int seed=0;seed<3000;seed++)
@@ -904,7 +978,7 @@ static class RulesTests
         var bcap=Start();Hunt(bcap);bcap.AddDread(80);Assert(bcap.Dread==0,"Bellwether still ignores Dread");
 
         // 3. Post-hunt grace: 30-90 s drawn at hunt end (after the recovery length), dice and escalation disarmed.
-        var g0=StartOn(CaseBook.Castle,()=>0f);g0.Record(Evidence.Induction);g0.BeginWarning();TickUntilLeaves(g0,Phase.Warning,30);TickUntilLeaves(g0,Phase.Hunt,60);
+        var g0=StartOn(CaseBook.Castle,()=>0f,NoHold(HuntRules.Castle));g0.Record(Evidence.Induction);g0.BeginWarning();TickUntilLeaves(g0,Phase.Warning,30);TickUntilLeaves(g0,Phase.Hunt,60);
         Assert(g0.Phase==Phase.Recovery&&g0.GraceSeconds==30&&g0.GraceRemaining==30&&g0.CurrentRecoverySeconds==10,"roll 0: recovery 10 s, grace 30 s");
         int quietFor=0;while((g0.Phase==Phase.Recovery||g0.Phase==Phase.Disturbance)&&quietFor<120){g0.Tick(1,false);quietFor++;}
         Assert(quietFor>=30&&quietFor<=40&&g0.Hunts==2,"certain dice stay disarmed for the whole grace, then hunt");

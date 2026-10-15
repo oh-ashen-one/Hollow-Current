@@ -286,6 +286,8 @@ namespace HollowCurrent
                 else if (inside) Dread = Clamp(Dread + (litNearby ? Rules.DreadInsideRate : Rules.DreadDarkRate) * dt);
                 DecayEventDread(dt);
                 if (GraceRemaining > 0) GraceRemaining = Math.Max(0, GraceRemaining - dt);
+                if (DiceHoldRemaining > 0 && Phase != Phase.Warning && Phase != Phase.Hunt) DiceHoldRemaining = Math.Max(0, DiceHoldRemaining - dt);
+                if (Hunts > 0 && !LongQuietDone && Rules.FirstHuntAfterHold > 0) { quietStretch = HuntActive || Phase == Phase.Warning ? 0 : quietStretch + dt; if (quietStretch >= Rules.FirstHuntAfterHold) LongQuietDone = true; }
                 if (Rules.GovernorGain > 0)
                 {
                     quietShareTime = GovernorShare < Rules.GovernorQuietShare ? quietShareTime + dt : 0;
@@ -304,6 +306,7 @@ namespace HollowCurrent
             {
                 Survived = true;
                 CurrentRecoverySeconds = Rules.RecoverySecondsMax > Rules.RecoverySecondsMin ? HuntRules.Draw(Rules.RecoverySecondsMin, Rules.RecoverySeconds, Rules.RecoverySecondsMax, Roll()) : Rules.RecoverySeconds;
+                if (Hunts == 1 && Rules.FirstHuntAfterHold > 0) HoldDice(Rules.FirstHuntAfterHold);
                 if (Rules.GraceMax > 0) { GovernorAtLastGrace = GovernorFor(quietBeforeThreat); GraceSeconds = (Rules.GraceMin + (Rules.GraceMax - Rules.GraceMin) * Roll()) * GovernorAtLastGrace; GraceRemaining = GraceSeconds; }
                 Set(Phase.Recovery);
                 if (Rules.AnnounceRecovery) Say(Book.RecoveryMessage);
@@ -331,7 +334,7 @@ namespace HollowCurrent
         // Survey and Containment after the first hunt: a rare flat roll, so no phase is a refuge.
         void TickQuietDice(float dt)
         {
-            if (Rules.QuietPhaseChance <= 0 || Rules.DiceIntervalMax <= 0 || Hunts == 0 || GraceRemaining > 0) return;
+            if (Rules.QuietPhaseChance <= 0 || Rules.DiceIntervalMax <= 0 || Hunts == 0 || GraceRemaining > 0 || DiceHeld) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
@@ -361,7 +364,7 @@ namespace HollowCurrent
         void TickRecoveryDice(float dt)
         {
             float chance = DiceDread >= Rules.RecoveryDiceDread ? Rules.RecoveryDiceChance : Rules.RecoveryLowChance;
-            if (chance <= 0 || Rules.DiceIntervalMax <= 0 || GraceRemaining > 0) return;
+            if (chance <= 0 || Rules.DiceIntervalMax <= 0 || GraceRemaining > 0 || DiceHeld) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
@@ -392,18 +395,18 @@ namespace HollowCurrent
             // Crossing the boundary restarts the roll schedule for the new kind of roll.
             if (dreadful != diceHigh) { diceHigh = dreadful; diceTimer = float.NaN; }
             // Timed hunt: Bellwether's 95 s timer, the castle's 240 s floor.
-            if (Rules.TimedHuntSeconds > 0 && dreadful && huntClock >= Rules.TimedHuntSeconds && Evidence.Count >= Rules.TimedHuntEvidence) { StartThreat(false); return; }
+            if (Rules.TimedHuntSeconds > 0 && dreadful && huntClock >= Rules.TimedHuntSeconds && Evidence.Count >= Rules.TimedHuntEvidence && !DiceHeld) { StartThreat(false); return; }
             // First-hunt guarantee so the mystery cannot stall at low Dread. Its clock starts at the
             // record that reaches FirstHuntEvidence, so a slow player gets the full delay too.
             if (Rules.FirstHuntSeconds > 0 && Hunts == 0 && Evidence.Count >= Rules.FirstHuntEvidence)
             {
                 firstHuntClock += dt;
-                if (firstHuntAt < 0) firstHuntAt = Rules.FirstHuntMax > Rules.FirstHuntMin ? HuntRules.Draw(Rules.FirstHuntMin, Rules.FirstHuntSeconds, Rules.FirstHuntMax, Roll()) : Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
+                if (firstHuntAt < 0) firstHuntAt = Plan != null ? Plan.FirstHuntMin + (Plan.FirstHuntMax - Plan.FirstHuntMin) * Roll() : Rules.FirstHuntMax > Rules.FirstHuntMin ? HuntRules.Draw(Rules.FirstHuntMin, Rules.FirstHuntSeconds, Rules.FirstHuntMax, Roll()) : Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
                 if (firstHuntClock >= firstHuntAt) { StartThreat(false); return; }
             }
             // Dice-roll hunts: banded at or above the run's boundary, a flat low roll below it after the first hunt.
             bool low = !dreadful && Hunts > 0 && Rules.LowDreadChance > 0;
-            if (Rules.DiceIntervalMax > 0 && (dreadful || low) && GraceRemaining <= 0)
+            if (Rules.DiceIntervalMax > 0 && (dreadful || low) && GraceRemaining <= 0 && !DiceHeld)
             {
                 if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
                 diceTimer -= dt;
@@ -474,7 +477,7 @@ namespace HollowCurrent
         public void ForceDread(float target)
         {
             if (Rules.UsesDread && !float.IsNaN(target) && !float.IsInfinity(target)) { Dread = Clamp(target); DreadEvent = 0; }
-            GraceRemaining = 0;
+            GraceRemaining = 0; DiceHoldRemaining = 0;
             diceTimer = float.NaN;
             diceHigh = Dread >= RunDreadMin;
         }
@@ -489,6 +492,21 @@ namespace HollowCurrent
             apparitionShadow = Math.Max(0, Dread - before); apparitionAt = Elapsed;
         }
         public int Apparitions { get; private set; }
+        // Wave L3. The run's plan (RunHistory.Next): the first hunt is due FirstHuntMin..Max s after the second record (uniform),
+        // instead of Draw(60, 95, 180). Call once at the run's start, before the second record.
+        public void UseRunPlan(RunPlan plan) { if (plan == null) return; Plan = plan; firstHuntAt = -1; }
+        public RunPlan Plan { get; private set; }
+        // Wave L3. The rhythm's lull: for `seconds` of non-threat time (the countdown stops in Warning and Hunt) every dice roll and the
+        // floor are held unless DiceDread >= Rules.LullDiceDread. The first-hunt guarantee is not held.
+        public void HoldDice(float seconds) { if (Rules.UsesDread && !float.IsNaN(seconds) && seconds > 0) DiceHoldRemaining = Math.Max(DiceHoldRemaining, seconds); }
+        public float DiceHoldRemaining { get; private set; }
+        public bool DiceHeld => DiceHoldRemaining > 0 && DiceDread < Rules.LullDiceDread;
+        // The rhythm's lull (ScareDirector: if(rhythm.TakeLullStart())Case.HoldDiceForLull()). Holds only until the run's long quiet
+        // stretch has happened.
+        public void HoldDiceForLull() { if (!LongQuietDone) HoldDice(Rules.LullHoldSeconds); }
+        // True once the run has had a threat-free stretch of FirstHuntAfterHold seconds after its first hunt.
+        public bool LongQuietDone { get; private set; }
+        float quietStretch;
         float apparitionShadow, apparitionAt = float.NegativeInfinity;
         // The Dread the dice read: Dread minus a fresh apparition's bump.
         public float DiceDread => Math.Max(0, Dread - (Rules.ApparitionDiceShadowSeconds > 0 && Elapsed - apparitionAt < Rules.ApparitionDiceShadowSeconds ? apparitionShadow : 0));
@@ -503,6 +521,8 @@ namespace HollowCurrent
             {
                 if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return 0;
                 if (Apparitions <= 1) return 0;                                            // never the run's first apparition
+                if (Rules.EscalationNeedsFirstHunt && Hunts == 0) return 0;              // wave L3: the first hunt comes from its band
+                if (DiceHeld) return 0;                                                  // wave L3: a lull or the post-first-hunt hold
                 if (LastHuntFromEscalation || previousHuntFromEscalation) return 0;       // at most 1 in 3 consecutive hunts
                 return dark ? Rules.EscalationDarkChance : Rules.EscalationLitChance;
             }
@@ -516,6 +536,8 @@ namespace HollowCurrent
             {
                 if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return "phase";
                 if (Apparitions <= 1) return "first_apparition";
+                if (Rules.EscalationNeedsFirstHunt && Hunts == 0) return "before_first_hunt";
+                if (DiceHeld) return "held";
                 if (LastHuntFromEscalation || previousHuntFromEscalation) return "escalation_cap";
             }
             return EscalationChanceNow(dark) > 0 ? "ok" : "rules_off";
