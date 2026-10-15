@@ -120,11 +120,11 @@ namespace HollowCurrent
             if(!game||!game.Creature||game.Map!=MapId.Castle)return;
             var cr=game.Creature;bool cam=cr.GrabCamActive;var skull=cr.HeadPosition;
             if(!inGrab&&!cam&&cr.Diving){lastDiveSkull=skull;haveDiveSkull=true;}
-            if(cam&&!inGrab){inGrab=true;grabEvaluated=false;grabSkull.Clear();grabT0=Time.time;grabModeAtCommit=lastGrabMode;}
+            if(cam&&!inGrab){inGrab=true;grabEvaluated=false;grabSkull.Clear();grabT0=Time.unscaledTime;grabModeAtCommit=lastGrabMode;}
             if(inGrab&&!grabEvaluated)
             {
-                if(cam&&Time.time-grabT0<=1.2f)grabSkull.Add((Time.time-grabT0,skull));
-                if((!cam||Time.time-grabT0>1.2f)&&grabSkull.Count>0){EvaluateGrab();grabEvaluated=true;}
+                if(cam&&Time.unscaledTime-grabT0<=1.2f)grabSkull.Add((Time.unscaledTime-grabT0,skull));
+                if((!cam||Time.unscaledTime-grabT0>1.2f)&&grabSkull.Count>0){EvaluateGrab();grabEvaluated=true;}
             }
             if(!cam&&inGrab){inGrab=false;haveDiveSkull=false;}
         }
