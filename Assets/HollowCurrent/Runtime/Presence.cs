@@ -371,7 +371,9 @@ namespace HollowCurrent
                 if(towards.sqrMagnitude<.01f)towards=transform.forward;towards.Normalize();
                 if(grabMode<0)mode=CommitGrab(false,mode);   // no grab under way (e.g. a forced death): choose with the headroom rule
                 // A hide grab is already standing in the torn door opening at its stand-off; anything else is placed now.
-                if(!grabHide)transform.SetPositionAndRotation(player-towards*count.StandOffFor(mode),Quaternion.LookRotation(towards));
+                // r12: a committed grab is already at its stand-off; only a death with no grab under way is placed (no pop).
+                if(!grabHide&&grabMode<0)transform.SetPositionAndRotation(player-towards*count.StandOffFor(mode),Quaternion.LookRotation(towards));
+                else if(!grabHide)transform.rotation=Quaternion.LookRotation(towards);
                 silhouette.gameObject.SetActive(true);actor.Pose(mode,0,true);CanSeePlayer=false;Memory.Clear();
                 // count17: the GrabDrop clip carries its own fall (receipt top 4.72 m), so no extra lift here; CommitGrab already
                 // chose GrabCrawl where the ceiling is too low for it.
@@ -587,7 +589,30 @@ namespace HollowCurrent
         }
         int chaseRouteFails;
         float chaseT0,chaseD0;bool diveCloseLogged;
-        void BeginChase(){hideGrabLocked=false;chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
+        bool diveHigh;float grabReach=1.05f;
+        // The grab a hide gets: GrabDrop where the ceiling at its stand-off clears the clip's fall, else GrabCrawl (else Mode 6).
+        int HideGrabMode(Vector3 feet,Vector3 outward)
+        {
+            bool drop=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
+            if(drop)
+            {
+                var spot=feet+outward*count.StandOffFor(count.ModeGrabDrop);
+                float ceiling=Physics.Raycast(spot+Vector3.up*.2f,Vector3.up,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore)?hit.point.y-feet.y:12;
+                if(ceiling>=count.GrabDropClipTop+.1f)return count.ModeGrabDrop;
+            }
+            return count.ModeGrabCrawl>=0&&HasModeState(count.ModeGrabCrawl,"GrabCrawl")?count.ModeGrabCrawl:count.ModeGrab;
+        }
+        // r12 (7 of 9 grabs were the same low crawl): where the ceiling over her clears the GrabDrop clip, about half the dives come
+        // in high and end in the drop; the rest come in low.
+        void PickDiveStyle()
+        {
+            var feet=Game.Player.transform.position;
+            float ceiling=Physics.Raycast(feet+Vector3.up*.2f,Vector3.up,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore)?hit.point.y-feet.y:12;
+            bool room=ceiling>=count.GrabDropClipTop+.1f&&count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
+            float roll=Random.value;diveHigh=room&&roll<count.DropDiveShare;
+            Debug.Log("HC_COUNT_DIVE style="+(diveHigh?"high":"low")+" reason="+(room?"roll "+roll.ToString("F2")+" share "+count.DropDiveShare.ToString("F2"):"no headroom (ceiling "+ceiling.ToString("F2")+")")+" ceiling="+ceiling.ToString("F2"));
+        }
+        void BeginChase(){hideGrabLocked=false;PickDiveStyle();chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
@@ -647,7 +672,10 @@ namespace HollowCurrent
                 if(!GoToPerch(Mathf.Max(0,NearestPerch(transform.position)),true))flight=Flight.Land;
                 Debug.Log("HC_COUNT_RETREAT "+DiagnosticState);
             }
-            huntClock+=dt;SetRim(count.RimLightScale);
+            huntClock+=dt;
+            // r12: in the dive only (Chase, Hunt), 2.5-9 m from her, the shoulder rim brightens so he reads against the window light.
+            float toHer=Vector3.Distance(transform.position,Game.Player.transform.position);
+            SetRim(flight==Flight.Chase&&toHer>=count.DiveRimNear&&toHer<=count.DiveRimFar?count.DiveRimScale:count.RimLightScale);
             Memory.Tick(dt);CanSeePlayer=!retreating&&CountSees();
             if(CanSeePlayer){var seen=Game.Player.transform.position;Memory.Observe(seen.x,seen.y,seen.z);Remember(seen,true);}
             // Item 13: "found" when he regains sight of you within 6 m.
@@ -681,13 +709,15 @@ namespace HollowCurrent
                 else BeginHideVisit(true);
             }
             // Item 10: once per hunt, hidden (torch off) and unwitnessed, roll for the cupboard near-miss.
-            if(!nearMissRolled&&!hostile&&!retreating&&flight!=Flight.Chase&&flight!=Flight.NearMiss&&Game.Player.Hidden&&!Game.Player.TorchOn&&!witnessedHide&&huntClock>=count.NearMissAfterSeconds)
+            // r12 (within-match learning): the hide he last found her in or near is checked first: no attempt roll, sooner.
+            bool inLearned=Game.Player.Hidden&&learnedHide&&HideSpotAt(Game.Player.HideExit)==learnedHide;
+            if(!nearMissRolled&&!hostile&&!retreating&&flight!=Flight.Chase&&flight!=Flight.NearMiss&&Game.Player.Hidden&&!Game.Player.TorchOn&&!witnessedHide&&huntClock>=(inLearned?count.LearnedHideAfterSeconds:count.NearMissAfterSeconds))
             {
                 // r11: more near-misses where it matters: he lost sight of her near the hide she is now in (0.33 -> 0.5).
                 bool lostNear=lastSeen.HasValue&&lastSeenSighted&&Game.Case.Elapsed-lastSeenAt<count.NearMissLostSeconds&&Vector3.Distance(lastSeen.Value,Game.Player.transform.position)<count.NearMissLostRadius;
-                float chance=lostNear?count.NearMissChanceLost:count.NearMissChance;
+                float chance=inLearned?1:lostNear?count.NearMissChanceLost:count.NearMissChance;
                 nearMissRolled=true;float roll=Random.value;bool go=roll<chance;
-                Debug.Log("HC_COUNT_NEARMISS attempt roll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" reason="+(lostNear?"lost her near the hide "+Vector3.Distance(lastSeen.Value,Game.Player.transform.position).ToString("F1")+" m, "+(Game.Case.Elapsed-lastSeenAt).ToString("F0")+" s ago":"base")+" go="+go+" "+DiagnosticState);
+                Debug.Log("HC_COUNT_NEARMISS attempt roll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" reason="+(inLearned?"learned hide "+learnedHide.name:lostNear?"lost her near the hide "+Vector3.Distance(lastSeen.Value,Game.Player.transform.position).ToString("F1")+" m, "+(Game.Case.Elapsed-lastSeenAt).ToString("F0")+" s ago":"base")+" go="+go+" "+DiagnosticState);
                 if(go)BeginHideVisit(false);
             }
             if(!retreating&&Game.Player.Hidden&&Game.Player.TorchOn)Hear(Game.Player.transform.position,Profile.HiddenTorchHearRadius);
@@ -805,9 +835,23 @@ namespace HollowCurrent
                 if(spot.Kind==InteractKind.Hide&&Vector3.Distance(goal,spot.HidePoint)<.35f){goal=spot.ExitPoint;break;}
             // r10b: a watched hide that is not in HidingPlaces (any other Hide interactable) still leads to its own exit.
             if(witnessedHide&&player.Hidden&&Vector3.Distance(knownHide,player.transform.position)<.35f)goal=player.HideExit;
+            // r12 (no pop at a hide kill): a known hide is approached to the stand-off point of the grab it will get (GrabDrop with
+            // headroom, else GrabCrawl), so the commit does not move him.
+            bool hideKnown=player.Hidden&&((witnessedHide&&Vector3.Distance(knownHide,player.transform.position)<.35f)||
+                (Memory.Knows&&Vector3.Distance(memory,player.transform.position)<.35f));
+            Vector3 hideStand=Vector3.zero;
+            if(hideKnown)
+            {
+                var outward=player.HideExit-player.transform.position;outward.y=0;
+                if(outward.sqrMagnitude>.01f){outward.Normalize();hideStand=player.transform.position+outward*count.StandOffFor(HideGrabMode(player.transform.position,outward));hideStand.y=player.HideExit.y;goal=hideStand;}
+                else hideKnown=false;
+            }
             var flat=player.transform.position-transform.position;float vertical=Mathf.Abs(flat.y);flat.y=0;float distance=flat.magnitude;
             // r10 #14: seconds until he reaches grab range at his current speed (Game's torch failure keys on the last second).
-            diveEndsIn=Mathf.Max(0,distance-Profile.GrabDistance)/Mathf.Max(speedNow,1f);
+            // r12 (kill pop): the grab commits at the chosen clip's stand-off, so nothing moves him when she dies.
+            int wantMode=diveHigh&&count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")?count.ModeGrabDrop:ChooseGrab(false,out _,out _);
+            grabReach=count.StandOffFor(wantMode);
+            diveEndsIn=Mathf.Max(0,distance-grabReach)/Mathf.Max(speedNow,1f);
             if(!diveLastFired&&diveEndsIn<=count.DiveLastSecond&&CanSeePlayer)
             {
                 diveLastFired=true;Debug.Log("HC_COUNT_DIVE_LAST eta="+diveEndsIn.ToString("F2")+" distance="+distance.ToString("F2")+" speed="+speedNow.ToString("F1")+" "+DiagnosticState);
@@ -815,7 +859,7 @@ namespace HollowCurrent
             }
             // Item 17: how far above you he has been lately (decaying), so a grab after a drop from the vault reads as GrabDrop.
             dropHeight=Mathf.Max(dropHeight-count.GrabDropHeightDecay*dt,transform.position.y-player.transform.position.y);
-            if(!diveCloseLogged&&distance<=Profile.GrabDistance)
+            if(!diveCloseLogged&&distance<=grabReach)
             {
                 diveCloseLogged=true;
                 Debug.Log("HC_COUNT_DIVE close_s="+(huntClock-chaseT0).ToString("F2")+" from="+chaseD0.ToString("F2")+" to="+distance.ToString("F2")+" speed="+speedNow.ToString("F1")+" "+DiagnosticState);
@@ -842,9 +886,11 @@ namespace HollowCurrent
             // A cupboard can be searched from its clear entrance only (same rule as Split Grin).
             bool knowsThisHide=player.Hidden&&((witnessedHide&&Vector3.Distance(knownHide,player.transform.position)<.35f)||
                 (Memory.Knows&&Vector3.Distance(memory,player.transform.position)<.35f));
-            bool atHideEntrance=knowsThisHide&&Vector3.Distance(new Vector3(transform.position.x,player.HideExit.y,transform.position.z),player.HideExit)<Profile.HideEntranceDistance&&
+            bool atHideEntrance=knowsThisHide&&(hideKnown
+                    ?Vector3.Distance(new Vector3(transform.position.x,hideStand.y,transform.position.z),hideStand)<count.HideStandTolerance
+                    :Vector3.Distance(new Vector3(transform.position.x,player.HideExit.y,transform.position.z),player.HideExit)<Profile.HideEntranceDistance)&&
                 !Physics.Linecast(transform.position+Vector3.up,player.HideExit+Vector3.up);
-            bool clearReach=!CaptureMode.Requested&&distance<Profile.GrabDistance&&vertical<1.6f&&!player.Hidden&&
+            bool clearReach=!CaptureMode.Requested&&distance<grabReach&&vertical<(diveHigh?count.HighDiveHover+.8f:1.6f)&&!player.Hidden&&
                 !Physics.Linecast(transform.position+Vector3.up,player.transform.position+Vector3.up,FlightMask,QueryTriggerInteraction.Ignore);
             // count17: a committed hide grab stays committed after CommitGrab moves him to the stand-off outside the door.
             bool touching=(clearReach&&(CanSeePlayer||contact>0))||atHideEntrance||hideGrabLocked&&player.Hidden;
@@ -1025,7 +1071,7 @@ namespace HollowCurrent
             float ceiling=Physics.Raycast(ground+Vector3.up*.2f,Vector3.up,out var hit,8,FlightMask,QueryTriggerInteraction.Ignore)?hit.distance+.2f:8;
             float max=count.HoverMax*Mathf.Max(.3f,1-Tier*count.HoverTierScale);
             float hover=Mathf.Clamp(ceiling-count.BodyClearance,0,max);
-            if(chasing)hover=Mathf.Min(hover,count.HoverNearPlayer);
+            if(chasing)hover=diveHigh?Mathf.Clamp(ceiling-count.BodyClearance,0,count.HighDiveHover):Mathf.Min(hover,count.HoverNearPlayer);
             return hover;
         }
         bool Clear(Vector3 a,Vector3 b)
@@ -1230,6 +1276,29 @@ namespace HollowCurrent
         }
         // ---- Wave I: flight posture, dive arms, wing-tip clamp, mode binding (r10 blind critic) -----------------------------
         readonly List<Transform> rigJoints=new List<Transform>();
+        sealed class HandVerts{public SkinnedMeshRenderer skin;public int side;public readonly List<int> indices=new List<int>();}
+        readonly List<HandVerts> handVerts=new List<HandVerts>();
+        // Vertices weighted mostly (>= 0.5) to a hand bone, per renderer and side (the mesh is readable: CountClaudeImport).
+        void CacheHandVertices()
+        {
+            int total=0;
+            foreach(var skin in silhouette.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                var mesh=skin.sharedMesh;if(!mesh||!mesh.isReadable)continue;var bones=skin.bones;
+                int l=-1,r=-1;for(int i=0;i<bones.Length;i++){if(bones[i]&&bones[i].name=="LeftHand")l=i;else if(bones[i]&&bones[i].name=="RightHand")r=i;}
+                if(l<0&&r<0)continue;
+                var hl=new HandVerts{skin=skin,side=0};var hr=new HandVerts{skin=skin,side=1};var weights=mesh.boneWeights;
+                for(int v=0;v<weights.Length;v++)
+                {
+                    var bw=weights[v];
+                    float wl=(bw.boneIndex0==l?bw.weight0:0)+(bw.boneIndex1==l?bw.weight1:0)+(bw.boneIndex2==l?bw.weight2:0)+(bw.boneIndex3==l?bw.weight3:0);
+                    float wr=(bw.boneIndex0==r?bw.weight0:0)+(bw.boneIndex1==r?bw.weight1:0)+(bw.boneIndex2==r?bw.weight2:0)+(bw.boneIndex3==r?bw.weight3:0);
+                    if(l>=0&&wl>=.5f)hl.indices.Add(v);else if(r>=0&&wr>=.5f)hr.indices.Add(v);
+                }
+                if(hl.indices.Count>0)handVerts.Add(hl);if(hr.indices.Count>0)handVerts.Add(hr);total+=hl.indices.Count+hr.indices.Count;
+            }
+            Debug.Log("HC_COUNT_HANDS vertices="+total+" groups="+handVerts.Count);
+        }
         readonly List<Transform> wingExt=new List<Transform>();readonly List<Vector3> wingExtRest=new List<Vector3>();
         Transform armL,armR,foreL,foreR,handL,handR;
         float pitchNow,poseLegTimer=-1;bool poseLogged,modesLogged;
@@ -1244,6 +1313,7 @@ namespace HollowCurrent
                 else if(t.name=="LeftHand")handL=t;else if(t.name=="RightHand")handR=t;
             }
             rigJoints.AddRange(silhouette.GetComponentsInChildren<Transform>(true));
+            CacheHandVertices();
             Debug.Log("HC_COUNT_RIG wingExt="+wingExt.Count+" arms="+(armL&&armR&&foreL&&foreR&&handL&&handR));
         }
         // Pitch the whole figure about a point FlightPitchPivot above his feet (nose-down = positive).
@@ -1314,15 +1384,35 @@ namespace HollowCurrent
             if(worst>max&&clampLogged.Add(actor.Mode))Debug.Log("HC_COUNT_WING_CLAMP mode="+actor.Mode+" stretch="+(1+worst).ToString("F2")+" clampedTo="+count.WingExtMaxStretch.ToString("F2"));
         }
         // ---- Wave K: grab camera, drop from above, door torn open, sword recoil (r11 blind playtest critic) ------------------
-        bool grabCam,grabKill,grabHide,hideGrabLocked;float grabCamT,camYaw0,camPitch0;int grabCamLog;string grabCamKind="";
+        bool grabCam,grabKill,grabHide,hideGrabLocked,grabCamSnap;float grabCamT,camYaw0,camPitch0;int grabCamLog;string grabCamKind="";
         /// <summary>True while a grab steers the view (integrator: Game's Dead-phase look-at may skip itself then).</summary>
         public bool GrabCamActive=>count!=null&&grabCam;
         void BeginGrabCam(string path,bool hide=false)
         {
             if(grabCam)return;
-            doorClampLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
+            doorClampLogged=false;grabCamSnap=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
+            ShieldFromLantern(true);
         }
-        void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;Debug.Log("HC_COUNT_GRABCAM end path="+grabCamKind+" reason="+why);}
+        void EndGrabCam(string why){if(!grabCam)return;grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;ShieldFromLantern(false);Debug.Log("HC_COUNT_GRABCAM end path="+grabCamKind+" reason="+why);}
+        // r12 (the purple grave-ash lantern recoloured him at the kill): for the grab he moves to GrabLightLayer and the lantern stops
+        // lighting that layer; both are restored when the grab camera ends.
+        readonly Dictionary<GameObject,int> savedLayers=new Dictionary<GameObject,int>();int savedUvMask;bool shielded;
+        void ShieldFromLantern(bool on)
+        {
+            var uv=Game.Player?Game.Player.Ultraviolet:null;int layer=count.GrabLightLayer;
+            if(on&&!shielded&&layer>=0&&layer<32)
+            {
+                shielded=true;savedLayers.Clear();
+                foreach(var r in silhouette.GetComponentsInChildren<Renderer>(true)){savedLayers[r.gameObject]=r.gameObject.layer;r.gameObject.layer=layer;}
+                if(uv){savedUvMask=uv.cullingMask;uv.cullingMask&=~(1<<layer);}
+                Debug.Log("HC_COUNT_GRAB light=lantern-excluded layer="+layer+" renderers="+savedLayers.Count+" uvLight="+(uv!=null));
+            }
+            else if(!on&&shielded)
+            {
+                shielded=false;foreach(var kv in savedLayers)if(kv.Key)kv.Key.layer=kv.Value;savedLayers.Clear();
+                if(uv)uv.cullingMask=savedUvMask;
+            }
+        }
         // count17: commit a grab. GrabDrop needs headroom for its own fall (GrabDropClipTop over his floor); without it the grab is
         // GrabCrawl from the door. A hide grab stands him in the torn door opening at the clip's stand-off from her, facing in,
         // so his skull lands in the centre band once the view has turned and the nearer claw ends about GrabCamClawDistance away.
@@ -1349,6 +1439,7 @@ namespace HollowCurrent
                 // count18: remember the door geometry; ClampToDoor keeps him on her floor, outside the door plane and within
                 // DoorLateral of the door's axis for the whole presentation.
                 hideFeet=feet;hideOutward=outward;hideDoorDistance=.43f;
+                var found=HideSpotAt(p.HideExit);if(found&&found!=learnedHide){learnedHide=found;Debug.Log("HC_COUNT_LEARNED hide="+found.name+" reason=grabbed her in it");}
                 foreach(var h in Game.World.HidingPlaces)
                     if(h&&h.Kind==InteractKind.Hide&&Vector3.Distance(h.ExitPoint,p.HideExit)<.6f){var d=h.transform.position-feet;d.y=0;hideDoorDistance=Mathf.Max(.1f,Vector3.Dot(d,outward));break;}
                 var at=feet+outward*count.StandOffFor(mode);at.y=feet.y;
@@ -1372,6 +1463,9 @@ namespace HollowCurrent
                 // Yaw and pitch blended separately (shortest way round, up to 180 deg of yaw: she may face the wardrobe's back
                 // wall), never a roll; then the view holds on him.
                 float k=Mathf.SmoothStep(0,1,grabCamT/Mathf.Max(.01f,count.GrabCamTurnSeconds));
+                // r12: he must be on screen in the commit frame. If he is not, the view cuts to him at once instead of turning.
+                if(grabCamT<=dt*1.01f&&!VisibleToCamera(cam,head).StartsWith("True",System.StringComparison.Ordinal)){grabCamSnap=true;Debug.Log("HC_COUNT_GRABCAM snap=True reason=not visible in the commit frame");}
+                if(grabCamSnap)k=1;
                 if(grabCamT<=dt*1.01f){var f=cam.transform.forward;camYaw0=Mathf.Atan2(f.x,f.z)*Mathf.Rad2Deg;camPitch0=-Mathf.Asin(Mathf.Clamp(f.y,-1,1))*Mathf.Rad2Deg;}
                 float yaw=Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg,pitch=-Mathf.Atan2(to.y,new Vector2(to.x,to.z).magnitude)*Mathf.Rad2Deg;
                 cam.transform.rotation=Quaternion.Euler(Mathf.LerpAngle(camPitch0,pitch,k),Mathf.LerpAngle(camYaw0,yaw,k),0);
@@ -1386,6 +1480,7 @@ namespace HollowCurrent
             var eye=cam.transform.position;float near=Mathf.Min(Vector3.Distance(handL.position,eye),Vector3.Distance(handR.position,eye));
             var away=transform.position-eye;away.y=0;if(away.sqrMagnitude<.0001f)return;away.Normalize();
             float move=(near-count.GrabCamClawDistance)*Mathf.Clamp01(dt*6);
+            move=Mathf.Clamp(move,-count.GrabCamMaxEase*dt,count.GrabCamMaxEase*dt);   // r12: eased, never a pop
             if(move>0)move=Mathf.Min(move,Mathf.Max(0,ClosestJoint(eye)-count.CameraClearance));   // never closer than the clearance
             transform.position-=away*move;
         }
@@ -1422,17 +1517,45 @@ namespace HollowCurrent
             Physics.Linecast(eye,head,out var block,FlightMask,QueryTriggerInteraction.Ignore);
             return "False reason=occluded by "+(block.collider?block.collider.name:"?");
         }
+        // r12 (claw_px=629 with no hand on screen): the claw measure is the projected width of each hand's own skinned vertices
+        // (vertices weighted mostly to LeftHand/RightHand, baked from the current pose), keeping only points inside the frame and
+        // with a clear line from the lens; the larger hand, in pixels of a 2560-wide frame.
+        float ProjectedClawPx(Camera cam,out string detail)
+        {
+            detail="";float best=0;if(handVerts.Count==0){detail="no hand vertices";return 0;}
+            var eye=cam.transform.position;var baked=new Dictionary<SkinnedMeshRenderer,Vector3[]>();
+            foreach(var hv in handVerts)if(hv.skin&&!baked.ContainsKey(hv.skin)){var mesh=new Mesh();hv.skin.BakeMesh(mesh,false);baked[hv.skin]=mesh.vertices;Destroy(mesh);}
+            for(int side=0;side<2;side++)
+            {
+                float minX=float.MaxValue,maxX=float.MinValue;int inside=0,clear=0,tested=0;
+                foreach(var hv in handVerts)
+                {
+                    if(hv.side!=side||!hv.skin)continue;
+                    var verts=baked[hv.skin];var m=hv.skin.transform.localToWorldMatrix;
+                    int step=Mathf.Max(1,hv.indices.Count/64);
+                    for(int i=0;i<hv.indices.Count;i+=step)
+                    {
+                        int idx=hv.indices[i];if(idx>=verts.Length)continue;var w=m.MultiplyPoint3x4(verts[idx]);var v=cam.WorldToViewportPoint(w);
+                        if(v.z<cam.nearClipPlane||v.x<0||v.x>1||v.y<0||v.y>1)continue;inside++;
+                        if(tested<16&&(i/step)%4==0){tested++;if(Physics.Linecast(eye,w,out var hit,FlightMask,QueryTriggerInteraction.Ignore)&&!hit.collider.transform.IsChildOf(transform))continue;clear++;}
+                        minX=Mathf.Min(minX,v.x);maxX=Mathf.Max(maxX,v.x);
+                    }
+                }
+                float px=inside>0&&(tested==0||clear>0)?(maxX-minX)*2560f:0;
+                detail+=(side==0?"L":"R")+"="+px.ToString("F0")+"("+inside+"in,"+clear+"/"+tested+"clear) ";
+                best=Mathf.Max(best,px);
+            }
+            return best;
+        }
         void LogGrabCam(Camera cam,Vector3 head)
         {
-            var v=cam.WorldToViewportPoint(head);bool centre=v.z>0&&v.x>=.2f&&v.x<=.8f&&v.y>=.2f&&v.y<=.8f;
-            float claw=0;
-            foreach(var hand in new[]{handL,handR})
-            {
-                if(!hand)continue;var a=cam.WorldToScreenPoint(hand.position-cam.transform.right*count.ClawWidth*.5f);var b=cam.WorldToScreenPoint(hand.position+cam.transform.right*count.ClawWidth*.5f);
-                if(a.z>0&&b.z>0)claw=Mathf.Max(claw,Mathf.Abs(b.x-a.x)*2560f/Mathf.Max(1,cam.pixelWidth));
-            }
-            Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" path="+grabCamKind+" visible="+VisibleToCamera(cam,head)+" pos="+transform.position+" blend="+(grabCamT<count.GrabCamTurnSeconds?"turning":"done")+" kill="+grabKill+" mode="+actor.Mode+" skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_centre60="+centre+
-                " claw_px="+claw.ToString("F0")+" claw_ok="+(claw>=200)+" eyeToSkull="+Vector3.Distance(cam.transform.position,head).ToString("F2")+" headAboveEye="+(head.y-cam.transform.position.y).ToString("F2"));
+            var v=cam.WorldToViewportPoint(head);
+            bool skullClear=!Physics.Linecast(cam.transform.position,head,out var sh,FlightMask,QueryTriggerInteraction.Ignore)||sh.collider.transform.IsChildOf(transform);
+            bool central=v.z>cam.nearClipPlane&&v.x>=.2f&&v.x<=.8f&&v.y>=.2f&&v.y<=.8f&&skullClear;
+            float claw=ProjectedClawPx(cam,out var hands);
+            Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" path="+grabCamKind+" visible="+VisibleToCamera(cam,head)+" pos="+transform.position+" blend="+(grabCamT<count.GrabCamTurnSeconds&&!grabCamSnap?"turning":"done")+" kill="+grabKill+" mode="+actor.Mode+
+                " skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_central60="+central+" claw_px_proj="+claw.ToString("F0")+" claw_ok="+(claw>=200)+" hands=["+hands.Trim()+"]"+
+                " eyeToSkull="+Vector3.Distance(cam.transform.position,head).ToString("F2")+" headAboveEye="+(head.y-cam.transform.position.y).ToString("F2"));
         }
         float ClosestJoint(Vector3 point)
         {
@@ -1882,8 +2005,23 @@ namespace HollowCurrent
         bool nearMissRolled,pendingWitnessed,visitWitnessed,visitOpens;
         int nearMissStage;
         float nearMissHold,visitGrab;
-        Vector3 nearMissCrawl,nearMissOutward;
+        Vector3 nearMissCrawl,nearMissOutward,visitStand;
         bool LongNight=>Game.Case.Rules!=null&&Game.Case.Rules.Name=="Long Night";
+        // r12: within-match learning; survives between hunts (a new Game after a death starts fresh).
+        Interactable learnedHide;
+        Interactable HideSpotAt(Vector3 exit)
+        {
+            Interactable best=null;float d=.6f;
+            foreach(var h in Game.World.HidingPlaces){if(!h||h.Kind!=InteractKind.Hide)continue;float e=Vector3.Distance(h.ExitPoint,exit);if(e<d){d=e;best=h;}}
+            return best;
+        }
+        // Piecewise linear: 0 below OpenDreadStart, OpenChanceAt40 at 40, OpenChanceAt80 at 80, OpenChanceAt100 at 100.
+        float OpenChanceForDread(float dread)
+        {
+            if(dread<count.OpenDreadStart)return 0;
+            if(dread<80)return Mathf.Lerp(count.OpenChanceAt40,count.OpenChanceAt80,Mathf.InverseLerp(40,80,dread));
+            return Mathf.Lerp(count.OpenChanceAt80,count.OpenChanceAt100,Mathf.InverseLerp(80,100,dread));
+        }
         /// <summary>False when the hide he is at has no door panel (CastleRun then skips the rattle).</summary>
         public bool NearMissHasDoor {get;private set;}=true;
         readonly Dictionary<Interactable,bool> hideDoors=new Dictionary<Interactable,bool>();
@@ -1942,15 +2080,22 @@ namespace HollowCurrent
                 return;
             }
             visitWitnessed=witnessed;
-            // Watched: always opens, at any Dread. Near-miss: 1 in 4 at Dread >= 80 or in Long Night, and (r10b) 1 in 10 below that
-            // once she has survived a hunt, so no hide is ever a guarantee.
-            float dread=Game.Case.Dread;bool high=dread>=count.NearMissOpenDread||LongNight;bool eligible=witnessed||high||Game.Case.Survived;
-            float chance=witnessed?1:high?count.NearMissOpenChance:Game.Case.Survived?count.NearMissOpenChanceLow:0;
+            // Watched: always opens, at any Dread. Near-miss (r12): the open chance follows Dread from 40 (5 % at 40, 25 % at 80, 40 % at
+            // 100), never under 1 in 10 once she has survived a hunt nor under 1 in 4 in Long Night; x2 (capped) at the hide he last
+            // found her in or near (within-match learning).
+            float dread=Game.Case.Dread;bool learned=!witnessed&&learnedHide&&spot==learnedHide;
+            float curve=OpenChanceForDread(dread);
+            float chance=witnessed?1:Mathf.Max(curve,Game.Case.Survived?count.NearMissOpenChanceLow:0,LongNight?count.NearMissOpenChance:0);
+            if(learned)chance=Mathf.Min(count.LearnedHideOpenCap,chance*count.LearnedHideOpenMultiplier);
+            bool eligible=witnessed||chance>0;
             float roll=witnessed?0:Random.value;
             visitOpens=witnessed||roll<chance;
+            // He has now found her in or near this hide: it is the one he checks first next time.
+            if(learnedHide!=spot)Debug.Log("HC_COUNT_LEARNED hide="+spot.name+" reason="+(witnessed?"watched her go in":"found her in it"));
+            learnedHide=spot;
             flight=Flight.NearMiss;nearMissStage=1;pendingPerch=-1;travelToPerch=false;Memory.Clear();attackAttempted=true;visitGrab=0;
             Debug.Log(tag+" begin hide="+spot.name+" door="+NearMissDoor+" crawlTo="+nearMissCrawl+" landing="+landing+
-                (witnessed?" open=True reason=watched (any Dread)":" open="+visitOpens+" openRoll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" eligible="+eligible+(eligible?"":" reason=first hunt, below 80")+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
+                (witnessed?" open=True reason=watched (any Dread)":" open="+visitOpens+" openRoll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" curve="+curve.ToString("F2")+" learnedHide="+learned+" eligible="+eligible+(eligible?"":" reason=first hunt, below Dread 40")+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
         }
         void NearMissTick(float dt)
         {
@@ -2005,6 +2150,20 @@ namespace HollowCurrent
                 if(nearMissHold>0)return;
                 if(visitOpens)
                 {
+                    // r12 (no pop): he rears back from the slats to the grab's stand-off (it ends where the grab clip needs him),
+                    // then commits; CommitGrab then has nothing left to move.
+                    var feet=Game.Player.transform.position;var outward=nearMissOutward;
+                    visitStand=feet+outward*count.StandOffFor(HideGrabMode(feet,outward));visitStand.y=feet.y;
+                    nearMissStage=5;Debug.Log(tag+" rear-back to="+visitStand+" "+DiagnosticState);return;
+                }
+                Debug.Log("HC_COUNT_NEARMISS open=False");
+                LeaveHideVisit(true);return;
+            }
+            if(nearMissStage==5)
+            {
+                transform.position=Vector3.MoveTowards(transform.position,visitStand,count.RearBackSpeed*dt);actor.Pose(count.ModeCrawl,count.RearBackSpeed*.85f);
+                if((transform.position-visitStand).sqrMagnitude>.0025f)return;
+                {
                     nearMissStage=4;visitGrab=0;OpenHideDoor(Game.Player.HideExit);
                     // Wave I: at a hide entrance the grab is GrabDrop (it bursts the door down on her), witnessed or near-miss;
                     // count17: only with headroom for the clip's fall, else GrabCrawl from the door (CommitGrab).
@@ -2015,8 +2174,6 @@ namespace HollowCurrent
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+(transform.position.y-Game.Player.transform.position.y).ToString("F2")+" reason="+why+" hideEntrance=True witnessed="+visitWitnessed+" torch="+Game.Player.TorchOn+" "+DiagnosticState);
                     return;
                 }
-                Debug.Log("HC_COUNT_NEARMISS open=False");
-                LeaveHideVisit(true);return;
             }
             // Stage 4: he opens it.
             var toDoor=-nearMissOutward;transform.rotation=Quaternion.LookRotation(toDoor);

@@ -55,6 +55,28 @@ namespace HollowCurrent
         // count18: a door grab keeps his origin at least DoorOutside beyond the door plane (never inside or behind the wardrobe)
         // and within DoorLateral of the door's axis, feet on her floor.
         public float DoorOutside=.05f, DoorLateral=.3f;
+        // ---- Wave L (r12 blind playtest critic) --------------------------------------------------------------------------
+        // Unwatched hides fail sometimes: the near-miss open chance follows Dread (0 under OpenDreadStart; 5 % at 40, 25 % at 80,
+        // 40 % at 100), floors NearMissOpenChanceLow after a survived hunt and NearMissOpenChance in Long Night. The hide he last
+        // found her in or near is checked first (no attempt roll, from LearnedHideAfterSeconds) and opens at x LearnedHideOpenMultiplier
+        // (capped at LearnedHideOpenCap).
+        public float OpenDreadStart=40f, OpenChanceAt40=.05f, OpenChanceAt80=.25f, OpenChanceAt100=.40f;
+        public float LearnedHideAfterSeconds=2.5f, LearnedHideOpenMultiplier=2f, LearnedHideOpenCap=.8f;
+        // Dive styles: where the ceiling over her clears the GrabDrop clip, DropDiveShare of dives come in high (hover up to
+        // HighDiveHover) and end in the drop grab; the rest come in low (GrabCrawl).
+        public float DropDiveShare=.5f, HighDiveHover=2.6f;
+        // The grab commits at the chosen clip's stand-off (its reach + CameraClearance), so the kill presentation never moves him
+        // (r12: 0.5 m -> 2.2 m pop). FrameClaws eases at most GrabCamMaxEase m/s.
+        public float GrabCamMaxEase=1.2f;
+        // A known hide is approached to the stand-off point of its grab; within this of it he commits.
+        public float HideStandTolerance=.5f;
+        // After the slats, an opening visit rears back to the grab's stand-off at this speed before the grab commits.
+        public float RearBackSpeed=3.5f;
+        // Readability in the dive (Hunt only, Chase only): the shoulder rim brightens to DiveRimScale between DiveRimNear and
+        // DiveRimFar metres from her (silhouette against the window light); otherwise RimLightScale as everywhere.
+        public float DiveRimScale=1.1f, DiveRimNear=2.5f, DiveRimFar=9f;
+        // During the grab presentation the Count moves to this layer and the grave-ash (ultraviolet) lantern stops lighting it.
+        public int GrabLightLayer=29;
         // Sword hits: he recoils SwordRecoilDistance away from her over SwordRecoilSeconds, and until SwordClearSeconds after the
         // stagger no joint (wing markers included) comes within SwordClearRadius (+0.15 m skin) of the camera.
         public float SwordRecoilDistance=1.2f, SwordRecoilSeconds=.25f, SwordClearRadius=.6f, SwordClearSeconds=1f;
