@@ -152,9 +152,14 @@ namespace HollowCurrent
                 // gate_out_S6 looks out through the gate at the lowered leaf (r12 critic ask); the bridge goes back up afterwards.
                 var bridge=game.World.Castle!=null?game.World.Castle.Drawbridge:null;bool lowered=v.id=="gate_out_S6"&&bridge;
                 if(lowered)bridge.Snap(true);
-                Place(v.eye,v.target);yield return new WaitForSecondsRealtime(1.5f);
+                // r13: the closed "Gate" door leaves filled this view; open them for the shot and close them after.
+                var gateLeaves=new List<Door>();
+                if(v.id=="gate_out_S6")foreach(var it in game.World.Root.GetComponentsInChildren<Interactable>(true))if(it.Kind==InteractKind.Door&&it.Label=="Gate"&&it.Door){it.Door.Open=true;gateLeaves.Add(it.Door);}
+                if(v.id=="gate_out_S6")Log("gate_out_S6 gate leaves opened="+gateLeaves.Count);
+                Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0?3f:1.5f);
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);
+                foreach(var d in gateLeaves)d.Open=false;
                 if(v.id=="crypt_ceiling"){yield return CryptFrames("after_shot");yield return new WaitForSecondsRealtime(1);yield return CryptFrames("settled");}
             }
             File.WriteAllText(Path.Combine(Directory,"capture_art_"+set+".json"),"{\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");
