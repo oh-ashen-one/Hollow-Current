@@ -238,6 +238,10 @@ lost bridge kill)**:
 - **Models (2,000 seeds):** hunts starting ≤ 10 s after an apparition 9 % (1 in 3 apparitions close) / 18 % (all close);
   apparition CV 0.52; 3-run first-hunt sets spanning ≥ 45 s 96 % / 93 %; share 0.159 / 0.165 mean (p90 0.22); a ≥ 120 s
   gap in 93 % / 91 % of runs.
+- **Wave L2 (hc/rules-l2, build measured a 12-sample CV of 0.43):** the castle clock is now two-mode, 60 % 45–55 s and
+  40 % 130 s + a truncated exponential (mean 400 s, cut at 300 s): mean ≈ 114 s, CV ≈ 0.74; 12 pure samples reach CV ≥ 0.5
+  in 97.8 % of groups and three pooled 10-minute runs in 95 %. Low-Dread roll 1/24, first hunt `Draw(60, 95, 180)` s after
+  the second record, to hold the per-run share p10 ≥ 0.13 on the critic's route.
 
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;

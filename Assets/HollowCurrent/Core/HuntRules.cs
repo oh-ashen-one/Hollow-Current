@@ -33,7 +33,7 @@ namespace HollowCurrent
         public float FirstHuntSeconds, FirstHuntJitter;
         public int FirstHuntEvidence;
         // Wave K: when FirstHuntMax > FirstHuntMin the deadline is Draw(Min, FirstHuntSeconds, Max, roll) instead
-        // (castle 60 / 95 / 240 s after the second record); the jitter is then unused.
+        // (castle 60 / 95 / 180 s after the second record; wave L2, was 240); the jitter is then unused.
         public float FirstHuntMin, FirstHuntMax;
 
         // Dice-roll hunts: every DiceIntervalMin..Max seconds in Disturbance while
@@ -178,8 +178,8 @@ namespace HollowCurrent
         public static readonly HuntRules Castle=new HuntRules
         {
             Name="Castle",
-            TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/30,
-            FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,FirstHuntMin=60,FirstHuntMax=240,DreadDecayAllAbove=60,DoorHeldChance=1f/6,
+            TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/24,
+            FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,FirstHuntMin=60,FirstHuntMax=180,DreadDecayAllAbove=60,DoorHeldChance=1f/6,
             DiceIntervalMin=2,DiceIntervalMax=6,DiceChanceAt40=1f/12,DiceChanceAt60=1f/6,DiceChanceAt80=1f/4,DiceEvidenceBonus=.5f,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=1.5f,
             HuntSecondsMin=25,HuntSecondsMax=50,RecoverySecondsMin=10,RecoverySecondsMax=40,RecoveryDiceChance=1f/8,RecoveryDiceDread=80,AnnounceRecovery=false,

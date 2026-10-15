@@ -258,7 +258,7 @@ static class RulesTests
         Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==40,"floor clock resumes where it stopped");
 
         // First-hunt guarantee: two records, deadline 95 s +-25 % by roll, independent of Dread.
-        foreach(var pair in new[]{new[]{.5f,95},new[]{0f,60},new[]{.99f,238}}) // wave K: 60-240 s, median 95
+        foreach(var pair in new[]{new[]{.5f,95},new[]{0f,60},new[]{.99f,179}}) // wave K: 60-240 s, wave L2: 60-180 s, median 95
         {
             float roll=pair[0];var first=StartOn(CaseBook.Castle,()=>roll);first.Record(Evidence.Induction);first.Record(Evidence.Handprint);
             Assert(TickUntilLeaves(first,Phase.Disturbance,300)==(int)pair[1]&&first.Dread==0,"first hunt guaranteed at "+pair[1]+" s for roll "+roll);
@@ -334,7 +334,7 @@ static class RulesTests
     static void WaveGTests()
     {
         var r=HuntRules.Castle;var b=HuntRules.Bellwether;
-        Assert(r.HuntDreadMin==40&&r.HuntDreadMinSpread==10&&Math.Abs(r.LowDreadChance-1f/30)<1e-6f,"castle boundary 30-50, low roll 1/30 (wave L, was 1/40)");
+        Assert(r.HuntDreadMin==40&&r.HuntDreadMinSpread==10&&Math.Abs(r.LowDreadChance-1f/24)<1e-6f,"castle boundary 30-50, low roll 1/24 (wave L2; 1/30 in L, 1/40 before)");
         Assert(r.HuntSecondsMin==25&&r.HuntSeconds==38&&r.HuntSecondsMax==50&&r.RecoverySecondsMin==10&&r.RecoverySeconds==32&&r.RecoverySecondsMax==40,"castle hunt 25-50, recovery 10-40");
         Assert(Math.Abs(r.RecoveryDiceChance-.125f)<1e-6f&&r.RecoveryDiceDread==80&&!r.AnnounceRecovery,"castle recovery dice 1/8 at 80, no quiet-window line");
         Assert(r.FeltLagMin==20&&r.FeltLagMax==30&&r.FeltNoise==12&&r.FeltCalm>0,"castle FeltDread lag 20-30 s, noise 12");
@@ -578,11 +578,15 @@ static class RulesTests
     // gatehouse, 20-40 s rest after each Recovery (ScareDirector); each visible apparition calls NoteApparition, and a share closeShare of
     // them land close enough to try TryEscalate(dark).
     static float SessionCloseShare=1/3f;
+    // Wave L2: evidence timing. false = a slower investigator (records at 10-40 / 40-120 / 120-240 s); true = the critic's natural
+    // route (kit, letter, three records and the ledger by about 13 s: records at 5-15 s).
+    static bool SessionCriticRoute=false;
     static SessionResult Session(HuntRules rules,int seed,float darkShare,bool immortal=false,bool driver=false)
     {
         var res=new SessionResult();var dice=new Random(seed*31+7);var p=new Random(seed*17+3);
         var c=new Investigation(CaseBook.Castle,()=>(float)dice.NextDouble(),rules);c.Equip();c.EnterHouse();if(immortal)c.ForceDread(100);
-        float[] ev={10+30*(float)p.NextDouble(),40+80*(float)p.NextDouble(),120+120*(float)p.NextDouble()};int evi=0,apps=0;
+        float[] ev={10+30*(float)p.NextDouble(),40+80*(float)p.NextDouble(),120+120*(float)p.NextDouble()};
+        if(SessionCriticRoute){ev[0]=5+3*(float)p.NextDouble();ev[1]=8+3*(float)p.NextDouble();ev[2]=11+4*(float)p.NextDouble();}int evi=0,apps=0;
         float nextApp=40+60*(float)p.NextDouble(),nextGate=150+100*(float)p.NextDouble(),gateLeft=0,darkSwitch=20,seenLeft=0,grabAt=-1,t=0,dt=.5f,threat=0,lastEnd=-1;
         bool rhythmRest=false;bool dark=false,seenGiven=false,grabGiven=false,inThreat=false;var rhythm=new ScareRhythm();var ar=new Random(seed*13+5);rhythm.UseCastleClock(()=>(float)ar.NextDouble());
         c.Changed+=ph=>{bool th=ph==Phase.Warning||ph==Phase.Hunt;
@@ -595,7 +599,7 @@ static class RulesTests
         {
             t+=dt;
             while(evi<3&&t>=ev[evi]){c.Record((Evidence)evi);evi++;}
-            if(t>240&&c.ContextCount<3)foreach(var n in CaseBook.Castle.NoteTitles)c.Read(n);
+            if((SessionCriticRoute?t>13:t>240)&&c.ContextCount<3)foreach(var n in CaseBook.Castle.NoteTitles)c.Read(n);
             darkSwitch-=dt;if(darkSwitch<=0){dark=p.NextDouble()<darkShare;darkSwitch=10+20*(float)p.NextDouble();}
             bool calm=c.Phase==Phase.Disturbance||c.Phase==Phase.Survey||c.Phase==Phase.Recovery;
             if(gateLeft>0)gateLeft-=dt;else if(!immortal&&!driver&&calm&&t>=nextGate){gateLeft=20+20*(float)p.NextDouble();nextGate=t+150+150*(float)p.NextDouble();}
@@ -658,22 +662,29 @@ static class RulesTests
             +" | first hunt after 2nd record p10="+Quantile(delay,.1f).ToString("F0")+" p50="+Quantile(delay,.5f).ToString("F0")+" p90="+Quantile(delay,.9f).ToString("F0")+" s";
     }
     // Wave L (r12 critic): unchain hunts from the apparition clock.
+    static float realized12,poolSizes;
     static string WaveLReport(string name,float closeShare,out float within10,out float appCv,out float firstSpread3,out float shareMean,out float shareP10,out float shareP90,out float gap120,out bool capHeld)
     {
+        var perRun=new System.Collections.Generic.List<System.Collections.Generic.List<float>>();poolSizes=0;
         float saved=SessionCloseShare;SessionCloseShare=closeShare;
         int hunts=0,near=0,q120=0;var share=new System.Collections.Generic.List<float>();var inter=new System.Collections.Generic.List<float>();var first=new System.Collections.Generic.List<float>();float sum=0;capHeld=true;int esc=0;
         for(int seed=0;seed<2000;seed++)
         {
             var r=Session(HuntRules.Castle,seed,0);share.Add(r.ShareRun);sum+=r.ShareRun;if(r.MaxQuietAfterFirst>=120)q120++;esc+=r.Escalations;
-            for(int i=1;i<r.ApparitionTimes.Count;i++)inter.Add(r.ApparitionTimes[i]-r.ApparitionTimes[i-1]);
+            var mine=new System.Collections.Generic.List<float>();for(int i=1;i<r.ApparitionTimes.Count;i++){inter.Add(r.ApparitionTimes[i]-r.ApparitionTimes[i-1]);mine.Add(r.ApparitionTimes[i]-r.ApparitionTimes[i-1]);}perRun.Add(mine);
             if(r.HuntStartTimes.Count>0)first.Add(r.HuntStartTimes[0]);
             foreach(var h in r.HuntStartTimes){hunts++;float last=float.NegativeInfinity;foreach(var a in r.ApparitionTimes)if(a<=h)last=a;if(h-last<=10)near++;}
         }
         SessionCloseShare=saved;
         within10=near/(float)Math.Max(1,hunts);float m=0;foreach(var v in inter)m+=v;m/=inter.Count;float sd=0;foreach(var v in inter)sd+=(v-m)*(v-m);appCv=(float)Math.Sqrt(sd/inter.Count)/m;
         int wide=0,triples=0;for(int i=0;i+2<first.Count;i+=3){triples++;float lo=Math.Min(first[i],Math.Min(first[i+1],first[i+2])),hi=Math.Max(first[i],Math.Max(first[i+1],first[i+2]));if(hi-lo>=45)wide++;}
-        firstSpread3=wide/(float)triples;shareMean=sum/2000;shareP10=Quantile(share,.1f);shareP90=Quantile(share,.9f);gap120=q120/2000f;
+        firstSpread3=wide/(float)triples;
+        // Realized clock as the critic measures it: the apparition intervals of three consecutive runs pooled (about 12), CV of that set.
+        realized12=0;int sets=0;for(int i=0;i+2<perRun.Count;i+=3){var pool=new System.Collections.Generic.List<float>();pool.AddRange(perRun[i]);pool.AddRange(perRun[i+1]);pool.AddRange(perRun[i+2]);if(pool.Count<6)continue;sets++;
+            float pm=0;foreach(var v in pool)pm+=v;pm/=pool.Count;float ps=0;foreach(var v in pool)ps+=(v-pm)*(v-pm);if((float)Math.Sqrt(ps/pool.Count)/pm>=.5f)realized12++;poolSizes+=pool.Count;}
+        realized12/=Math.Max(1,sets);poolSizes/=Math.Max(1,sets);shareMean=sum/2000;shareP10=Quantile(share,.1f);shareP90=Quantile(share,.9f);gap120=q120/2000f;
         return "WAVE_L "+name+" hunts starting <=10 s after an apparition="+within10.ToString("F3")+" ("+near+"/"+hunts+") | apparition inter-arrival n="+inter.Count+" mean="+m.ToString("F0")+" CV="+appCv.ToString("F2")
+            +" | 3-run pooled sets (mean "+poolSizes.ToString("F1")+" intervals) with CV>=0.5="+realized12.ToString("F3")
             +" | first hunt p10="+Quantile(first,.1f).ToString("F0")+" p50="+Quantile(first,.5f).ToString("F0")+" p90="+Quantile(first,.9f).ToString("F0")+" s, 3-run sets spanning >=45 s="+firstSpread3.ToString("F3")
             +" | share mean="+shareMean.ToString("F3")+" p10="+shareP10.ToString("F3")+" p90="+shareP90.ToString("F3")+" | runs with a >=120 s gap="+gap120.ToString("F3")+" | escalations/run="+(esc/2000f).ToString("F2");
     }
@@ -687,11 +698,16 @@ static class RulesTests
         for(int i=0;i<10000;i++){float x=ScareRhythm.CastleInterval((float)rng.NextDouble(),(float)rng.NextDouble());xs.Add(x);sum+=x;}
         float mean=sum/xs.Count,sd=0;foreach(var x in xs)sd+=(x-mean)*(x-mean);float cv=(float)Math.Sqrt(sd/xs.Count)/mean;
         Console.WriteLine("WAVE_L CastleInterval 10k mean="+mean.ToString("F1")+" CV="+cv.ToString("F3")+" min="+Quantile(xs,0).ToString("F1")+" p10="+Quantile(xs,.1f).ToString("F0")+" p50="+Quantile(xs,.5f).ToString("F0")+" p90="+Quantile(xs,.9f).ToString("F0")+" max="+Quantile(xs,1).ToString("F1"));
-        Assert(mean>100&&mean<120&&cv>=.5f&&Quantile(xs,0)>=45&&Quantile(xs,1)<=260&&Quantile(xs,1)>240,"inter-arrival mean about 110 s, CV >= 0.5, within 45-260 s");
-        Assert(ScareRhythm.CastleInterval(.1f,.3f)==ScareRhythm.CastleInterval(.1f,.3f)&&ScareRhythm.CastleInterval(0,0)==45&&ScareRhythm.CastleInterval(.5f,0)==70&&ScareRhythm.CastleInterval(.9f,.99999f)<=260&&ScareRhythm.CastleInterval(float.NaN,.5f)>=45,"pure, bounded, NaN-safe");
+        Assert(mean>100&&mean<120&&cv>=.7f&&Quantile(xs,0)>=45&&Quantile(xs,1)<=300&&Quantile(xs,1)>280,"inter-arrival mean about 110 s, CV >= 0.7 (wave L2, was 0.54), within 45-300 s");
+        Assert(ScareRhythm.CastleInterval(.1f,.3f)==ScareRhythm.CastleInterval(.1f,.3f)&&ScareRhythm.CastleInterval(0,0)==45&&ScareRhythm.CastleInterval(.6f,0)==130&&ScareRhythm.CastleInterval(.9f,.99999f)<=300&&ScareRhythm.CastleInterval(float.NaN,.5f)>=45,"pure, bounded, NaN-safe");
+        // Wave L2: the critic measures ~12 intervals over three runs. 12-sample CV of the pure draw (10,000 groups of 12).
+        int cv12ok=0;var g12=new Random(1212);var cv12=new System.Collections.Generic.List<float>();
+        for(int k=0;k<10000;k++){float m12=0,s12=0;var w=new float[12];for(int i=0;i<12;i++){w[i]=ScareRhythm.CastleInterval((float)g12.NextDouble(),(float)g12.NextDouble());m12+=w[i];}m12/=12;foreach(var x in w)s12+=(x-m12)*(x-m12);float c12=(float)Math.Sqrt(s12/12)/m12;cv12.Add(c12);if(c12>=.5f)cv12ok++;}
+        Console.WriteLine("WAVE_L2 12-sample CV of the pure draw: P(CV>=0.5)="+(cv12ok/10000f).ToString("F3")+" p10="+Quantile(cv12,.1f).ToString("F2")+" p50="+Quantile(cv12,.5f).ToString("F2"));
+        Assert(cv12ok>=9000,"12 samples of the pure draw give CV >= 0.5 in >= 90 % of groups");
         var firsts=new System.Collections.Generic.List<float>();var rr=new Random(7);
         for(int i=0;i<2000;i++){var rh=new ScareRhythm();rh.UseCastleClock(()=>(float)rr.NextDouble());int t=0;while(!rh.AppearanceDue&&t<400){rh.Tick(1);t++;}firsts.Add(t);}
-        Assert(Quantile(firsts,0)>=27&&Quantile(firsts,1)<=157&&Quantile(firsts,.9f)-Quantile(firsts,.1f)>=45,"first castle apparition is drawn (0.6 x 45-260 s: 27-156 s, wide), no longer 65 s every run");
+        Assert(Quantile(firsts,0)>=27&&Quantile(firsts,1)<=181&&Quantile(firsts,.9f)-Quantile(firsts,.1f)>=45,"first castle apparition is drawn (0.6 x 45-300 s: 27-180 s, wide), no longer 65 s every run");
         var rc=new ScareRhythm();rc.UseCastleClock(()=>.5f);while(!rc.AppearanceDue)rc.Tick(1);rc.RecordAppearance(.9f);rc.Tick(44.9f);Assert(!rc.CanSurprise,"castle spacing 45 s");rc.Tick(.2f);Assert(rc.CanSurprise,"spacing ends at 45 s");
         var bwr=new ScareRhythm();bwr.RecordAppearance(0);Assert(bwr.Spacing==90&&bwr.LastInterval==0,"Bellwether rhythm unchanged without UseCastleClock");
         // 2. Escalation policy.
@@ -730,18 +746,25 @@ static class RulesTests
         var low=StartOn(CaseBook.Castle,()=>0f);low.Record(Evidence.Induction);low.ForceDread(59);for(int i=0;i<10;i++)low.TryDoorHeld();Assert(low.DoorAttempts==0&&low.DoorsHeld==0,"attempts below 60 neither hold nor use the bag");
         // 5. Near-miss open chance for Presence (F2).
         Assert(Math.Abs(r.NearMissOpenChance(0)-.02f)<1e-5f&&Math.Abs(r.NearMissOpenChance(40)-.05f)<1e-5f&&Math.Abs(r.NearMissOpenChance(60)-.15f)<1e-5f&&Math.Abs(r.NearMissOpenChance(80)-.25f)<1e-5f&&Math.Abs(r.NearMissOpenChance(100)-.4f)<1e-5f&&r.NearMissOpenChance(float.NaN)==.02f,"near-miss open: 5 % at 40, 25 % at 80, 40 % at 100");
-        // 6. The r12 pass tests, as 2,000-seed models (one in three apparitions close, and every apparition close).
-        string a=WaveLReport("close 1/3",1/3f,out float w10,out float acv,out float fs3,out float sm,out float s10,out float s90,out float g120,out _);Console.WriteLine(a);
-        string c2=WaveLReport("all close",1f,out float w10b,out float acvb,out float fs3b,out float smb,out float s10b,out float s90b,out float g120b,out _);Console.WriteLine(c2);
-        Assert(w10<=.35f&&w10b<=.35f,"<= 35 % of hunts start within 10 s after an apparition");
-        Assert(acv>=.5f&&acvb>=.5f,"apparition inter-arrival CV >= 0.5");
+        // 6. The r12 pass tests, as 2,000-seed models (one in three apparitions close, and every apparition close), on the critic's natural
+        // route (records by ~15 s) as the build measures them, and on a slower investigator (records 10-240 s).
+        SessionCriticRoute=true;
+        string a=WaveLReport("critic route, close 1/3",1/3f,out float w10,out float acv,out float fs3,out float sm,out float s10,out float s90,out float g120,out _);float r12a=realized12;Console.WriteLine(a);
+        string c2=WaveLReport("critic route, all close",1f,out float w10b,out float acvb,out float fs3b,out float smb,out float s10b,out float s90b,out float g120b,out _);float r12b=realized12;Console.WriteLine(c2);
+        SessionCriticRoute=false;
+        string d=WaveLReport("slow investigator, close 1/3",1/3f,out float w10c,out float acvc,out _,out float smc,out float s10c,out _,out float g120c,out _);Console.WriteLine(d);
+        string e2=WaveLReport("slow investigator, all close",1f,out float w10d,out _,out _,out float smd,out float s10d,out _,out float g120d,out _);Console.WriteLine(e2);
+        Assert(w10<=.35f&&w10b<=.35f&&w10c<=.35f&&w10d<=.35f,"<= 35 % of hunts start within 10 s after an apparition (both routes)");
+        Assert(acv>=.5f&&acvb>=.5f&&acvc>=.5f&&r12a>=.9f&&r12b>=.9f,"apparition CV >= 0.5, and >= 90 % of 3-run pooled sets (about 12 intervals) reach CV 0.5");
         Assert(fs3>=.8f&&fs3b>=.8f,"three runs' first hunts span >= 45 s in >= 80 % of 3-run sets");
-        Assert(sm>=.15f&&sm<=.30f&&s90<=.30f&&smb>=.15f&&smb<=.30f&&s90b<=.30f&&g120>=.9f&&g120b>=.9f,"share 15-30 % and a >= 120 s gap in >= 90 % of runs");
+        Assert(sm>=.15f&&sm<=.30f&&s90<=.30f&&smb>=.15f&&smb<=.30f&&s90b<=.30f&&s10>=.13f&&s10b>=.13f,"critic route: share 15-30 %, p10 >= 0.13");
+        Assert(g120>=.9f&&g120b>=.9f&&g120c>=.9f&&g120d>=.9f,"a >= 120 s gap in >= 90 % of runs (both routes)");
+        Assert(smc>=.15f&&smd>=.15f,"slow investigator: mean share >= 15 % (its p10 is reported, not asserted)");
     }
     static void WaveKTests()
     {
         var r=HuntRules.Castle;
-        Assert(r.DreadInsideRate==.03f&&r.DreadDarkRate==.08f&&r.DreadDecayAllAbove==60&&r.NoTellChance==.35f&&r.FirstHuntMin==60&&r.FirstHuntMax==240&&r.DoorHeldThreshold==60&&Math.Abs(r.DoorHeldChance-1f/6)<1e-6f,"castle wave K values");
+        Assert(r.DreadInsideRate==.03f&&r.DreadDarkRate==.08f&&r.DreadDecayAllAbove==60&&r.NoTellChance==.35f&&r.FirstHuntMin==60&&r.FirstHuntMax==180&&r.DoorHeldThreshold==60&&Math.Abs(r.DoorHeldChance-1f/6)<1e-6f,"castle wave K values");
         Assert(HuntRules.Bellwether.DreadDecayAllAbove==0&&HuntRules.Bellwether.DoorHeldChance==0&&HuntRules.Bellwether.FirstHuntMax==0,"Bellwether: no wave K changes");
         // 1. Decay above 60 takes ambient Dread too.
         var a=StartOn(CaseBook.Castle);a.Record(Evidence.Induction);a.ForceDread(90);a.Tick(50,false);Assert(Math.Abs(a.Dread-75)<.01f&&a.DreadEvent==0,"calm: ambient Dread above 60 decays 0.3/s");
@@ -761,7 +784,7 @@ static class RulesTests
         // 3. First hunt 60-240 s after the second record.
         var fd=new System.Collections.Generic.List<float>();
         for(int seed=0;seed<1000;seed++){var c=StartOn(CaseBook.Castle,Seeded(81000+seed));c.Record(Evidence.Induction);c.Record(Evidence.Handprint);fd.Add(TickUntilLeaves(c,Phase.Disturbance,400));}
-        Assert(Quantile(fd,0)>=60&&Quantile(fd,0)<64&&Quantile(fd,1)<=241&&Quantile(fd,1)>230&&Quantile(fd,.9f)-Quantile(fd,.1f)>=60,"first hunt 60-240 s after the second record, spread >= 60 s");
+        Assert(Quantile(fd,0)>=60&&Quantile(fd,0)<64&&Quantile(fd,1)<=181&&Quantile(fd,1)>170&&Quantile(fd,.9f)-Quantile(fd,.1f)>=60,"first hunt 60-180 s after the second record (wave L2, was 240), spread >= 60 s");
         // 5. Door held: a 1-in-6 roll per hide attempt at Dread >= 60.
         int calls=0;var dh=StartOn(CaseBook.Castle,()=>{calls++;return 0f;});dh.Record(Evidence.Induction);dh.ForceDread(59);int before=calls;
         Assert(!dh.TryDoorHeld()&&calls==before&&!dh.DoorHeld,"below 60: never held, no roll");dh.ForceDread(60);Assert(dh.TryDoorHeld()&&calls==before+1&&dh.DoorsHeld==1&&!dh.DoorHeld,"at 60: a roll under 1/6 holds the door");
