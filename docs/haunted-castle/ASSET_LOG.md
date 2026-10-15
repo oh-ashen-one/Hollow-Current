@@ -192,3 +192,15 @@ for the Count (see `ASSET_LICENSES.md`); nothing generated ships, so no file nee
 Shipped art (all original project work, CC BY 4.0, no generated mesh): `HandRoot0..5.fbx`, `RootCrown.fbx`, `FloatingBook{Small,,Large}.fbx`,
 `BookClosed{Small,,Large}.fbx`, `RelicSocket{Blade,Hilt,Moon}.fbx`, `GiantSkeleton.fbx`, and nine materials: `Castle_BookLeatherA/B/C`,
 `Castle_BookPages`, `Castle_GiltWorn`, `Castle_RootBark`, `Castle_RootFlesh`, `Castle_BoneGrime`, `Castle_NicheStone`.
+
+## Wave L hidden-player beats (`hc/audio-l`, 2026-10-14): cost 0
+
+Requested by F3 after the r12 critic. CPU-only synthesis (damped modal impacts, shaped noise, formant-filtered whisper noise, synthetic reverb). Human listen is **not yet** for every clip: nothing here has been heard by a person, measurements only (`python3 tools/check_audio_quality.py`, `check_audio_keys.py`). Voices were deliberately not re-rendered at 48 kHz (reasons in `AUDIO.md`, section "Hidden-player beats and voice sample rate").
+
+| Clip | Origin / generator | Licence | Dur s | LUFS | Peak dBFS | Human listen |
+|---|---|---|---|---|---|---|
+| `castle_hide_breath_0.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 4.32 | -28.0 | -13.1 | not yet |
+| `castle_hide_breath_1.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 3.50 | -28.0 | -12.8 | not yet |
+| `castle_hide_clawstep.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 1.68 | -28.0 | -8.9 | not yet |
+| `castle_hide_handle.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 1.00 | -29.1 | -5.0 | not yet |
+| `castle_hide_whisper.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 2.90 | -28.0 | -13.7 | not yet |

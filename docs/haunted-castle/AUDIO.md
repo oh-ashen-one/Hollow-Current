@@ -23,6 +23,10 @@ Format: one-shots/loops are 48 kHz mono 16-bit WAV at about -30 LUFS integrated 
 | `claw_steps_0` .. `claw_steps_3` | 0.3 s each | Count's claw-on-stone footfalls (13): pick a random index, never the same twice in a row, one per step while he glides low or walks; cadence about 0.45 s | 0.05 outside hunts (the 5 % rule), 0.5 inside hunts, at the hunter | audible about 10 m at hunt volume; four distinct strikes (toe count, stone ring, scrape differ) | not yet |
 | `bat_pass` | 1.2 s | Castle dread beat (15): a bat crosses the torch beam; also usable for wingbeats overhead with no model (9) | 0.6 at the start of the bat's path (move the source along it if convenient) | audible about 16 m; loudest at 0.55 s | not yet |
 | `bell_single` | 2.9 s | Chapel bell tolls once by itself (15, a false tell). One strike of the existing `chapel_bell_toll`, tail cut to 3 s. Ringing the real bell still uses `chapel_bell_toll` | 0.9 at the bell | audible across most of the castle (about 40 m); do not stack with `chapel_bell_toll` | not yet |
+| `castle_hide_breath_0`, `castle_hide_breath_1` | 4.3 s / 3.5 s | Hidden-player beat (wave L, F3): close, slow breathing just outside the slats while the player is hidden and the Count has not seen them. Pick the variant at random (`"castle_hide_breath_"+n`, n 0..1), never the same twice in a row. Exhale-heavy (0) and inhale-first (1); a hoarse growl sits under each exhale | 0.6 at a point 0.5 m outside the hide-spot door | audible about 6 m; pitch jitter from `Cue` is fine; do not stack with `cc_hunt_smell` | not yet |
+| `castle_hide_clawstep` | 1.7 s | Hidden-player beat: one heavy clawed footstep passing the hide spot (three toes, a drag, a stone-passage tail), heard through a door | 0.7 at 1.5 m from the hide-spot door | audible about 10 m | not yet |
+| `castle_hide_handle` | 1.0 s | Hidden-player beat: an iron door-handle or wardrobe latch rattling in its staple, then the door shifting in its frame. Not the same sound as `door_rattle` (that one is 2.5 s of loose slats, used when the door is held or on the cupboard near-miss) | 0.8 at the hide-spot door | audible about 8 m | not yet |
+| `castle_hide_whisper` | 2.9 s | Hidden-player beat: an unintelligible whisper, no words (random vowel formants and fricatives, doubled voices 35 ms apart), in the room, just outside the hide spot | 0.5 at 2 m from the hide spot | audible about 7 m; never pair with a subtitle | not yet |
 
 ## Loops (new looping `AudioSource`s; `Soundscape.Loop` is 2D, so create spatial ones)
 
@@ -73,6 +77,12 @@ Every row carries a **Human listen** column. `not yet` means no person has liste
 ## Level and tail rules (wave K, `hc/audio4`)
 
 Castle voices (`voice_cc_*`) are set to the median integrated loudness of Bellwether's `Resources/Audio/voice_*` clips (-24.2 LUFS, BS.1770; `voice_evp` and `voice_whisper` are Bellwether's deliberately quiet ghost voices and are left out of that median), peaks at -5.5 to -9.5 dBFS. Trailing silence is cut to at most 0.15 s with a 60 ms fade (it was 1.5-1.9 s, so voice lengths in the tables above dropped by 1.4-1.9 s). This matters for pooling: spatial speech reserves a voice for the clip length. The three loops that clicked at the wrap (`crypt_blood_trickle` 0.033, `forge_hold_hum` 0.012, `candle_whisper_bed` 0.008 full scale) had their tail crossfaded into the head (0.3 s equal power, so each is 0.3 s shorter; wrap step now below 0.001). `bell_single` tail trimmed to 0.15 s. Pipeline order after any regeneration: `generate_open_voice.py --castle`, `audio_castle_sfx.py`, `audio_castle_fix.py`, then `check_audio_quality.py`.
+
+## Hidden-player beats and voice sample rate (wave L, `hc/audio-l`)
+
+The four `castle_hide_*` beats (five files: the breath has two variants) are 48 kHz mono, -28 to -29 LUFS (BS.1770, gated), peaks -5.0 to -13.7 dBFS (all below 0.6 full scale), trailing silence at most 0.15 s. `tools/check_audio_quality.py` enforces those three numbers for every `castle_hide_*` clip. Generator: `tools/audio_castle_sfx.py` (then `audio_castle_fix.py`).
+
+Voices stay at 22.05 kHz mono on purpose. eSpeak NG renders at 22.05 kHz only, and the Count chain low-passes at 3 kHz after the pitch drop, so a 48 kHz file would hold the same signal (measured: more than 5 kHz is 33 to 38 dB below the total, more than 8 kHz 60 dB below) at 2.2x the size. The ledger readings would be 1.6 MB each, over the 1 MB rule, and the voice set would grow from 7.8 MB to 17 MB. Unity resamples on import, so nothing in the mix depends on matching rates. If the owner wants 48 kHz containers anyway, add `from scipy.signal import resample_poly` to `audio_castle_fix.py` (22050 to 48000 is 320/147); the timbre would not change.
 
 ## Key check
 

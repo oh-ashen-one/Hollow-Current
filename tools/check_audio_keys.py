@@ -98,7 +98,9 @@ for f in files:
 # Keys the contracts promise even when no C# references them yet (AUDIO.md, FEAR_PLAN F4, wave G).
 CONTRACT=['heartbeat_loop','wind_battlements_loop','door_rattle','book_drop','knife_stick','claw_steps_0','claw_steps_1','claw_steps_2',
           'claw_steps_3','bat_pass','bell_single','voice_cc_kit','voice_cc_ending','voice_cc_contain','voice_cc_hint_signal',
-          'voice_cc_hint_trace','voice_cc_hint_voice','voice_cc_dispatch']
+          'voice_cc_hint_trace','voice_cc_hint_voice','voice_cc_dispatch',
+          'castle_hide_breath_0','castle_hide_breath_1','castle_hide_clawstep','castle_hide_handle','castle_hide_whisper']
+VARIANTS={'castle_hide_breath_':2}     # indexed sets that are not four clips long
 missing={}
 def need(key,found,where,why):
     if not found:missing.setdefault(key,[]).append(f'{where}  ({why})')
@@ -112,7 +114,7 @@ for kind,key,rel,line in uses:
     elif kind=='cc':
         need('voice_'+key,('voice_'+key) in CASTLE,where,'cc_ id literal')
     elif kind=='prefix':
-        for i in range(4):need(f'{key}{i}',(f'{key}{i}') in ANY,where,f'indexed clip "{key}"+n')
+        for i in range(VARIANTS.get(key,4)):need(f'{key}{i}',(f'{key}{i}') in ANY,where,f'indexed clip "{key}"+n')
     elif kind in ('Cue','Loop','CastleLoop','SpatialLoop','UI','Has','ContainsKey'):
         if key=='step':
             for sfc in SURFACES:
