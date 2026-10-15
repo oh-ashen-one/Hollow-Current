@@ -372,7 +372,9 @@ namespace HollowCurrent
             if(lit)
             {
                 // ~0.11 x 0.22 m teardrop plus a soft warm halo; the hero candle burns bigger and brighter. No point lights.
-                var flame=MakeCandleFlame(t,Vector3.up*.23f,hero?.34f:.22f,false,"Flame",hero?.55f:.24f);
+                // round 13: the old 0.22 m teardrop (0.4 m quad with its halo) was bigger than the candle. Now the flame is 6 cm tall
+                // (a little over real so it still reads at 6 m; 0.11 m quad with halo), the hero 9 cm.
+                var flame=MakeCandleFlame(t,Vector3.up*.175f,hero?.09f:.06f,false,"Flame",hero?.55f:.24f);
                 floater.flames=new[]{flame.transform};
             }
             return floater;

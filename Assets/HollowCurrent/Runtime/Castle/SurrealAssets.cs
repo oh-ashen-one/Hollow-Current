@@ -429,9 +429,9 @@ namespace HollowCurrent
             {
                 if(candleMesh)return candleMesh;
                 var b=new MeshBuilder(2);
-                // round 13 (hc/hall-l, same dimensions as hc/props-l: 30 cm long, 2.7 cm across at the foot): a turned taper with a melted collar
-                // at the foot, a wax pool in the top and a wick 2 cm long
-                b.Lathe(Vector3.zero,new[]{0f,.0125f,.0155f,.0138f,.0132f,.0124f,.0118f,.0124f,.008f,0f},new[]{-.15f,-.15f,-.138f,-.10f,0f,.10f,.134f,.15f,.146f,.143f},12,0);
+                // round 13 (hc/hall-l; same size as hc/props-l: 30 cm long, 2.7 cm across at the foot, wick 2 cm): a turned taper with a melted collar
+                // at the foot (a little wider than the shaft), a wax pool in the top; round, 12 sides, smooth normals
+                b.Lathe(Vector3.zero,new[]{0f,.0135f,.0165f,.0145f,.0138f,.0128f,.0120f,.0125f,.008f,0f},new[]{-.15f,-.15f,-.138f,-.10f,0f,.10f,.134f,.15f,.146f,.143f},12,0);
                 b.Box(new Vector3(0,.16f,0),new Vector3(.004f,.02f,.004f),Quaternion.identity,1);
                 return candleMesh=b.Build("Surreal floating candle");
             }

@@ -810,6 +810,107 @@
   ],
   "tris": 1592
  },
+ "RelicTablet": {
+  "budget": 6000,
+  "bytes": 95180,
+  "file": "Assets/HollowCurrent/Resources/Castle/RelicTablet.fbx",
+  "materials": [
+   "Castle_NicheStone",
+   "Castle_GiltWorn",
+   "Castle_RuneGlow"
+  ],
+  "max": [
+   0.44,
+   1.02,
+   0.1225
+  ],
+  "min": [
+   -0.44,
+   -1.02,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "RelicTablet": {
+    "max": [
+     0.44,
+     1.02,
+     0.1225
+    ],
+    "min": [
+     -0.44,
+     -1.02,
+     0.0
+    ],
+    "size": [
+     0.88,
+     2.04,
+     0.1225
+    ],
+    "tris": 1413
+   },
+   "RuneBlade": {
+    "max": [
+     0.062,
+     -0.3582,
+     0.0873
+    ],
+    "min": [
+     -0.062,
+     -0.9597,
+     0.0848
+    ],
+    "size": [
+     0.124,
+     0.6016,
+     0.0025
+    ],
+    "tris": 204
+   },
+   "RuneHilt": {
+    "max": [
+     0.1835,
+     0.2018,
+     0.0873
+    ],
+    "min": [
+     -0.1835,
+     -0.2035,
+     0.0848
+    ],
+    "size": [
+     0.3669,
+     0.4053,
+     0.0025
+    ],
+    "tris": 192
+   },
+   "RuneMoon": {
+    "max": [
+     0.1542,
+     0.8042,
+     0.0873
+    ],
+    "min": [
+     -0.1526,
+     0.4973,
+     0.0848
+    ],
+    "size": [
+     0.3068,
+     0.3068,
+     0.0025
+    ],
+    "tris": 780
+   }
+  },
+  "size": [
+   0.88,
+   2.04,
+   0.1225
+  ],
+  "tris": 2589
+ },
  "RootCrown": {
   "budget": 1200,
   "bytes": 33884,
@@ -854,5 +955,146 @@
    1.0137
   ],
   "tris": 672
+ },
+ "Tome": {
+  "budget": 1500,
+  "bytes": 23516,
+  "file": "Assets/HollowCurrent/Resources/Castle/Tome.fbx",
+  "materials": [
+   "Castle_BookLeatherA",
+   "Castle_BookPages",
+   "Castle_GiltWorn"
+  ],
+  "max": [
+   0.11,
+   0.15,
+   0.0777
+  ],
+  "min": [
+   -0.1503,
+   -0.15,
+   -0.0027
+  ],
+  "notes": {},
+  "parts": {
+   "Tome": {
+    "max": [
+     0.11,
+     0.15,
+     0.0777
+    ],
+    "min": [
+     -0.1503,
+     -0.15,
+     -0.0027
+    ],
+    "size": [
+     0.2603,
+     0.3,
+     0.0805
+    ],
+    "tris": 246
+   }
+  },
+  "size": [
+   0.2603,
+   0.3,
+   0.0805
+  ],
+  "tris": 246
+ },
+ "TomeLarge": {
+  "budget": 1500,
+  "bytes": 24124,
+  "file": "Assets/HollowCurrent/Resources/Castle/TomeLarge.fbx",
+  "materials": [
+   "Castle_BookLeatherC",
+   "Castle_BookPages",
+   "Castle_GiltWorn"
+  ],
+  "max": [
+   0.1541,
+   0.201,
+   0.1045
+  ],
+  "min": [
+   -0.2014,
+   -0.201,
+   -0.0037
+  ],
+  "notes": {},
+  "parts": {
+   "TomeLarge": {
+    "max": [
+     0.1541,
+     0.201,
+     0.1045
+    ],
+    "min": [
+     -0.2014,
+     -0.201,
+     -0.0037
+    ],
+    "size": [
+     0.3555,
+     0.402,
+     0.1082
+    ],
+    "tris": 270
+   }
+  },
+  "size": [
+   0.3555,
+   0.402,
+   0.1082
+  ],
+  "tris": 270
+ },
+ "TomeSmall": {
+  "budget": 1500,
+  "bytes": 23500,
+  "file": "Assets/HollowCurrent/Resources/Castle/TomeSmall.fbx",
+  "materials": [
+   "Castle_BookLeatherB",
+   "Castle_BookPages",
+   "Castle_GiltWorn"
+  ],
+  "max": [
+   0.0792,
+   0.108,
+   0.056
+  ],
+  "min": [
+   -0.1082,
+   -0.108,
+   -0.002
+  ],
+  "notes": {},
+  "parts": {
+   "TomeSmall": {
+    "max": [
+     0.0792,
+     0.108,
+     0.056
+    ],
+    "min": [
+     -0.1082,
+     -0.108,
+     -0.002
+    ],
+    "size": [
+     0.1874,
+     0.216,
+     0.058
+    ],
+    "tris": 246
+   }
+  },
+  "size": [
+   0.1874,
+   0.216,
+   0.058
+  ],
+  "tris": 246
  }
 }

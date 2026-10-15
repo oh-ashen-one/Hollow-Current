@@ -41,6 +41,8 @@ namespace HollowCurrent
             public const string HandRoot0 = "HandRoot0", HandRoot1 = "HandRoot1", HandRoot2 = "HandRoot2", HandRoot3 = "HandRoot3", HandRoot4 = "HandRoot4", HandRoot5 = "HandRoot5", RootCrown = "RootCrown";
             public const string FloatingBookSmall = "FloatingBookSmall", FloatingBookLarge = "FloatingBookLarge", BookClosedSmall = "BookClosedSmall", BookClosed = "BookClosed", BookClosedLarge = "BookClosedLarge";
             public const string RelicSocketBlade = "RelicSocketBlade", RelicSocketHilt = "RelicSocketHilt", RelicSocketMoon = "RelicSocketMoon";
+            // round 13 (hc/props-l): one carved relic tablet, thick closed tomes for the floating books
+            public const string RelicTablet = "RelicTablet", TomeSmall = "TomeSmall", Tome = "Tome", TomeLarge = "TomeLarge";
             public const string StringCourse = "StringCourse", Corbel = "Corbel", GargoyleSpout = "GargoyleSpout", TapestryPanel = "TapestryPanel";
             // round 13 (hc/hall-l, tools/castle_hall_kit.py): the great hall kit and the chapel sunburst; front = +Z at yaw 0 for these (the axis is baked, see the generator)
             public const string HallColumn = "HallColumn", HallCorbel = "HallCorbel", HallPlinth = "HallPlinth", HallStringCourse = "HallStringCourse", HallVault = "HallVault", Candlestick = "Candlestick", ChapelSunburst = "ChapelSunburst";
@@ -63,7 +65,7 @@ namespace HollowCurrent
             Names.MoonstoneSword, Names.RelicBlade, Names.RelicHilt, Names.RelicMoonstone,
             Names.HandRoot0, Names.HandRoot1, Names.HandRoot2, Names.HandRoot3, Names.HandRoot4, Names.HandRoot5, Names.RootCrown,
             Names.FloatingBookSmall, Names.FloatingBookLarge, Names.BookClosedSmall, Names.BookClosed, Names.BookClosedLarge,
-            Names.RelicSocketBlade, Names.RelicSocketHilt, Names.RelicSocketMoon
+            Names.RelicSocketBlade, Names.RelicSocketHilt, Names.RelicSocketMoon, Names.RelicTablet, Names.TomeSmall, Names.Tome, Names.TomeLarge
         };
 
         // The Blender FBX -> Unity axis conversion could not be verified without launching Unity. Authoring assumes the standard
