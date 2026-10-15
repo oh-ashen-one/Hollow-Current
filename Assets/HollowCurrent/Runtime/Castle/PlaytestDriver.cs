@@ -45,6 +45,7 @@ namespace HollowCurrent
         void OnLog(string message,string stack,LogType type)
         {
             foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}
+            if(message.StartsWith("HC_COUNT_GRAB mode=",StringComparison.Ordinal)){var mm=message.Substring(19);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm))lastGrabMode=gm;}
             if(game&&game.Case!=null)
             {
                 if(message.StartsWith("HC_SCARE visible=",StringComparison.Ordinal))scareTimes.Add(game.Case.Elapsed);
@@ -102,10 +103,50 @@ namespace HollowCurrent
             return "huntsNonReturn="+nonReturn+" withinScare10s="+afterScare+" pctWithinScare10s="+(nonReturn>0?(100f*afterScare/nonReturn).ToString("F0"):"n/a")
                 +" apparitions="+scareTimes.Count+" apparitionCV="+cv+" apparitionTimes=["+arrivals.ToString().TrimEnd(',')+"]"
                 +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
-                +" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0");
+                +" grabContinuity="+continuityPass+"/"+continuityGrabs+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0");
         }
         readonly Queue<(string name,string measures)> pendingGrabShots=new Queue<(string,string)>();
-        void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));}
+        void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));GrabContinuity();}
+        // Wave L3 continuity measure (critic r13 kill pass), per grab, from the skull's world position every frame (after animation):
+        //   commit: the skull at the first grab-camera frame is within 0.5 m of the last dive frame's skull;
+        //   fall (drop modes 8 and 12): no frame before the skull's lowest point rises more than 0.05 m (moving against the fall);
+        //   step: no frame step exceeds the clip's own skull speed x dt + 0.3 m, the clip speed taken as the median step of the
+        //   neighbouring frames (+-5) so a one-frame pop stands out from fast clip motion.
+        // HC_PLAY_GRAB_CONTINUITY per grab with the offending frame; totals in HC_PLAY_STATS.
+        int lastGrabMode=-1,continuityGrabs,continuityPass;Vector3 lastDiveSkull;bool haveDiveSkull;float grabT0;int grabModeAtCommit;
+        readonly List<(float t,Vector3 p)> grabSkull=new List<(float,Vector3)>();
+        void GrabContinuity()
+        {
+            if(!game||!game.Creature||game.Map!=MapId.Castle)return;
+            var cr=game.Creature;bool cam=cr.GrabCamActive;var skull=cr.HeadPosition;
+            if(!inGrab&&!cam&&cr.Diving){lastDiveSkull=skull;haveDiveSkull=true;}
+            if(cam&&!inGrab){inGrab=true;grabEvaluated=false;grabSkull.Clear();grabT0=Time.time;grabModeAtCommit=lastGrabMode;}
+            if(inGrab&&!grabEvaluated)
+            {
+                if(cam&&Time.time-grabT0<=1.2f)grabSkull.Add((Time.time-grabT0,skull));
+                if((!cam||Time.time-grabT0>1.2f)&&grabSkull.Count>0){EvaluateGrab();grabEvaluated=true;}
+            }
+            if(!cam&&inGrab){inGrab=false;haveDiveSkull=false;}
+        }
+        bool inGrab,grabEvaluated;
+        void EvaluateGrab()
+        {
+            continuityGrabs++;var g=grabSkull;int mode=grabModeAtCommit;bool drop=mode==8||mode==12;
+            float commitGap=haveDiveSkull?Vector3.Distance(lastDiveSkull,g[0].p):-1;bool commitOk=commitGap<0||commitGap<=.5f;
+            int low=0;for(int i=1;i<g.Count;i++)if(g[i].p.y<g[low].p.y)low=i;
+            string against="none";bool fallOk=true;
+            if(drop)for(int i=1;i<=low;i++)if(g[i].p.y-g[i-1].p.y>.05f){fallOk=false;against="t="+g[i].t.ToString("F2")+" rise="+(g[i].p.y-g[i-1].p.y).ToString("F2");break;}
+            var steps=new List<float>();for(int i=1;i<g.Count;i++)steps.Add(Vector3.Distance(g[i].p,g[i-1].p));
+            string pop="none";bool stepOk=true;float maxStep=0;
+            for(int i=0;i<steps.Count;i++)
+            {
+                var near=new List<float>();for(int j=Mathf.Max(0,i-5);j<=Mathf.Min(steps.Count-1,i+5);j++)if(j!=i)near.Add(steps[j]);
+                near.Sort();float clip=near.Count>0?near[near.Count/2]:0;maxStep=Mathf.Max(maxStep,steps[i]);
+                if(steps[i]>clip+.3f&&stepOk){stepOk=false;pop="t="+g[i+1].t.ToString("F2")+" step="+steps[i].ToString("F2")+" limit="+(clip+.3f).ToString("F2");}
+            }
+            bool pass=commitOk&&fallOk&&stepOk;if(pass)continuityPass++;
+            Debug.Log("HC_PLAY_GRAB_CONTINUITY n="+continuityGrabs+" mode="+mode+" frames="+g.Count+" commit_gap="+(commitGap<0?"n/a":commitGap.ToString("F2"))+" commit_ok="+commitOk+" fall_ok="+(drop?fallOk.ToString():"n/a")+" against="+against+" step_ok="+stepOk+" max_step="+maxStep.ToString("F2")+" pop="+pop+" pass="+pass);
+        }
         bool grabShotBusy;
         IEnumerator GrabShot((string name,string measures) g)
         {
@@ -480,9 +521,9 @@ namespace HollowCurrent
             yield return Finish();
         }
         // siege -hc-hold-dread d (wave L): real dice and real near-miss/grab rolls with Dread held in d-10..d+10 (driver-forced to d
-        // when it leaves the band, logged). Hidden with the torch off in the far hide; after every hunt she leaves the hide and, 4 s
+        // when it leaves the band, logged). Hidden with the torch off in the far hide; after every hunt she leaves the hide and, 2 s
         // later, re-enters it (Dread raised to at least 60 first, so each entry is a door-held roll; a held door is retried every
-        // 3 s). Ends after 6 hidden hunts or 15 minutes. Proves: near-miss open or a grab, HC_DOOR_HELD, hidden survival %.
+        // 3 s). Ends after 6 hidden hunts or 20 minutes (wave L3: 15 minutes reached only 5). Proves: near-miss open or a grab, HC_DOOR_HELD, hidden survival %.
         IEnumerator SiegeHeld()
         {
             var c=game.Case;yield return Opening(false);
@@ -491,7 +532,7 @@ namespace HollowCurrent
             ForceDread(Mathf.Max(60,HoldDread),"siege-held entry");
             if(hide)yield return Use(hide,"hiding place "+hide.Label);
             yield return Step("siege_held_hidden",(hide?hide.name:"none")+" band="+lo.ToString("F0")+"-"+hi.ToString("F0"));
-            float end=Time.realtimeSinceStartup+900;int attempts=1,held=0;Phase last=c.Phase;bool hadHunt=false;float rehideAt=-1;
+            float end=Time.realtimeSinceStartup+1200;int attempts=1,held=0;Phase last=c.Phase;bool hadHunt=false;float rehideAt=-1;
             while(Time.realtimeSinceStartup<end&&hiddenHunts<6)
             {
                 if(c.Terminal)break;
@@ -503,7 +544,7 @@ namespace HollowCurrent
                 }
                 bool quiet=c.Phase!=Phase.Hunt&&c.Phase!=Phase.Warning;
                 // After a hunt: step out, then back in after 4 s.
-                if(hadHunt&&quiet&&game.Player.Hidden){yield return Press(i=>i.Use=true);hadHunt=false;rehideAt=Time.realtimeSinceStartup+4;Debug.Log("HC_PLAY_SIEGE_HELD left hide dread="+c.Dread.ToString("F1"));}
+                if(hadHunt&&quiet&&game.Player.Hidden){yield return Press(i=>i.Use=true);hadHunt=false;rehideAt=Time.realtimeSinceStartup+2;Debug.Log("HC_PLAY_SIEGE_HELD left hide dread="+c.Dread.ToString("F1"));}
                 if(!game.Player.Hidden&&hide&&(rehideAt<0||Time.realtimeSinceStartup>=rehideAt||!quiet))
                 {
                     if(c.Dread<60)ForceDread(Mathf.Max(60,HoldDread),"siege-held re-entry at door-held Dread");
