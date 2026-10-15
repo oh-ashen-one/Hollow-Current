@@ -53,11 +53,19 @@ namespace HollowCurrent
             // Wave K: a screenshot at every grab-camera sample (commit, +0.3 s, +1.0 s, kill), named by kind and time.
             if(message.StartsWith("HC_COUNT_GRABCAM t=",StringComparison.Ordinal))
             {
-                string kind="grab",tt="t";
-                foreach(var part in message.Split(' ')){if(part.StartsWith("kind=",StringComparison.Ordinal))kind=part.Substring(5);if(part.StartsWith("t=",StringComparison.Ordinal))tt=part.Substring(2);}
-                pendingGrabShots.Enqueue("grabcam_"+kind+"_t"+tt);
+                // Wave L: count-l logs path= (kind= before count17) and the pixel measures skull_in_central60= / claw_px_proj=; they are
+                // written next to the frame name in grabcam.txt so the critic can check the measure against the picture.
+                string kind="grab",tt="t";var keep=new System.Text.StringBuilder();
+                foreach(var part in message.Split(' '))
+                {
+                    if(part.StartsWith("kind=",StringComparison.Ordinal)||part.StartsWith("path=",StringComparison.Ordinal))kind=part.Substring(5);
+                    if(part.StartsWith("t=",StringComparison.Ordinal))tt=part.Substring(2);
+                    foreach(var k in GrabKeys)if(part.StartsWith(k,StringComparison.Ordinal))keep.Append(part).Append(' ');
+                }
+                pendingGrabShots.Enqueue(("grabcam_"+kind+"_t"+tt,keep.ToString().Trim()));
             }
         }
+        static readonly string[] GrabKeys={"t=","path=","kind=","visible=","blend=","kill=","mode=","skull_px=","skull_in_central60=","claw_px_proj=","claw_ok=","eyeToSkull=","headAboveEye="};
         // Wave L run statistics (r12 critic pass tests), printed as HC_PLAY_STATS by Finish: apparition times, hunt starts,
         // threat time (Warning, Hunt, hostile Return), the longest stretch without one, and hunts spent hidden.
         readonly List<float> scareTimes=new List<float>();
@@ -96,10 +104,16 @@ namespace HollowCurrent
                 +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
                 +" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0");
         }
-        readonly Queue<string> pendingGrabShots=new Queue<string>();
+        readonly Queue<(string name,string measures)> pendingGrabShots=new Queue<(string,string)>();
         void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));}
         bool grabShotBusy;
-        IEnumerator GrabShot(string name){grabShotBusy=true;yield return Shot(name);grabShotBusy=false;}
+        IEnumerator GrabShot((string name,string measures) g)
+        {
+            grabShotBusy=true;yield return Shot(g.name);
+            string file=shot.ToString("00")+"_"+g.name+".png";
+            File.AppendAllText(Path.Combine(OutDir,"grabcam.txt"),file+"\t"+g.measures+"\n");Debug.Log("HC_PLAY_GRABSHOT "+file+" "+g.measures);
+            grabShotBusy=false;
+        }
         int Tag(string t)=>tags.TryGetValue(t,out int n)?n:0;
         void OnDestroy(){Application.logMessageReceived-=OnLog;}
         // The owner's window size is put back by Game.RestoreOwnerWindow on quit.
