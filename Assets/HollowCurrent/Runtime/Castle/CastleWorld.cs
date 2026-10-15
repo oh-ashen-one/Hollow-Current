@@ -619,6 +619,17 @@ namespace HollowCurrent
             // The leaf must extend toward -Z (over the moat). If the FBX axis conversion put the mesh on the +Z side (into the
             // gatehouse, which is why no bridge showed from the far bank), turn it about the hinge. The chains follow the same fix.
             var leafArt = CastleArt.Place(Art.Drawbridge, hinge.transform, Vector3.zero, Quaternion.identity);
+            // r13 (gate_out_S6 showed a wall of planks; hiding the Drawbridge renderer cleared it): the leaf art must lie flat in the
+            // hinge frame (deck thickness 0.25 m). If its centre sits more than 1 m above or below the hinge, the FBX came in standing
+            // on end: turn it about X so the deck runs out toward -Z. Logged at prepare time.
+            var leafCentre = ArtLocalCentre(leafArt, hinge.transform);
+            if (Mathf.Abs(leafCentre.y) > 1f)
+            {
+                float rx = leafCentre.y > 0 ? -90f : 90f;
+                leafArt.transform.localRotation = Quaternion.Euler(rx, 0, 0) * leafArt.transform.localRotation;
+                Debug.Log("HC_DRAWBRIDGE_AXIS leaf centre " + leafCentre + " in the hinge frame: turned " + rx + " deg about X, now " + ArtLocalCentre(leafArt, hinge.transform));
+            }
+            else Debug.Log("HC_DRAWBRIDGE_AXIS ok leaf centre " + leafCentre);
             float artYaw = 0;
             if (ArtLocalCentre(leafArt, hinge.transform).z > 0) { artYaw = 180; leafArt.transform.localRotation = Quaternion.Euler(0, 180, 0); }
             // planks (round 8): the leaf already carries Castle_OakPlank (look6) but it read as a dark strip from 14 m (luma 24). Its plank
