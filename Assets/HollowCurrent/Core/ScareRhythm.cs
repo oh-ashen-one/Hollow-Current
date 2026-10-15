@@ -10,6 +10,8 @@ namespace HollowCurrent
         float quietUntil=35,nextAppearance=65;
         public bool CanSurprise=>Age>=quietUntil;
         public bool AppearanceDue=>CanSurprise&&Age>=nextAppearance;
+        // Seconds until AppearanceDue (0 or less = due now). Wave L integrator: the castle director checks at this moment.
+        public float DueIn=>Math.Max(quietUntil,nextAppearance)-Age;
         public void Tick(float dt){if(dt<0||float.IsNaN(dt)||float.IsInfinity(dt))throw new ArgumentOutOfRangeException(nameof(dt));Age+=dt;}
         // Castle (r10 rerun) sets Spacing 60 and AppearanceBase/Spread 60/50; the defaults are Bellwether's 90 and 105-165 s.
         public float Spacing=MinimumSpacing,AppearanceBase=105,AppearanceSpread=60;

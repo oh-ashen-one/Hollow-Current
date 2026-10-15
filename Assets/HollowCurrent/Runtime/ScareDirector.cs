@@ -83,6 +83,9 @@ namespace HollowCurrent
             if(!approachingHunt&&rhythm.AppearanceDue)Trigger();
             else{if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=rhythm canSurprise="+rhythm.CanSurprise+" age="+rhythm.Age.ToString("F0"));Dread();}
             next=IsCastle?Random.Range(12f,25f):Random.Range(22f,38f); // castle: check the rhythm more often
+            // Wave L (r13 natural1: drawn 45-70 s gaps arrived as 80+ s because the 12-25 s check landed late): the castle checks again
+            // when the clock comes due, so arrivals follow the irregular draw. Only while not yet due, so a failed Trigger is not retried fast.
+            if(IsCastle&&rhythm.DueIn>0)next=Mathf.Min(next,rhythm.DueIn+.25f);
         }
         public void Dread()
         {
