@@ -148,6 +148,60 @@ if not esc or "reason=" not in esc or "substitute=" not in esc:
     failures.append("Escalate must log reason= and substitute=")
 print("budget table: %d entries %s" % (len(table), sorted(table)))
 
+# 4d. hidden-player beats (critic r12): own budgets, own clock, and no-tell parity. The four hide_* kinds must have budget entries
+# (gap >= 90 s), TickHidden must run a 40-70 s clock, and the only phases it may read are Briefing (no run) and Hunt (the 5 s guard);
+# HiddenBeat and the kind coroutines must read no phase, HuntActive, NoTellHunt or FalseWarning (a hidden beat equally likely in Calm and Hunt).
+for kind in ("hide_breath", "hide_clawstep", "hide_handle", "hide_whisper"):
+    if kind not in table:
+        failures.append("hidden beat %s has no BudgetTable entry" % kind)
+    elif table[kind][1] < 90 or table[kind][0] < 1:
+        failures.append("hidden beat %s budget too loose: %s" % (kind, table[kind]))
+    if 'HideKeys' not in scares or '"%s"' % kind not in scares:
+        failures.append("hidden beat %s is not in HideKeys" % kind)
+tick_hidden = body(scares, "void TickHidden(")
+if not tick_hidden:
+    failures.append("TickHidden missing")
+else:
+    if "Random.Range(40f,70f)" not in tick_hidden:
+        failures.append("TickHidden must re-arm its clock with Random.Range(40f,70f)")
+    if "PhaseTime<5" not in tick_hidden:
+        failures.append("TickHidden must keep hidden beats out of the first 5 s of a hunt")
+    phases = set(re.findall(r"Phase\.(\w+)", tick_hidden))
+    if phases - {"Briefing", "Hunt"}:
+        failures.append("TickHidden reads phases beyond Briefing/Hunt: %s" % sorted(phases))
+    if re.search(r"HuntActive|NoTellHunt|FalseWarning|Dread", tick_hidden):
+        failures.append("TickHidden reads hunt state or Dread (parity)")
+for name in ("public bool HiddenBeat(", "IEnumerator HideBreath(", "IEnumerator HideClaws(", "IEnumerator HideHandle("):
+    text = body(scares, name)
+    if text is None:
+        failures.append("missing " + name)
+    elif re.search(r"\bPhase\b|HuntActive|NoTellHunt|FalseWarning|\.Dread\b", re.sub(r'Debug\.Log\([^;]*;', '', text)):
+        failures.append(name + " depends on phase or Dread (hidden beats must be equally likely in Calm and Hunt)")
+# placeholder audio: every placeholder in HideClips exists on disk (the wanted castle_hide_* keys may not yet, F4)
+audio_dir = ROOT / "Assets/HollowCurrent/Resources"
+stems = set()
+for d in ("Audio", "HiggsfieldAudio", "CastleAudio"):
+    if (audio_dir / d).is_dir():
+        stems |= {f.stem for f in (audio_dir / d).iterdir() if f.suffix.lower() in (".wav", ".ogg", ".mp3")}
+clips = re.search(r"HideClips=\{(.*?)\};", scares, re.S)
+pairs = re.findall(r'"([^"]+)"', clips.group(1)) if clips else []
+if len(pairs) != 8:
+    failures.append("HideClips must hold 4 (wanted, placeholder) pairs")
+for wanted, placeholder in zip(pairs[0::2], pairs[1::2]):
+    ok = placeholder in stems or (placeholder.endswith("_") and all((placeholder + str(i)) in stems for i in range(4)))
+    if not ok:
+        failures.append("placeholder %s for %s does not exist on disk" % (placeholder, wanted))
+    present = (wanted + "0") in stems and (wanted + "1") in stems if wanted.endswith("_") else wanted in stems  # a trailing _ = two-variant set _0/_1
+    print("hidden clip %s -> %s (%s)" % (wanted, "present" if present else "waiting on F4, placeholder " + placeholder, "ok" if ok else "MISSING"))
+
+# 4e. escalation rule seam (critic r12: hunts chained to apparitions)
+rule = body(scares, "bool RuleAllows(")
+if not rule or "first_apparition" not in rule or "recent_escalation_born" not in rule or ".15f" not in rule or ".25f" not in rule:
+    failures.append("RuleAllows must refuse the first apparition and recent escalation-born hunts and use 15 % lit / 25 % dark")
+esc2 = body(scares, "public bool Escalate(")
+if esc2 and "RuleAllows(" not in esc2:
+    failures.append("Escalate must consult RuleAllows")
+
 # 5. Bellwether isolation: CastleScares is only reached through the castle gate in the director
 if "IsCastle" not in director:
     failures.append("ScareDirector has no IsCastle gate")

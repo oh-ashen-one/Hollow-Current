@@ -55,7 +55,7 @@ namespace HollowCurrent
         {
             {"book_drop",new[]{6,90}},{"knife_stick",new[]{4,90}},{"bat_pass",new[]{6,90}},{"bell_single",new[]{2,240}},{"candle_gutter",new[]{6,90}},
             {"silence",new[]{8,90}},{"poltergeist",new[]{3,150}},{"window_silhouette",new[]{8,90}},{"balustrade_shape",new[]{3,180}},
-            {"false_candle_tell",new[]{5,90}},{"false_compass",new[]{4,120}},{"phantom_listen",new[]{1,100000}},{"footsteps_behind",new[]{6,90}},
+            {"false_candle_tell",new[]{5,90}},{"hide_breath",new[]{8,90}},{"hide_clawstep",new[]{8,90}},{"hide_handle",new[]{8,90}},{"hide_whisper",new[]{8,90}},{"false_compass",new[]{4,120}},{"phantom_listen",new[]{1,100000}},{"footsteps_behind",new[]{6,90}},
         };
         readonly Dictionary<string,BeatBudget> budgets=new Dictionary<string,BeatBudget>();
         string lastKey="",pickNote="direct";
@@ -94,10 +94,10 @@ namespace HollowCurrent
         }
         static readonly string[] BeatKeys={"book_drop","knife_stick","bat_pass","bell_single","candle_gutter"};
         // Draws beat indices (into BeatKeys) without replacement, each by Weight; `from` limits the candidates.
-        List<int> WeightedOrder(int[] from,out List<float> weights,out float total)
+        List<int> WeightedOrder(string[] keys,int[] from,out List<float> weights,out float total)
         {
             var order=new List<int>();weights=new List<float>();var pool=new List<int>(from);var w=new List<float>();total=0;
-            foreach(int i in pool){float x=Weight(BeatKeys[i]);w.Add(x);total+=x;}
+            foreach(int i in pool){float x=Weight(keys[i]);w.Add(x);total+=x;}
             float firstTotal=total;
             while(pool.Count>0)
             {
@@ -151,6 +151,125 @@ namespace HollowCurrent
             if(shape)TickShape();
             else if(shapeArmed)TryPlaceShape();
             TickAmbient();
+            TrackHunts();
+            TickHidden();
+        }
+
+        // ---- the hidden player gets beats too (critic r12: 12 minutes in one wardrobe produced 1 scare event) -------------------------------
+        // While the player is hidden the ordinary layer is off (Active needs !Hidden), so this runs on its own clock: the first beat 20-45 s
+        // after hiding, then one every 40-70 s, each a breath at the slats, a claw step passing the hide, a handle rattle (a lie) or a whisper
+        // (a lie), drawn by Weight from the hide_* budgets. The clock and the draw are identical in every phase, so a hidden beat is as likely
+        // in a calm stretch as in a hunt and says nothing about either; the one exception is the first 5 s of a hunt, which it never covers.
+        // Audio: wanted keys from F4 (castle_hide_*), existing clips as placeholders until they land (HideClips; resolved with Sound.Has).
+        static readonly string[] HideKeys={"hide_breath","hide_clawstep","hide_handle","hide_whisper"};
+        // pairs of (wanted F4 key, placeholder that exists today); the wanted key is used as soon as its clip is in CastleAudio. A wanted key ending in "_"
+        // is a two-variant set (castle_hide_breath_0 / _1): it is used once both exist, one chosen at random each time.
+        static readonly string[] HideClips={"castle_hide_breath_","breath_presence","castle_hide_clawstep","claw_steps_","castle_hide_handle","door_rattle","castle_hide_whisper","breath_presence"};
+        float hiddenFor,hiddenNext=-1;
+        void TickHidden()
+        {
+            // tell-safe: Briefing and Dead/Won have no run to hide in; no other phase is read here.
+            if(!Present||!game.Player.Hidden||game.Case.Phase==Phase.Briefing||game.Case.Terminal){hiddenFor=0;hiddenNext=-1;return;}
+            hiddenFor+=Time.deltaTime;
+            if(hiddenNext<0)hiddenNext=Random.Range(20f,45f);
+            hiddenNext-=Time.deltaTime;
+            if(hiddenNext>0)return;
+            // tell-safe: the only phase-dependent rule: a beat that falls due in the first 5 s of a hunt waits until they are over, so it never
+            // covers the Count's own entrance. The 40-70 s clock is otherwise the same in every phase.
+            if(game.Case.Phase==Phase.Hunt&&game.Case.PhaseTime<5){hiddenNext=5-game.Case.PhaseTime;return;}
+            hiddenNext=Random.Range(40f,70f);
+            if(!HiddenBeat())hiddenNext=10f; // every hidden budget is spent or cooling: try again soon
+        }
+        string HideClip(int kind)
+        {
+            string wanted=HideClips[kind*2],fallback=HideClips[kind*2+1];
+            if(wanted.EndsWith("_"))
+            {
+                // two-variant set: both files must exist before it replaces the placeholder
+                if(game.Sound.Has(wanted+"0")&&game.Sound.Has(wanted+"1"))return wanted+Random.Range(0,2);
+            }
+            else if(game.Sound.Has(wanted))return wanted;
+            if(fallback.EndsWith("_"))fallback+=Random.Range(0,4);
+            return fallback;
+        }
+        Interactable NearestHide()
+        {
+            Interactable best=null;float bestDistance=float.MaxValue;var at=game.Player.transform.position;
+            foreach(var item in FindObjectsByType<Interactable>(FindObjectsSortMode.None))
+            {
+                if(item.Kind!=InteractKind.Hide)continue;
+                float d=Vector3.Distance(item.HidePoint,at);
+                if(d<bestDistance){bestDistance=d;best=item;}
+            }
+            return best;
+        }
+        public bool HiddenBeat()
+        {
+            if(!Present||!game.Player.Hidden)return false;
+            var spot=NearestHide();
+            if(!spot)return false;
+            var door=spot.transform.position;
+            var outward=Vector3.ProjectOnPlane(spot.ExitPoint-spot.HidePoint,Vector3.up);
+            if(outward.sqrMagnitude<.01f)outward=spot.transform.forward;
+            outward.Normalize();
+            var order=WeightedOrder(HideKeys,new[]{0,1,2,3},out var weights,out float total);
+            for(int i=0;i<order.Count;i++)
+            {
+                int kind=order[i];string key=HideKeys[kind];
+                pickNote="hidden weighted w="+weights[i].ToString("F2")+"/"+total.ToString("F2")+" rank="+(i+1);
+                Log(key);
+                pickNote="direct";
+                Debug.Log("HC_HIDE kind="+key+" hidden_s="+hiddenFor.ToString("F0")+" phase="+game.Case.Phase+" door="+door.ToString("F1")+" clip="+HideClip(kind));
+                switch(kind)
+                {
+                    case 0:StartCoroutine(HideBreath(HideClip(0),door+Vector3.up*.5f,outward));break;
+                    case 1:StartCoroutine(HideClaws(door,outward));break;
+                    case 2:StartCoroutine(HideHandle(HideClip(2),door));break;
+                    default:game.Sound.Cue(HideClip(3),door+outward*.9f+Vector3.up*.6f,.35f);break;
+                }
+                return true;
+            }
+            return false;
+        }
+        IEnumerator HideBreath(string clip,Vector3 at,Vector3 outward)
+        {
+            game.Sound.Cue(clip,at+outward*.15f,.55f);
+            yield return new WaitForSeconds(Random.Range(1.4f,2.2f));
+            if(Ready)game.Sound.Cue(clip,at+outward*.15f,.4f);
+        }
+        // Three to five claw steps passing along the outside of the door, 1.2 m from it, left to right or right to left.
+        IEnumerator HideClaws(Vector3 door,Vector3 outward)
+        {
+            var tangent=Vector3.Cross(Vector3.up,outward).normalized*(Random.value<.5f?-1:1);
+            int steps=Random.Range(4,6);
+            for(int k=0;k<steps;k++)
+            {
+                if(!Ready)yield break;
+                float along=-1.8f+k*(3.6f/(steps-1));
+                game.Sound.Cue(HideClip(1),door+outward*1.2f+tangent*along,.6f);
+                yield return new WaitForSeconds(Random.Range(.5f,.7f));
+            }
+        }
+        // The latch rattled once or twice, as if tried and let go.
+        IEnumerator HideHandle(string clip,Vector3 door)
+        {
+            game.Sound.Cue(clip,door+Vector3.up*.2f,.65f);
+            if(Random.value<.5f)
+            {
+                yield return new WaitForSeconds(Random.Range(.35f,.7f));
+                if(Ready)game.Sound.Cue(clip,door+Vector3.up*.2f,.5f);
+            }
+        }
+
+        // ---- escalation history (the "at most 1 in 3 hunts is escalation-born" part of the rule) -------------------------------------------
+        readonly List<bool> huntBorn=new List<bool>();
+        int trackedHunts;float lastEscalationAt=-999;
+        void TrackHunts()
+        {
+            if(game==null||game.Case==null)return;
+            int hunts=game.Case.Hunts;
+            if(hunts<trackedHunts)trackedHunts=hunts; // a restored checkpoint
+            while(trackedHunts<hunts){huntBorn.Add(Time.time-lastEscalationAt<12f);trackedHunts++;}
         }
 
         // ---- ambient substitute for the phases where the director is quiet (critic N11, scare-layer silence as a tell) ------------------
@@ -182,7 +301,7 @@ namespace HollowCurrent
             else if(r<.55f&&BalustradeShape())done=true;
             pickNote="direct";
             if(done)return true;
-            var order=WeightedOrder(new[]{0,1,2,4},out var weights,out float total);
+            var order=WeightedOrder(BeatKeys,new[]{0,1,2,4},out var weights,out float total);
             for(int i=0;i<order.Count;i++)
                 if(Try(order[i],"ambient weighted w="+weights[i].ToString("F2")+"/"+total.ToString("F2")+" rank="+(i+1)))return true;
             return false;
@@ -211,7 +330,7 @@ namespace HollowCurrent
             {
                 pickNote="silence_roll chance="+SilenceChance.ToString("F2");var ok=Silence();pickNote="direct";if(ok)return true;
             }
-            var order=WeightedOrder(new[]{0,1,2,3,4},out var weights,out float total);
+            var order=WeightedOrder(BeatKeys,new[]{0,1,2,3,4},out var weights,out float total);
             for(int i=0;i<order.Count;i++)
                 if(Try(order[i],"weighted w="+weights[i].ToString("F2")+"/"+total.ToString("F2")+" rank="+(i+1)))return true;
             pickNote="fallback";var silent=Silence();pickNote="direct";
@@ -346,8 +465,13 @@ namespace HollowCurrent
             // whether a hunt can start, not a scare effect, and a blocked attempt still pays off below, so the apparition is never bare.
             else if(c.Phase==Phase.Disturbance&&c.GraceRemaining<=0)
             {
-                escalated=c.TryEscalate();
-                reason=escalated?"ok":"roll";
+                if(!RuleAllows(out var why))reason="rule_"+why;
+                else
+                {
+                    escalated=c.TryEscalate();
+                    reason=escalated?"ok":"roll";
+                    if(escalated)lastEscalationAt=Time.time;
+                }
             }
             else
             {
@@ -365,6 +489,23 @@ namespace HollowCurrent
             }
             Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated+" reason="+reason+" phase="+c.Phase+" grace="+c.GraceRemaining.ToString("F0")+" chance="+chance.ToString("F2")+" substitute="+substitute);
             return escalated;
+        }
+
+        // The escalation rule (r12: 5 of 7 non-Return hunts began within 5 s of an apparition). Local equivalent of F1's pure
+        // HuntRules.ShouldEscalate from hc/rules-l; when that lands, replace the body of this method with one call to it:
+        //   never on the first apparition; about 15 % with the torch lit, 25 % dark; no escalation-born hunt among the last two hunts
+        //   (so at most one hunt in three is escalation-born). Investigation.TryEscalate still rolls Rules.EventEscalationChance itself, so
+        //   this gate passes with probability target / EventEscalationChance and the product is the target.
+        bool RuleAllows(out string why)
+        {
+            int apparition=game.Scares?game.Scares.Events:0;
+            if(apparition<=1){why="first_apparition";return false;}
+            int n=huntBorn.Count;
+            if(n>=1&&huntBorn[n-1]||n>=2&&huntBorn[n-2]){why="recent_escalation_born";return false;}
+            float target=game.Player.TorchOn?.15f:.25f,rules=game.Case.Rules.EventEscalationChance;
+            float pass=rules>0?Mathf.Min(1,target/rules):0;
+            if(Random.value>=pass){why="roll_p="+pass.ToString("F2");return false;}
+            why="ok";return true;
         }
 
         // ---- the apparition point (fear plan 3, critic #27) ------------------------------------------------------------------------
