@@ -23,12 +23,16 @@ namespace HollowCurrent
         public static string Mode {get;private set;}
         // Kill run: seconds without strikes after he becomes hittable (-hc-playtest-window, default 3).
         public static float StrikeWindow=3f;
+        // siege with -hc-hold-dread <d> (wave L, r12 critic pass 2): Dread held in d-10..d+10 instead of 82+, leaving and re-entering
+        // the same hide after every hunt (each re-entry is a door-held roll at Dread >= 60) until 6 hidden hunts. -1 = classic siege.
+        public static float HoldDread=-1;
         public static bool Requested
         {
             get
             {
                 if(OutDir!=null)return true;
                 var args=Environment.GetCommandLineArgs();
+                for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-hold-dread"&&float.TryParse(args[i+1],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var hd))HoldDread=hd;
                 for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-playtest-window"&&float.TryParse(args[i+1],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out var w))StrikeWindow=w;
                 for(int i=0;i<args.Length-1;i++)if(args[i]=="-hc-playtest"){OutDir=args[i+1];Mode=i+2<args.Length?args[i+2]:"escape";return true;}
                 return false;
@@ -41,6 +45,11 @@ namespace HollowCurrent
         void OnLog(string message,string stack,LogType type)
         {
             foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}
+            if(game&&game.Case!=null)
+            {
+                if(message.StartsWith("HC_SCARE visible=",StringComparison.Ordinal))scareTimes.Add(game.Case.Elapsed);
+                if(message.StartsWith("HC_HUNT_START",StringComparison.Ordinal))huntStarts.Add((game.Case.Elapsed,message.Contains(" phase=Return")));
+            }
             // Wave K: a screenshot at every grab-camera sample (commit, +0.3 s, +1.0 s, kill), named by kind and time.
             if(message.StartsWith("HC_COUNT_GRABCAM t=",StringComparison.Ordinal))
             {
@@ -48,6 +57,44 @@ namespace HollowCurrent
                 foreach(var part in message.Split(' ')){if(part.StartsWith("kind=",StringComparison.Ordinal))kind=part.Substring(5);if(part.StartsWith("t=",StringComparison.Ordinal))tt=part.Substring(2);}
                 pendingGrabShots.Enqueue("grabcam_"+kind+"_t"+tt);
             }
+        }
+        // Wave L run statistics (r12 critic pass tests), printed as HC_PLAY_STATS by Finish: apparition times, hunt starts,
+        // threat time (Warning, Hunt, hostile Return), the longest stretch without one, and hunts spent hidden.
+        readonly List<float> scareTimes=new List<float>();
+        readonly List<(float t,bool ret)> huntStarts=new List<(float,bool)>();
+        float threatTime,gapStart,longestGap,lastStatT;bool inThreat,statsOn,huntHidden,inHunt;int hiddenHunts,hiddenSurvived,blockedAtHunt;
+        void Update()
+        {
+            if(!game||game.Case==null||!game.Started||!statsOn)return;
+            var c=game.Case;float t=c.Elapsed,dt=Mathf.Max(0,t-lastStatT);lastStatT=t;
+            bool threat=c.Phase==Phase.Warning||c.Phase==Phase.Hunt||c.Phase==Phase.Return&&c.HuntActive;
+            if(threat)threatTime+=dt;
+            if(threat&&!inThreat)longestGap=Mathf.Max(longestGap,t-gapStart);
+            if(!threat&&inThreat)gapStart=t;
+            inThreat=threat;
+            bool hunt=c.Phase==Phase.Hunt;
+            if(hunt&&!inHunt){huntHidden=game.Player.Hidden;blockedAtHunt=c.BlockedDeaths;}
+            if(hunt&&game.Player.Hidden)huntHidden=true;
+            if(!hunt&&inHunt&&huntHidden){hiddenHunts++;if(c.BlockedDeaths==blockedAtHunt&&c.Phase!=Phase.Dead)hiddenSurvived++;Debug.Log("HC_PLAY_HIDDEN_HUNT n="+hiddenHunts+" survived="+(c.BlockedDeaths==blockedAtHunt&&c.Phase!=Phase.Dead)+" dread="+c.Dread.ToString("F1"));}
+            inHunt=hunt;
+        }
+        string Stats()
+        {
+            var c=game.Case;float t=c.Elapsed;float gap=Mathf.Max(longestGap,inThreat?0:t-gapStart);
+            int nonReturn=0,afterScare=0;float first=-1;
+            foreach(var h in huntStarts){if(h.ret)continue;nonReturn++;if(first<0)first=h.t;foreach(var a in scareTimes)if(h.t-a>=0&&h.t-a<=10){afterScare++;break;}}
+            string cv="n/a";
+            if(scareTimes.Count>=3)
+            {
+                var gaps=new List<float>();for(int i=1;i<scareTimes.Count;i++)gaps.Add(scareTimes[i]-scareTimes[i-1]);
+                float mean=0;foreach(var g in gaps)mean+=g;mean/=gaps.Count;float v=0;foreach(var g in gaps)v+=(g-mean)*(g-mean);v/=gaps.Count;
+                cv=(Mathf.Sqrt(v)/Mathf.Max(.01f,mean)).ToString("F2");
+            }
+            var arrivals=new System.Text.StringBuilder();foreach(var a in scareTimes)arrivals.Append(a.ToString("F0")).Append(',');
+            return "huntsNonReturn="+nonReturn+" withinScare10s="+afterScare+" pctWithinScare10s="+(nonReturn>0?(100f*afterScare/nonReturn).ToString("F0"):"n/a")
+                +" apparitions="+scareTimes.Count+" apparitionCV="+cv+" apparitionTimes=["+arrivals.ToString().TrimEnd(',')+"]"
+                +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
+                +" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0");
         }
         readonly Queue<string> pendingGrabShots=new Queue<string>();
         void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));}
@@ -179,7 +226,7 @@ namespace HollowCurrent
                 game.SelectMap(MapId.Castle);game.BeginInvestigation();yield break; // the castle scene's Game starts a new driver
             }
             if(!game.Started)game.StartCase();
-            game.Case.Invulnerable=true;
+            game.Case.Invulnerable=true;statsOn=true;lastStatT=game.Case.Elapsed;gapStart=game.Case.Elapsed;
             input=new FieldInput();game.Player.TestInput=input;
             yield return Step("begin_"+Mode,"rules="+game.Case.Rules.Name);
             Application.logMessageReceived+=OnLog;
@@ -400,6 +447,7 @@ namespace HollowCurrent
         // its open at Dread >= 80) and a Recovery cut short. Ends after an open and a Recovery cut, or 12 minutes.
         IEnumerator Siege()
         {
+            if(HoldDread>0){yield return SiegeHeld();yield break;}
             var c=game.Case;yield return Opening(false);
             var hide=FarHide();yield return Torch(false);if(hide)yield return Use(hide,"hiding place "+hide.Label);
             yield return Step("siege_hidden",hide?hide.name:"none");
@@ -415,6 +463,44 @@ namespace HollowCurrent
                 yield return null;
             }
             yield return Step("siege_done","hunts="+c.Hunts+" nearMissBegin="+Tag("HC_COUNT_NEARMISS begin")+" nearMissOpen="+Tag("HC_COUNT_NEARMISS open=True")+" recoveryCuts="+recoveryCuts+" blocked="+c.BlockedDeaths);
+            yield return Finish();
+        }
+        // siege -hc-hold-dread d (wave L): real dice and real near-miss/grab rolls with Dread held in d-10..d+10 (driver-forced to d
+        // when it leaves the band, logged). Hidden with the torch off in the far hide; after every hunt she leaves the hide and, 4 s
+        // later, re-enters it (Dread raised to at least 60 first, so each entry is a door-held roll; a held door is retried every
+        // 3 s). Ends after 6 hidden hunts or 15 minutes. Proves: near-miss open or a grab, HC_DOOR_HELD, hidden survival %.
+        IEnumerator SiegeHeld()
+        {
+            var c=game.Case;yield return Opening(false);
+            float lo=HoldDread-10,hi=HoldDread+10;
+            var hide=FarHide();yield return Torch(false);
+            ForceDread(Mathf.Max(60,HoldDread),"siege-held entry");
+            if(hide)yield return Use(hide,"hiding place "+hide.Label);
+            yield return Step("siege_held_hidden",(hide?hide.name:"none")+" band="+lo.ToString("F0")+"-"+hi.ToString("F0"));
+            float end=Time.realtimeSinceStartup+900;int attempts=1,held=0;Phase last=c.Phase;bool hadHunt=false;float rehideAt=-1;
+            while(Time.realtimeSinceStartup<end&&hiddenHunts<6)
+            {
+                if(c.Terminal)break;
+                if(c.Dread<lo||c.Dread>hi)ForceDread(HoldDread,"siege-held band");
+                if(c.Phase!=last)
+                {
+                    if(last==Phase.Hunt){hadHunt=true;}
+                    last=c.Phase;
+                }
+                bool quiet=c.Phase!=Phase.Hunt&&c.Phase!=Phase.Warning;
+                // After a hunt: step out, then back in after 4 s.
+                if(hadHunt&&quiet&&game.Player.Hidden){yield return Press(i=>i.Use=true);hadHunt=false;rehideAt=Time.realtimeSinceStartup+4;Debug.Log("HC_PLAY_SIEGE_HELD left hide dread="+c.Dread.ToString("F1"));}
+                if(!game.Player.Hidden&&hide&&(rehideAt<0||Time.realtimeSinceStartup>=rehideAt||!quiet))
+                {
+                    if(c.Dread<60)ForceDread(Mathf.Max(60,HoldDread),"siege-held re-entry at door-held Dread");
+                    if(game.Player.TorchOn)yield return Torch(false);
+                    int before=c.DoorsHeld;yield return Use(hide,"re-hide");attempts++;
+                    if(c.DoorsHeld>before){held++;rehideAt=Time.realtimeSinceStartup+3;Debug.Log("HC_PLAY_SIEGE_HELD door held attempt="+attempts);}
+                    else rehideAt=-1;
+                }
+                yield return null;
+            }
+            yield return Step("siege_held_done","hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hideAttempts="+attempts+" doorsHeld="+c.DoorsHeld+" nearMissBegin="+Tag("HC_COUNT_NEARMISS begin")+" nearMissOpen="+Tag("HC_COUNT_NEARMISS open=True")+" blocked="+c.BlockedDeaths);
             yield return Finish();
         }
         // lowdread: real dice. The bell gives the first hunt; afterwards the driver keeps Dread below this run's boundary
@@ -679,6 +765,7 @@ namespace HollowCurrent
             var c=game.Case;
             yield return Step(c.Phase==Phase.Won?(c.HunterSlain?"won_kill":"won_escape"):"not_won","goal="+c.Goal);
             if(Mode!="escape"&&Mode!="kill"){var sb=new System.Text.StringBuilder();foreach(var t in Tags)sb.Append(t.Trim().Replace(' ','_')).Append('=').Append(Tag(t)).Append(' ');Debug.Log("HC_PLAY_SUMMARY "+sb+"dread="+c.Dread.ToString("F1")+" hunts="+c.Hunts);}
+            Debug.Log("HC_PLAY_STATS mode="+Mode+" "+Stats());
             Debug.Log("HC_PLAY_RESULT mode="+Mode+" won="+(c.Phase==Phase.Won)+" slain="+c.HunterSlain+" blockedDeaths="+c.BlockedDeaths+" blockers="+blockers.Count+(blockers.Count>0?" ["+string.Join(" | ",blockers)+"]":""));
             yield return Wait(1);Application.Quit();
         }
