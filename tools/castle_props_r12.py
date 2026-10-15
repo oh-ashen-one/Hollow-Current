@@ -329,12 +329,12 @@ def book_open(size_scale, leather, name):
             _bm.ops.scale(bm, vec=(S, S, S), verts=bm.verts[:], space=Matrix.Identity(4))
     return b
 
-def book_closed(S, leather, name, clasp=False):
+def book_closed(S, leather, name, clasp=False, dims=(.20, .14, .035)):
     """Closed book lying flat, spine on -X: 0.20 x 0.14 x 0.035 m at S=1. Origin: centre of the underside (rests on z=0). The front
     (top) board carries the cover design, the page block is set back, the spine has raised bands, corners and an optional clasp are
     worn gilt. Throwable: bounds stay under 0.4 m at S <= 1.9."""
     b = Builder(name)
-    w, d, T, bt = .20 * S, .14 * S, .035 * S, .0055 * S
+    w, d, T, bt = dims[0] * S, dims[1] * S, dims[2] * S, .0055 * S
     ov = .004 * S                                              # board overhang past the pages
     # boards
     for top in (True, False):
@@ -490,6 +490,90 @@ def rune_moon(b, z0):
 BLADE_OUTLINE = [(-.11, -.33), (.11, -.33), (.11, .20), (0, .33), (-.11, .20)]
 HILT_OUTLINE = [(-.095, -.25), (.095, -.25), (.095, -.085), (.22, -.085), (.22, .085), (.095, .085), (.095, .25), (-.095, .25), (-.095, .085), (-.22, .085), (-.22, -.085), (-.095, -.085)]
 
+# ------------------------------------------------------------------------------------------------------------------ relic tablet (round 13)
+def niche_on(b, outline, c, z0, boss=.050, pocket_d=-.046, depth=.036, rim=-.026):
+    """A shallow carved boss on the tablet: a low moulded rim (about 5 cm proud) around a pocket that follows the relic's outline,
+    sloped walls and a floor 1 cm below the tablet face. Gilt lip. Returns the floor height. `c` is the niche centre on the tablet."""
+    cx, cy = c
+    P = lambda d: [(x + cx, y + cy) for (x, y) in poly_offset(outline, d)]
+    n = len(outline)
+    prof = [(0, 0), (0, .012), (-.006, .020), (-.006, boss - .014), (-.0015, boss - .006), (0, boss)]
+    rings = [[b._v((x, y, z0 + z)) for (x, y) in P(d)] for (d, z) in prof]
+    for i in range(len(prof) - 1):
+        for j in range(n):
+            j2 = (j + 1) % n
+            b._f([rings[i][j], rings[i][j2], rings[i + 1][j2], rings[i + 1][j]], NICHE, False)
+    ztop = z0 + boss
+    top_in = [b._v((x, y, ztop)) for (x, y) in P(rim)]
+    for j in range(n):
+        j2 = (j + 1) % n
+        b._f([rings[-1][j], rings[-1][j2], top_in[j2], top_in[j]], NICHE, False)
+    mid = [b._v((x, y, ztop - .008)) for (x, y) in P(pocket_d)]
+    floor_z = z0 + boss - depth
+    floor = [b._v((x, y, floor_z)) for (x, y) in P(pocket_d - .012)]
+    for j in range(n):
+        j2 = (j + 1) % n
+        b._f([top_in[j], top_in[j2], mid[j2], mid[j]], NICHE, False)
+        b._f([mid[j], mid[j2], floor[j2], floor[j]], NICHE, False)
+    b._f(list(reversed(floor)), NICHE, False)
+    # worn gilt strip on the lip
+    d_in, d_out, h = rim - .0005, rim + .0075, .0025
+    a_ = [b._v((x, y, ztop + h)) for (x, y) in P(d_in)]; c_ = [b._v((x, y, ztop + h)) for (x, y) in P(d_out)]
+    a0 = [b._v((x, y, ztop)) for (x, y) in P(d_in)]; c0 = [b._v((x, y, ztop)) for (x, y) in P(d_out)]
+    for j in range(n):
+        j2 = (j + 1) % n
+        b._f([a_[j], a_[j2], c_[j2], c_[j]], GILT, False)
+        b._f([a0[j], a0[j2], a_[j2], a_[j]], GILT, False)
+        b._f([c_[j], c_[j2], c0[j2], c0[j]], GILT, False)
+    return floor_z
+
+def relic_tablet():
+    """One carved reliquary slab for the three relics (replaces three tall free-standing niches that read as tins): a moulded stone
+    tablet 0.88 x 2.04 m, 7 cm thick, a beaded gilt border, corner roundels, and three low carved bosses with pockets in the outlines
+    of the blade, the hilt (cross) and the moonstone, centred on tablet z -0.65, 0, +0.65 as the old sockets were. Parts 'RuneBlade',
+    'RuneHilt', 'RuneMoon' hold the glyph strokes SocketRune lights. Origin: centre of the underside."""
+    b = Builder("RelicTablet")
+    W, L, T0 = .44, 1.02, .070
+    rect = [(-W, -L), (W, -L), (W, L), (-W, L)]
+    # two-stage moulded plinth: full footprint to 3 cm, then inset 2 cm to 7 cm with a chamfer
+    prof = [(0, 0), (0, .030), (-.012, .036), (-.020, .042), (-.020, T0 - .008), (-.012, T0)]
+    rings = [[b._v((x, y, z)) for (x, y) in poly_offset(rect, d)] for (d, z) in prof]
+    for i in range(len(prof) - 1):
+        for j in range(4):
+            j2 = (j + 1) % 4
+            b._f([rings[i][j], rings[i][j2], rings[i + 1][j2], rings[i + 1][j]], NICHE, False)
+    b._f(list(reversed([b._v((x, y, 0)) for (x, y) in rect])), NICHE, False)
+    b._f([b._v((x, y, T0)) for (x, y) in poly_offset(rect, -.032)], NICHE, False)
+    # gilt border bead and an inner fillet on the top face
+    for d_in, d_out in ((-.040, -.048), (-.072, -.076)):
+        a_ = [b._v((x, y, T0 + .003)) for (x, y) in poly_offset(rect, d_in)]; c_ = [b._v((x, y, T0 + .003)) for (x, y) in poly_offset(rect, d_out)]
+        a0 = [b._v((x, y, T0)) for (x, y) in poly_offset(rect, d_in)]; c0 = [b._v((x, y, T0)) for (x, y) in poly_offset(rect, d_out)]
+        for j in range(4):
+            j2 = (j + 1) % 4
+            b._f([a_[j], a_[j2], c_[j2], c_[j]], GILT, False)
+            b._f([a0[j], a0[j2], a_[j2], a_[j]], GILT, False)
+            b._f([c_[j], c_[j2], c0[j2], c0[j]], GILT, False)
+    # corner roundels: low stone discs with a gilt ring
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            c = (sx * (W - .105), sy * (L - .105))
+            ring_pts = [(x + c[0], y + c[1]) for (x, y) in circle_pts(.052, 14)]
+            rr = [[b._v((x, y, T0 + z)) for (x, y) in [(px + c[0], py + c[1]) for (px, py) in poly_offset(circle_pts(.052, 14), d)]] for (d, z) in ((0, 0), (0, .010), (-.008, .018), (-.020, .020))]
+            for i in range(3):
+                for j in range(14):
+                    j2 = (j + 1) % 14
+                    b._f([rr[i][j], rr[i][j2], rr[i + 1][j2], rr[i + 1][j]], NICHE if i < 2 else GILT, False)
+            b._f([rr[3][j] for j in range(14)], GILT, False)
+    floors = {}
+    floors["Blade"] = niche_on(b, BLADE_OUTLINE, (0, -.65), T0)
+    floors["Hilt"] = niche_on(b, HILT_OUTLINE, (0, 0), T0, pocket_d=-.040)
+    floors["Moon"] = niche_on(b, circle_pts(.20), (0, .65), T0)
+    for name, fn, c in (("RuneBlade", rune_blade, (0, -.65)), ("RuneHilt", rune_hilt, (0, 0)), ("RuneMoon", rune_moon, (0, .65))):
+        b.part(name, (0, 0, 0))
+        with b.xf(T(c[0], c[1], 0)):
+            fn(b, floors[name[4:]] + .002)
+    return b
+
 # ------------------------------------------------------------------------------------------------------------------ giant skeleton
 BS = "Castle_BlackStone"
 
@@ -626,6 +710,9 @@ def register():
     BUILDERS.append(("RelicSocketBlade", lambda: carved_socket("RelicSocketBlade", BLADE_OUTLINE, -.046, rune_blade), 3500))
     BUILDERS.append(("RelicSocketHilt", lambda: carved_socket("RelicSocketHilt", HILT_OUTLINE, -.040, rune_hilt), 3500))
     BUILDERS.append(("RelicSocketMoon", lambda: carved_socket("RelicSocketMoon", circle_pts(.20), -.046, rune_moon), 3500))
+    BUILDERS.append(("RelicTablet", relic_tablet, 6000))
+    for tag, sc_, lea in (("TomeSmall", .72, LEATHER_B), ("Tome", 1.0, LEATHER_A), ("TomeLarge", 1.34, LEATHER_C)):
+        BUILDERS.append((tag, (lambda tag=tag, sc_=sc_, lea=lea: book_closed(sc_, lea, tag, clasp=(tag == "TomeLarge"), dims=(.22, .30, .075))), 1500))
     BUILDERS.append(("BookClosedSmall", lambda: book_closed(.72, LEATHER_B, "BookClosedSmall"), 1000))
     BUILDERS.append(("BookClosed", lambda: book_closed(1.0, LEATHER_A, "BookClosed"), 1000))
     BUILDERS.append(("BookClosedLarge", lambda: book_closed(1.5, LEATHER_C, "BookClosedLarge", clasp=True), 1000))

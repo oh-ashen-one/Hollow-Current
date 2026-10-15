@@ -361,8 +361,10 @@ namespace HollowCurrent
             {
                 if(candleMesh)return candleMesh;
                 var b=new MeshBuilder(2);
-                b.Prism(new Vector3(0,-.2f,0),.05f,.042f,.4f,7,0);
-                b.Box(new Vector3(0,.215f,0),new Vector3(.008f,.03f,.008f),Quaternion.identity,1);
+                // round 13 (r12 critic, floating chapel candles too large): a real taper, 30 cm long and 2.6 cm across at the foot (it was a
+                // 40 cm, 10 cm thick pillar), wick 2 cm
+                b.Prism(new Vector3(0,-.15f,0),.0135f,.0115f,.30f,8,0);
+                b.Box(new Vector3(0,.16f,0),new Vector3(.004f,.02f,.004f),Quaternion.identity,1);
                 return candleMesh=b.Build("Surreal floating candle");
             }
         }
