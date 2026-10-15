@@ -186,19 +186,20 @@
   "tris": 400
  },
  "DiningTable": {
-  "budget": 2000,
-  "bytes": 33756,
+  "budget": 5000,
+  "bytes": 91132,
   "file": "Assets/HollowCurrent/Resources/Castle/DiningTable.fbx",
   "materials": [
    "Castle_Oak",
    "Castle_Oxblood",
    "Castle_Brass",
+   "Castle_Wax",
    "Castle_Silver"
   ],
   "max": [
    2.8,
    0.75,
-   1.09
+   1.25
   ],
   "min": [
    -2.8,
@@ -211,7 +212,7 @@
     "max": [
      2.8,
      0.75,
-     1.09
+     1.25
     ],
     "min": [
      -2.8,
@@ -221,17 +222,17 @@
     "size": [
      5.6,
      1.5,
-     1.09
+     1.25
     ],
-    "tris": 670
+    "tris": 2974
    }
   },
   "size": [
    5.6,
    1.5,
-   1.09
+   1.25
   ],
-  "tris": 670
+  "tris": 2974
  },
  "Fireplace": {
   "budget": 1200,
@@ -468,55 +469,6 @@
   ],
   "tris": 148
  },
- "LongTable": {
-  "budget": 2000,
-  "bytes": 46780,
-  "file": "Assets/HollowCurrent/Resources/Castle/LongTable.fbx",
-  "materials": [
-   "Castle_Oak",
-   "Castle_Oxblood",
-   "Castle_Brass",
-   "Castle_Bone",
-   "Castle_Silver"
-  ],
-  "max": [
-   3.3,
-   0.65,
-   1.1
-  ],
-  "min": [
-   -3.3,
-   -0.65,
-   0.0
-  ],
-  "notes": {},
-  "parts": {
-   "LongTable": {
-    "max": [
-     3.3,
-     0.65,
-     1.1
-    ],
-    "min": [
-     -3.3,
-     -0.65,
-     0.0
-    ],
-    "size": [
-     6.6,
-     1.3,
-     1.1
-    ],
-    "tris": 1188
-   }
-  },
-  "size": [
-   6.6,
-   1.3,
-   1.1
-  ],
-  "tris": 1188
- },
  "Pedestal": {
   "budget": 600,
   "bytes": 19948,
@@ -564,19 +516,20 @@
   "tris": 160
  },
  "ReadingTable": {
-  "budget": 1200,
-  "bytes": 28876,
+  "budget": 3000,
+  "bytes": 50652,
   "file": "Assets/HollowCurrent/Resources/Castle/ReadingTable.fbx",
   "materials": [
    "Castle_Oak",
    "Castle_Oxblood",
    "Castle_Paper",
-   "Castle_Brass"
+   "Castle_Brass",
+   "Castle_Wax"
   ],
   "max": [
    1.0,
    0.5,
-   0.96
+   1.3
   ],
   "min": [
    -1.0,
@@ -589,7 +542,7 @@
     "max": [
      1.0,
      0.5,
-     0.96
+     1.3
     ],
     "min": [
      -1.0,
@@ -599,17 +552,17 @@
     "size": [
      2.0,
      1.0,
-     0.96
+     1.3
     ],
-    "tris": 410
+    "tris": 1178
    }
   },
   "size": [
    2.0,
    1.0,
-   0.96
+   1.3
   ],
-  "tris": 410
+  "tris": 1178
  },
  "ReliquaryBox": {
   "budget": 600,

@@ -93,6 +93,69 @@ namespace HollowCurrent
                 var end=(pts[n-1]-pts[n-2]).normalized;
                 for(int s=0;s<sides;s++)Tri(pts[n-1],rings[n-1][s],rings[n-1][(s+1)%sides],end,submesh);
             }
+            // ---- round 13 (hc/hall-l): smooth round candles. Faceted prisms read as hexagonal pillars; these are surfaces of revolution with
+            // per-vertex normals (a corner sharper than about 50 degrees stays crisp). Build-time only: allocation is fine here.
+            void AddFacing(int i0,int i1,int i2,int submesh)
+            {
+                var n=Vector3.Cross(vertices[i1]-vertices[i0],vertices[i2]-vertices[i0]);
+                if(n.sqrMagnitude<1e-14f)return;
+                var avg=normals[i0]+normals[i1]+normals[i2];
+                if(Vector3.Dot(n,avg)<0){var t=i1;i1=i2;i2=t;}
+                triangles[submesh].Add(i0);triangles[submesh].Add(i1);triangles[submesh].Add(i2);
+            }
+            // Surface of revolution about +Y through `c`; profile = (radius, height) from the bottom up.
+            public void Lathe(Vector3 c,float[] pr,float[] py,int sides,int submesh)
+            {
+                int n=pr.Length;if(n<2)return;
+                var sn=new Vector2[n-1];
+                for(int i=0;i<n-1;i++){var d=new Vector2(pr[i+1]-pr[i],py[i+1]-py[i]);sn[i]=d.sqrMagnitude<1e-12f?Vector2.right:new Vector2(d.y,-d.x).normalized;}
+                for(int i=0;i<n-1;i++)
+                {
+                    Vector2 n0=sn[i],n1=sn[i];
+                    if(i>0&&Vector2.Dot(sn[i-1],sn[i])>.64f)n0=(sn[i-1]+sn[i]).normalized;
+                    if(i<n-2&&Vector2.Dot(sn[i],sn[i+1])>.64f)n1=(sn[i]+sn[i+1]).normalized;
+                    int baseIndex=vertices.Count;
+                    for(int j=0;j<=sides;j++)
+                    {
+                        float a=j*Mathf.PI*2/sides,ca=Mathf.Cos(a),sa=Mathf.Sin(a);
+                        vertices.Add(c+new Vector3(pr[i]*ca,py[i],pr[i]*sa));normals.Add(new Vector3(n0.x*ca,n0.y,n0.x*sa).normalized);uvs.Add(new Vector2(j/(float)sides,py[i]));
+                        vertices.Add(c+new Vector3(pr[i+1]*ca,py[i+1],pr[i+1]*sa));normals.Add(new Vector3(n1.x*ca,n1.y,n1.x*sa).normalized);uvs.Add(new Vector2(j/(float)sides,py[i+1]));
+                    }
+                    for(int j=0;j<sides;j++)
+                    {
+                        int b0=baseIndex+j*2,t0=b0+1,b1=b0+2,t1=b0+3;
+                        AddFacing(b0,t0,t1,submesh);AddFacing(b0,t1,b1,submesh);
+                    }
+                }
+            }
+            // Smooth round tube along a polyline (parallel-transport frames), per-vertex normals, optional closed loop or capped ends.
+            public void TubeSmooth(Vector3[] pts,float[] radii,int sides,int submesh,bool closed=false)
+            {
+                int n=pts.Length;if(n<2)return;
+                var rings=new int[n];
+                Vector3 side=Vector3.zero;
+                for(int i=0;i<n;i++)
+                {
+                    var t=closed?pts[(i+1)%n]-pts[(i-1+n)%n]:pts[Mathf.Min(n-1,i+1)]-pts[Mathf.Max(0,i-1)];
+                    t.Normalize();
+                    if(i==0)side=Vector3.Cross(t,Mathf.Abs(t.y)<.9f?Vector3.up:Vector3.right).normalized;
+                    else side=(side-t*Vector3.Dot(side,t)).normalized;
+                    var up=Vector3.Cross(t,side);
+                    rings[i]=vertices.Count;
+                    for(int s=0;s<=sides;s++)
+                    {
+                        float a=s*Mathf.PI*2/sides;
+                        var nrm=side*Mathf.Cos(a)+up*Mathf.Sin(a);
+                        vertices.Add(pts[i]+nrm*radii[i]);normals.Add(nrm);uvs.Add(new Vector2(s/(float)sides,i/(float)(n-1)));
+                    }
+                }
+                int segs=closed?n:n-1;
+                for(int i=0;i<segs;i++)
+                {
+                    int r0=rings[i],r1=rings[(i+1)%n];
+                    for(int s=0;s<sides;s++){AddFacing(r0+s,r0+s+1,r1+s+1,submesh);AddFacing(r0+s,r1+s+1,r1+s,submesh);}
+                }
+            }
             public Mesh Build(string name)
             {
                 var mesh=new Mesh{name=name,subMeshCount=triangles.Length};
@@ -104,7 +167,9 @@ namespace HollowCurrent
         }
 
         // ---- candelabra: brass (submesh 0) and wax (submesh 1), origin at its centre ----
-        const float CandleReach=.3f,ArmY=.12f,CandleTop=.29f;
+        // Round 13: a turned baluster on a domed foot, four scrolled arms, brass drip pans and 30 cm tapers (2.7 cm across, the size agreed with
+        // hc/props-l). The flame anchors stay on the candle tops: centre (0, CandleTop, 0), the four arm candles 2 cm lower, 0.3 m out on the axes.
+        const float CandleReach=.3f,ArmY=.085f,CandleTop=.44f,TaperLength=.30f;
         static readonly Vector3[] CandlePositions=
         {
             new Vector3(0,CandleTop,0),new Vector3(CandleReach,CandleTop-.02f,0),new Vector3(-CandleReach,CandleTop-.02f,0),
@@ -112,28 +177,31 @@ namespace HollowCurrent
         };
         static Mesh candelabraMesh,closedBookMesh,openBookMesh;
         static Material[] candelabraMaterials,bookMaterials;
+        // Brass drip pan and socket (submesh 0) with a tapered wax candle (submesh 1) standing in it. `pan` is the centre of the pan's base.
+        internal static void CandleHead(MeshBuilder b,Vector3 pan,float taper,int sides)
+        {
+            b.Lathe(pan,new[]{0f,.026f,.052f,.056f,.049f,.032f,.025f,.027f,.016f,0f},new[]{0f,0f,.005f,.012f,.013f,.011f,.024f,.044f,.046f,.046f},sides,0);
+            float yb=.038f,yt=yb+taper;
+            b.Lathe(pan,new[]{0f,.0155f,.0185f,.0138f,.0132f,.0125f,.0128f,.008f,0f},new[]{yb,yb,yb+.012f,yb+.045f,yt-.02f,yt-.006f,yt,yt-.004f,yt-.007f},sides,1);
+        }
         static Mesh CandelabraMesh
         {
             get
             {
                 if(candelabraMesh)return candelabraMesh;
                 var b=new MeshBuilder(2);
-                b.Prism(new Vector3(0,-.4f,0),.1f,.05f,.06f,8,0);   // foot
-                b.Prism(new Vector3(0,-.34f,0),.026f,.02f,.46f,6,0); // stem
-                b.Prism(new Vector3(0,-.12f,0),.05f,.03f,.07f,8,0);  // knop
-                b.Box(new Vector3(0,ArmY,0),new Vector3(CandleReach*2,.02f,.03f),Quaternion.identity,0);
-                b.Box(new Vector3(0,ArmY,0),new Vector3(.03f,.02f,CandleReach*2),Quaternion.identity,0);
-                b.Prism(new Vector3(0,ArmY+.01f,0),.04f,.028f,.04f,8,0);
-                foreach(var p in CandlePositions)
+                // foot, baluster stem, knops, up to the centre drip pan at ArmY + 0.015
+                b.Lathe(new Vector3(0,-.42f,0),new[]{0f,.11f,.117f,.105f,.074f,.045f,.03f,.045f,.05f,.034f,.021f,.02f,.03f,.037f,.03f,.024f,.034f,.0f},
+                        new[]{0f,0f,.012f,.03f,.055f,.09f,.13f,.17f,.21f,.255f,.30f,.36f,.41f,.44f,.47f,.50f,.53f,.54f},10,0);
+                // four scrolled arms: out from the stem, dipping, then up to a pan at ArmY
+                var dirs=new[]{Vector3.right,Vector3.left,Vector3.forward,Vector3.back};
+                foreach(var d in dirs)
                 {
-                    if(p.x==0&&p.z==0)continue; // centre cup is the one above
-                    b.Prism(new Vector3(p.x,ArmY+.01f,p.z),.04f,.028f,.04f,8,0);
+                    var pts=new[]{new Vector3(0,ArmY-.07f,0)+d*.02f,new Vector3(0,ArmY-.09f,0)+d*.09f,new Vector3(0,ArmY-.085f,0)+d*.17f,new Vector3(0,ArmY-.04f,0)+d*.25f,new Vector3(0,ArmY-.005f,0)+d*(CandleReach-.015f)};
+                    b.TubeSmooth(pts,new[]{.019f,.017f,.015f,.014f,.013f},6,0);
+                    CandleHead(b,new Vector3(d.x*CandleReach,ArmY,d.z*CandleReach),TaperLength,8);
                 }
-                foreach(var p in CandlePositions)
-                {
-                    float height=p.y-(ArmY+.05f)-.0f;
-                    b.Prism(new Vector3(p.x,ArmY+.05f,p.z),.017f,.015f,height,6,1);
-                }
+                CandleHead(b,new Vector3(0,CandleTop-TaperLength-.038f,0),TaperLength,8);
                 return candelabraMesh=b.Build("Surreal candelabra");
             }
         }
@@ -361,8 +429,10 @@ namespace HollowCurrent
             {
                 if(candleMesh)return candleMesh;
                 var b=new MeshBuilder(2);
-                b.Prism(new Vector3(0,-.2f,0),.05f,.042f,.4f,7,0);
-                b.Box(new Vector3(0,.215f,0),new Vector3(.008f,.03f,.008f),Quaternion.identity,1);
+                // round 13 (hc/hall-l, same dimensions as hc/props-l: 30 cm long, 2.7 cm across at the foot): a turned taper with a melted collar
+                // at the foot, a wax pool in the top and a wick 2 cm long
+                b.Lathe(Vector3.zero,new[]{0f,.0125f,.0155f,.0138f,.0132f,.0124f,.0118f,.0124f,.008f,0f},new[]{-.15f,-.15f,-.138f,-.10f,0f,.10f,.134f,.15f,.146f,.143f},12,0);
+                b.Box(new Vector3(0,.16f,0),new Vector3(.004f,.02f,.004f),Quaternion.identity,1);
                 return candleMesh=b.Build("Surreal floating candle");
             }
         }
@@ -517,7 +587,7 @@ namespace HollowCurrent
         public static Vector3 ChandelierFlameBase(int i)
         {
             float a=i*Mathf.PI*2/ChandelierCandles;
-            return new Vector3(Mathf.Cos(a)*ChandelierRadius,.08f+.24f,Mathf.Sin(a)*ChandelierRadius);
+            return new Vector3(Mathf.Cos(a)*ChandelierRadius,.04f+.338f,Mathf.Sin(a)*ChandelierRadius);   // round 13: 30 cm tapers (cup at .04, candle top .378), flame on the candle top
         }
         static Mesh ChandelierMesh
         {
@@ -525,33 +595,25 @@ namespace HollowCurrent
             {
                 if(chandelierMesh)return chandelierMesh;
                 var b=new MeshBuilder(2);
-                const int outer=24,inner=12;
                 float R=ChandelierRadius;
-                for(int i=0;i<outer;i++)
-                {
-                    float a=(i+.5f)*Mathf.PI*2/outer;
-                    float len=2*R*Mathf.Sin(Mathf.PI/outer)*1.06f;
-                    b.Box(new Vector3(Mathf.Cos(a)*R,0,Mathf.Sin(a)*R),new Vector3(len,.06f,.07f),Quaternion.Euler(0,-(a*Mathf.Rad2Deg+90),0),0);
-                }
-                for(int i=0;i<inner;i++)
-                {
-                    float a=(i+.5f)*Mathf.PI*2/inner,r=R*.45f;
-                    float len=2*r*Mathf.Sin(Mathf.PI/inner)*1.08f;
-                    b.Box(new Vector3(Mathf.Cos(a)*r,0,Mathf.Sin(a)*r),new Vector3(len,.05f,.05f),Quaternion.Euler(0,-(a*Mathf.Rad2Deg+90),0),0);
-                }
+                // round 13: round iron instead of boxes and prisms: two smooth rings, four spokes, a turned hub and pendant, round chains, turned cups and 30 cm tapers
+                Vector3[] Ring(float rad,int n){var q=new Vector3[n];for(int i=0;i<n;i++){float a=i*Mathf.PI*2/n;q[i]=new Vector3(Mathf.Cos(a)*rad,0,Mathf.Sin(a)*rad);}return q;}
+                var outerPts=Ring(R,40);var outerR=new float[40];for(int i=0;i<40;i++)outerR[i]=.032f;
+                b.TubeSmooth(outerPts,outerR,8,0,true);
+                var innerPts=Ring(R*.45f,24);var innerR=new float[24];for(int i=0;i<24;i++)innerR[i]=.024f;
+                b.TubeSmooth(innerPts,innerR,8,0,true);
                 for(int i=0;i<4;i++)
                 {
                     float a=i*Mathf.PI*.5f;
-                    b.Box(new Vector3(Mathf.Cos(a)*R*.5f,0,Mathf.Sin(a)*R*.5f),new Vector3(R,.05f,.05f),Quaternion.Euler(0,-a*Mathf.Rad2Deg,0),0);
+                    b.TubeSmooth(new[]{Vector3.zero,new Vector3(Mathf.Cos(a)*R*.5f,.012f,Mathf.Sin(a)*R*.5f),new Vector3(Mathf.Cos(a)*R,0,Mathf.Sin(a)*R)},new[]{.026f,.022f,.026f},6,0);
                 }
-                b.Prism(new Vector3(0,-.06f,0),.13f,.09f,.16f,10,0);            // hub
-                b.Prism(new Vector3(0,-.55f,0),.02f,.1f,.5f,8,0);               // pendant finial (points down)
+                b.Lathe(new Vector3(0,-.06f,0),new[]{0f,.13f,.1f,.07f,.09f,.0f},new[]{0f,0f,.05f,.10f,.16f,.16f},10,0);                       // hub
+                b.Lathe(new Vector3(0,-.55f,0),new[]{0f,.02f,.035f,.06f,.1f,.07f,.0f},new[]{0f,.04f,.12f,.25f,.38f,.5f,.5f},10,0);          // pendant finial
                 for(int i=0;i<ChandelierCandles;i++)
                 {
                     float a=i*Mathf.PI*2/ChandelierCandles;
                     var c=new Vector3(Mathf.Cos(a)*R,0,Mathf.Sin(a)*R);
-                    b.Prism(c+new Vector3(0,.03f,0),.06f,.045f,.06f,8,0);        // cup
-                    b.Prism(c+new Vector3(0,.09f,0),.032f,.028f,.23f,7,1);       // candle
+                    CandleHead(b,c+new Vector3(0,.04f,0),.30f,8);
                 }
                 float top=ChandelierChain;
                 var apex=new Vector3(0,top,0);
@@ -559,10 +621,9 @@ namespace HollowCurrent
                 {
                     float a=(i*120+90)*Mathf.Deg2Rad;
                     var attach=new Vector3(Mathf.Cos(a)*R,.02f,Mathf.Sin(a)*R);
-                    var d=apex-attach;
-                    b.Box((attach+apex)*.5f,new Vector3(.035f,d.magnitude,.035f),Quaternion.FromToRotation(Vector3.up,d.normalized),0);
+                    b.TubeSmooth(new[]{attach,Vector3.Lerp(attach,apex,.5f),apex},new[]{.018f,.018f,.018f},6,0);
                 }
-                b.Prism(apex-new Vector3(0,.06f,0),.09f,.05f,.12f,8,0);          // canopy ring at the ceiling
+                b.Lathe(apex-new Vector3(0,.06f,0),new[]{0f,.09f,.06f,.05f,.0f},new[]{0f,.01f,.06f,.12f,.12f},8,0);                         // canopy ring
                 return chandelierMesh=b.Build("Surreal chandelier");
             }
         }

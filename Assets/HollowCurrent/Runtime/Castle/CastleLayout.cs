@@ -101,6 +101,7 @@ namespace HollowCurrent
             public const string ClerestoryWindow = "ClerestoryWindow";
             public const string ObservatoryWindow = "ObservatoryWindow";
             public const string RoseWindow = "RoseWindow";           // base at the opening bottom
+            public const string ChapelSunburst = "ChapelSunburst";   // round 13: the broken stained-glass sun above the chapel altar, 2.0 x 3.1 opening, base at the sill
             // structure
             public const string ColumnGreat = "ColumnGreat";         // great hall column, floor to ceiling
             public const string Column = "Column";                   // 3.0 m column (crypt)
@@ -158,13 +159,13 @@ namespace HollowCurrent
             { ArtNames.ServiceDoorLeaf, new Vector3(.9f, 2.0f, .08f) }, { ArtNames.PortraitDoorLeaf, new Vector3(.9f, 2.0f, .1f) },
             { ArtNames.LancetWindow, new Vector3(1.2f, 1.6f, .35f) }, { ArtNames.TallLancetWindow, new Vector3(1.4f, 3.5f, .35f) },
             { ArtNames.ClerestoryWindow, new Vector3(1.2f, 1.8f, .35f) }, { ArtNames.ObservatoryWindow, new Vector3(1.6f, 2.7f, .35f) },
-            { ArtNames.RoseWindow, new Vector3(3.0f, 3.0f, .5f) },
+            { ArtNames.RoseWindow, new Vector3(3.0f, 3.0f, .5f) }, { ArtNames.ChapelSunburst, new Vector3(2.0f, 3.1f, .56f) },
             { ArtNames.ColumnGreat, new Vector3(.9f, 8.8f, .9f) }, { ArtNames.Column, new Vector3(.7f, 3.0f, .7f) },
             { ArtNames.CryptRib, new Vector3(8.4f, .6f, .6f) }, { ArtNames.RafterBeam, new Vector3(11.4f, .5f, .5f) },
             { ArtNames.Balustrade, new Vector3(2.0f, 1.1f, .2f) }, { ArtNames.Fountain, new Vector3(2.6f, 1.8f, 2.6f) },
             { ArtNames.DeadTree, new Vector3(2.4f, 4.5f, 2.4f) }, { ArtNames.Candelabra, new Vector3(.5f, 1.7f, .5f) },
             { ArtNames.Pew, new Vector3(2.4f, 1.0f, .7f) }, { ArtNames.Altar, new Vector3(2.4f, 1.1f, 1.1f) },
-            { ArtNames.ChapelBell, new Vector3(1.2f, 2.0f, .9f) }, { ArtNames.LongTable, new Vector3(6.6f, .95f, 1.4f) },
+            { ArtNames.ChapelBell, new Vector3(1.2f, 2.0f, .9f) }, { ArtNames.LongTable, new Vector3(3.3f, .775f, 1.3f) },
             { ArtNames.DiningTable, new Vector3(5.6f, .9f, 1.6f) }, { ArtNames.HighBackChair, new Vector3(.6f, 1.3f, .6f) },
             { ArtNames.Throne, new Vector3(1.0f, 1.9f, .9f) }, { ArtNames.Fireplace, new Vector3(2.6f, 2.6f, .9f) },
             { ArtNames.Sideboard, new Vector3(2.6f, 1.1f, .6f) }, { ArtNames.KitchenHearth, new Vector3(2.8f, 2.4f, 1.0f) },
@@ -258,14 +259,16 @@ namespace HollowCurrent
             new CastleWindowDef(true, 0, 8.5f, 0, 1.4f, 1.4f, 4.9f, 1, ArtNames.TallLancetWindow, true),
             new CastleWindowDef(true, 0, 11.5f, 0, 1.4f, 1.4f, 4.9f, 1, ArtNames.TallLancetWindow, false),
             // east exterior (x = 14, room to -x)
+            // the broken sun above the chapel altar (round 13): sill 2.9 clears the 2.8 m buttress outside; replaces the painted quad CastleAtmosphere used
+            new CastleWindowDef(false, 14, 6.5f, 0, 2.0f, 2.9f, 6.0f, -1, ArtNames.ChapelSunburst, true),
             new CastleWindowDef(false, 14, 3.5f, 0, 1.4f, 1.4f, 4.9f, -1, ArtNames.TallLancetWindow, true),
             new CastleWindowDef(false, 14, 9.5f, 0, 1.4f, 1.4f, 4.9f, -1, ArtNames.TallLancetWindow, true),
             new CastleWindowDef(false, 14, 18, 3.2f, 1.2f, 1.0f, 2.6f, -1, ArtNames.LancetWindow, true),
             new CastleWindowDef(false, 14, 21, 6.4f, 1.6f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, true),
             new CastleWindowDef(false, 14, 25, 6.4f, 1.6f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, false),
             // north exterior (z = 28, room to -z)
-            new CastleWindowDef(true, 28, -4.4f, 0, 1.4f, 1.8f, 5.4f, -1, ArtNames.TallLancetWindow, true),
-            new CastleWindowDef(true, 28, 4.4f, 0, 1.4f, 1.8f, 5.4f, -1, ArtNames.TallLancetWindow, true),
+            new CastleWindowDef(true, 28, -4.4f, 0, 1.4f, 1.8f, 5.3f, -1, ArtNames.TallLancetWindow, true),   // top 5.3: the tracery is 3.5 m tall (was cut 3.6)
+            new CastleWindowDef(true, 28, 4.4f, 0, 1.4f, 1.8f, 5.3f, -1, ArtNames.TallLancetWindow, true),
             new CastleWindowDef(true, 28, 0, 0, 3.0f, 5.6f, 8.6f, -1, ArtNames.RoseWindow, true, true),
             new CastleWindowDef(true, 28, 9, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, true),
             new CastleWindowDef(true, 28, 12, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, false),
@@ -298,7 +301,7 @@ namespace HollowCurrent
         public const float SkeletonMaxX = -3.0f;
         public static readonly Vector3 TablePos = new Vector3(0f, 0, 23.7f);   // round 8: shorter (3.3 m, z 22.05-25.35) to leave room for the dais (z 25.5-27.55)
         public const float TableYaw = 90f;         // length axis along the hall axis (z)
-        public const float TableLengthScale = .5f, TableWidthScale = 1f;
+        public const float TableLengthScale = 1f, TableWidthScale = 1f;   // round 13: the trestle table is authored at its 3.3 x 1.3 m size (the old mesh was 6.6 m, squeezed to .5)
 
         // Camera lines the dressing must stay clear of (round 4): S5 looks from the hall floor up at the Count's perch,
         // S6 stands in the gatehouse. Nothing that floats may sit within 2 m of the eye-to-subject segment.
@@ -410,11 +413,12 @@ namespace HollowCurrent
             // great hall
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
-            new CastleCandleDef(new Vector3(0f, .95f, 22.85f), .8f), new CastleCandleDef(new Vector3(0f, .95f, 24.55f), .8f),
+            // round 13: the table carries eight baked turned candlesticks of its own; these two stay as light sources only (no mesh), at the new tabletop
+            new CastleCandleDef(new Vector3(0f, .775f, 22.85f), .8f, 5.5f, false, false), new CastleCandleDef(new Vector3(0f, .775f, 24.55f), .8f, 5.5f, false, false),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall
-            new CastleCandleDef(new Vector3(-10f, .9f, 14.0f), .9f), new CastleCandleDef(new Vector3(-10f, .9f, 18.0f), .9f),
+            new CastleCandleDef(new Vector3(-10f, .79f, 14.0f), .9f), new CastleCandleDef(new Vector3(-10f, .79f, 18.0f), .9f),   // round 13: stand on the table (top .792), not 11 cm above it
             // kitchen
             new CastleCandleDef(new Vector3(-12.4f, 0, 8.6f), .8f), new CastleCandleDef(new Vector3(-12.2f, .2f, 5.0f), 1.1f, 5.5f, false, false, 1.0f),
             // chapel

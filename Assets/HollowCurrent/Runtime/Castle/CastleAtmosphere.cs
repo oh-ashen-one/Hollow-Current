@@ -86,7 +86,7 @@ namespace HollowCurrent
         static readonly HashSet<string> PropMaterials = new HashSet<string>
         {
             "Castle_Stone", "Castle_OakPlank", "Castle_StoneWeathered", "Castle_StoneDark", "Castle_StoneMossy", "Castle_BlackStone", "Castle_FlagStone", "Castle_Oak", "Castle_Brass", "Castle_Oxblood",
-            "Castle_Silver", "Castle_Iron", "Castle_Bone", "Castle_Paper", "Castle_Blood",
+            "Castle_Silver", "Castle_Iron", "Castle_Bone", "Castle_Paper", "Castle_Blood", "Castle_DressedStone", "Castle_Wax",
         };
 
         const string WorldPrefix = "HC castle / ";
@@ -225,6 +225,8 @@ namespace HollowCurrent
             var parent = Root ? Root : transform;
             var existing = parent.Find("Painted sun window");
             if (existing) return;
+            // round 13: the chapel has a real broken sunburst window now (CastleLayout.Windows, art ChapelSunburst): no painted quad over it
+            if (parent.Find("Castle / " + CastleArt.Names.ChapelSunburst)) return;
             var group = new GameObject("Painted sun window");
             group.transform.SetParent(parent, false);
             group.transform.localPosition = SunWindowBase;

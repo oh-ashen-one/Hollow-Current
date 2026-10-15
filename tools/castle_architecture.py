@@ -437,7 +437,8 @@ BUILDERS = [
     ("Wall_2m_Window", lambda: wall("Wall_2m_Window", 2.0, True), 200), ("Wall_4m_Window", lambda: wall("Wall_4m_Window", 4.0, True), 200),
     ("Column", lambda: column("Column", 3.0, .7), 800),
     ("ColumnGreat", lambda: column("ColumnGreat", 8.8, .9, bands=(2.9, 5.8)), 1000),
-    ("PointedArch", pointed_arch, 600), ("VaultRib", vault_rib, 600), ("CryptRib", crypt_rib, 400),
+    # PointedArch moved to tools/castle_hall_kit.py (round 13, moulded and chamfered; its builder pointed_arch() above is the retired round-2 version)
+    ("VaultRib", vault_rib, 600), ("CryptRib", crypt_rib, 400),
     ("RoseWindow", rose_window, 1500), ("FloorTile", floor_tile, 100), ("StairFlight", stair_flight, 600),
     ("Balustrade", balustrade, 700), ("RafterBeam", rafter_beam, 300), ("CryptBridge", crypt_bridge, 200),
     ("Buttress", buttress, 300), ("Battlement", battlement, 200), ("GateArch", gate_arch, 400),
@@ -450,10 +451,8 @@ BUILDERS = [
     ("GreatDoorLeaf", lambda: door_leaf("GreatDoorLeaf", *DOOR_LEAF_SPECS["GreatDoorLeaf"]), 800),
     ("ServiceDoorLeaf", lambda: door_leaf("ServiceDoorLeaf", *DOOR_LEAF_SPECS["ServiceDoorLeaf"]), 800),
     ("PortraitDoorLeaf", lambda: door_leaf("PortraitDoorLeaf", *DOOR_LEAF_SPECS["PortraitDoorLeaf"], portrait=True), 800),
-    ("LancetWindow", lambda: lancet_window("LancetWindow", 1.2, 1.6), 600),
-    ("TallLancetWindow", lambda: lancet_window("TallLancetWindow", 1.4, 3.5), 600),
-    ("ClerestoryWindow", lambda: lancet_window("ClerestoryWindow", 1.2, 1.8), 600),
-    ("ObservatoryWindow", lambda: lancet_window("ObservatoryWindow", 1.6, 2.7, mullions=2), 700),
+    # LancetWindow, TallLancetWindow, ClerestoryWindow and ObservatoryWindow moved to tools/castle_hall_kit.py (round 13: two-light tracery with an oculus,
+    # sealed spandrels, a sloped sill; lancet_window() above is the retired round-2 version)
     ("GreatDoor", great_door, 1200), ("ServiceDoor", service_door, 800), ("Door", std_door, 800),
     ("CoffinNiche", coffin_niche, 800), ("StoneBridge", stone_bridge, 800),
 ]

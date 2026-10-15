@@ -493,8 +493,9 @@ def relic_moonstone():
     return b
 
 BUILDERS = [
-    ("Pew", pew, 3000), ("BanquetTable", banquet_table, 3000), ("Altar", altar, 3000), ("StoneFont", stone_font, 3000),
-    ("Sarcophagus", sarcophagus, 3000), ("Candelabra", candelabra, 3000),
+    # Pew, Altar and Candelabra moved to tools/castle_hall_kit.py (round 13: pew with end panels and kneeler, stone altar with a cloth, turned candelabrum)
+    ("BanquetTable", banquet_table, 3000), ("StoneFont", stone_font, 3000),
+    ("Sarcophagus", sarcophagus, 3000),
     # GiantSkeleton and FloatingBook moved to tools/castle_props_r12.py (round 12, hc/art-props); giant_skeleton() and floating_book() here are the
     # retired round-4 versions, kept only for history.
     ("Portrait", portrait_frame, 3000), ("Bookshelf", bookshelf, 3000),

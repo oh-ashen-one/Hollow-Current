@@ -667,7 +667,7 @@ namespace HollowCurrent
             var n = w.RunsAlongX ? new Vector3(0, 0, w.Inward) : new Vector3(w.Inward, 0, 0);
             Proxy("Closed window collision", center, w.RunsAlongX ? new Vector3(w.Width, h, .04f) : new Vector3(.04f, h, w.Width));
             float yaw = w.RunsAlongX ? (w.Inward > 0 ? 0 : 180) : (w.Inward > 0 ? 90 : -90);
-            ArtAt(w.Art, new Vector3(center.x, w.FloorY + w.Sill, center.z), yaw);
+            CastleHallKit.MarkStatic(ArtAt(w.Art, new Vector3(center.x, w.FloorY + w.Sill, center.z), yaw));   // round 13: tracery is architecture (batching static)
             if (!w.Light) return;
             var tangent = w.RunsAlongX ? Vector3.right : Vector3.forward;
             var g = new GameObject("Window moonlight");
@@ -712,7 +712,7 @@ namespace HollowCurrent
                 }
             if (spots.Count == 0) return;
             var flames = new Transform[spots.Count];
-            for (int i = 0; i < spots.Count; i++) flames[i] = SurrealProps.MakeCandleFlame(stand, spots[i], .17f, false, "Flame " + i, .14f).transform;
+            for (int i = 0; i < spots.Count; i++) flames[i] = SurrealProps.MakeCandleFlame(stand, spots[i], SurrealProps.FlameHeight, false, "Flame " + i, .14f).transform;   // round 13: 6 cm flame (hc/props-l size)
             var f = stand.gameObject.AddComponent<Floater>();
             f.phase = 0; f.bobAmplitude = 0; f.driftRadius = 0; f.yawDegreesPerSecond = 0; f.tiltDegrees = 0; f.flames = flames;
         }
@@ -804,6 +804,8 @@ namespace HollowCurrent
             // The banquet table lies on the hall axis (x = 0), its throne at the far end, chairs down both sides.
             var table = ArtAt(Art.LongTable, CastleLayout.TablePos, CastleLayout.TableYaw);
             table.localScale = new Vector3(CastleLayout.TableLengthScale, 1, CastleLayout.TableWidthScale);
+            // round 13: the trestle table carries eight baked turned candlesticks; their mesh flames (Flame_n parts) become billboards like the candelabras'
+            UnifyFlames(table, table);
             var tableSize = CastleLayout.ArtSize(Art.LongTable);
             Proxy("LongTable collision", CastleLayout.TablePos + new Vector3(0, tableSize.y * .5f, 0), new Vector3(tableSize.x * CastleLayout.TableLengthScale, tableSize.y, tableSize.z * CastleLayout.TableWidthScale), CastleLayout.TableYaw);
             // Raised dais on the axis (two 0.2 m steps, z 25.5-27.55) with the throne on top, facing the doors (round 8 set piece for S1)
@@ -828,6 +830,7 @@ namespace HollowCurrent
         void HallDressing()
         {
             FloorTiles(-6, 6, 14, 28, 0, null);
+            CastleHallKit.BuildTrim(root);   // round 13: plinth and string course round the walls
             HallArcade();
             VaultCeiling();
             var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
@@ -892,8 +895,13 @@ namespace HollowCurrent
                 {
                     var arch = ArtAt(Art.PointedArch, new Vector3(side * 3.9f, 0, zc), 90);
                     arch.localScale = new Vector3(Mathf.Approximately(zc, 23.0f) ? .93f : 1f, 1, 1);
-                    Paint(arch, StoneVariant(0)); MakeStatic(arch); k++;
+                    if (arch.GetComponentInChildren<Renderer>() && arch.GetComponentInChildren<Renderer>().sharedMaterial && arch.GetComponentInChildren<Renderer>().sharedMaterial.name.Contains("DressedStone")) CastleHallKit.MarkStatic(arch);   // round 13: the moulded arch carries its own dressed stone
+                    else { Paint(arch, StoneVariant(0)); MakeStatic(arch); }
+                    k++;
                 }
+            // round 13: the ribbed vault (quadripartite bays with diagonal ribs, ridge, bosses, wall ribs and formerets) replaces the four flat cross ribs;
+            // if its FBX is missing the old cross ribs stay as the fallback
+            if (CastleHallKit.BuildVault(root)) return;
             foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
             {
                 var rib = ArtAt(Art.VaultRib, new Vector3(0, 6.0f, z), 0);
@@ -963,6 +971,9 @@ namespace HollowCurrent
         {
             const float size = .92f, height = 8.8f;   // 1 cm proud of the arch piers (0.9 m footprint), so their coplanar faces cannot show through
             Proxy("ColumnGreat collision", foot + new Vector3(0, height * .5f, 0), new Vector3(.9f, height, .9f));
+            // round 13 (r12 critic: square brick-tiled boxes): a clustered column, four shafts round a core with base, ring bands and a bell capital
+            // under an octagonal abacus at y 5.85 where the vault springs (tools/castle_hall_kit.py). The wall-module pier below is the fallback.
+            if (CastleHallKit.PlaceColumn(root, foot) != null) return;
             int bands = Mathf.RoundToInt(height / 3.2f); float bh = height / bands;
             for (int face = 0; face < 4; face++)
             {

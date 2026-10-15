@@ -42,6 +42,8 @@ namespace HollowCurrent
             public const string FloatingBookSmall = "FloatingBookSmall", FloatingBookLarge = "FloatingBookLarge", BookClosedSmall = "BookClosedSmall", BookClosed = "BookClosed", BookClosedLarge = "BookClosedLarge";
             public const string RelicSocketBlade = "RelicSocketBlade", RelicSocketHilt = "RelicSocketHilt", RelicSocketMoon = "RelicSocketMoon";
             public const string StringCourse = "StringCourse", Corbel = "Corbel", GargoyleSpout = "GargoyleSpout", TapestryPanel = "TapestryPanel";
+            // round 13 (hc/hall-l, tools/castle_hall_kit.py): the great hall kit and the chapel sunburst; front = +Z at yaw 0 for these (the axis is baked, see the generator)
+            public const string HallColumn = "HallColumn", HallCorbel = "HallCorbel", HallPlinth = "HallPlinth", HallStringCourse = "HallStringCourse", HallVault = "HallVault", Candlestick = "Candlestick", ChapelSunburst = "ChapelSunburst";
         }
 
         public static readonly string[] All =
@@ -57,6 +59,7 @@ namespace HollowCurrent
             Names.FloorTile, Names.StairFlight, Names.GreatDoor, Names.ServiceDoor, Names.Door, Names.BanquetTable, Names.StoneFont,
             Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains,
             Names.StringCourse, Names.Corbel, Names.GargoyleSpout, Names.TapestryPanel,
+            Names.HallColumn, Names.HallCorbel, Names.HallPlinth, Names.HallStringCourse, Names.HallVault, Names.Candlestick, Names.ChapelSunburst,
             Names.MoonstoneSword, Names.RelicBlade, Names.RelicHilt, Names.RelicMoonstone,
             Names.HandRoot0, Names.HandRoot1, Names.HandRoot2, Names.HandRoot3, Names.HandRoot4, Names.HandRoot5, Names.RootCrown,
             Names.FloatingBookSmall, Names.FloatingBookLarge, Names.BookClosedSmall, Names.BookClosed, Names.BookClosedLarge,
@@ -121,6 +124,10 @@ namespace HollowCurrent
             { "Castle_GiltWorn", new Spec(new Color(.66f, .50f, .20f), .45f, .85f) }, { "Castle_RootBark", new Spec(new Color(.27f, .21f, .16f), .22f, 0f) },
             { "Castle_RootFlesh", new Spec(new Color(.56f, .51f, .47f), .34f, 0f) }, { "Castle_BoneGrime", new Spec(new Color(.60f, .56f, .46f), .26f, 0f) },
             { "Castle_NicheStone", new Spec(new Color(.20f, .21f, .26f), .30f, 0f) },
+            // round 13 (hc/hall-l); textures from tools/castle_hall_textures.py
+            { "Castle_DressedStone", new Spec(new Color(.52f, .54f, .60f), .26f, 0f) }, { "Castle_Wax", new Spec(new Color(.80f, .74f, .60f), .36f, 0f) },
+            { "Castle_GlassAmber", new Spec(new Color(1f, .62f, .18f), .55f, 0f, true, new Color(1.3f, .8f, .22f)) }, { "Castle_GlassBlue", new Spec(new Color(.22f, .38f, .92f), .55f, 0f, true, new Color(.3f, .52f, 1.25f)) },
+            { "Castle_GlassRed", new Spec(new Color(.8f, .1f, .08f), .55f, 0f, true, new Color(1f, .13f, .08f)) }, { "Castle_GlassInk", new Spec(new Color(.015f, .015f, .022f), .60f, 0f) },
         };
 
         // ---- upgraded surfaces (round 2, hc/look) ---------------------------------------------------------------
@@ -138,7 +145,7 @@ namespace HollowCurrent
         static readonly Dictionary<string, float> TilesPerMetre = new Dictionary<string, float>
         {
             { "Castle_Stone", .5f }, { "Castle_StoneWeathered", .5f }, { "Castle_StoneDark", .5f }, { "Castle_StoneMossy", .5f }, { "Castle_FlagStone", .5f }, { "Castle_BlackStone", .667f }, { "Castle_Oak", 1f }, { "Castle_OakPlank", 1f }, { "Castle_GoreSkin", 1f }, { "Castle_GoreFlesh", 1f }, { "Castle_GoreMembrane", 1f }, { "Castle_Brass", 2f },
-            { "Castle_Silver", 2f }, { "Castle_Iron", 2f }, { "Castle_Oxblood", 1f }, { "Castle_Bone", 1f }, { "Castle_Paper", 2f },
+            { "Castle_Silver", 2f }, { "Castle_Iron", 2f }, { "Castle_Oxblood", 1f }, { "Castle_Bone", 1f }, { "Castle_Paper", 2f }, { "Castle_DressedStone", .667f }, { "Castle_Wax", 2f },
             { "Castle_Canvas", 2f }, { "Castle_Blood", .5f },
         };
         static readonly Dictionary<string, Material> Surfaces = new Dictionary<string, Material>();
