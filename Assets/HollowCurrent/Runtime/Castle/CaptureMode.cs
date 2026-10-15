@@ -155,7 +155,14 @@ namespace HollowCurrent
                 // r13: the closed "Gate" door leaves filled this view; open them for the shot and close them after.
                 var gateLeaves=new List<Door>();
                 if(v.id=="gate_out_S6")foreach(var it in game.World.Root.GetComponentsInChildren<Interactable>(true))if(it.Kind==InteractKind.Door&&it.Label=="Gate"&&it.Door){it.Door.Open=true;gateLeaves.Add(it.Door);}
-                if(v.id=="gate_out_S6")Log("gate_out_S6 gate leaves opened="+gateLeaves.Count);
+                if(v.id=="gate_out_S6")
+                {
+                    Log("gate_out_S6 gate leaves opened="+gateLeaves.Count+" bridge="+(bridge?("lowered="+bridge.Lowered+" angle="+bridge.Angle.ToString("F0")):"none"));
+                    // r13 diagnosis: what fills this view (renderers whose bounds the view ray meets within 6 m).
+                    var ray=new Ray(v.eye,(v.target-v.eye).normalized);var hits=new List<string>();
+                    foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))if(r.enabled&&r.gameObject.activeInHierarchy&&r.bounds.IntersectRay(ray,out float d)&&d<6)hits.Add(r.name+"@"+d.ToString("F1"));
+                    Log("gate_out_S6 ray renderers: "+string.Join(", ",hits));
+                }
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0?3f:1.5f);
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);
