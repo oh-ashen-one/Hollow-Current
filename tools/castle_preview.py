@@ -15,7 +15,8 @@ out = Path(args[0] if args else "/tmp/castle_preview.png")
 names = args[1:]
 files = sorted(cc.CASTLE.glob("*.fbx"))
 if names: files = [f for f in files if f.stem in names]
-TILE = 480
+import os
+TILE = int(os.environ.get('HC_TILE', 480))
 tiles = []
 for f in files:
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -54,7 +55,8 @@ ASSEMBLE = """
 import sys, json, math
 from PIL import Image, ImageDraw
 out, tile, items = sys.argv[1], int(sys.argv[2]), json.loads(sys.argv[3])
-cols = 6; rows = math.ceil(len(items) / cols)
+import os
+cols = int(os.environ.get('HC_COLS', 6)); rows = math.ceil(len(items) / cols)
 sheet = Image.new("RGB", (cols * tile, rows * tile), (30, 32, 40)); dr = ImageDraw.Draw(sheet)
 import os
 for i, (n, p) in enumerate(items):

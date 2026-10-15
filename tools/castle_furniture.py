@@ -10,6 +10,7 @@ import sys, math
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from castle_lib import *
+from castle_gothic import turned_candlestick
 from mathutils import Matrix
 
 S, BS, OAK, BRASS, IRON, OX, SIL, BONE, PAPER, FLAME = (
@@ -108,8 +109,8 @@ def long_table():
 def dining_table():
     """Dining-hall table 5.6 x 1.5 m with plates, a candelabra stub and cloth runner. Long axis X, front +Y."""
     b = table("DiningTable", 5.6, 1.5, .78)
-    for x in (-1.6, 0, 1.6):
-        b.lathe((x, 0, .79), [(.05, 0), (.05, .02), (.02, .05), (.02, .28), (.04, .3), (0, .3)], 6, BRASS, cap=False)
+    for x in (-1.6, 0, 1.6):                        # round 13: turned brass candlesticks with 30 cm tapers (unlit: the table is baked, the candelabra beside it burns)
+        turned_candlestick(b, (x, 0, .79), 1.0, .30, seg=12, flame=False)
     for x in (-2.0, -1.0, 0.0, 1.0, 2.0):
         for sy in (-1, 1):
             b.lathe((x, sy * .5, .79), [(0, 0), (.14, 0), (.16, .015), (.0, .015)], 10, SIL, cap=False)
@@ -223,7 +224,7 @@ def reading_table():
     with b.xf(about((.25, .05, .85), Rx(6))):
         b.box((.25 - .105, .05, .865), (.21, .28, .02), OX); b.box((.25 + .105, .05, .865), (.21, .28, .02), OX)
         b.box((.25 - .1, .05, .88), (.19, .26, .02), PAPER); b.box((.25 + .1, .05, .88), (.19, .26, .02), PAPER)
-    b.lathe((-.6, .1, .84), [(.05, 0), (.05, .02), (.02, .05), (.02, .1), (.04, .12), (0, .12)], 6, BRASS, cap=False)
+    turned_candlestick(b, (-.6, .1, .84), 1.0, .30, seg=12, flame=False)
     return b
 
 def lectern():
@@ -291,10 +292,11 @@ def pedestal():
     return b
 
 BUILDERS = [
-    ("Winch", winch, 1500), ("LanternCart", lantern_cart, 2000), ("ChapelBell", chapel_bell, 1500), ("LongTable", long_table, 2000),
-    ("DiningTable", dining_table, 2000), ("HighBackChair", high_back_chair, 500), ("Throne", throne, 1000),
+    # LongTable moved to tools/castle_hall_kit.py (round 13: the 3.3 m trestle table)
+    ("Winch", winch, 1500), ("LanternCart", lantern_cart, 2000), ("ChapelBell", chapel_bell, 1500),
+    ("DiningTable", dining_table, 5000), ("HighBackChair", high_back_chair, 500), ("Throne", throne, 1000),
     ("Fireplace", fireplace, 1200), ("Sideboard", sideboard, 800), ("KitchenHearth", kitchen_hearth, 1200),
-    ("ButcherBlock", butcher_block, 500), ("Cauldron", cauldron, 800), ("ReadingTable", reading_table, 1200),
+    ("ButcherBlock", butcher_block, 500), ("Cauldron", cauldron, 800), ("ReadingTable", reading_table, 3000),
     ("Lectern", lectern, 600), ("CanopyBed", canopy_bed, 1500), ("Telescope", telescope, 1500),
     ("ReliquaryBox", reliquary_box, 600), ("Pedestal", pedestal, 600),
 ]
@@ -306,6 +308,11 @@ def main():
         if wanted and name not in wanted:
             continue
         export_asset(make(), budget)
+    if wanted:   # partial run: merge into the committed manifest instead of replacing it
+        import json
+        mp = cc.ROOT / "docs/haunted-castle/art/manifest_furniture.json"
+        old = json.loads(mp.read_text()) if mp.exists() else {}
+        old.update(MANIFEST); MANIFEST.clear(); MANIFEST.update(old)
     write_manifest("furniture")
     print("HC_FURNITURE_PASS", len(MANIFEST))
 

@@ -64,6 +64,24 @@ namespace HollowCurrent
         public const float MaxLean=22f,LeanFullDistance=3f,LeanNoneDistance=8f;
         public static float LeanEase(float distance)
         {float k=Mathf.Clamp01((distance-LeanFullDistance)/(LeanNoneDistance-LeanFullDistance));return 1-k*k*(3-2*k);}
+        // Round 13 (r12 critic: near the camera flame quads become large flat orange teardrops): the CastleFlame vertex stage clamps the flame height
+        // to [MinScreenFraction, MaxScreenFraction] of the screen height at the flame's depth and dissolves flames nearer than NearFadeEnd metres.
+        // The defaults equal the shader's _MinScreen/_MaxScreen/_NearFade. This mirrors it for the self-tests: no per-frame allocation, no CPU cost
+        // in play (the clamp itself runs in the shader).
+        public const float MinScreenFraction=.004f,MaxScreenFraction=.055f,NearFadeStart=.30f,NearFadeEnd=.80f;
+        public static float FlameScaleFactor(float viewDepth,float projectionM11,float flameHeight)
+        {
+            float depth=Mathf.Max(.02f,viewDepth);
+            float metresPerScreen=2*depth/Mathf.Max(.1f,Mathf.Abs(projectionM11));
+            float clamped=Mathf.Clamp(flameHeight,MinScreenFraction*metresPerScreen,Mathf.Max(MinScreenFraction,MaxScreenFraction)*metresPerScreen);
+            return clamped/Mathf.Max(1e-5f,flameHeight);
+        }
+        public static float FlameNearFade(float viewDepth)=>Mathf.Clamp01((viewDepth-NearFadeStart)/Mathf.Max(.01f,NearFadeEnd-NearFadeStart));
+        static float ScaleFor(Camera cam,Vector3 pivot,float flameHeight)
+        {
+            float depth=cam.worldToCameraMatrix.MultiplyPoint3x4(pivot).z*-1f;
+            return FlameScaleFactor(depth,cam.projectionMatrix.m11,flameHeight);
+        }
         public static Vector3 FlameVertexWorld(Vector3 pivot,Vector3 cameraPosition,float sx,float sy,float vx,float vy,Vector3 leanDirection,float sideHint,float degrees)
         {
             var view=(pivot-cameraPosition).normalized;
@@ -104,7 +122,7 @@ namespace HollowCurrent
             for(int i=0;i<n;i++)
             {
                 var f=pick[i];var b=f.billboard;
-                var pivot=b.position;float sx=b.lossyScale.x,sy=Mathf.Max(.01f,b.lossyScale.y);var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;var cp=cam.transform.position;
+                var pivot=b.position;float sx=b.lossyScale.x,sy=Mathf.Max(.01f,b.lossyScale.y);float clampK=ScaleFor(cam,pivot,sy);sx*=clampK;sy*=clampK;var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;var cp=cam.transform.position;
                 // wick = vertex (0,0): with the lean applied against with none (the pivot of the rotation, so they must be identical)
                 var wickLean=FlameVertexWorld(pivot,cp,sx,sy,0,0,dir,hint,f.leanNow);var wickPlain=FlameVertexWorld(pivot,cp,sx,sy,0,0,dir,hint,0);
                 Vector2 p0=cam.WorldToScreenPoint(wickPlain),p0After=cam.WorldToScreenPoint(wickLean);
@@ -133,7 +151,7 @@ namespace HollowCurrent
             bool all=true;int n=Mathf.Min(count,ordered.Count);
             for(int i=0;i<n;i++)
             {
-                var f=ordered[i];var b=f.billboard;float sx=b.lossyScale.x,sy=Mathf.Max(.01f,b.lossyScale.y);var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;
+                var f=ordered[i];var b=f.billboard;float sx=b.lossyScale.x,sy=Mathf.Max(.01f,b.lossyScale.y);float clampK=ScaleFor(cam,b.position,sy);sx*=clampK;sy*=clampK;var dir=f.lastLeanDir;float hint=f.seed>50?1f:-1f;
                 var core=FlameVertexWorld(b.position,cp,sx,sy,0,.5f,dir,hint,f.leanNow);var halo=FlameVertexWorld(b.position,cp,sx,sy,0,.45f,dir,hint,f.leanNow);
                 float gap=Vector3.Distance(core,halo),drift=Vector3.Distance(f.transform.localPosition,f.seatedLocal),billboardOffset=Vector3.Distance(b.position,f.transform.position);
                 bool enabled=f.flameRenderer&&f.flameRenderer.enabled&&f.gameObject.activeInHierarchy&&f.flameRenderer.sharedMaterial&&f.flameRenderer.sharedMaterial.shader&&f.flameRenderer.sharedMaterial.shader.isSupported;

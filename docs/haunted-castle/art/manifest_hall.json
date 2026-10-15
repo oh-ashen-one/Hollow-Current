@@ -1,0 +1,1100 @@
+{
+ "Altar": {
+  "budget": 6000,
+  "bytes": 72972,
+  "file": "Assets/HollowCurrent/Resources/Castle/Altar.fbx",
+  "materials": [
+   "Castle_BlackStone",
+   "Castle_DressedStone",
+   "Castle_Oxblood"
+  ],
+  "max": [
+   1.19,
+   0.53,
+   1.106
+  ],
+  "min": [
+   -1.19,
+   -0.65,
+   0.0
+  ],
+  "notes": {
+   "niche": "blind arcade, front",
+   "top": 1.1
+  },
+  "parts": {
+   "Altar": {
+    "max": [
+     1.19,
+     0.53,
+     1.106
+    ],
+    "min": [
+     -1.19,
+     -0.65,
+     0.0
+    ],
+    "size": [
+     2.38,
+     1.18,
+     1.106
+    ],
+    "tris": 2072
+   }
+  },
+  "size": [
+   2.38,
+   1.18,
+   1.106
+  ],
+  "tris": 2072
+ },
+ "Candelabra": {
+  "budget": 6000,
+  "bytes": 121084,
+  "file": "Assets/HollowCurrent/Resources/Castle/Candelabra.fbx",
+  "materials": [
+   "Castle_Brass",
+   "Castle_Wax",
+   "Castle_Flame"
+  ],
+  "max": [
+   0.2445,
+   0.2445,
+   1.546
+  ],
+  "min": [
+   -0.2445,
+   -0.2445,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "Candelabra": {
+    "max": [
+     0.215,
+     0.2117,
+     1.421
+    ],
+    "min": [
+     -0.215,
+     -0.2117,
+     0.0
+    ],
+    "size": [
+     0.43,
+     0.4235,
+     1.421
+    ],
+    "tris": 1706
+   },
+   "Flame_0": {
+    "max": [
+     0.011,
+     0.011,
+     1.486
+    ],
+    "min": [
+     -0.2445,
+     -0.2445,
+     1.15
+    ],
+    "size": [
+     0.2555,
+     0.2555,
+     0.336
+    ],
+    "tris": 534
+   },
+   "Flame_1": {
+    "max": [
+     0.2445,
+     -0.1445,
+     1.546
+    ],
+    "min": [
+     -0.2055,
+     -0.2445,
+     1.15
+    ],
+    "size": [
+     0.4499,
+     0.1,
+     0.396
+    ],
+    "tris": 534
+   },
+   "Flame_2": {
+    "max": [
+     0.2445,
+     0.2445,
+     1.546
+    ],
+    "min": [
+     0.1445,
+     -0.2055,
+     1.15
+    ],
+    "size": [
+     0.1,
+     0.4499,
+     0.396
+    ],
+    "tris": 534
+   },
+   "Flame_3": {
+    "max": [
+     0.2055,
+     0.2445,
+     1.546
+    ],
+    "min": [
+     -0.2445,
+     0.1445,
+     1.15
+    ],
+    "size": [
+     0.4499,
+     0.1,
+     0.396
+    ],
+    "tris": 534
+   },
+   "Flame_4": {
+    "max": [
+     -0.1835,
+     0.2055,
+     1.546
+    ],
+    "min": [
+     -0.2055,
+     0.1835,
+     1.486
+    ],
+    "size": [
+     0.022,
+     0.022,
+     0.06
+    ],
+    "tris": 48
+   }
+  },
+  "size": [
+   0.4889,
+   0.4889,
+   1.546
+  ],
+  "tris": 3890
+ },
+ "Candlestick": {
+  "budget": 1500,
+  "bytes": 44556,
+  "file": "Assets/HollowCurrent/Resources/Castle/Candlestick.fbx",
+  "materials": [
+   "Castle_Brass",
+   "Castle_Wax",
+   "Castle_Flame"
+  ],
+  "max": [
+   0.064,
+   0.064,
+   0.52
+  ],
+  "min": [
+   -0.064,
+   -0.064,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "Candlestick": {
+    "max": [
+     0.064,
+     0.064,
+     0.46
+    ],
+    "min": [
+     -0.064,
+     -0.064,
+     0.0
+    ],
+    "size": [
+     0.128,
+     0.128,
+     0.46
+    ],
+    "tris": 1086
+   },
+   "Flame_0": {
+    "max": [
+     0.011,
+     0.011,
+     0.52
+    ],
+    "min": [
+     -0.011,
+     -0.011,
+     0.46
+    ],
+    "size": [
+     0.022,
+     0.022,
+     0.06
+    ],
+    "tris": 48
+   }
+  },
+  "size": [
+   0.128,
+   0.128,
+   0.52
+  ],
+  "tris": 1134
+ },
+ "ChapelSunburst": {
+  "budget": 8000,
+  "bytes": 113500,
+  "file": "Assets/HollowCurrent/Resources/Castle/ChapelSunburst.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_GlassInk",
+   "Castle_GlassAmber",
+   "Castle_GlassBlue",
+   "Castle_GlassRed"
+  ],
+  "max": [
+   1.0,
+   0.28,
+   3.1
+  ],
+  "min": [
+   -1.0,
+   -0.37,
+   0.0
+  ],
+  "notes": {
+   "R": 1.74,
+   "apex": 2.952,
+   "band": 0.13,
+   "circle": [
+    2.065,
+    0.6
+   ],
+   "depth": 0.56,
+   "hwi": 0.87,
+   "lights": 0,
+   "rise_i": 1.507,
+   "shards": {
+    "amber": 2,
+    "blue": 19,
+    "ink": 13,
+    "missing": 20,
+    "red": 2,
+    "tilted": 7
+   },
+   "spring": 1.445
+  },
+  "parts": {
+   "ChapelSunburst": {
+    "max": [
+     1.0,
+     0.28,
+     3.1
+    ],
+    "min": [
+     -1.0,
+     -0.37,
+     0.0
+    ],
+    "size": [
+     2.0,
+     0.65,
+     3.1
+    ],
+    "tris": 2972
+   }
+  },
+  "size": [
+   2.0,
+   0.65,
+   3.1
+  ],
+  "tris": 2972
+ },
+ "ClerestoryWindow": {
+  "budget": 4000,
+  "bytes": 67532,
+  "file": "Assets/HollowCurrent/Resources/Castle/ClerestoryWindow.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.6,
+   0.26,
+   1.8
+  ],
+  "min": [
+   -0.6,
+   -0.35,
+   0.0
+  ],
+  "notes": {
+   "R": 0.94,
+   "apex": 1.653,
+   "band": 0.13,
+   "depth": 0.52,
+   "hwi": 0.47,
+   "lights": 2,
+   "oculus_centre": 1.469,
+   "oculus_radius": 0.149,
+   "rise_i": 0.814,
+   "spring": 0.839
+  },
+  "parts": {
+   "ClerestoryWindow": {
+    "max": [
+     0.6,
+     0.26,
+     1.8
+    ],
+    "min": [
+     -0.6,
+     -0.35,
+     0.0
+    ],
+    "size": [
+     1.2,
+     0.61,
+     1.8
+    ],
+    "tris": 1960
+   }
+  },
+  "size": [
+   1.2,
+   0.61,
+   1.8
+  ],
+  "tris": 1960
+ },
+ "HallColumn": {
+  "budget": 7000,
+  "bytes": 134012,
+  "file": "Assets/HollowCurrent/Resources/Castle/HallColumn.fbx",
+  "materials": [
+   "Castle_DressedStone"
+  ],
+  "max": [
+   0.46,
+   0.46,
+   5.85
+  ],
+  "min": [
+   -0.46,
+   -0.46,
+   0.0
+  ],
+  "notes": {
+   "footprint": 0.92,
+   "height": 5.85,
+   "spring": 5.85
+  },
+  "parts": {
+   "HallColumn": {
+    "max": [
+     0.46,
+     0.46,
+     5.85
+    ],
+    "min": [
+     -0.46,
+     -0.46,
+     0.0
+    ],
+    "size": [
+     0.92,
+     0.92,
+     5.85
+    ],
+    "tris": 4744
+   }
+  },
+  "size": [
+   0.92,
+   0.92,
+   5.85
+  ],
+  "tris": 4744
+ },
+ "HallCorbel": {
+  "budget": 1200,
+  "bytes": 23356,
+  "file": "Assets/HollowCurrent/Resources/Castle/HallCorbel.fbx",
+  "materials": [
+   "Castle_DressedStone"
+  ],
+  "max": [
+   0.42,
+   0.42,
+   0.55
+  ],
+  "min": [
+   -0.42,
+   -0.42,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "HallCorbel": {
+    "max": [
+     0.42,
+     0.42,
+     0.55
+    ],
+    "min": [
+     -0.42,
+     -0.42,
+     0.0
+    ],
+    "size": [
+     0.84,
+     0.84,
+     0.55
+    ],
+    "tris": 304
+   }
+  },
+  "size": [
+   0.84,
+   0.84,
+   0.55
+  ],
+  "tris": 304
+ },
+ "HallPlinth": {
+  "budget": 300,
+  "bytes": 16044,
+  "file": "Assets/HollowCurrent/Resources/Castle/HallPlinth.fbx",
+  "materials": [
+   "Castle_DressedStone"
+  ],
+  "max": [
+   2.0,
+   0.0,
+   0.44
+  ],
+  "min": [
+   -2.0,
+   -0.225,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "HallPlinth": {
+    "max": [
+     2.0,
+     0.0,
+     0.44
+    ],
+    "min": [
+     -2.0,
+     -0.225,
+     0.0
+    ],
+    "size": [
+     4.0,
+     0.225,
+     0.44
+    ],
+    "tris": 36
+   }
+  },
+  "size": [
+   4.0,
+   0.225,
+   0.44
+  ],
+  "tris": 36
+ },
+ "HallStringCourse": {
+  "budget": 300,
+  "bytes": 16412,
+  "file": "Assets/HollowCurrent/Resources/Castle/HallStringCourse.fbx",
+  "materials": [
+   "Castle_DressedStone"
+  ],
+  "max": [
+   2.0,
+   0.0,
+   0.3
+  ],
+  "min": [
+   -2.0,
+   -0.24,
+   0.0
+  ],
+  "notes": {},
+  "parts": {
+   "HallStringCourse": {
+    "max": [
+     2.0,
+     0.0,
+     0.3
+    ],
+    "min": [
+     -2.0,
+     -0.24,
+     0.0
+    ],
+    "size": [
+     4.0,
+     0.24,
+     0.3
+    ],
+    "tris": 44
+   }
+  },
+  "size": [
+   4.0,
+   0.24,
+   0.3
+  ],
+  "tris": 44
+ },
+ "HallVault": {
+  "budget": 45000,
+  "bytes": 696540,
+  "file": "Assets/HollowCurrent/Resources/Castle/HallVault.fbx",
+  "materials": [
+   "Castle_DressedStone"
+  ],
+  "max": [
+   3.985,
+   -14.375,
+   8.775
+  ],
+  "min": [
+   -3.985,
+   -27.5399,
+   5.88
+  ],
+  "notes": {
+   "bays": 4,
+   "spring": 5.85,
+   "webbing_apex": 8.74
+  },
+  "parts": {
+   "Ribs": {
+    "max": [
+     3.985,
+     -14.375,
+     8.775
+    ],
+    "min": [
+     -3.985,
+     -27.5399,
+     5.88
+    ],
+    "size": [
+     7.97,
+     13.1649,
+     2.895
+    ],
+    "tris": 17740
+   },
+   "Webbing": {
+    "max": [
+     3.9,
+     -14.425,
+     8.74
+    ],
+    "min": [
+     -3.9,
+     -27.425,
+     6.07
+    ],
+    "size": [
+     7.8,
+     13.0,
+     2.67
+    ],
+    "tris": 7956
+   }
+  },
+  "size": [
+   7.97,
+   13.1649,
+   2.895
+  ],
+  "tris": 25696
+ },
+ "LancetWindow": {
+  "budget": 4000,
+  "bytes": 68156,
+  "file": "Assets/HollowCurrent/Resources/Castle/LancetWindow.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.6,
+   0.26,
+   1.6
+  ],
+  "min": [
+   -0.6,
+   -0.35,
+   0.0
+  ],
+  "notes": {
+   "R": 0.94,
+   "apex": 1.453,
+   "band": 0.13,
+   "depth": 0.52,
+   "hwi": 0.47,
+   "lights": 2,
+   "oculus_centre": 1.269,
+   "oculus_radius": 0.149,
+   "rise_i": 0.814,
+   "spring": 0.639
+  },
+  "parts": {
+   "LancetWindow": {
+    "max": [
+     0.6,
+     0.26,
+     1.6
+    ],
+    "min": [
+     -0.6,
+     -0.35,
+     0.0
+    ],
+    "size": [
+     1.2,
+     0.61,
+     1.6
+    ],
+    "tris": 1960
+   }
+  },
+  "size": [
+   1.2,
+   0.61,
+   1.6
+  ],
+  "tris": 1960
+ },
+ "LongTable": {
+  "budget": 12000,
+  "bytes": 290988,
+  "file": "Assets/HollowCurrent/Resources/Castle/LongTable.fbx",
+  "materials": [
+   "Castle_OakPlank",
+   "Castle_Oak",
+   "Castle_Iron",
+   "Castle_Oxblood",
+   "Castle_Brass",
+   "Castle_Wax",
+   "Castle_Flame",
+   "Castle_Silver"
+  ],
+  "max": [
+   1.6615,
+   0.65,
+   1.302
+  ],
+  "min": [
+   -1.662,
+   -0.65,
+   0.0
+  ],
+  "notes": {
+   "length": 3.3,
+   "top": 0.775,
+   "width": 1.3
+  },
+  "parts": {
+   "Flame_0": {
+    "max": [
+     1.314,
+     0.281,
+     1.302
+    ],
+    "min": [
+     1.186,
+     -0.334,
+     0.782
+    ],
+    "size": [
+     0.128,
+     0.615,
+     0.52
+    ],
+    "tris": 870
+   },
+   "Flame_1": {
+    "max": [
+     1.261,
+     0.334,
+     1.302
+    ],
+    "min": [
+     0.536,
+     -0.281,
+     0.782
+    ],
+    "size": [
+     0.725,
+     0.615,
+     0.52
+    ],
+    "tris": 870
+   },
+   "Flame_2": {
+    "max": [
+     0.664,
+     0.281,
+     1.302
+    ],
+    "min": [
+     0.536,
+     -0.334,
+     0.782
+    ],
+    "size": [
+     0.128,
+     0.615,
+     0.52
+    ],
+    "tris": 870
+   },
+   "Flame_3": {
+    "max": [
+     0.611,
+     0.334,
+     1.302
+    ],
+    "min": [
+     -0.664,
+     -0.281,
+     0.782
+    ],
+    "size": [
+     1.275,
+     0.615,
+     0.52
+    ],
+    "tris": 870
+   },
+   "Flame_4": {
+    "max": [
+     -0.536,
+     0.281,
+     1.302
+    ],
+    "min": [
+     -0.664,
+     -0.334,
+     0.782
+    ],
+    "size": [
+     0.128,
+     0.615,
+     0.52
+    ],
+    "tris": 870
+   },
+   "Flame_5": {
+    "max": [
+     -0.589,
+     0.334,
+     1.302
+    ],
+    "min": [
+     -1.314,
+     -0.281,
+     0.782
+    ],
+    "size": [
+     0.725,
+     0.615,
+     0.52
+    ],
+    "tris": 870
+   },
+   "Flame_6": {
+    "max": [
+     -1.186,
+     0.281,
+     1.302
+    ],
+    "min": [
+     -1.314,
+     -0.334,
+     0.782
+    ],
+    "size": [
+     0.128,
+     0.615,
+     0.52
+    ],
+    "tris": 870
+   },
+   "Flame_7": {
+    "max": [
+     1.49,
+     0.468,
+     1.302
+    ],
+    "min": [
+     -1.39,
+     -0.478,
+     0.783
+    ],
+    "size": [
+     2.88,
+     0.9461,
+     0.519
+    ],
+    "tris": 2688
+   },
+   "LongTable": {
+    "max": [
+     1.6615,
+     0.65,
+     1.242
+    ],
+    "min": [
+     -1.662,
+     -0.65,
+     0.0
+    ],
+    "size": [
+     3.3234,
+     1.3,
+     1.242
+    ],
+    "tris": 1790
+   }
+  },
+  "size": [
+   3.3234,
+   1.3,
+   1.302
+  ],
+  "tris": 10568
+ },
+ "ObservatoryWindow": {
+  "budget": 4500,
+  "bytes": 67692,
+  "file": "Assets/HollowCurrent/Resources/Castle/ObservatoryWindow.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.8,
+   0.26,
+   2.7
+  ],
+  "min": [
+   -0.8,
+   -0.35,
+   0.0
+  ],
+  "notes": {
+   "R": 1.34,
+   "apex": 2.552,
+   "band": 0.13,
+   "depth": 0.52,
+   "hwi": 0.67,
+   "lights": 2,
+   "oculus_centre": 2.282,
+   "oculus_radius": 0.235,
+   "rise_i": 1.16,
+   "spring": 1.392
+  },
+  "parts": {
+   "ObservatoryWindow": {
+    "max": [
+     0.8,
+     0.26,
+     2.7
+    ],
+    "min": [
+     -0.8,
+     -0.35,
+     0.0
+    ],
+    "size": [
+     1.6,
+     0.61,
+     2.7
+    ],
+    "tris": 1960
+   }
+  },
+  "size": [
+   1.6,
+   0.61,
+   2.7
+  ],
+  "tris": 1960
+ },
+ "Pew": {
+  "budget": 2500,
+  "bytes": 33228,
+  "file": "Assets/HollowCurrent/Resources/Castle/Pew.fbx",
+  "materials": [
+   "Castle_Oak",
+   "Castle_OakPlank",
+   "Castle_Oxblood"
+  ],
+  "max": [
+   1.2125,
+   0.34,
+   1.145
+  ],
+  "min": [
+   -1.2125,
+   -0.57,
+   0.0
+  ],
+  "notes": {
+   "seat_top": 0.465
+  },
+  "parts": {
+   "Pew": {
+    "max": [
+     1.2125,
+     0.34,
+     1.145
+    ],
+    "min": [
+     -1.2125,
+     -0.57,
+     0.0
+    ],
+    "size": [
+     2.425,
+     0.91,
+     1.145
+    ],
+    "tris": 592
+   }
+  },
+  "size": [
+   2.425,
+   0.91,
+   1.145
+  ],
+  "tris": 592
+ },
+ "PointedArch": {
+  "budget": 2000,
+  "bytes": 28572,
+  "file": "Assets/HollowCurrent/Resources/Castle/PointedArch.fbx",
+  "materials": [
+   "Castle_DressedStone"
+  ],
+  "max": [
+   1.95,
+   0.25,
+   5.0799
+  ],
+  "min": [
+   -1.95,
+   -0.25,
+   0.0
+  ],
+  "notes": {
+   "clear_span": 3.0,
+   "intrados_apex": 4.598
+  },
+  "parts": {
+   "PointedArch": {
+    "max": [
+     1.95,
+     0.25,
+     5.0799
+    ],
+    "min": [
+     -1.95,
+     -0.25,
+     0.0
+    ],
+    "size": [
+     3.9,
+     0.5,
+     5.0799
+    ],
+    "tris": 492
+   }
+  },
+  "size": [
+   3.9,
+   0.5,
+   5.0799
+  ],
+  "tris": 492
+ },
+ "TallLancetWindow": {
+  "budget": 4000,
+  "bytes": 68540,
+  "file": "Assets/HollowCurrent/Resources/Castle/TallLancetWindow.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.7,
+   0.26,
+   3.5
+  ],
+  "min": [
+   -0.7,
+   -0.35,
+   0.0
+  ],
+  "notes": {
+   "R": 1.14,
+   "apex": 3.352,
+   "band": 0.13,
+   "depth": 0.52,
+   "hwi": 0.57,
+   "lights": 2,
+   "oculus_centre": 3.125,
+   "oculus_radius": 0.192,
+   "rise_i": 0.987,
+   "spring": 2.365
+  },
+  "parts": {
+   "TallLancetWindow": {
+    "max": [
+     0.7,
+     0.26,
+     3.5
+    ],
+    "min": [
+     -0.7,
+     -0.35,
+     0.0
+    ],
+    "size": [
+     1.4,
+     0.61,
+     3.5
+    ],
+    "tris": 2008
+   }
+  },
+  "size": [
+   1.4,
+   0.61,
+   3.5
+  ],
+  "tris": 2008
+ }
+}

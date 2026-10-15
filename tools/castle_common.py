@@ -52,6 +52,13 @@ MATERIALS = {
     "Castle_RootFlesh":  ((0.56, 0.51, 0.47), 0.34, 0.0, True),   # pallid grey hand skin, veins and creases
     "Castle_BoneGrime":  ((0.60, 0.56, 0.46), 0.26, 0.0, True),   # old bone with crevice grime and dust
     "Castle_NicheStone": ((0.20, 0.21, 0.26), 0.30, 0.0, True),   # tool-dressed dark stone, damp streaks (relic niches)
+    # Round 13 (hc/hall-l), textures and materials from tools/castle_hall_textures.py
+    "Castle_DressedStone": ((0.52, 0.54, 0.60), 0.26, 0.0, True),   # fine-tooled pale ashlar, no coursing: ribs, columns, tracery, string courses
+    "Castle_Wax":        ((0.80, 0.74, 0.60), 0.36, 0.0, False),   # ivory candle wax
+    "Castle_GlassAmber": ((1.00, 0.62, 0.18), 0.55, 0.0, False),   # emissive stained glass (unlit CastleEmissive): gilt sun rays
+    "Castle_GlassBlue":  ((0.22, 0.38, 0.92), 0.55, 0.0, False),   # emissive stained glass: cold moon sky
+    "Castle_GlassRed":   ((0.80, 0.10, 0.08), 0.55, 0.0, False),   # emissive stained glass: oxblood
+    "Castle_GlassInk":   ((0.015, 0.015, 0.022), 0.60, 0.0, False), # painted-over (black ink) glass
 }
 
 def guid(rel):
@@ -267,18 +274,19 @@ Material:
 
 # Nominal sizes reserved by piece 1 (hc/layout CastleLayout.ArtSizes), Unity axes (width X, height Y, depth Z).
 # Origin = base centre, front = +Z at yaw 0 (the art contract in CastleLayout.cs).
+# Round 13: window depths, pews (kneeler), tables and candelabra are the authored visual extents (candles, kneeler, tracery depth); collision uses CastleLayout.ArtSizes.
 NOMINAL = {
     "GateArch": (3.8, 5.6, 1.0), "Drawbridge": (3.2, .25, 6.0), "Winch": (1.0, 1.6, .8), "LanternCart": (1.8, 1.3, 1.0),
     "Buttress": (.9, 6.4, 1.2), "Battlement": (4.0, 1.0, .8), "DoorFrame": (1.9, 2.6, .8), "GreatDoorFrame": (3.6, 5.2, .9),
     "ServiceDoorFrame": (1.2, 2.3, .8), "DoorLeaf": (1.5, 2.0, .09), "GreatDoorLeaf": (1.5, 4.5, .12),
-    "ServiceDoorLeaf": (.9, 2.0, .08), "PortraitDoorLeaf": (.9, 2.0, .1), "LancetWindow": (1.2, 1.6, .35),
-    "TallLancetWindow": (1.4, 3.5, .35), "ClerestoryWindow": (1.2, 1.8, .35), "ObservatoryWindow": (1.6, 2.7, .35),
+    "ServiceDoorLeaf": (.9, 2.0, .08), "PortraitDoorLeaf": (.9, 2.0, .1), "LancetWindow": (1.2, 1.6, .61),
+    "TallLancetWindow": (1.4, 3.5, .61), "ClerestoryWindow": (1.2, 1.8, .61), "ObservatoryWindow": (1.6, 2.7, .61),
     "RoseWindow": (3.0, 3.0, .5), "ColumnGreat": (.9, 8.8, .9), "Column": (.7, 3.0, .7), "CryptRib": (8.4, .6, .6),
     "RafterBeam": (11.4, .5, .5), "Balustrade": (2.0, 1.1, .2), "Fountain": (2.6, 1.8, 2.6), "DeadTree": (2.4, 4.5, 2.4),
-    "Candelabra": (.5, 1.7, .5), "Pew": (2.4, 1.0, .7), "Altar": (2.4, 1.1, 1.1), "ChapelBell": (1.2, 2.0, .9),
-    "LongTable": (6.6, .95, 1.4), "DiningTable": (5.6, .9, 1.6), "HighBackChair": (.6, 1.3, .6), "Throne": (1.0, 1.9, .9),
+    "Candelabra": (.5, 1.55, .5), "Pew": (2.4, 1.15, .91), "Altar": (2.4, 1.1, 1.1), "ChapelBell": (1.2, 2.0, .9),
+    "LongTable": (3.3, 1.3, 1.3), "DiningTable": (5.6, 1.25, 1.5), "HighBackChair": (.6, 1.3, .6), "Throne": (1.0, 1.9, .9),
     "Fireplace": (2.6, 2.6, .9), "Sideboard": (2.6, 1.1, .6), "KitchenHearth": (2.8, 2.4, 1.0), "ButcherBlock": (1.5, .9, 1.0),
-    "Cauldron": (1.0, .9, 1.0), "Bookshelf": (2.0, 3.0, .5), "ReadingTable": (2.0, .85, 1.0), "Lectern": (.7, 1.2, .6),
+    "Cauldron": (1.0, .9, 1.0), "Bookshelf": (2.0, 3.0, .5), "ReadingTable": (2.0, 1.3, 1.0), "Lectern": (.7, 1.2, .6),
     "Portrait": (.9, 1.3, .1), "StringCourse": (4.0, .24, .2), "Corbel": (.4, .58, .45), "GargoyleSpout": (.5, .62, 1.15), "TapestryPanel": (1.52, 2.7, .07), "MoonstoneSword": (.28, 1.10, .07), "RelicBlade": (.044, .0145, .94), "RelicHilt": (.28, .07, .26), "RelicMoonstone": (.21, .19, .19), "CanopyBed": (2.4, 2.8, 2.6), "Orrery": (3.0, 2.8, 3.0), "Telescope": (1.0, 2.2, 2.4),
     "Sarcophagus": (2.2, 1.2, 1.0), "CryptBridge": (1.4, .3, 1.2), "ReliquaryBox": (1.0, 1.0, .7), "Pedestal": (.6, 1.0, .6),
 }

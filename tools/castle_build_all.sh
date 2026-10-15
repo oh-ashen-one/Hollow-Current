@@ -11,4 +11,6 @@ python3 tools/castle_r12_textures.py
 "$BLENDER" -b -P tools/castle_props_r12.py
 "$BLENDER" -b -P tools/castle_furniture.py
 "$BLENDER" -b -P tools/castle_exterior.py
+python3 tools/castle_hall_textures.py
+"$BLENDER" -b -P tools/castle_hall_kit.py
 "$BLENDER" -b -P tools/castle_verify.py

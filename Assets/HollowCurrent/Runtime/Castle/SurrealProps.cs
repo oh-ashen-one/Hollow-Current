@@ -184,6 +184,9 @@ namespace HollowCurrent
         internal static Material SharedFlameMaterial=>FlameHaloMaterial;
         internal static Mesh SharedFlameQuad=>FlameQuad;
 
+        // Round 13: the standard flame height of a candle: 6 cm (a little over real, so it still reads at 6 m; 0.11 m quad with its halo).
+        public const float FlameHeight=.06f;
+
         // glowRadius > 0 adds a soft additive halo (a billboard, not a light) around the flame.
         public static CandleFlame MakeCandleFlame(Transform parent,Vector3 localPosition,float height=.11f,bool withLight=false,string name="Candle flame",float glowRadius=0)
         {
@@ -224,7 +227,7 @@ namespace HollowCurrent
                     var flames=new Transform[CandlePositions.Length];
                     for(int i=0;i<flames.Length;i++)
                     {
-                        var flame=MakeCandleFlame(t,CandlePositions[i],.15f,i<lightedFlames,"Flame "+i,.12f);
+                        var flame=MakeCandleFlame(t,CandlePositions[i],FlameHeight,i<lightedFlames,"Flame "+i,.12f);   // round 13: 6 cm flame sprite, the size agreed with hc/props-l
                         flames[i]=flame.transform;
                     }
                     floater.flames=flames;
@@ -457,7 +460,7 @@ namespace HollowCurrent
             floater.bobAmplitude=.04f;floater.bobHertz=.08f;floater.driftRadius=.03f;floater.tiltDegrees=1.2f;floater.yawDegreesPerSecond=1.5f;
             NewRenderer("Chandelier body",t,Vector3.zero,Quaternion.identity,ChandelierMesh,ChandelierMaterials,true);
             var flames=new Transform[ChandelierCandles];
-            for(int i=0;i<ChandelierCandles;i++)flames[i]=MakeCandleFlame(t,ChandelierFlameBase(i),.2f,false,"Flame "+i,.2f).transform;
+            for(int i=0;i<ChandelierCandles;i++)flames[i]=MakeCandleFlame(t,ChandelierFlameBase(i),FlameHeight,false,"Flame "+i,.2f).transform;
             floater.flames=flames;
             return floater;
         }

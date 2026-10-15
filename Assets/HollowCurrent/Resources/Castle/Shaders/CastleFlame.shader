@@ -11,6 +11,10 @@
 //   lean  = a rigid rotation of the whole quad about the view axis, by _LeanAmount degrees (clamped to 45) toward the side of the
 //           screen the Count is on (_LeanDir.xyz = world direction to the Count, .w = side hint when he is dead ahead / behind)
 //   world = wick + right' * (x * sx) + axis' * (y * sy)
+//   size clamp (round 13, r12 critic: "near the camera flame quads become large flat orange teardrops"): the flame height sy is clamped to
+//         [_MinScreen, _MaxScreen] of the screen height at the flame's distance (height of the view at depth d = 2 d / P11), the width follows,
+//         and a flame closer than _NearFade.y metres dissolves (fully gone at _NearFade.x). Pure vertex-stage maths: nothing on the CPU,
+//         nothing per frame, no allocation. CandleFlame.FlameScaleFactor mirrors it for the self-tests.
 //
 // The wick (x = y = 0) is the pivot of the rotation, so it never moves; the flame keeps its length. _LeanAmount = 0 leaves the quad upright.
 Shader "HollowCurrent/CastleFlame"
@@ -21,6 +25,9 @@ Shader "HollowCurrent/CastleFlame"
         _Color ("Tint", Color) = (1,1,1,1)
         _LeanDir ("Lean direction (world, w = side hint)", Vector) = (0,0,0,1)
         _LeanAmount ("Lean amount (degrees)", Float) = 0
+        _MaxScreen ("Max flame height (fraction of screen height)", Range(0.01, 0.3)) = 0.055
+        _MinScreen ("Min flame height (fraction of screen height)", Range(0, 0.02)) = 0.004
+        _NearFade ("Near fade: gone at x metres, full at y metres", Vector) = (0.30, 0.80, 0, 0)
     }
     SubShader
     {
@@ -39,6 +46,8 @@ Shader "HollowCurrent/CastleFlame"
             sampler2D _MainTex;
             float4 _MainTex_ST;
             fixed4 _Color;
+            float _MaxScreen, _MinScreen;
+            float4 _NearFade;
 
             UNITY_INSTANCING_BUFFER_START(Props)
                 UNITY_DEFINE_INSTANCED_PROP(float4, _LeanDir)
@@ -51,7 +60,7 @@ Shader "HollowCurrent/CastleFlame"
                 float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
-            struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
+            struct v2f { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; half fade : TEXCOORD1; };
 
             v2f vert (appdata v)
             {
@@ -60,6 +69,11 @@ Shader "HollowCurrent/CastleFlame"
                 float3 pivot = float3(unity_ObjectToWorld._m03, unity_ObjectToWorld._m13, unity_ObjectToWorld._m23);
                 float sx = length(float3(unity_ObjectToWorld._m00, unity_ObjectToWorld._m10, unity_ObjectToWorld._m20));
                 float sy = length(float3(unity_ObjectToWorld._m01, unity_ObjectToWorld._m11, unity_ObjectToWorld._m21));
+                float depth = max(0.02, -mul(UNITY_MATRIX_V, float4(pivot, 1.0)).z);           // distance along the view axis
+                float metresPerScreen = 2.0 * depth / max(0.1, abs(unity_CameraProjection._m11));   // world height of the view at this depth
+                float sc = clamp(sy, _MinScreen * metresPerScreen, max(_MinScreen, _MaxScreen) * metresPerScreen) / max(sy, 1e-5);
+                sx *= sc; sy *= sc;
+                o.fade = (half)saturate((depth - _NearFade.x) / max(0.01, _NearFade.y - _NearFade.x));
                 float3 view = normalize(pivot - _WorldSpaceCameraPos);
                 float3 axis = float3(0, 1, 0) - view * view.y;                       // world up flattened against the sight line
                 axis = dot(axis, axis) > 1e-4 ? normalize(axis) : normalize(UNITY_MATRIX_V[1].xyz);
@@ -84,7 +98,7 @@ Shader "HollowCurrent/CastleFlame"
             fixed4 frag (v2f i) : SV_Target
             {
                 fixed4 c = tex2D(_MainTex, i.uv) * _Color;
-                return fixed4(c.rgb * c.a, c.a);
+                return fixed4(c.rgb * c.a, c.a) * i.fade;
             }
             ENDCG
         }
