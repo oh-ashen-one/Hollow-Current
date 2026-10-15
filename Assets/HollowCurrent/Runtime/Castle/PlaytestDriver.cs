@@ -694,15 +694,24 @@ namespace HollowCurrent
             bool ground=Physics.Raycast(new Vector3(0,3,-3),Vector3.down,out var hit,8,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
             yield return Step("drawbridge_lowered","colliders="+colliders+" groundHit="+(ground?hit.collider.name+"@"+hit.point.y.ToString("F2"):"none")+" count="+game.Creature.transform.position);
             input.Look=new Vector3(0,1.6f,-20);yield return Frames(3);
-            input.Move=new Vector2(0,1);float walk=Time.realtimeSinceStartup+14,closest=99;int blocked=c.BlockedDeaths;float nextLog=0;
+            input.Move=new Vector2(0,1);float walk=Time.realtimeSinceStartup+14,closest=99;int blocked=c.BlockedDeaths;float nextLog=0;bool returnKill=false;
             while(Time.realtimeSinceStartup<walk&&c.Phase!=Phase.Won)
             {
                 var at=game.Creature.transform.position;closest=Mathf.Min(closest,Vector3.Distance(at,game.Player.transform.position));
+                // Wave L2: a grab the driver's invulnerability blocked on the hostile Return is the run's outcome for a mortal player.
+                // Log it, release the grab and put her on the far bank at once, so the run never stalls (death/huntcam stay mortal).
+                if(c.BlockedDeaths>blocked&&!returnKill)
+                {
+                    returnKill=true;
+                    Debug.Log("HC_RETURN_KILL would_die=true phase="+c.Phase+" huntActive="+c.HuntActive+" player="+game.Player.transform.position+" count="+at+" dist="+Vector3.Distance(at,game.Player.transform.position).ToString("F2"));
+                    game.Creature.ReleaseGrab("driver return kill");Reset();game.Player.Teleport(mid-Vector3.up*1.0f);yield return Frames(5);continue;
+                }
                 if(Time.realtimeSinceStartup>nextLog){nextLog=Time.realtimeSinceStartup+.5f;Debug.Log("HC_PLAY_BRIDGE player="+game.Player.transform.position+" count="+at+" huntActive="+c.HuntActive+" dist="+Vector3.Distance(at,game.Player.transform.position).ToString("F1"));}
                 yield return null;
             }
             Reset();
             yield return Step("bridge_crossed","won="+(c.Phase==Phase.Won)+" closest="+closest.ToString("F2")+" grabsOnBridge="+(c.BlockedDeaths-blocked)+" far="+mid);
+            if(returnKill)Debug.Log("HC_PLAY_RETURN_KILL won="+(c.Phase==Phase.Won)+" (a mortal player died on the bridge)");
             if(c.Phase!=Phase.Won){Blocker("bridge walk did not reach the far bank (at "+game.Player.transform.position+")");game.Player.Teleport(mid-Vector3.up*1.0f);yield return Frames(5);}
         }
         IEnumerator Relics()
