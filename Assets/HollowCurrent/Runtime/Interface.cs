@@ -399,7 +399,12 @@ namespace HollowCurrent
         void Note()
         {
             Backdrop(false,.48f);Brand("RECOVERED DOCUMENT / "+Book.CaseTag);
-            Card(new Rect(80,166,1440,633));Track(115,190,Book.ArchiveTrack);Label(112,224,1365,65,Game.NoteTitle,heading);Rule(116,300,1368);
+            Card(new Rect(80,166,1440,633));
+            // Castle (r12 critic S8): the torn card's corner ornament covers x < 200, y < 275, so the kicker, title and rule start
+            // at x 215 with an 8 px gap between kicker and title; Bellwether keeps its layout.
+            bool castle=Game.Map==MapId.Castle;float nx=castle?215:115;
+            if(castle){Track(nx,206,Book.ArchiveTrack);Label(nx-3,246,1250,62,Game.NoteTitle,heading);Rule(nx,314,1250);}
+            else{Track(115,190,Book.ArchiveTrack);Label(112,224,1365,65,Game.NoteTitle,heading);Rule(116,300,1368);}
             // Art per map from CaseBook.NoteArt; a missing castle page falls back to text only.
             string asset=Book.NoteArtFor(Game.NoteTitle);
             var texture=asset==null?null:Resources.Load<Texture2D>(asset);
@@ -410,6 +415,7 @@ namespace HollowCurrent
                 Panel(paper,new Color(.67f,.62f,.51f));Artwork(area,texture);
                 Track(756,332,"FIELD TRANSCRIPT",muted);Label(756,371,714,315,Game.NoteBody,transcriptStyle);
             }
+            else if(castle)Label(150,340,1250,350,Game.NoteBody,largeNoteStyle);
             else Label(116,334,1170,350,Game.NoteBody,largeNoteStyle);
             if(Action(115,734,360,46,Game.Journal?"RETURN TO JOURNAL":"FILE & CLOSE","ESC",true)){Game.NoteBody=null;Game.ApplyFocus();}
             Footer("Recovered documents remain listed in your journal.   /   ESC close");
@@ -470,10 +476,11 @@ namespace HollowCurrent
             float left=rect.x+rect.width*.17f;
             GUI.Label(new Rect(left,rect.y+rect.height*.13f,rect.width*.74f,25),speaker,kicker);kicker.normal.textColor=oldKicker;
             Panel(new Rect(left,rect.y+rect.height*.29f,Mathf.Min(155,rect.width*.3f),1),danger?new Color(.7f,.2f,.2f):oxblood);
-            dialogueText.fontSize=Mathf.RoundToInt(24*Game.SubtitleScale);dialogueText.normal.textColor=danger?ink:paperInk;
-            GUI.Label(new Rect(left,rect.y+rect.height*.35f,rect.width*.72f,rect.height*.53f),text,dialogueText);
+            dialogueText.fontSize=Game.Map==MapId.Castle&&dialogueFont>0?dialogueFont:Mathf.RoundToInt(24*Game.SubtitleScale);dialogueText.normal.textColor=danger?ink:paperInk;
+            GUI.Label(new Rect(left,rect.y+rect.height*.35f,rect.width*.72f,rect.height*(Game.Map==MapId.Castle?.47f:.53f)),text,dialogueText);
             GUI.color=old;
         }
+        int dialogueFont; // castle subtitle-card font after fitting (0 = default)
         void SubtitleCard()
         {
             if(cachedSubtitle!=Game.Subtitle)
@@ -487,10 +494,19 @@ namespace HollowCurrent
             }
             dialogueText.fontSize=Mathf.RoundToInt(24*Game.SubtitleScale);
             float height=Mathf.Clamp(dialogueText.CalcHeight(new GUIContent(dialogueBody),460)/.53f,125,245);
+            if(Game.Map==MapId.Castle)
+            {
+                // Castle (r12 critic: a 3-line dispatch ran over the torn edge): measure at the real text width (72 % of the card)
+                // and keep the text in the top 45 % band below the kicker, clear of the torn bottom edge; above 285 px the font steps
+                // down (to 18 px) instead of the card growing further.
+                int size=dialogueText.fontSize;float textHeight=dialogueText.CalcHeight(new GUIContent(dialogueBody),610*.72f);
+                while(textHeight/.45f>285&&size>18){size--;dialogueText.fontSize=size;textHeight=dialogueText.CalcHeight(new GUIContent(dialogueBody),610*.72f);}
+                dialogueFont=size;height=Mathf.Clamp(textHeight/.45f,125,285);
+            }
             // Castle (critic r10 #14): cards do not turn to danger styling for a hunt; only a Warning or real interference does.
             bool danger=Game.Map==MapId.Castle?Game.Case.Phase==Phase.Warning||Game.Scares.Interference:Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference;
             float fade=Mathf.Clamp01(Game.SubtitleTime/.4f);
-            Dialogue(new Rect(495,858-height,610,height),dialogueSpeaker,dialogueBody,danger,fade);
+            Dialogue(new Rect(495,858-height,610,height),dialogueSpeaker,dialogueBody,danger,fade);dialogueFont=0;
         }
         void KeyPill(float x,float y,string key,string text)
         {
