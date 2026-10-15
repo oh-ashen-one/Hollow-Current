@@ -133,7 +133,14 @@ namespace HollowCurrent
             if(Map==MapId.Castle)
             {
                 // Critic r10 #14: the torch fails in the last second of a dive (hc/count12's DiveLastSecond), not at its start.
-                Creature.DiveLastSecond+=()=>{Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL dive last second eta="+Creature.DiveEndsIn.ToString("F2"));};
+                // Wave L (r12 critic: it preceded 100 % of dives, a "grab in 1 s" cue): half the dives fail the torch in their last
+                // second, and half the hunts fail it once at a random moment with no dive under way (Update), so it is no tell.
+                Creature.DiveLastSecond+=()=>
+                {
+                    float roll=UnityEngine.Random.value;
+                    if(roll<TorchFailChance){Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL source=dive eta="+Creature.DiveEndsIn.ToString("F2")+" roll="+roll.ToString("F2"));}
+                    else Debug.Log("HC_TORCH_SKIP source=dive roll="+roll.ToString("F2"));
+                };
                 Creature.Beat+=CountBeat;
             }
             Scares=gameObject.AddComponent<ScareDirector>();Scares.Initialize(this);
@@ -181,9 +188,20 @@ namespace HollowCurrent
                 Debug.Log("HC_WINDOWED switched="+windowSwitched+" mode="+Screen.fullScreenMode+" fullScreen="+Screen.fullScreen+" size="+Screen.width+"x"+Screen.height+" display="+Display.main.systemWidth+"x"+Display.main.systemHeight);
             ApplyFocus();Debug.Log("HC_STARTUP_READY");
         }
+        // Wave L torch failure: chance per dive (last second) and per hunt (random moment, no dive); -1 = none planned.
+        const float TorchFailChance=.5f;
+        float huntTorchFailAt=-1;
+        void HuntTorchFail()
+        {
+            if(huntTorchFailAt<0||Time.time<huntTorchFailAt||Modal)return;
+            if(Case.Phase!=Phase.Hunt){huntTorchFailAt=-1;return;}
+            if(Creature&&(Creature.Diving||Creature.GrabInProgress)){huntTorchFailAt=Time.time+2;return;} // never on top of a dive
+            huntTorchFailAt=-1;Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL source=hunt t="+Case.Elapsed.ToString("F0")+" dive=false");
+        }
         void Update()
         {
             if(Loading)return;
+            if(Map==MapId.Castle)HuntTorchFail();
             var pad=PadInput.Current;
             if(pad&&pad.Disconnected&&Started&&!Modal){Paused=true;ApplyFocus();}
             if(pad&&pad.Pause&&!Case.Terminal)
@@ -422,6 +440,9 @@ namespace HollowCurrent
             var previous=lastPhase;lastPhase=phase;
             if(Map==MapId.Castle)
             {
+                // Wave L: a hunt-moment torch failure with the dive rate (TorchFailChance), at a random time in the hunt.
+                if(phase==Phase.Hunt){float roll=UnityEngine.Random.value;huntTorchFailAt=roll<TorchFailChance?Time.time+UnityEngine.Random.Range(4f,Mathf.Max(6f,Case.Rules.HuntSeconds*.8f)):-1;Debug.Log("HC_TORCH_PLAN hunt roll="+roll.ToString("F2")+" at="+(huntTorchFailAt<0?"none":(huntTorchFailAt-Time.time).ToString("F1")+"s"));}
+                else huntTorchFailAt=-1;
                 // False warnings strobe and radio like real ones (Investigation never turns them into a hunt);
                 // no-tell hunts skip the Warning phase, so nothing here strobes or speaks for them.
                 if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" escalated="+Case.EscalatedWarning+" length="+Case.CurrentWarningSeconds.ToString("F1")+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1"));
