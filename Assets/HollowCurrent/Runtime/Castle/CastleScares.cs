@@ -162,8 +162,9 @@ namespace HollowCurrent
         // in a calm stretch as in a hunt and says nothing about either; the one exception is the first 5 s of a hunt, which it never covers.
         // Audio: wanted keys from F4 (castle_hide_*), existing clips as placeholders until they land (HideClips; resolved with Sound.Has).
         static readonly string[] HideKeys={"hide_breath","hide_clawstep","hide_handle","hide_whisper"};
-        // pairs of (wanted F4 key, placeholder that exists today); the wanted key is used as soon as its clip is in CastleAudio
-        static readonly string[] HideClips={"castle_hide_breath","breath_presence","castle_hide_clawstep","claw_steps_","castle_hide_handle","door_rattle","castle_hide_whisper","breath_presence"};
+        // pairs of (wanted F4 key, placeholder that exists today); the wanted key is used as soon as its clip is in CastleAudio. A wanted key ending in "_"
+        // is a two-variant set (castle_hide_breath_0 / _1): it is used once both exist, one chosen at random each time.
+        static readonly string[] HideClips={"castle_hide_breath_","breath_presence","castle_hide_clawstep","claw_steps_","castle_hide_handle","door_rattle","castle_hide_whisper","breath_presence"};
         float hiddenFor,hiddenNext=-1;
         void TickHidden()
         {
@@ -182,8 +183,14 @@ namespace HollowCurrent
         string HideClip(int kind)
         {
             string wanted=HideClips[kind*2],fallback=HideClips[kind*2+1];
+            if(wanted.EndsWith("_"))
+            {
+                // two-variant set: both files must exist before it replaces the placeholder
+                if(game.Sound.Has(wanted+"0")&&game.Sound.Has(wanted+"1"))return wanted+Random.Range(0,2);
+            }
+            else if(game.Sound.Has(wanted))return wanted;
             if(fallback.EndsWith("_"))fallback+=Random.Range(0,4);
-            return game.Sound.Has(wanted)?wanted:fallback;
+            return fallback;
         }
         Interactable NearestHide()
         {

@@ -191,7 +191,8 @@ for wanted, placeholder in zip(pairs[0::2], pairs[1::2]):
     ok = placeholder in stems or (placeholder.endswith("_") and all((placeholder + str(i)) in stems for i in range(4)))
     if not ok:
         failures.append("placeholder %s for %s does not exist on disk" % (placeholder, wanted))
-    print("hidden clip %s -> %s (%s)" % (wanted, "present" if wanted in stems else "waiting on F4, placeholder " + placeholder, "ok" if ok else "MISSING"))
+    present = (wanted + "0") in stems and (wanted + "1") in stems if wanted.endswith("_") else wanted in stems  # a trailing _ = two-variant set _0/_1
+    print("hidden clip %s -> %s (%s)" % (wanted, "present" if present else "waiting on F4, placeholder " + placeholder, "ok" if ok else "MISSING"))
 
 # 4e. escalation rule seam (critic r12: hunts chained to apparitions)
 rule = body(scares, "bool RuleAllows(")
