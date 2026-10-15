@@ -1,0 +1,106 @@
+--- a/Assets/HollowCurrent/Runtime/Game.cs	2026-10-14 20:05:26
++++ b/Assets/HollowCurrent/Runtime/Game.cs	2026-10-14 20:05:26
+@@ -82,6 +82,8 @@
+         // the lit chapel fire are where Dread falls.
+         readonly List<Light> candleLights=new List<Light>();
+         bool candlesCached,litNearby,appliedLongNight;
++        // Wave L: escalation reads lit/dark (15 % / 25 %).
++        public bool LitNearby=>litNearby;
+         float litCheck,rulesLog=30;
+         Vector3 chapelFire;bool hasChapelFire;
+         Phase lastPhase;
+--- a/Assets/HollowCurrent/Runtime/ScareDirector.cs	2026-10-14 20:05:26
++++ b/Assets/HollowCurrent/Runtime/ScareDirector.cs	2026-10-14 20:05:26
+@@ -30,7 +30,7 @@
+         {
+             game=owner;
+             // Castle rhythm (r10 rerun): apparitions every 60-110 s after a 60 s minimum spacing; Bellwether keeps 90 / 105-165 s.
+-            if(game.Map==MapId.Castle){rhythm.Spacing=60;rhythm.AppearanceBase=60;rhythm.AppearanceSpread=50;}
++            if(game.Map==MapId.Castle)rhythm.UseCastleClock(()=>Random.value); // wave L: irregular arrivals, mean ~110 s, CV ~0.54, 45-260 s
+             foreach(var t in game.World.Root.GetComponentsInChildren<Transform>())if(t.name=="Authored / Mug")props.Add(t);
+             // Castle goblets, candlesticks, books and plates carry F3's Throwable marker.
+             if(game.Map==MapId.Castle){foreach(var t in game.World.Root.GetComponentsInChildren<Throwable>())props.Add(t.transform);Debug.Log("HC_THROWABLES director="+props.Count);}
+@@ -123,10 +123,11 @@
+             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=manifest_refused at="+point+" "+game.Creature.DiagnosticState);return false;}
+             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
+             Pulse(point,firstBasement?3:5);Events++;rhythm.RecordAppearance(Random.value);
++            if(IsCastle)Debug.Log("HC_SCARE_CLOCK next_in="+rhythm.LastInterval.ToString("F0"));
+             next=Random.Range(28f,40f);
+             if(IsCastle)
+             {
+-                game.Case.AddDread(game.Case.Rules.DreadApparition);
++                game.Case.NoteApparition(); // wave L: counts the apparition (no escalation on the first) and adds its Dread, which the dice ignore for 20 s
+                 // An apparition that lands close can become a hunt with a short tell (FEAR_PLAN item 3).
+                 float near=Vector3.Distance(point,game.Player.transform.position);
+                 if(near<CastleScares.EscalateRange){if(Castle)Castle.Escalate(near);} // hc/scares4: logs HC_ESCALATE reason= / substitute=
+--- a/Assets/HollowCurrent/Runtime/Investigator.cs	2026-10-14 20:05:26
++++ b/Assets/HollowCurrent/Runtime/Investigator.cs	2026-10-14 20:05:26
+@@ -376,7 +376,11 @@
+             if(Game.Map==MapId.Castle)
+             {
+                 // Wave K: from Dread 60, one hide attempt in six is held from inside (FEAR_PLAN item 5; injected dice).
+-                if(Game.Case.TryDoorHeld()){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name+" dread="+Game.Case.Dread.ToString("F1")+" held="+Game.Case.DoorsHeld);return;}
++                int attempts=Game.Case.DoorAttempts;
++                bool held=Game.Case.TryDoorHeld();
++                // Wave L proof line: every eligible attempt (Dread >= 60) is counted, so "5 hides at >= 60 and no HC_DOOR_HELD" is checkable.
++                if(Game.Case.DoorAttempts>attempts)Debug.Log("HC_DOOR_TRY hide="+spot.name+" held="+held+" attempt="+Game.Case.DoorAttempts+" dread="+Game.Case.Dread.ToString("F1"));
++                if(held){Game.Notice("The door is held.");Game.Sound.Cue("door_rattle",spot.transform.position,.8f);Debug.Log("HC_DOOR_HELD hide="+spot.name+" dread="+Game.Case.Dread.ToString("F1")+" held="+Game.Case.DoorsHeld);return;}
+             }
+             Game.Creature.WitnessHide(spot.HidePoint);
+             hiding=spot;Hidden=true;Teleport(spot.HidePoint);
+--- a/Assets/HollowCurrent/Runtime/Presence.cs	2026-10-14 20:05:26
++++ b/Assets/HollowCurrent/Runtime/Presence.cs	2026-10-14 20:05:26
+@@ -1945,7 +1945,9 @@
+             // Watched: always opens, at any Dread. Near-miss: 1 in 4 at Dread >= 80 or in Long Night, and (r10b) 1 in 10 below that
+             // once she has survived a hunt, so no hide is ever a guarantee.
+             float dread=Game.Case.Dread;bool high=dread>=count.NearMissOpenDread||LongNight;bool eligible=witnessed||high||Game.Case.Survived;
+-            float chance=witnessed?1:high?count.NearMissOpenChance:Game.Case.Survived?count.NearMissOpenChanceLow:0;
++            // Wave L: unwatched opens scale with Dread from the rules (2 % at 0, 5 % at 40, 25 % at 80, 40 % at 100); Long Night keeps its flat chance.
++            eligible=witnessed||LongNight||Game.Case.Rules.NearMissOpenChance(dread)>0;
++            float chance=witnessed?1:LongNight?count.NearMissOpenChance:Game.Case.Rules.NearMissOpenChance(dread);
+             float roll=witnessed?0:Random.value;
+             visitOpens=witnessed||roll<chance;
+             flight=Flight.NearMiss;nearMissStage=1;pendingPerch=-1;travelToPerch=false;Memory.Clear();attackAttempted=true;visitGrab=0;
+--- a/Assets/HollowCurrent/Runtime/Castle/CastleScares.cs	2026-10-14 20:05:26
++++ b/Assets/HollowCurrent/Runtime/Castle/CastleScares.cs	2026-10-14 20:05:26
+@@ -337,22 +337,22 @@
+         // (grace, Recovery, Survey) its roll is spent on a payoff instead (50 %): a poltergeist throw, else a candle gutter, else a bat.
+         public bool Escalate(float near)
+         {
+-            var c=game.Case;float chance=c.Rules.EventEscalationChance;
++            // Wave L: the rule lives in Investigation (lit 15 % / dark 25 %, never the run's first apparition, at most 1 escalation-born
++            // hunt in 3); EscalationBlock names why a roll is not allowed.
++            var c=game.Case;bool dark=!game.LitNearby;float chance=c.EscalationChanceNow(dark);
+             string reason,substitute="none";bool escalated=false;
+-            if(chance<=0)reason="rules_off";
+-            else if(c.Terminal)reason="terminal";
+-            else if(near>=EscalateRange)reason="range";
+-            // tell-safe: this mirrors the hunt-conversion rule itself (Disturbance and no post-hunt grace, as Investigation.TryEscalate); it gates
+-            // whether a hunt can start, not a scare effect, and a blocked attempt still pays off below, so the apparition is never bare.
+-            else if(c.Phase==Phase.Disturbance&&c.GraceRemaining<=0)
++            if(near>=EscalateRange)reason="range";
++            // tell-safe: this mirrors the hunt-conversion rule itself (Investigation.EscalationChanceNow); it gates whether a hunt can start,
++            // not a scare effect, and a blocked attempt still pays off below, so the apparition is never bare.
++            else if(chance>0)
+             {
+-                escalated=c.TryEscalate();
++                escalated=c.TryEscalate(dark);
+                 reason=escalated?"ok":"roll";
+             }
+             else
+             {
+                 // tell-safe: only names the blocking reason for the log.
+-                reason=c.Phase!=Phase.Disturbance?"phase_"+c.Phase:"grace";
++                reason=c.EscalationBlock(dark);
+                 // tell-safe: the substitute fires in whatever phase the apparition came in, so a blocked escalation is not visible as a missing effect.
+                 if(Active&&Random.value<.5f)
+                 {
+@@ -363,7 +363,7 @@
+                     pickNote="direct";
+                 }
+             }
+-            Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated+" reason="+reason+" phase="+c.Phase+" grace="+c.GraceRemaining.ToString("F0")+" chance="+chance.ToString("F2")+" substitute="+substitute);
++            Debug.Log("HC_ESCALATE near="+near.ToString("F1")+" escalated="+escalated+" reason="+reason+" phase="+c.Phase+" grace="+c.GraceRemaining.ToString("F0")+" chance="+chance.ToString("F2")+" dark="+dark+" apparitions="+c.Apparitions+" lastHuntEscalated="+c.LastHuntFromEscalation+" substitute="+substitute);
+             return escalated;
+         }
+ 
