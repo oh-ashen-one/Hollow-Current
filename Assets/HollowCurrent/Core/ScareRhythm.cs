@@ -22,18 +22,19 @@ namespace HollowCurrent
             nextAppearance=Age+AppearanceBase+AppearanceSpread*Math.Max(0,Math.Min(1,randomUnit));
         }
         // Castle apparition clock (wave L, r12 critic: arrivals every 101-141 s, CV 0.12, and the first one always at ~65 s).
-        // Inter-arrival = a mixture: 40 % short (45-70 s uniform), else 70 s + a truncated exponential (mean 140, cut at 260 s).
-        // Mean about 110 s, CV about 0.54, never under 45 s or over 260 s. Pure: two uniforms in [0,1).
-        public const float CastleMinInterval=45,CastleMaxInterval=260;
+        // Inter-arrival (wave L2: the build measured CV 0.43 over 12 samples against >= 0.5 with the 0.54 design): two modes,
+        // 60 % a short cluster (45-55 s uniform), else a long mode: 130 s + a truncated exponential (mean 400, cut at 300 s).
+        // Mean about 114 s, CV about 0.74, never under 45 s or over 300 s. Pure: two uniforms in [0,1).
+        public const float CastleMinInterval=45,CastleMaxInterval=300;
         public static float CastleInterval(float u1,float u2)
         {
             u1=Unit(u1);u2=Unit(u2);
-            if(u1<.4f)return 45+25*u2;
-            double m=140,t=CastleMaxInterval-70;
-            return (float)Math.Min(CastleMaxInterval,70-m*Math.Log(1-u2*(1-Math.Exp(-t/m))));
+            if(u1<.6f)return 45+10*u2;
+            double m=400,t=CastleMaxInterval-130;
+            return (float)Math.Min(CastleMaxInterval,130-m*Math.Log(1-u2*(1-Math.Exp(-t/m))));
         }
         // ScareDirector (castle): rhythm.UseCastleClock(()=>Random.value) instead of setting Spacing/AppearanceBase/Spread.
-        // Spacing becomes 45 s, the first appearance is 0.6 x a draw (27-156 s), and every RecordAppearance draws the next.
+        // Spacing becomes 45 s, the first appearance is 0.6 x a draw (27-180 s), and every RecordAppearance draws the next.
         public void UseCastleClock(Func<float> random)
         {
             castleRandom=random??throw new ArgumentNullException(nameof(random));Spacing=CastleMinInterval;
