@@ -92,7 +92,9 @@ namespace HollowCurrent.Editor
                 r.sharedMaterials=materials;
                 // Castle Throwables move when a scare launches them: a static-batched part would stay put and report the combined
                 // batch mesh as its bounds, so ThrowNearbyProp and Poltergeist rejected every one (build 34a0de9, HC_THROW=0).
-                bool moving=r.GetComponentInParent<Door>()||r.GetComponentInParent<Interactable>()||r.GetComponentInParent<Throwable>();
+                // r13: the castle drawbridge leaf turns about its hinge; static-batched it stayed raised on screen in every run
+                // (the gate showed a wall of planks after "lowered").
+                bool moving=r.GetComponentInParent<Door>()||r.GetComponentInParent<Interactable>()||r.GetComponentInParent<Throwable>()||r.GetComponentInParent<CastleDrawbridge>();
                 foreach(var parent in r.GetComponentsInParent<Transform>())if(parent.name=="Porcelain doll"||parent.name=="Authored / Mug")moving=true;
                 if(moving)GameObjectUtility.SetStaticEditorFlags(r.gameObject,0);
                 if(!moving&&r.enabled)GameObjectUtility.SetStaticEditorFlags(r.gameObject,StaticEditorFlags.BatchingStatic|StaticEditorFlags.OccluderStatic|StaticEditorFlags.OccludeeStatic);

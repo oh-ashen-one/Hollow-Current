@@ -45,4 +45,13 @@ for k,v in sorted(summary.items()):print(v,k)
 print('roots',len(roots),'rigidbodies',bodies,'colliders',cols)
 batched=sum(v for (n,f,fl),v in summary.items() if any(x&4 for x in fl))
 print('batching_static_throwables',batched)
-sys.exit(1 if batched or len(roots)!=38 else 0)
+# r13: the drawbridge leaf turns about "Drawbridge hinge"; any batching-static part under it stays raised on screen.
+hinges=[g for g,n in go_name.items() if n=='Drawbridge hinge']
+bridge_batched=0
+for g in hinges:
+    stack=list(tr_children.get(go_tr[g],[]))
+    while stack:
+        t=stack.pop();cg=tr_go[t];stack+=tr_children.get(t,[])
+        if go_flags[cg]&4:bridge_batched+=1
+print('drawbridge_hinges',len(hinges),'batching_static_drawbridge_parts',bridge_batched)
+sys.exit(1 if batched or len(roots)!=38 or bridge_batched or len(hinges)!=1 else 0)
