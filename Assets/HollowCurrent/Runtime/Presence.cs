@@ -2015,13 +2015,9 @@ namespace HollowCurrent
             foreach(var h in Game.World.HidingPlaces){if(!h||h.Kind!=InteractKind.Hide)continue;float e=Vector3.Distance(h.ExitPoint,exit);if(e<d){d=e;best=h;}}
             return best;
         }
-        // Piecewise linear: 0 below OpenDreadStart, OpenChanceAt40 at 40, OpenChanceAt80 at 80, OpenChanceAt100 at 100.
-        float OpenChanceForDread(float dread)
-        {
-            if(dread<count.OpenDreadStart)return 0;
-            if(dread<80)return Mathf.Lerp(count.OpenChanceAt40,count.OpenChanceAt80,Mathf.InverseLerp(40,80,dread));
-            return Mathf.Lerp(count.OpenChanceAt80,count.OpenChanceAt100,Mathf.InverseLerp(80,100,dread));
-        }
+        // Wave L (integrator): the base curve is F1's HuntRules.NearMissOpenChance (2 % at 0, 5 % at 40, 25 % at 80, 40 % at 100);
+        // the survived-hunt and Long Night floors and the learned-hide multiplier are applied on top by the caller.
+        float OpenChanceForDread(float dread)=>Game.Case.Rules.NearMissOpenChance(dread);
         /// <summary>False when the hide he is at has no door panel (CastleRun then skips the rattle).</summary>
         public bool NearMissHasDoor {get;private set;}=true;
         readonly Dictionary<Interactable,bool> hideDoors=new Dictionary<Interactable,bool>();

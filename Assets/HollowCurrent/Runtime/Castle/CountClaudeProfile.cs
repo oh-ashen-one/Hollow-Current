@@ -56,11 +56,10 @@ namespace HollowCurrent
         // and within DoorLateral of the door's axis, feet on her floor.
         public float DoorOutside=.05f, DoorLateral=.3f;
         // ---- Wave L (r12 blind playtest critic) --------------------------------------------------------------------------
-        // Unwatched hides fail sometimes: the near-miss open chance follows Dread (0 under OpenDreadStart; 5 % at 40, 25 % at 80,
-        // 40 % at 100), floors NearMissOpenChanceLow after a survived hunt and NearMissOpenChance in Long Night. The hide he last
+        // Unwatched hides fail sometimes: the near-miss open chance follows Dread through HuntRules.NearMissOpenChance (F1: 2 % at 0,
+        // 5 % at 40, 25 % at 80, 40 % at 100), floors NearMissOpenChanceLow after a survived hunt and NearMissOpenChance in Long Night. The hide he last
         // found her in or near is checked first (no attempt roll, from LearnedHideAfterSeconds) and opens at x LearnedHideOpenMultiplier
         // (capped at LearnedHideOpenCap).
-        public float OpenDreadStart=40f, OpenChanceAt40=.05f, OpenChanceAt80=.25f, OpenChanceAt100=.40f;
         public float LearnedHideAfterSeconds=2.5f, LearnedHideOpenMultiplier=2f, LearnedHideOpenCap=.8f;
         // Dive styles: where the ceiling over her clears the GrabDrop clip, DropDiveShare of dives come in high (hover up to
         // HighDiveHover) and end in the drop grab; the rest come in low (GrabCrawl).
