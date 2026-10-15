@@ -59,7 +59,9 @@ Both start the same way: take the instruments from the lantern cart in the gateh
 - **Bellwether bug fix for you to accept:** in both maps, the interaction ray now also finds an interactable that sits up to 12 cm behind the first thing it hits.
   - Before this, the Bellwether hall coat cupboard could not be focused from some angles. Its hide trigger sits in the same plane as its solid lower door (added in `89dac7e` on `main`), and Bellwether's own automated route (`-hc-verify`) failed there. It passes now.
   - Nothing else in Bellwether changed. The rules fuzz stays identical.
-- **Apparitions are rare in natural play:** one in a 10-minute run, so props rarely fly by themselves. Being looked into.
+- **Apparitions (wave L):** 3-4 in a 9-minute run, at irregular times; they rarely turn into a hunt (never the first one).
+- **The torch:** it now fails in about half of his dives and at random moments in half the hunts, so a flicker is not a warning.
+- **Hiding:** an unwatched hide is no longer a sure save: he remembers the hide he found you in and checks it first, and from Dread 60 one hide attempt in five finds the door held.
 - **Wings at the start of a no-tell hunt:** when a no-tell hunt starts, his wings can be heard as he takes off. That is the only audible change in its first seconds.
 - **Long Night:** the bell starts the hunt at once, by design.
 - **Sword:** the left hand does not hold the hilt yet.

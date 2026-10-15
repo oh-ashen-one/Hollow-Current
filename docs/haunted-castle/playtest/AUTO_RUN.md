@@ -1,6 +1,48 @@
 # Automated castle playthroughs: waves G-K (windowed checklist, 2026-10-14)
 
-## Round 7b (latest): hc/count17 + hc/art-exterior2, build `e57a00d`
+## Round 8 (latest): wave L on `hc/integ-l`, build `abbbe6a` (+ capture-only commits to `08188e8`)
+
+Merged on `hc/integ-l` from `af96343`: rules-l `568f910`, audio-l `3d6776a`, scares-l `1c72f77`, count-l `dd77242` then count-l2 `289da8b` (count-l + grabs-l, modes 10-12), exterior-l `699dbfd`, props-l `f07010b`, hall-l `f1310de` then `ce6adca`. F0 shared-file work: torch failure 50 % per dive and per hunt (`8c73f7d`), castle UI card and ledger (`fd4a876`), siege `-hc-hold-dread` and `HC_PLAY_STATS` (`bfe34db`), grab-cam measures beside frames (`3ef7905`), rules-l integrator diff (`c2e1377`), escalation through F1's policy (`HC_SCARE … escalate= reason=`), near-miss base curve from `HuntRules.NearMissOpenChance`, apparition check at the clock (`ScareRhythm.DueIn`). `CountClaudeImport.Prepare`: 13 motions, `GrabSideL/R` 1.20 s, `GrabDropSpin` 1.90 s. Bakes: Castle 7 maps / 196 probes / 17 reflections, Bellwether 4 / 124 / 9. `HC_EXTERIOR_AXIS ok`, `HC_HALL_AXIS … PASS`, `HC_FLAME_RIGID` and `HC_LEAN_CHECK` PASS, `CastleFlame` compiled. Hall-l's glass, wax and dressed-stone `.mat` files had empty YAML mappings; Unity re-serialised them at import (committed). Batch 8 ran on `5245768` (before hall-l); batch 9 on `abbbe6a` (all branches). 0 crashes. Evidence: `rounds/r13/captures/f0a/` (batch 8 logs and frames) and `f0b/` (batch 9 captures), local only.
+
+**Critic pass test 1 (3 unforced naturals, batch 9):**
+
+| Run | Non-Return hunts within 10 s of `HC_SCARE visible=` | Apparitions (s) | CV | First hunt | Share | Longest gap |
+|---|---|---|---|---|---|---|
+| natural1 | 0 / 2 | 131, 315, 414 | 0.31 | 168 s | 0.228 | 156 s |
+| natural2 | 0 / 2 | 72, 306, 375 | 0.55 | 239 s | 0.176 | 233 s |
+| natural3 | 1 / 3 | 53, 252, 326, 451 | 0.39 | 83 s | 0.212 | 141 s |
+| **Result** | **14 % PASS** (≤ 35 %) | 3-4 per run | **pooled 0.43, FAIL** (≥ 0.5) | **span 156 s PASS** | **PASS** (15-30 %) | **PASS** (≥ 120 s) |
+
+The clock draws irregular gaps (`HC_SCARE_CLOCK next_in=` 52-234 s); the realised gaps are smoothed by hunts, Recovery rests and the 45 s spacing, and a run sees only 3-4 apparitions. Batch 8 (before the `DueIn` fix) gave 14 %, pooled CV 0.33, first hunts 218 / 99 / 84 s, share 0.117 / 0.256 / 0.291, gaps 248 / 182 / 99 s. No `HC_ESCALATE escalated=True` with `apparitions=1` in any run.
+
+**Critic pass test 2 (hide contract), siege `-hc-hold-dread 60` (batch 8):** 6 hidden hunts in Count's wardrobe at Dread 60-61: 5 near-miss visits, 1 `HC_COUNT_NEARMISS open=True` (learned hide, chance 0.31) and 1 grab (blocked by the driver), **hidden survival 83 %** (≤ 85 % PASS). **`HC_DOOR_HELD` 2 of 8 `HC_DOOR_TRY`** (bag of 5, PASS). The interim siege on `e7a2259` had 6 hunts, 0 near-miss visits (six 0.33 attempt rolls failed), survival 100 %, door held 1 of 7.
+
+**Critic pass test 3 (kill presentation), every grab in batch 9 (naturals, fear, kill, death, huntcam), 11 grabs:**
+- Visible in the commit frame: **all**. Mode 8 drops log `snap=True reason=not visible in the commit frame`.
+- HUD hidden: `HC_UI grab_hidden=true` on every grab.
+- Mode 8 share: **6 of 11 (55 %) PASS** (≥ 30 %). Mode 11 once (`side_check=ok`), mode 12 twice in batch 8.
+- eyeToSkull step ≤ 0.5 m: **FAIL on every mode 8 drop**: 1.6-3.1 m at commit, then 3.1-5.7 m at t 0.16 (`headAboveEye` +3 m: the GrabDrop clip lifts him before the fall). Mode 9 mostly ≤ 0.5 m, with 1.0 m steps in natural1 (1.62 → 0.64) and fear (1.32 → 0.29 at t 1.0).
+- Skull in the central 60 % at +0.3 s: yes in all 12 samples near +0.3 s.
+- Claw width: **`claw_px_proj=0` on every sample** (`hands=[L=0(0in,0/0clear) …]`, `HC_COUNT_HANDS vertices=930 groups=2`): the projected-hand measure finds no hand vertex in frame, although claws are visible in `fear/19_grabcam_hideopen_t0.31.png`. Measure from pixels (`grabcam.txt` beside each frame).
+
+**Other proofs:**
+
+| Proof | Result |
+|---|---|
+| Bellwether `-hc-verify` | PASS ×3. Batch 9: slowest 1002 ms (Disturbance) and 764 ms (Hunt) with another session's Markhor Meadow at 99 % CPU; rerun: 0 frames over 33 ms, slowest 33.3 ms, 1 % low 62.2 fps. `meets_60_fps_floor` False (112-145 frames over 16 ms). First Warning has no spike |
+| Fear | WON; no-tell `changedFrames=0`; `wallCrossings=0`; battlement 90/90; gatehouse 3/3 `arch-inside`; one `HC_DOOR_TRY` (Dread 70.8, not held) |
+| Great hall frame time (hall-l) | mean 11.16 ms, p99 11.63 ms, worst 17.66 ms, 3 over 16.7 ms (was p99 11.64 before hall-l); S1 capture mean 11.19, max 16.77 |
+| Crypt | after the screenshot frame 121.6 ms (capture artefact, r7b); settled max 16.72 ms |
+| Escape / Long Night | WON, 0 `fix=stop` |
+| Kill | WON, slain; 8 `HC_COUNT_RECOIL`, closest joint 0.30 m (batch 8) |
+| Death + retry | PASS, Dread 58.4 after the penalty |
+| Torch failure | dives 12 of 19 fail (63 %), 6 random no-dive hunt failures across 8 runs |
+| Bridge (natural, fear) | Driver blocker `bridge walk did not reach the far bank` in 4 runs: the Return grab commits at 2.3 m on the bridge, the driver's invulnerability blocks the death and death-before-win holds the win until the driver teleports her. A mortal player dies there |
+| Missing art | 7 portraits only (bake time) |
+
+**Captures** (`rounds/r13/captures/f0b/`, 1920x1080): `full/` S1-S8 and H01-H10, `exterior/` 9 views, `props/` 5 views plus crypt frame times, `S7_title_*`. `gate_out_S6` still shows planks: the drawbridge is lowered (`lowered=True angle=0`) but the view ray meets `GateArch` at 0.9 m and `ExtGate` at 1.3 m before the leaf; no `Gate` door exists, so the planks are part of one of those two arch meshes.
+
+## Round 7b: hc/count17 + hc/art-exterior2, build `e57a00d`
 
 Merges: hc/count17 `b61a396` (`360094f`), hc/art-exterior2 `ac99131` (`9ce9b8c`). Castle and Bellwether re-baked (Presence.cs is shared); the art capture now lowers the drawbridge for `gate_out_S6`. All checks pass; batch of 7 runs, 0 crashes. Captures in `rounds/r12/captures/r7b/` (local).
 

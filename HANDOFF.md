@@ -198,6 +198,14 @@ Captures are in `docs/haunted-castle/rounds/r10/captures/` and are ready for the
 - [ ] Every `HC_RECOVERY` line has a `grace=` of 30-90 s, and no dice hunt starts inside a grace (bell and gamble excepted).
 - [ ] Event Dread decays: `HC_RULES event=` falls between hunts, faster in the gatehouse.
 
+## Wave L (round 8) on `hc/integ-l`
+
+- All nine wave L branches merged on `hc/integ-l` (order: rules-l, audio-l, scares-l, count-l / count-l2, exterior-l, props-l, hall-l); `haunted-castle` fast-forwarded to it. Build: `Builds/macOS/Hollow Current.app` from `hc/integ-l` (Castle and Bellwether baked; `CountClaudeImport.Prepare` run).
+- Proof table and critic pass-test numbers: `docs/haunted-castle/playtest/AUTO_RUN.md`, "Round 8".
+- Open: pooled apparition CV 0.43 (< 0.5); every mode 8 drop lifts him about 3 m in the first 0.16 s (eyeToSkull step fails); `claw_px_proj` is always 0 (hand-vertex projection finds nothing in frame); `gate_out_S6` planks are part of GateArch or ExtGate; driver bridge blocker from the 2.3 m Return grab (invulnerable driver only).
+- New driver modes: `-hc-playtest <dir> siege -hc-hold-dread 60` (hide contract); every run prints `HC_PLAY_STATS`; grab frames list their measures in `<dir>/grabcam.txt`.
+- Never run `tools/audio_castle_sfx.py` with no arguments (F4: it regenerates the wave K repaired clips without tail trims).
+
 ## Round 7b (build `e57a00d`): hc/count17 + hc/art-exterior2 merged
 
 - Proof table: `docs/haunted-castle/playtest/AUTO_RUN.md`, "Round 7b"; pre-merge table on `ac43efa` under "Round 7".
