@@ -138,12 +138,6 @@
     "voice": "en-gb-x-rp+m7",
     "pitch": 14
   },
-  "cc_hunt_hungry": {
-    "text": "Come out. I am so very hungry.",
-    "rate": 112,
-    "voice": "en-gb-x-rp+m7",
-    "pitch": 16
-  },
   "cc_kit": {
     "text": "Take them. The steward took them too. They did not help him.",
     "rate": 112,

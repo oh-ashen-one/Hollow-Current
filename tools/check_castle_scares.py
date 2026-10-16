@@ -254,6 +254,66 @@ else:
 if "IsCastle" not in director:
     failures.append("ScareDirector has no IsCastle gate")
 
+# 6. No 2D speech in the castle (owner feedback 13, hc/fb-voice2). Soundscape.Speak drops a castle line with no location, so
+# nothing may rely on it: every Speak call outside Game.cs has a location argument, Game.cs has no Speak call except the one inside
+# BellwetherSpeak (guarded by Map==Castle), and the retired search line is gone.
+def strip_comments(src):
+    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
+    return re.sub(r"(?<![:\"])//[^\n]*", "", src)
+
+
+def first_call_args(src, start):
+    depth, i, args, cur = 1, start, [], ""
+    while i < len(src) and depth > 0:
+        c = src[i]
+        if c == '"':
+            j = i + 1
+            while j < len(src) and src[j] != '"':
+                j += 2 if src[j] == "\\" else 1
+            cur += src[i:j + 1]
+            i = j + 1
+            continue
+        if c in "([{":
+            depth += 1
+        elif c in ")]}":
+            depth -= 1
+            if depth == 0:
+                break
+        if c == "," and depth == 1:
+            args.append(cur)
+            cur = ""
+        else:
+            cur += c
+        i += 1
+    args.append(cur)
+    return args
+
+
+runtime = ROOT / "Assets/HollowCurrent/Runtime"
+speak_calls = 0
+for path in sorted(runtime.rglob("*.cs")):
+    src = strip_comments(path.read_text(errors="replace"))
+    rel = path.relative_to(ROOT)
+    for m in re.finditer(r"(?<![A-Za-z_])(?:\w+\.)*Speak\(", src):
+        line = src.count("\n", 0, m.start()) + 1
+        if path.name == "Soundscape.cs" and "public bool Speak" in src[max(0, m.start() - 30):m.end()]:
+            continue
+        if path.name == "Game.cs":
+            if not re.search(r"BellwetherSpeak\(string id\)\{if\(Map==MapId\.Castle\)return;Sound\.Speak\(id\);\}", src[max(0, m.start() - 70):m.end() + 20]):
+                failures.append("%s:%d Game.cs may only call Speak inside BellwetherSpeak (castle must not speak 2D); use BellwetherSpeak" % (rel, line))
+            continue
+        speak_calls += 1
+        args = [a for a in first_call_args(src, m.end()) if a.strip()]
+        if len(args) < 2:
+            failures.append("%s:%d Speak(%s) has no location: castle speech must be spatial (Soundscape drops 2D lines)" % (rel, line, args[0].strip() if args else ""))
+for path in sorted(runtime.rglob("*.cs")):
+    if "cc_hunt_hungry" in path.read_text(errors="replace"):
+        failures.append("%s still mentions the retired cc_hunt_hungry" % path.relative_to(ROOT))
+sound = strip_comments((runtime / "Soundscape.cs").read_text())
+if "no location" not in sound or "SpeechSpatial" not in sound or "HC_VOICE_SUMMARY" not in sound:
+    failures.append("Soundscape.Speak must drop location-less castle speech and log HC_VOICE_SUMMARY")
+print("castle speech lint: %d located Speak call sites outside Game.cs, Game.cs routes Bellwether speech through BellwetherSpeak only" % speak_calls)
+
 print("castle scares: %d beat methods, %d registered in TryBeat, %d lie methods, %d MakeThrowable call sites (the build logs HC_THROWABLES placed=<n> for the loop-expanded count)" % (len(beats), len(registered), len(lies), sites))
 if failures:
     for f in failures:

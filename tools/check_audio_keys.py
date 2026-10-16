@@ -63,9 +63,9 @@ def first_arg(s,start):
     return s[start:]
 def speak_key(i):  # copied from Soundscape.Speak (castle branch)
     if i.startswith('cc_'):return i
-    return {'evp':'cc_bargain','whisper':'cc_listen','arrival':'cc_night','warning':'cc_hunt_hungry','return':'cc_stay'}.get(i,'cc_'+i)
+    return {'evp':'cc_bargain','whisper':'cc_listen'}.get(i)   # every other non-cc_ id is dropped in the castle (owner item 13)
 
-CALL=re.compile(r'\b(Speak|Cue|Loop|CastleLoop|SpatialLoop|UI|Has|ContainsKey)\(')
+CALL=re.compile(r'\b(Speak|BellwetherSpeak|Cue|Loop|CastleLoop|SpatialLoop|UI|Has|ContainsKey)\(')
 files=sorted(p for d in ('Runtime','Core') for p in (ASSETS/d).rglob('*.cs'))
 uses=[]      # (kind, key, file, line)
 dynamic=[]
@@ -80,7 +80,7 @@ for f in files:
         if re.match(r'(string|int|float|bool|var)\s',arg) or arg=='' :continue   # definition or empty
         lits=LIT.findall(arg)
         if not lits:
-            if kind=='Speak' and re.fullmatch(r'[A-Za-z_]\w*',arg):                                   # variable: take literals assigned to it in this file
+            if kind in ('Speak','BellwetherSpeak') and re.fullmatch(r'[A-Za-z_]\w*',arg):                                   # variable: take literals assigned to it in this file
                 for am in re.finditer(r'\b'+re.escape(arg)+r'\s*=([^;=][^;]*);',s):
                     lits+=LIT.findall(am.group(1))
             if not lits:dynamic.append((kind,arg,rel,line_of(m.start())));continue
@@ -97,20 +97,32 @@ for f in files:
 
 # Keys the contracts promise even when no C# references them yet (AUDIO.md, FEAR_PLAN F4, wave G).
 CONTRACT=['heartbeat_loop','wind_battlements_loop','door_rattle','book_drop','knife_stick','claw_steps_0','claw_steps_1','claw_steps_2',
-          'claw_steps_3','bat_pass','bell_single','voice_cc_kit','voice_cc_ending','voice_cc_contain','voice_cc_hint_signal',
-          'voice_cc_hint_trace','voice_cc_hint_voice','voice_cc_dispatch',
+          'claw_steps_3','bat_pass','bell_single',
           'castle_hide_breath_0','castle_hide_breath_1','castle_hide_clawstep','castle_hide_handle','castle_hide_whisper']
 VARIANTS={'castle_hide_breath_':2}     # indexed sets that are not four clips long
+# Owner feedback 13 (hc/fb-voice2): these castle lines were spoken 2D / as a PA; nothing may reference them any more, so their
+# clips (voice_<id>.wav) are dead weight to delete. cc_hunt_hungry is gone for good (also from tools/voice-lines.json).
+RETIRED=['cc_hunt_hungry','cc_night','cc_kit','cc_hint_signal','cc_hint_trace','cc_hint_voice','cc_contain','cc_ending','cc_dispatch']
+retired_hits=[]
+for kind,key,rel,line in uses:
+    if key in RETIRED:retired_hits.append(f'{rel}:{line} references retired line {key}')
+try:
+    import json as _json
+    for rid in _json.load(open(ROOT/'tools/voice-lines.json')):
+        if rid=='cc_hunt_hungry':retired_hits.append('tools/voice-lines.json still has cc_hunt_hungry')
+except Exception as e:retired_hits.append(f'voice-lines.json unreadable: {e}')
 missing={}
 def need(key,found,where,why):
     if not found:missing.setdefault(key,[]).append(f'{where}  ({why})')
 checked=set()
 for kind,key,rel,line in uses:
     where=f'{rel}:{line}';tag=(kind,key)
-    if kind=='Speak':
+    if kind=='BellwetherSpeak':    # Game.BellwetherSpeak: Bellwether only, silent in the castle
+        need('voice_'+key,('voice_'+key) in AUDIO,where,f'BellwetherSpeak("{key}") in Bellwether')
+    elif kind=='Speak':
         k=speak_key(key)
+        if k is None:continue      # dropped in the castle; Bellwether never calls Speak directly outside Game.BellwetherSpeak
         need('voice_'+k,('voice_'+k) in CASTLE,where,f'Speak("{key}") in the castle')
-        if not key.startswith('cc_'):need('voice_'+key,('voice_'+key) in AUDIO,where,f'Speak("{key}") in Bellwether')
     elif kind=='cc':
         need('voice_'+key,('voice_'+key) in CASTLE,where,'cc_ id literal')
     elif kind=='prefix':
@@ -131,6 +143,10 @@ if '-v' in sys.argv[1:]:
     print(f'{len(seen)} distinct (kind,key) uses in {len(files)} files; disk: Audio {len(AUDIO)}, HiggsfieldAudio {len(HIGGS)}, CastleAudio {len(CASTLE)}')
     for k,key in seen:print(f'  {k:11s} {key}')
 for kind,arg,rel,line in dynamic:print(f'note: dynamic {kind}({arg}) at {rel}:{line} (not checkable; literals feeding it are covered by the cc_ rule)')
+if retired_hits:
+    print('FAIL: retired castle voice lines are still referenced')
+    for h in retired_hits:print('  '+h)
+    sys.exit(1)
 if missing:
     print(f'FAIL: {len(missing)} audio key(s) missing on disk')
     for k in sorted(missing):

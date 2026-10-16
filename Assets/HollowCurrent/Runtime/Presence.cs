@@ -405,7 +405,7 @@ namespace HollowCurrent
             // Quiet start (r10 rerun: the wing loop jumped +0.6 at take-off in both sampled no-tell hunts): a no-tell or hostile-return
             // hunt flies its first leg silent and its second at most soft, and plays no one-shot for 8 s unless he has seen her.
             quietHunt=Game.Case.NoTellHunt||HostileReturn;quietReason=HostileReturn?"return":"notell";quietLeg=0;quietSeen=false;quietHeldLogged=false;
-            gateStage=0;huntClock=0;seenThisHunt=false;grabSurvivedThisHunt=false;pendingVoice=null;guaranteeNext=Random.Range(count.AttackGuaranteeMin,count.AttackGuaranteeMax);chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
+            gateStage=0;huntClock=0;seenThisHunt=false;grabSurvivedThisHunt=false;huntLines=0;guaranteeNext=Random.Range(count.AttackGuaranteeMin,count.AttackGuaranteeMax);chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
             silhouette.gameObject.SetActive(true);SetRim(count.RimLightScale);
             PrimeClipCurves();
             int best=keepPerch?perchIndex:-1;
@@ -447,8 +447,8 @@ namespace HollowCurrent
         bool swooping;
         bool BeginReturnSwoop()
         {
-            // The announcement does not depend on the flight: dispatch speaks and the card beat fires even if the swoop is skipped.
-            Game.Sound.Speak("cc_dispatch");RaiseBeat("return-swoop"); // voice_cc_dispatch (hc/audio3); Game shows the card on the beat
+            // The announcement does not depend on the flight: the card beat fires even if the swoop is skipped.
+            RaiseBeat("return-swoop"); // Game shows the card on the beat; no voice (owner item 13: a speaker over the castle ruins the scare)
             var root=Game.World.Root;var pts=count.ReturnSwoopLocal;
             if(!root||pts==null||pts.Length<2){Debug.Log("HC_COUNT_RETURN_SWOOP skipped reason=no root or swoop points");return false;}
             var start=root.TransformPoint(pts[0]);
@@ -492,7 +492,6 @@ namespace HollowCurrent
         }
         void CountEndHunt()
         {
-            pendingVoice=null;
             if(actor)Debug.Log("HC_COUNT_MODES frames=["+string.Join(",",System.Array.ConvertAll(actor.ModeFrames,f=>f.ToString()))+"] (Animator Mode 0-9 frames so far)");
             swooping=false;pendingWitnessed=false;CanSeePlayer=false;Memory.Clear();witnessedHide=false;contact=0;tell=0;holdTimer=0;nearMissStage=0;staggerTimer=retreatTimer=0;unobserved=0;
             Debug.Log("HC_COUNT_HUNT_END lastSeen="+(lastSeen.HasValue?lastSeen.Value.ToString():"none")+" "+DiagnosticState);
@@ -587,7 +586,6 @@ namespace HollowCurrent
             if(!PlanRoute(point,false)){Debug.Log("HC_COUNT_ROUTE abort=search reason=no route to "+point+" "+DiagnosticState);BeginLand();return;}
             Debug.Log("HC_COUNT_SEARCH to="+point+" waypoints="+route.Count+" "+DiagnosticState);
             travelToPerch=false;pendingPerch=-1;flight=Flight.Travel;PickLegLoudness("search");
-            QueueVoice("cc_hunt_hungry");   // item 13: entering Search (r10 blind P2: at a random delay, never on the search tick)
         }
         int chaseRouteFails;
         float chaseT0,chaseD0;bool diveCloseLogged;
@@ -772,7 +770,6 @@ namespace HollowCurrent
             }
             if(!retreating&&Game.Player.Hidden&&Game.Player.TorchOn)Hear(Game.Player.transform.position,Profile.HiddenTorchHearRadius);
             breath-=dt;if(CanSeePlayer)quietSeen=true;
-            TickVoices();
             if(breath<=0)
             {
                 if(QuietWindow){if(!quietHeldLogged){quietHeldLogged=true;Debug.Log("HC_COUNT_ONESHOT held=breath t="+huntClock.ToString("F1")+" reason="+quietReason+" (first 8 s, not seen)");}}
@@ -1935,37 +1932,30 @@ namespace HollowCurrent
         }
         void RaiseBeat(string id){Debug.Log("HC_COUNT_BEAT "+id+" "+DiagnosticState);Beat?.Invoke(id);}
 
-        // Item 13: spatial at his head, each line at most once per VoiceCooldown, lines never closer than VoiceGap.
-        readonly Dictionary<string,float> voiceAt=new Dictionary<string,float>();
-        float lastVoice=-99;
-        void Voice(string id,bool force=false)
+        // Item 13 / owner feedback 13 (hc/fb-voice2): the Count's voice is diegetic only. A line is spoken from his actual head, only
+        // while he is in the world (silhouette active), within VoiceMaxDistance (14 m) of her ears and, for the four hunt lines,
+        // within VoiceCloseDistance (6 m); at most ONE line per hunt and, outside hunts, at most one per VoiceOffHuntGap (180 s).
+        // Soundscape.Speak then plays it on a 3D rolloff (min 1.2, max 14, low-passed behind walls) and logs HC_COUNT_VOICE.
+        // Nothing here ever speaks without a location (Soundscape drops such lines).
+        int huntLines;float lastOffHuntLine=-999;
+        void Voice(string id)=>CountSpeak(id);
+        public bool CountSpeak(string id)
         {
             float now=Time.time;
-            // Integrator (r10 rerun): no hunt line in a hunt's first 8 s unless he has seen her (cc_hunt_found is a consequence).
-            if(!force&&huntOn&&huntClock<8&&!CanSeePlayer&&id!="cc_hunt_found"){Debug.Log("HC_COUNT_VOICE held "+id+" t="+huntClock.ToString("F1")+" (first 8 s, not seen)");return;}
-            if(!force&&(now-lastVoice<count.VoiceGap||voiceAt.TryGetValue(id,out var at)&&now-at<count.VoiceCooldown))return;
-            voiceAt[id]=now;lastVoice=now;Game.Sound.Speak(id,HeadPosition);
-            Debug.Log("HC_COUNT_VOICE "+id+" t="+huntClock.ToString("F1")+" "+DiagnosticState);
-        }
-        // r10 blind P2: a search line is not spoken on the search tick (that put cc_hunt_hungry at exactly 10.0 and 20.0 s). It is
-        // queued at a random VoiceJitterMin-Max delay, then held until VoiceGap after the last line and, unless he has seen her,
-        // past the hunt's first 8 s, each hold adding a fresh random delay.
-        string pendingVoice;float pendingVoiceAt;
-        void QueueVoice(string id)
-        {
-            if(pendingVoice!=null)return;
-            pendingVoice=id;pendingVoiceAt=Time.time+Random.Range(count.VoiceJitterMin,count.VoiceJitterMax);
-        }
-        void TickVoices()
-        {
-            if(pendingVoice==null)return;
-            float now=Time.time;if(now<pendingVoiceAt)return;
-            float jitter=Random.Range(count.VoiceJitterMin,count.VoiceJitterMax);
-            if(huntClock<8&&!quietSeen&&!CanSeePlayer){pendingVoiceAt=now+(8-huntClock)+jitter;Debug.Log("HC_COUNT_VOICE queued "+pendingVoice+" reason=first 8 s, not seen; due in "+(pendingVoiceAt-now).ToString("F1")+" s");return;}
-            if(now-lastVoice<count.VoiceGap){pendingVoiceAt=lastVoice+count.VoiceGap+jitter;return;}
-            var id=pendingVoice;pendingVoice=null;
-            if(voiceAt.TryGetValue(id,out var at)&&now-at<count.VoiceCooldown){Debug.Log("HC_COUNT_VOICE dropped "+id+" reason=cooldown");return;}
-            Voice(id,true);
+            string why=null;
+            var view=Game.Player.View.transform.position;var head=HeadPosition;float dist=Vector3.Distance(view,head);
+            bool close=id=="cc_hunt_found"||id=="cc_hunt_smell"||id=="cc_hunt_run"||id=="cc_stay";
+            if(!silhouette||!silhouette.gameObject.activeInHierarchy)why="not in the world";
+            else if(dist>count.VoiceMaxDistance)why="beyond "+count.VoiceMaxDistance.ToString("F0")+" m ("+dist.ToString("F1")+")";
+            else if(close&&dist>count.VoiceCloseDistance)why="beyond "+count.VoiceCloseDistance.ToString("F0")+" m for a hunt line ("+dist.ToString("F1")+")";
+            else if(huntOn&&huntLines>=1)why="one line per hunt";
+            else if(!huntOn&&now-lastOffHuntLine<count.VoiceOffHuntGap)why="off-hunt gap "+(count.VoiceOffHuntGap-(now-lastOffHuntLine)).ToString("F0")+" s left";
+            else if(huntOn&&huntClock<8&&!CanSeePlayer&&id!="cc_hunt_found"&&id!="cc_hunt_smell")why="first 8 s of a hunt, not seen";
+            if(why!=null){Debug.Log("HC_VOICE_GATE held id="+id+" reason="+why+" t="+huntClock.ToString("F1"));return false;}
+            if(!Game.Sound.Speak(id,head))return false;
+            if(huntOn)huntLines++;else lastOffHuntLine=now;
+            Debug.Log("HC_VOICE_GATE spoke id="+id+" huntLines="+huntLines+" t="+huntClock.ToString("F1")+" "+DiagnosticState);
+            return true;
         }
 
         // ---- Item 17: grab variants -----------------------------------------------------------------------------------
@@ -2205,7 +2195,7 @@ namespace HollowCurrent
             {
                 float k=Mathf.SmoothStep(0,1,gateTimer/count.GatehouseArriveSeconds);
                 transform.position=Vector3.Lerp(gateFrom,gateSpot,k);actor.Pose(Profile.ModeMove,2.5f);
-                if(k>=1){gateStage=2;gateTimer=0;Voice("cc_stay",true);RaiseBeat("gatehouse");Debug.Log("HC_COUNT_GATEHOUSE landed "+DiagnosticState);}
+                if(k>=1){gateStage=2;gateTimer=0;Voice("cc_stay");RaiseBeat("gatehouse");Debug.Log("HC_COUNT_GATEHOUSE landed "+DiagnosticState);}
             }
             else if(gateStage==2)
             {

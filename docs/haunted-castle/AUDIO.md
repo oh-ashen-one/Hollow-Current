@@ -45,34 +45,22 @@ All loop files are seam-crossfaded (0.3 s) and are safe with `loop=true`. Set `s
 
 ## Voices (`Soundscape.Speak(id, location)`, prefix added automatically: file `voice_<id>.wav`)
 
-Spatial speech max length is the clip length; the pool reserves a voice for it. Count voices are lower, slower and echoing, with a different treatment from Bellwether's `evp`/`whisper`.
+**Castle speech policy (owner feedback 13, `hc/fb-voice2`).** The castle has no speaker. `Soundscape.Speak` in the castle plays a line only when it has a location, the location is within 14 m of the player's ears, and the id is a `cc_` line (or `evp`/`whisper`). Everything else is dropped and logged once per id as `HC_VOICE_DROPPED id= reason=` (the 2D `dispatch` source is never used in the castle). A played line uses the 3D voice pool at volume .70 with min distance 1.2 m, logarithmic rolloff, max distance 14 m, and a 900 Hz low-pass when a `Physics.Linecast` from her eyes to the source hits a wall (re-evaluated every 0.12 s while it plays). Each played line logs `HC_COUNT_VOICE id= dist= occluded=`; the run end logs `HC_VOICE_SUMMARY lines= spatial= dropped=` (lines = requests, spatial = played). Bellwether's radio dispatch is unchanged (a real radio). `tools/check_castle_scares.py` fails if any castle `Speak` call has no location or `Game.cs` calls `Speak` outside `BellwetherSpeak`; `tools/check_audio_keys.py` fails if C# or `voice-lines.json` references a retired line.
 
-| id | Length | Use | Human listen |
+**The Count's lines are diegetic only** (`Presence.CountSpeak`): spoken from his actual head, only while he is in the world, within 14 m of her ears and, for `cc_hunt_found`, `cc_hunt_smell`, `cc_hunt_run`, `cc_stay`, within 6 m; at most one line per hunt; outside hunts at most one per 180 s. Profile fields: `VoiceMaxDistance`, `VoiceCloseDistance`, `VoiceOffHuntGap` in `CountClaudeProfile`.
+
+| id | Use / where it is spoken from | Cap | Text |
 |---|---|---|---|
-| `cc_bargain` | 7.5 s | ear-trumpet capture whisper 1 | not yet |
-| `cc_night` | 6.4 s | whisper 2 | not yet |
-| `cc_steward` | 7.8 s | whisper 3 ("the steward hid them") | not yet |
-| `cc_relic_blade` | 7.4 s | whisper 4, hints the silver blade (reliquary) | not yet |
-| `cc_relic_hilt` | 8.3 s | whisper 5, hints the hilt (orrery) | not yet |
-| `cc_relic_moon` | 6.9 s | whisper 6, hints the moonstone (portrait) | not yet |
-| `cc_listen` | 5.6 s | whisper 7 (use near the player; scare line) | not yet |
-| `cc_stay` | 7.6 s | whisper 8 (also good at the drawbridge) | not yet |
-| `cc_ledger_steward` | 16.9 s | read-aloud of Blood Ledger entry 1 (blade, chapel crypt) | not yet |
-| `cc_ledger_orrery` | 16.7 s | entry 2 (hilt, orrery) | not yet |
-| `cc_ledger_portrait` | 16.0 s | entry 3 (moonstone, portrait door) | not yet |
-| `cc_hunt_smell` | 3.6 s | hunt start, spatial at the hunter | not yet |
-| `cc_hunt_run` | 4.7 s | during chase, spatial | not yet |
-| `cc_hunt_found` | 2.2 s | on losing line of sight then regaining it / just before grab | not yet |
-| `cc_hunt_hungry` | 4.9 s | search phase, spatial | not yet |
-| `cc_kit` | 8.1 s | Said when the player takes the instruments (`Book.KitCue`), non-spatial or spatial at the kit; text "Take them. The steward took them too. They did not help him." | not yet |
-| `cc_ending` | 8.8 s | `Phase.Won` (kill sunrise or the drawbridge escape); non-spatial, start about 1.5 s after the ending screen appears; text "Dawn. I had forgotten its colour. Go, and leave the door open." | not yet |
-| `cc_contain` | 7.5 s | `Speak("contain")`: entering `Phase.Containment` (the bell-rope binding) and the radio hint once the case is diagnosed (`Game.RadioHint`); non-spatial; text "Ring it, then. Better hands than yours have put me to bed." | not yet |
-| `cc_hint_signal` | 8.4 s | `Game.RadioHint` before diagnosis when the compass/signal evidence is missing (`Speak("hint_signal")`); non-spatial; text "The needle leans toward whatever I loved. Follow it, by all means." | not yet |
-| `cc_hint_trace` | 8.0 s | same, trace evidence missing (`Speak("hint_trace")`); text "Hold your ash lamp to my floors. The stone keeps my signature." | not yet |
-| `cc_hint_voice` | 7.5 s | same, ear-trumpet evidence missing (`Speak("hint_voice")`); text "Ask the old trumpet in a still room. I never refuse a guest." | not yet |
-| `cc_dispatch` | 6.6 s | Hostile-Return telegraph (wave G): the Count announces he is coming while the player crosses to the drawbridge. Call `Speak("dispatch")` or `Speak("cc_dispatch")` once when the Return hunt begins; non-spatial (or at the hunter). Not yet referenced by C# (the integrator wires it); `tools/check_audio_keys.py` keeps it on disk meanwhile. Text "The gate is open. So am I. Do hurry." | not yet |
+| `cc_hunt_found` | Presence, when he regains sight of her inside 6 m; at his head | one line per hunt, within 6 m | "There you are." |
+| `cc_hunt_smell` | Cupboard near-miss (`CountBeat "near-miss"`, with `door_rattle`); at his head | one line per hunt, within 6 m, the one hunt line allowed in the first 8 s | "I can smell the lamp oil." |
+| `cc_hunt_run` | Start of the dive (`BeginChase`); at his head | one line per hunt, within 6 m, not in the first 8 s unless seen | "Run. The hall is very long." |
+| `cc_stay` | Gatehouse landing of the hostile return; at his head | one line per hunt, within 6 m | "Stay. Everyone stays. The drawbridge is only a memory of leaving." |
+| `cc_listen` | The one intimate beat: `Soundscape.RareLine` or `CastleScares.PhantomListen` (whichever fires first); 2 m behind and 1.5 m above her head | at most once per run (`ListenPlayed`) | "I can hear your heart. It is very loud in my house." |
+| `cc_bargain` | Ear-trumpet reply (`Cue("voice", World.Voice)` -> `Speak("evp", position)`); at the trumpet spot | when she asks | "I asked for a night that would never end. Something under the stones said yes." |
+| `cc_ledger_steward`, `cc_ledger_orrery`, `cc_ledger_portrait` | Sarcophagus gamble only (`CastleRun.Sarcophagus`): she reads the page aloud at the sarcophagus; 1.2 m above it | 1 s gamble cooldown, once per page | the ledger entries |
+| `cc_steward`, `cc_relic_blade`, `cc_relic_hilt`, `cc_relic_moon` | Not referenced by C# (whisper pool); would be spatial | n/a | see `tools/voice-lines.json` |
 
-Ledger entries should be played non-spatial (`Speak(id)` with no location) when the player opens the entry; whispers spatial at the ear-trumpet capture position. Text of every line is in `tools/voice-lines.json`.
+**Retired (item 13): no caller speaks these any more and their clips are to be deleted**: `cc_hunt_hungry` ("Come out. I am so very hungry." - the owner asked for it gone), `cc_night` (arrival), `cc_kit`, `cc_hint_signal`, `cc_hint_trace`, `cc_hint_voice`, `cc_contain`, `cc_ending`, `cc_dispatch`. Their cards stay: arrival, kit, hints, dispatch, containment and ending text are shown as text only. Ledger pages are read, not spoken, when opened (the note card is the experience).
 
 Every row carries a **Human listen** column. `not yet` means no person has listened to that clip in the game; the critic or the owner replaces it with a name and date once cleared. As of 2026-10-14 nothing in this folder has been human-listened (the synthesised and eSpeak clips were checked by loudness and spectrogram only).
 
@@ -88,7 +76,7 @@ The castle voices are Kokoro-82M renders (owner feedback r13 item 11, 2026-10-15
 
 ## Key check
 
-`python3 tools/check_audio_keys.py` (add `-v` to list every key) scans `Runtime/` and `Core/` for every `Speak`/`Cue`/`Loop`/`SpatialLoop` key, `.Key=` assignment, `"cc_*"` literal and required-id array, applies the `Soundscape.Speak` castle mapping, and exits 1 if any file is missing from `Resources/Audio`, `HiggsfieldAudio` or `CastleAudio`. It also holds a contract list of keys promised here even when no C# calls them yet. Run it before every commit that touches audio or a `Speak`/`Cue` call.
+`python3 tools/check_audio_keys.py` (add `-v` to list every key) scans `Runtime/` and `Core/` for every `Speak`/`Cue`/`Loop`/`SpatialLoop` key, `.Key=` assignment, `"cc_*"` literal and required-id array, applies the `Soundscape.Speak` castle mapping, fails on any reference to a retired line, and exits 1 if any file is missing from `Resources/Audio`, `HiggsfieldAudio` or `CastleAudio`. It also holds a contract list of keys promised here even when no C# calls them yet. Run it before every commit that touches audio or a `Speak`/`Cue` call.
 
 `python3 tools/check_audio_quality.py [-v] [--strict]` fails on a peak above -1 dBFS, a loop seam step above 0.01, a voice more than 1.5 dB from the Bellwether median, or more than 0.3 s of trailing silence, over all 106 clips. Footsteps (`step_*`) also get a tonality rule: a 150-600 Hz Welch bin more than 12 dB over its neighbours, or band flatness under 0.35, is a ding (the shared `step_tile_*` measure 20-23 dB and 0.07; the castle `step_stone_*` / `step_gravel_*` measure 1-7 dB and 0.77-0.97). Bellwether's `step_tile_*` and two `step_wood_*` clips trip it as WARN only. The shipped Bellwether clips (`Resources/Audio`, `HiggsfieldAudio`) that break the voice or tail rule are reported as WARN, not edited (11 Bellwether voices carry 0.37-0.91 s of tail, `ui_paper` 0.51 s).
 
