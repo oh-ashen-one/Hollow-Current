@@ -248,7 +248,7 @@ namespace HollowCurrent
             if(Moving&&Controller.isGrounded)
             {
                 footstep-=dt;
-                if(footstep<=0){footstep=Running?.3f:Crouched?.8f:.51f;Game.Sound.Cue("step",transform.position,.22f);Game.Creature.Hear(transform.position,Running?10:Crouched?1.8f:4.5f);}
+                if(footstep<=0){footstep=Running?.3f:Crouched?.8f:.51f;Game.Sound.Cue("step",transform.position,Game.Map==MapId.Castle?(Crouched?.06f:Running?.15f:.11f):.22f);Game.Creature.Hear(transform.position,Running?10:Crouched?1.8f:4.5f);}
             }
         }
         // The interaction ray (also used by CastleOnboarding's HC_HIDE_SPOTS audit, so the audit tests exactly what E does).

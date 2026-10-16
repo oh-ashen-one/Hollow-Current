@@ -55,31 +55,31 @@
     "voice": "en-gb"
   },
   "cc_bargain": {
-    "text": "I asked for a night that would never end. Something under the stones said yes.",
+    "text": "I begged for a night that would never end. Something under the stones said yes.",
     "rate": 124,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
   },
   "cc_night": {
-    "text": "Dawn is only a rumour here. The moons keep the hours now.",
+    "text": "There is no dawn here. Only the moons, keeping my hours.",
     "rate": 124,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
   },
   "cc_steward": {
-    "text": "The steward hid them. Faithful fool. He thought I would not remember.",
+    "text": "The steward hid them. Faithful fool. He thought I would forget.",
     "rate": 124,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
   },
   "cc_relic_blade": {
-    "text": "Silver, cold in the dark. Where the dead keep what they cannot spend.",
+    "text": "Silver, cold, in the dark. Where the dead keep what they cannot spend.",
     "rate": 124,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
   },
   "cc_relic_hilt": {
-    "text": "A hilt held up to the stars. The wanderer's socket sits empty, waiting.",
+    "text": "A hilt raised to the stars. The wanderer's socket waits, empty.",
     "rate": 124,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
@@ -91,7 +91,7 @@
     "pitch": 18
   },
   "cc_listen": {
-    "text": "I can hear your heart. It is very loud in my house.",
+    "text": "I can hear your heart. It is very loud, in my house.",
     "rate": 124,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
@@ -103,7 +103,7 @@
     "pitch": 18
   },
   "cc_ledger_steward": {
-    "text": "Eleventh night, and no dawn. I have hidden the silver blade among the dead beneath the chapel, in a box that opens only to the marks of his claws. He will not look where he sleeps in blood.",
+    "text": "Eleventh night. No dawn. I hid the silver blade among the dead beneath the chapel, in a box that opens only to the marks of his claws. He will not look where he sleeps in blood.",
     "rate": 132,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
@@ -115,13 +115,13 @@
     "pitch": 18
   },
   "cc_ledger_portrait": {
-    "text": "Fifteenth night. The portraits watch me write. One of them is a door. Behind its face I have set the moonstone. If I do not return, forge all three at the chapel altar.",
+    "text": "Fifteenth night. The portraits watch me write. One of them is a door. Behind its face I set the moonstone. If I do not return, forge all three at the chapel altar.",
     "rate": 132,
     "voice": "en-gb-x-rp+m7",
     "pitch": 18
   },
   "cc_hunt_smell": {
-    "text": "I can smell the lamp oil.",
+    "text": "I can smell your lamp oil.",
     "rate": 112,
     "voice": "en-gb-x-rp+m7",
     "pitch": 16
@@ -151,7 +151,7 @@
     "pitch": 16
   },
   "cc_ending": {
-    "text": "Dawn. I had forgotten its colour. Go, and leave the door open.",
+    "text": "Dawn. I had forgotten its colour. Go. Leave the door open.",
     "rate": 108,
     "voice": "en-gb-x-rp+m7",
     "pitch": 14
@@ -169,7 +169,7 @@
     "pitch": 16
   },
   "cc_hint_trace": {
-    "text": "Hold your ash lamp to my floors. The stone keeps my signature.",
+    "text": "Hold your ash lamp to my floors. The stone remembers me.",
     "rate": 110,
     "voice": "en-gb-x-rp+m7",
     "pitch": 15

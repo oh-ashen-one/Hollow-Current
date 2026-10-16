@@ -10,7 +10,7 @@ Scans Assets/HollowCurrent/Runtime/**/*.cs and Core/**/*.cs (no Unity needed) fo
                               -> clip stem in Audio, HiggsfieldAudio or CastleAudio. All string literals in the
                                  first argument count, so ternaries (phase==Won?"a":"b") and a variable assigned
                                  from literals in the same file (Speak(hint)) are covered. "step" expands to the
-                                 step_<surface>_0..3 set, "voice" to voice_evp, "breath" to breath_presence.
+                                 step_<surface>_0..3 set (wood/tile/carpet/gravel in Audio; stone, the castle's indoor surface, in CastleAudio), "voice" to voice_evp, "breath" to breath_presence.
                                  A literal followed by "+" (e.g. "claw_steps_"+i) is a prefix: <prefix>0..3 must exist.
   * `.Key="..."`              -> clip id (CueOnImpact)
   * any whole string literal  "cc_*" -> voice_cc_* in CastleAudio (Presence.Voice, Forge/CaseBook note ids, ...)
@@ -28,7 +28,7 @@ def stems(d):
     return {f.stem for f in p.iterdir() if f.suffix.lower() in EXT} if p.is_dir() else set()
 AUDIO,HIGGS,CASTLE=stems('Audio'),stems('HiggsfieldAudio'),stems('CastleAudio')
 ANY=AUDIO|HIGGS|CASTLE
-SURFACES=('wood','tile','carpet','gravel')
+SURFACES=('wood','tile','carpet','gravel','stone')   # stone = the castle's indoor surface (CastleAudio only; World.StepSurface)
 
 def strip_comments(s):
     out=[];i=0;n=len(s)
@@ -118,7 +118,7 @@ for kind,key,rel,line in uses:
     elif kind in ('Cue','Loop','CastleLoop','SpatialLoop','UI','Has','ContainsKey'):
         if key=='step':
             for sfc in SURFACES:
-                for i in range(4):need(f'step_{sfc}_{i}',f'step_{sfc}_{i}' in AUDIO,where,'Cue("step")')
+                for i in range(4):need(f'step_{sfc}_{i}',f'step_{sfc}_{i}' in (CASTLE if sfc=='stone' else AUDIO),where,'Cue("step")'+(' (castle-only surface, CastleAudio)' if sfc=='stone' else ''))
         elif key=='voice':need('voice_evp','voice_evp' in AUDIO and 'voice_cc_bargain' in CASTLE,where,'Cue("voice")')
         elif key=='breath':need('breath_presence','breath_presence' in ANY,where,'Cue("breath")')
         else:need(key,key in ANY,where,f'{kind}("{key}")')

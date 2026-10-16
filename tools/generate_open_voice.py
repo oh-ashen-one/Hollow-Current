@@ -2,7 +2,11 @@
 """Rebuild redistributable synthetic dialogue from original scripts using eSpeak NG.
 Requires espeak-ng and ffmpeg on PATH. Does not use Apple System Voices.
 
-usage: generate_open_voice.py [--castle] [entry ...]   (entries from voice-lines.json; none = all, or all cc_* with --castle)
+usage: generate_open_voice.py [--castle] [entry ...]   (entries from voice-lines.json; none = all Bellwether lines)
+
+The Count's cc_* lines are NOT rendered here any more: owner feedback r13 item 11 replaced the eSpeak castle voice with Kokoro-82M
+(tools/generate_castle_voice.py). cc_* entries are skipped unless --legacy-espeak-castle is passed (reproduces the old robotic
+voice; it overwrites the Kokoro clips, so do not).
 """
 import json,shutil,subprocess,sys,tempfile
 from pathlib import Path
@@ -15,8 +19,9 @@ CASTLE_FX=('aresample=22050,asetrate=22050*0.88,aresample=22050,highpass=f=110,l
            'acompressor=threshold=0.1:ratio=3:attack=5:release=90,apad=pad_dur=1.0,'
            'aecho=0.8:0.85:47|113|211|397|683|1120:0.40|0.32|0.26|0.20|0.14|0.09,volume=0.9')
 def main():
-    castle_only='--castle' in sys.argv[1:]
+    castle_only='--castle' in sys.argv[1:];legacy='--legacy-espeak-castle' in sys.argv[1:]
     only={a for a in sys.argv[1:] if not a.startswith('--')}
+    if castle_only and not legacy:raise SystemExit('Castle voices now come from Kokoro: run tools/generate_castle_voice.py (see docs/haunted-castle/handoffs/fb-audio.md). Pass --legacy-espeak-castle to force the old eSpeak render.')
     for name in ('espeak-ng','ffmpeg'):
         if not shutil.which(name):raise SystemExit('Install '+name+' and put it on PATH first.')
     OUT.mkdir(parents=True,exist_ok=True);CASTLE_OUT.mkdir(parents=True,exist_ok=True)
@@ -24,6 +29,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix='hollow-voice-') as tmp:
         for name,spec in lines.items():
             castle=name.startswith('cc_')
+            if castle and not legacy:continue
             if castle_only and not castle:continue
             if only and name not in only:continue
             dry=Path(tmp)/(name+'.wav')
@@ -36,5 +42,5 @@ def main():
             subprocess.run(['ffmpeg','-v','error','-y','-i',str(dry),'-map_metadata','-1','-ar','22050','-ac','1','-af',fx,'-c:a','pcm_s16le',str((CASTLE_OUT if castle else OUT)/('voice_'+name+'.wav'))],check=True)
     unknown=only-set(lines)
     if unknown:raise SystemExit('unknown voice entries '+' '.join(sorted(unknown)))
-    print('Generated',sum(1 for n in lines if (n.startswith('cc_') or not castle_only) and (not only or n in only)),'public voice recordings with eSpeak NG.')
+    print('Generated',sum(1 for n in lines if (legacy or not n.startswith('cc_')) and (n.startswith('cc_') or not castle_only) and (not only or n in only)),'public voice recordings with eSpeak NG.')
 if __name__=='__main__':main()
