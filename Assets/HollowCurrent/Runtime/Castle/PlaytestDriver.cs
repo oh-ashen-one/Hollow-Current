@@ -9,6 +9,10 @@ namespace HollowCurrent
 {
     // Opt-in automated playtest of the castle loop in the real player:
     //   -hc-playtest <outdir> escape|kill|fear
+    // cold (fb-onboard, owner feedback 2026-10-15): a first-time player. Never touches the equipment rack, starts with no run history
+    // (Game: the Early first-hunt band, nothing written back), reads the gate keeper's letter, then walks the great hall on foot for 180 s
+    // of case time and presses E on the five ground-floor hides. Asserts >= 4 HC_WATCHED cues, the first <= 25 s, the case never in
+    // Briefing after 1 s, and every hide either hiding her or giving a notice. Summary: HC_PLAY_COLD, HC_ONBOARD, HC_PLAY_STATS.
     // fear: the wave F proof run (FEAR_PLAN). It steers the real rules engine through Investigation.Dice and
     // AddDread (logged as driver-forced) to get a false warning, a no-tell hunt, a told hunt it hides in while
     // watched, the gatehouse visit and the hostile return, and calls the director's real throw/beat methods.
@@ -103,7 +107,8 @@ namespace HollowCurrent
             return "huntsNonReturn="+nonReturn+" withinScare10s="+afterScare+" pctWithinScare10s="+(nonReturn>0?(100f*afterScare/nonReturn).ToString("F0"):"n/a")
                 +" apparitions="+scareTimes.Count+" apparitionCV="+cv+" apparitionTimes=["+arrivals.ToString().TrimEnd(',')+"]"
                 +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
-                +" grabContinuity="+continuityPass+"/"+continuityGrabs+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0");
+                +" grabContinuity="+continuityPass+"/"+continuityGrabs+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0")
+                +(game.Onboarding?" onboard: "+game.Onboarding.SummaryFields():"");
         }
         readonly Queue<(string name,string measures)> pendingGrabShots=new Queue<(string,string)>();
         void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));GrabContinuity();}
@@ -291,6 +296,7 @@ namespace HollowCurrent
             if(Mode=="natural"){yield return Natural();yield break;}
             if(Mode=="death"){yield return Death();yield break;}
             if(Mode=="huntcam"){yield return HuntCam();yield break;}
+            if(Mode=="cold"){yield return Cold();yield break;}
             // Field kit from the lantern cart.
             yield return Use(Find(InteractKind.Kit),"field kit");
             if(!game.Case.Equipped)Blocker("kit not equipped");
@@ -822,6 +828,86 @@ namespace HollowCurrent
             }
             if(!castle.Fight.Dead)Blocker("fight not finished in 300 s (hits "+castle.Fight.Hits+", bell rings "+rings+")");
             yield return Wait(2.5f);
+        }
+        // ---- cold: a first-time player (fb-onboard) ------------------------------------------------------------------------------
+        static readonly string[] ColdHides={"Hall armoire","Dining armoire","Kitchen larder","Confessional","Vestibule press"};
+        IEnumerator Cold()
+        {
+            var c=game.Case;float realStart=Time.realtimeSinceStartup;bool briefing=false;
+            yield return Step("cold_spawn","phase="+c.Phase+" equipped="+c.Equipped+" plan="+(game.RunPlan!=null?game.RunPlan.Band.ToString():"none"));
+            // The rack is never touched: the case must already be out of Briefing.
+            IEnumerator Idle(float seconds,Vector3 look)
+            {
+                float end=Time.realtimeSinceStartup+seconds;
+                while(Time.realtimeSinceStartup<end){if(Time.realtimeSinceStartup-realStart>1&&c.Phase==Phase.Briefing)briefing=true;input.Look=look;yield return null;}
+            }
+            var eye0=game.Player.View.transform.position;
+            yield return Idle(3,eye0+game.Player.transform.forward*4);  // reads the arrival card
+            yield return Use(Find(InteractKind.Note,game.Book.ArrivalNoteTitle),"arrival letter");
+            yield return Step("cold_letter_read","objective="+(game.Onboarding?game.Onboarding.Step:"none"));
+            // Walk the great hall on foot (the Investigator's own movement through TestInput), along nav paths, for 180 s of case time.
+            var route=new[]{new Vector3(0,.05f,7.5f),new Vector3(0,.05f,12.5f),new Vector3(0,.05f,17.5f),new Vector3(0,.05f,23f),new Vector3(2.6f,.05f,20f),new Vector3(-2.6f,.05f,24.5f),new Vector3(-2.6f,.05f,16f),new Vector3(2.4f,.05f,15.5f),new Vector3(0,.05f,10f)};
+            int leg=0,unstick=0;float lastShot=c.Elapsed;
+            while(c.Elapsed<180&&!c.Terminal)
+            {
+                var goal=route[leg++%route.Length];
+                var path=new NavMeshPath();var from=game.Player.transform.position;
+                Vector3[] corners=NavMesh.SamplePosition(goal,out var gh,1.5f,NavMesh.AllAreas)&&NavMesh.CalculatePath(from,gh.position,NavMesh.AllAreas,path)&&path.corners.Length>0?path.corners:new[]{goal};
+                foreach(var corner in corners)
+                {
+                    float legEnd=Time.realtimeSinceStartup+20,stuckClock=0;var last=game.Player.transform.position;
+                    while(c.Elapsed<180&&!c.Terminal&&Time.realtimeSinceStartup<legEnd)
+                    {
+                        if(Time.realtimeSinceStartup-realStart>1&&c.Phase==Phase.Briefing)briefing=true;
+                        if(game.Modal){input.Move=Vector2.zero;yield return null;continue;}
+                        var p=game.Player.transform.position;var flat=corner-p;flat.y=0;
+                        if(flat.magnitude<.45f)break;
+                        input.Look=game.Player.View.transform.position+flat.normalized*4;input.Move=new Vector2(0,1);
+                        stuckClock+=Time.deltaTime;
+                        if(stuckClock>2.5f)
+                        {
+                            if(Vector3.Distance(p,last)<.4f)
+                            {
+                                // A closed door in the way: press E on it like a player would, then (if still stuck) step past.
+                                if(game.Player.Focus&&game.Player.Focus.Kind==InteractKind.Door){input.Move=Vector2.zero;yield return Press(i=>i.Use=true);Debug.Log("HC_PLAY cold_door_opened "+game.Player.Focus.name);}
+                                else{unstick++;game.Player.Teleport(corner+Vector3.up*.05f);Debug.Log("HC_PLAY cold_unstick n="+unstick+" at="+p.ToString("F1")+" to="+corner.ToString("F1"));}
+                            }
+                            stuckClock=0;last=game.Player.transform.position;
+                        }
+                        if(c.Elapsed-lastShot>=30){lastShot=c.Elapsed;input.Move=Vector2.zero;yield return Step("cold_walk_t"+c.Elapsed.ToString("F0"),"phase="+c.Phase+" cues="+(game.Onboarding?game.Onboarding.Cues:0));}
+                        yield return null;
+                    }
+                }
+                input.Move=Vector2.zero;
+            }
+            input.Move=Vector2.zero;
+            var onboard=game.Onboarding;
+            yield return Step("cold_walk_done",onboard?onboard.SummaryFields():"no onboarding");
+            // Every ground-floor hide answers E: she hides, or a notice says why (held door, nailed shut).
+            int answered=0,hidden=0;
+            foreach(var name in ColdHides)
+            {
+                Interactable spot=null;
+                foreach(var item in game.World.Root.GetComponentsInChildren<Interactable>(true))if((item.Kind==InteractKind.Hide||item.Kind==InteractKind.Nailed)&&(item.name==name||item.name=="Nailed shut / "+name)&&item.gameObject.activeInHierarchy){spot=item;break;}
+                if(!spot){Blocker("cold hide "+name+": no active interactable");continue;}
+                yield return WaitFor(()=>!game.Modal,30);
+                float noticeBefore=game.NoticeTime;string noticeText=game.NoticeText;
+                yield return Use(spot,"cold hide "+name);
+                yield return Frames(3);
+                bool hid=game.Player.Hidden,noticed=game.NoticeTime>0&&(game.NoticeText!=noticeText||game.NoticeTime>noticeBefore);
+                if(hid||noticed)answered++;if(hid)hidden++;
+                Debug.Log("HC_PLAY_COLD_HIDE name=\""+name+"\" hidden="+hid+" notice="+(noticed?"\""+game.NoticeText+"\"":"none")+" focus="+(game.Player.Focus?game.Player.Focus.name:"none")+" phase="+c.Phase);
+                if(hid){yield return Shot("cold_hidden_"+name.Replace(' ','_'));yield return Press(i=>i.Use=true);yield return Frames(3);}
+                if(!hid&&!noticed)Blocker("cold hide "+name+": E did nothing (no hide, no notice)");
+            }
+            int cues=onboard?onboard.Cues:0;float first=onboard?onboard.FirstCueAt:-1;
+            if(cues<4)Blocker("cold: only "+cues+" watched cues in 180 s (need >= 4)");
+            if(first<0||first>25)Blocker("cold: first watched cue at "+(first<0?"none":first.ToString("F1"))+" s (need <= 25)");
+            if(briefing||onboard&&onboard.BriefingAfterOneSecond)Blocker("cold: the case was in Briefing after 1 s");
+            if(c.Equipped&&onboard&&onboard.FirstObjectiveChangeAt<0)Blocker("cold: the objective never changed (letter read?)");
+            Debug.Log("HC_PLAY_COLD watched="+cues+" firstCue="+(first<0?"none":first.ToString("F1"))+" briefingAfter1s="+briefing+" hidesAnswered="+answered+"/"+ColdHides.Length+" hidden="+hidden
+                +" unstick="+unstick+" pass="+(cues>=4&&first>=0&&first<=25&&!briefing&&answered==ColdHides.Length)+" "+(onboard?onboard.SummaryFields():""));
+            yield return Finish();
         }
         IEnumerator Finish()
         {

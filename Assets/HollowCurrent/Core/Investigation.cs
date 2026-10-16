@@ -316,8 +316,24 @@ namespace HollowCurrent
                 if (PhaseTime >= CurrentRecoverySeconds) Set(Diagnosed ? Phase.Containment : Phase.Disturbance);
                 else TickRecoveryDice(dt);
             }
-            else if (Phase == Phase.Survey || Phase == Phase.Containment) TickQuietDice(dt);
+            else if (Phase == Phase.Survey || Phase == Phase.Containment) { if (!TickFirstHunt(dt)) TickQuietDice(dt); }
         }
+        // First-hunt guarantee (the mystery needs a hunt survived, so it can never stall). Record-keyed (Disturbance, from the
+        // FirstHuntEvidence-th record) or, with Rules.FirstHuntFromSpawn, from the run's first Survey second in Survey and
+        // Disturbance alike. Returns true when the threat started this tick.
+        bool TickFirstHunt(float dt)
+        {
+            if (Rules.FirstHuntSeconds <= 0 || Hunts > 0) return false;
+            if (Rules.FirstHuntFromSpawn ? Phase != Phase.Survey && Phase != Phase.Disturbance : Phase != Phase.Disturbance || Evidence.Count < Rules.FirstHuntEvidence) return false;
+            firstHuntClock += dt;
+            if (firstHuntAt < 0) firstHuntAt = Plan != null ? Plan.FirstHuntMin + (Plan.FirstHuntMax - Plan.FirstHuntMin) * Roll() : Rules.FirstHuntMax > Rules.FirstHuntMin ? HuntRules.Draw(Rules.FirstHuntMin, Rules.FirstHuntSeconds, Rules.FirstHuntMax, Roll()) : Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
+            if (firstHuntClock < firstHuntAt) return false;
+            StartThreat(false);
+            return true;
+        }
+        // Diagnostics: the drawn first-hunt deadline (seconds on the first-hunt clock; -1 = not drawn yet) and the clock itself.
+        public float FirstHuntDeadline => firstHuntAt;
+        public float FirstHuntClock => firstHuntClock;
         // Event Dread decays toward 0 (after the first hunt, never below DreadDecayFloor in total).
         void DecayEventDread(float dt)
         {
@@ -396,14 +412,8 @@ namespace HollowCurrent
             if (dreadful != diceHigh) { diceHigh = dreadful; diceTimer = float.NaN; }
             // Timed hunt: Bellwether's 95 s timer, the castle's 240 s floor.
             if (Rules.TimedHuntSeconds > 0 && dreadful && huntClock >= Rules.TimedHuntSeconds && Evidence.Count >= Rules.TimedHuntEvidence && !DiceHeld) { StartThreat(false); return; }
-            // First-hunt guarantee so the mystery cannot stall at low Dread. Its clock starts at the
-            // record that reaches FirstHuntEvidence, so a slow player gets the full delay too.
-            if (Rules.FirstHuntSeconds > 0 && Hunts == 0 && Evidence.Count >= Rules.FirstHuntEvidence)
-            {
-                firstHuntClock += dt;
-                if (firstHuntAt < 0) firstHuntAt = Plan != null ? Plan.FirstHuntMin + (Plan.FirstHuntMax - Plan.FirstHuntMin) * Roll() : Rules.FirstHuntMax > Rules.FirstHuntMin ? HuntRules.Draw(Rules.FirstHuntMin, Rules.FirstHuntSeconds, Rules.FirstHuntMax, Roll()) : Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
-                if (firstHuntClock >= firstHuntAt) { StartThreat(false); return; }
-            }
+            // First-hunt guarantee so the mystery cannot stall at low Dread (TickFirstHunt: record-keyed, or from spawn).
+            if (TickFirstHunt(dt)) return;
             // Dice-roll hunts: banded at or above the run's boundary, a flat low roll below it after the first hunt.
             bool low = !dreadful && Hunts > 0 && Rules.LowDreadChance > 0;
             if (Rules.DiceIntervalMax > 0 && (dreadful || low) && GraceRemaining <= 0 && !DiceHeld)
@@ -492,7 +502,8 @@ namespace HollowCurrent
             apparitionShadow = Math.Max(0, Dread - before); apparitionAt = Elapsed;
         }
         public int Apparitions { get; private set; }
-        // Wave L3. The run's plan (RunHistory.Next): the first hunt is due FirstHuntMin..Max s after the second record (uniform),
+        // Wave L3. The run's plan (RunHistory.Next): the first hunt is due FirstHuntMin..Max s after the second record (uniform;
+        // fb-onboard: after spawn when Rules.FirstHuntFromSpawn),
         // instead of Draw(60, 95, 180). Call once at the run's start, before the second record.
         public void UseRunPlan(RunPlan plan) { if (plan == null) return; Plan = plan; firstHuntAt = -1; }
         public RunPlan Plan { get; private set; }

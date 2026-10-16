@@ -202,6 +202,54 @@ if not esc2 or "EscalationChanceNow(dark)" not in esc2 or "TryEscalate(dark)" no
 if esc2 and re.search(r"Random\.value\s*(<|>=?)\s*(pass|chance)", esc2):
     failures.append("Escalate must not roll the escalation chance itself (TryEscalate rolls it)")
 
+# 4f. fb-onboard watched layer (CastleOnboarding.cs, owner feedback 2026-10-15 item 12): presence cues from spawn. Every kind has a
+# WatchedTable budget (max >= 1, gap >= 60 s), its method checks Can("<kind>") and logs through Fire("<kind>" (HC_WATCHED kind=), the
+# cadence constants keep the first cue <= 25 s and the gaps 20-45 s before the first apparition, and any line that tests the phase or
+# hunt state carries a `// tell-safe:` comment (same rule as CastleScares).
+onboard_path = CASTLE / "CastleOnboarding.cs"
+if not onboard_path.exists():
+    failures.append("CastleOnboarding.cs (the watched layer) is missing")
+else:
+    onboard = onboard_path.read_text()
+    wt = re.search(r"WatchedTable\s*=\s*new Dictionary<string,int\[\]>\s*\{(.*?)\n        \};", onboard, re.S)
+    watched = {k: (int(a), int(b)) for k, a, b in re.findall(r'\{"(\w+)",new\[\]\{(\d+),(\d+)\}\}', wt.group(1))} if wt else {}
+    if not watched:
+        failures.append("CastleOnboarding: WatchedTable not found")
+    kinds = {"DoorSlam": "door_slam", "FootstepsBehind": "footsteps_behind", "EarBreath": "ear_breath", "EarWhisper": "ear_whisper",
+             "PortraitStare": "portrait_eyes", "DoorwayFigure": "doorway_figure", "LanternFlicker": "lantern_flicker", "CandleGutter": "candle_gutter"}
+    for method, kind in kinds.items():
+        text = body(onboard, "public bool " + method + "(")
+        if text is None:
+            failures.append("watched cue method missing: " + method)
+            continue
+        if kind not in watched:
+            failures.append("watched kind %s has no WatchedTable entry" % kind)
+        elif watched[kind][0] < 1 or watched[kind][1] < 60:
+            failures.append("watched kind %s budget too loose: %s (need max >= 1, gap >= 60)" % (kind, watched[kind]))
+        if 'Can("%s")' % kind not in text:
+            failures.append("%s does not check Can(\"%s\")" % (method, kind))
+        if 'Fire("%s"' % kind not in text:
+            failures.append("%s does not log through Fire(\"%s\")" % (method, kind))
+    fire = body(onboard, "void Fire(")
+    if not fire or '"HC_WATCHED kind="' not in fire:
+        failures.append("Fire must log HC_WATCHED kind=")
+    consts = dict(re.findall(r"(\w+)=(\d+(?:\.\d+)?)", (re.search(r"public const float OpeningSeconds=[^;]*;", onboard) or [""])[0] if re.search(r"public const float OpeningSeconds=[^;]*;", onboard) else ""))
+    try:
+        if float(consts["FirstCueMax"]) > 25 or float(consts["GapMin"]) < 20 or float(consts["GapMax"]) > 45:
+            failures.append("watched cadence must be first <= 25 s, then 20-45 s: %s" % consts)
+    except KeyError:
+        failures.append("watched cadence constants (FirstCueMax, GapMin, GapMax) not found")
+    olines = onboard.splitlines()
+    for number, line in enumerate(olines, 1):
+        code = line.split("//")[0]
+        if not re.search(r"HuntActive|\bPhase\.|\.Phase\b|NoTellHunt|FalseWarning", code) or "Debug.Log(" in code:
+            continue
+        if not any("tell-safe:" in l for l in olines[max(0, number - 9):number]):
+            failures.append("CastleOnboarding.cs:%d tests hunt state without a `// tell-safe:` comment: %s" % (number, line.strip()))
+    if re.search(r"AddDread|ForceDread|NoteApparition|BeginWarning|BeginNoTellHunt|TryEscalate", onboard):
+        failures.append("CastleOnboarding cues must be consequence-free (no Dread or rule input)")
+    print("watched layer: %d kinds %s" % (len(watched), sorted(watched)))
+
 # 5. Bellwether isolation: CastleScares is only reached through the castle gate in the director
 if "IsCastle" not in director:
     failures.append("ScareDirector has no IsCastle gate")

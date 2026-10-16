@@ -110,12 +110,14 @@ namespace HollowCurrent
         }
         static string B(FirstHuntBand? b) => b == null ? "-" : b.Value == FirstHuntBand.Early ? "E" : b.Value == FirstHuntBand.Mid ? "M" : "L";
         static FirstHuntBand? P(string s) => s == "E" ? FirstHuntBand.Early : s == "M" ? FirstHuntBand.Mid : s == "L" ? FirstHuntBand.Late : (FirstHuntBand?)null;
-        // The next run's plan: a first-hunt band used in neither of the last two runs (so any three consecutive runs use all three and
+        // The next run's plan: Early for a first run (no history), else a first-hunt band used in neither of the last two runs (so any three consecutive runs use all three and
         // their first hunts spread >= 60 s), and the other rhythm start than last run. u1, u2 uniforms for the free choices.
         public RunPlan Next(float u1, float u2)
         {
             var free = new System.Collections.Generic.List<FirstHuntBand>();
-            foreach (FirstHuntBand b in Enum.GetValues(typeof(FirstHuntBand))) if (b != LastBand && b != BandBefore) free.Add(b);
+            // fb-onboard (owner feedback 2026-10-15, item 12): a first run (no history) always gets the Early band (60-100 s).
+            if (LastBand == null && BandBefore == null) free.Add(FirstHuntBand.Early);
+            else foreach (FirstHuntBand b in Enum.GetValues(typeof(FirstHuntBand))) if (b != LastBand && b != BandBefore) free.Add(b);
             float a = float.IsNaN(u1) ? .5f : Math.Max(0, Math.Min(.99999f, u1));
             var band = free[Math.Min(free.Count - 1, (int)(a * free.Count))];
             bool burst = LastBurstStart.HasValue ? !LastBurstStart.Value : !(float.IsNaN(u2) || u2 >= .5f);

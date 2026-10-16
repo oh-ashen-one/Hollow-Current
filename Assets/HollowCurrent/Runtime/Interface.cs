@@ -357,15 +357,30 @@ namespace HollowCurrent
         // Castle (critic r10 #4): the HUD goal does not flip to the hunt goal. Through Hunt and Recovery it keeps the calm goal,
         // with the hunt-survived state frozen at the hunt's start.
         bool goalSurvived;
+        // fb-onboard (owner feedback 2026-10-15, item 12): the castle objective is CastleObjective's chain (letter, ledger pages with
+        // the rooms still to search, relics, forge, bell, winch), so a new player always has a next step. Bellwether: Case.Goal.
         public string HudGoal()
         {
             var c=Game.Case;
             if(Game.Map!=MapId.Castle)return c.Goal;
-            if(c.Phase!=Phase.Hunt&&c.Phase!=Phase.Recovery||!c.Equipped){goalSurvived=c.Survived;return c.Goal;}
-            var b=Book;
-            if(c.Evidence.Count==3)return !goalSurvived?b.GoalReacting:c.ContextCount<3?b.GoalNeedContext:b.GoalReconstruct;
-            return b.GoalDefault;
+            return Objective().Text;
         }
+        readonly bool[] relicsFound=new bool[3];
+        int objectiveFrame=-1;CastleObjective.State objective;
+        public CastleObjective.State Objective()
+        {
+            // Once per frame (OnGUI runs several events a frame; the strings are rebuilt only when asked again in a later frame).
+            if(objectiveFrame==Time.frameCount)return objective;objectiveFrame=Time.frameCount;
+            var c=Game.Case;
+            if(c.Phase!=Phase.Hunt&&c.Phase!=Phase.Recovery)goalSurvived=c.Survived;
+            var forge=Game.Castle?Game.Castle.Forge:null;
+            for(int i=0;i<3;i++)relicsFound[i]=forge!=null&&forge.HasRelic((Relic)i);
+            objective=CastleObjective.For(c,relicsFound,forge!=null&&forge.HasSword,goalSurvived);return objective;
+        }
+        public bool[] RelicsFound{get{Objective();return relicsFound;}}
+        // The objective step and when it last changed (unscaled time), for the HUD's "objective updated" mark; CastleOnboarding logs it.
+        string shownStep;float stepChangedAt=-99;
+        GUIStyle noticeStyle;
         // The journal's pulse: a hand-drawn ink trace whose rate and height follow FeltDread (critic r10 #3: +-12 slow noise,
         // no hunt floor; hc/rules2's FeltDread lags and lies). Never a number (FEAR_PLAN item 1).
         void PulseLine(Rect r)
@@ -515,7 +530,9 @@ namespace HollowCurrent
         void HUD()
         {
             if(shownRecords!=Game.Case.Evidence.Count){shownRecords=Game.Case.Evidence.Count;recordLabel=Book.CaseTag+" / "+shownRecords+" RECORDS";}
-            Track(42,24,"OBJECTIVE",ink);Rule(42,53,320);Track(660,24,"HOLLOW CURRENT",ink);Rule(660,53,285);Label(42,63,690,70,HudGoal(),hudGoal);
+            if(Game.Map==MapId.Castle)CastleObjectiveHud();
+            else{Track(42,24,"OBJECTIVE",ink);Rule(42,53,320);Label(42,63,690,70,HudGoal(),hudGoal);}
+            Track(660,24,"HOLLOW CURRENT",ink);Rule(660,53,285);
             Label(1290,28,268,28,Location(),rightBody);Panel(new Rect(1355,62,200,1),copper);Label(1290,73,268,24,recordLabel,rightBody);
             Panel(new Rect(798,448,4,4),new Color(.8f,.8f,.7f,.7f));var p=Game.Player;
             string use=PadInput.Active?(PadInput.Current.PlayStation?"[×] ":"[A] "):"[E] ",torch=PadInput.Active?(PadInput.Current.PlayStation?"[□] ":"[X] "):"[F] ";
@@ -525,6 +542,16 @@ namespace HollowCurrent
             if(Game.Castle&&(Game.Castle.Forge.RelicCount>0||Game.Castle.Forge.HasSword))Label(1290,100,268,24,Game.Castle.Forge.HasSword?"MOONSTONE SWORD · "+Game.Castle.Fight.Hits+" / 3":"RELICS "+Game.Castle.Forge.RelicCount+" / 3",rightBody);
             if(Game.Case.SealProgress>0){Label(545,583,510,30,"SEALING "+Mathf.RoundToInt(Game.Case.SealProgress*100)+"%",center);Panel(new Rect(615,622,370*Game.Case.SealProgress,3),copper);}
             if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))SubtitleCard();
+            // fb-onboard (item 7, "never silent"): a short action notice (the door is held, nailed shut, the rack is empty, the idle
+            // objective nudge). Game.Notice set it; FieldMessages keeps it off the dialogue card, so it has its own line above the prompt.
+            if(Game.NoticeTime>0&&!string.IsNullOrEmpty(Game.NoticeText))
+            {
+                // Just under the interaction prompt (never across the screen centre), fading out over its last half second.
+                if(noticeStyle==null)noticeStyle=new GUIStyle(center){fontSize=18};
+                float a=Mathf.Clamp01(Game.NoticeTime/.5f);noticeStyle.normal.textColor=new Color(ink.r,ink.g,ink.b,a);
+                float w=Mathf.Min(790,noticeStyle.CalcSize(new GUIContent(Game.NoticeText)).x+36),h=noticeStyle.CalcHeight(new GUIContent(Game.NoticeText),w-20)+14;
+                Panel(new Rect(800-w*.5f,552,w,h),new Color(.01f,.012f,.016f,.55f*a));GUI.Label(new Rect(810-w*.5f,552,w-20,h),Game.NoticeText,noticeStyle);
+            }
             Track(42,796,Book.InstrumentNames[Mathf.Clamp(p.Tool-1,0,2)],ink);
             Label(42,824,290,48,Game.Scares.Interference?"SIGNAL UNSTABLE":p.Capture>0?"RECORDING… HOLD STEADY":p.Tool==1?p.InductionDisplay+" / 5.0":"FIELD KIT CONNECTED",hudTiny);
             bool ps=PadInput.Active&&PadInput.Current.PlayStation;
@@ -534,6 +561,16 @@ namespace HollowCurrent
             if(p.Stamina<.99f){Panel(new Rect(44,878,220,2),line);Panel(new Rect(44,878,220*p.Stamina,2),copper);}
             // Castle: a non-numeric cue only (critic r10 #14); Bellwether keeps its countdown.
             if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,Game.Map==MapId.Castle?"SIGNAL COLLAPSING":"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt(9-Game.Case.PhaseTime)),center);
+        }
+        // Castle objective block: the kicker reads OBJECTIVE UPDATED for 5 s after the step changes, the goal sentence, and a one-line
+        // tracker (records, ledger pages, relics, hunt survived) so both routes to the end stay visible.
+        void CastleObjectiveHud()
+        {
+            var o=Objective();
+            if(o.Step!=shownStep){if(shownStep!=null)stepChangedAt=Time.unscaledTime;shownStep=o.Step;}
+            bool fresh=Time.unscaledTime-stepChangedAt<5;
+            Track(42,24,fresh?"OBJECTIVE UPDATED":"OBJECTIVE",fresh?copper:ink);Rule(42,53,320);Label(42,63,690,70,o.Text,hudGoal);
+            if(o.Step!=CastleObjective.Letter&&o.Step!=CastleObjective.Briefing&&o.Step!=CastleObjective.Won&&o.Step!=CastleObjective.Dead)Label(42,128,690,22,o.Tracker,hudTiny);
         }
         // ---- Title helpers (piece T1) ----
         GUIStyle titleTagline;

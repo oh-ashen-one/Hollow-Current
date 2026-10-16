@@ -33,6 +33,8 @@ namespace HollowCurrent.Editor
             Directory.CreateDirectory(MapCatalog.SceneFolder);
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             var authored=new World();authored.Build(map);
+            // fb-onboard: HC_HIDE_SPOTS at prepare time (every hide focusable by the interaction ray from 1.2 m in front of its door).
+            if(map==MapId.Castle){Physics.SyncTransforms();CastleOnboarding.AuditHides(authored.HidingPlaces,true,"prepare",out int ha,out int hf);if(hf<ha)Debug.LogWarning("HC_HIDE_SPOTS_FAIL "+(ha-hf)+" of "+ha+" hide spots are not focusable from 1.2 m (prepare)");}
             authored.Snapshot();
             PersistLayoutAssets(authored.Root,info.LayoutFolder);
             AssetDatabase.SaveAssets();
@@ -239,6 +241,10 @@ namespace HollowCurrent.Editor
                 bool found=false;foreach(var item in world.Root.GetComponentsInChildren<Interactable>())if(item.Kind==kind)found=true;
                 if(!found)throw new Exception("Castle is missing a "+kind+" interactable");
             }
+            // fb-onboard (owner feedback items 6, 7): every hide must be found by the interaction ray from 1.2 m in front of its door.
+            // Logged per spot (HC_HIDE_SPOTS) and summarised; not a build failure (the integrator reads the summary).
+            CastleOnboarding.AuditHides(world.HidingPlaces,true,"validate",out int hidesAudited,out int hidesFocusable);
+            if(hidesFocusable<hidesAudited)Debug.LogWarning("HC_HIDE_SPOTS_FAIL "+(hidesAudited-hidesFocusable)+" of "+hidesAudited+" hide spots are not focusable from 1.2 m");
             // Every castle door (service 0.9 m, standard 1.5 m, great 2 x 1.5 m leaves,
             // portrait door) must swing at least 75 degrees clear of walls and furniture
             // (the gatehouse guard door parks at 80 against the corner wall; Bellwether keeps 85).

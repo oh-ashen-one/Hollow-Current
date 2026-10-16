@@ -4,7 +4,8 @@ namespace HollowCurrent
 {
     // Append only: values are serialized in prepared scenes. Van = the map's escape
     // (Bellwether case terminal, castle drawbridge winch); Anchor = music box / chapel bell.
-    public enum InteractKind { Kit, Note, Door, Hide, Breaker, Anchor, Van, LightSwitch, Relic, Altar, Sarcophagus }
+    // fb-onboard: Nailed = a Long Night hide that is nailed shut (CastleWorld.NailHides); E says so instead of doing nothing.
+    public enum InteractKind { Kit, Note, Door, Hide, Breaker, Anchor, Van, LightSwitch, Relic, Altar, Sarcophagus, Nailed }
     public sealed class Interactable : MonoBehaviour
     {
         public InteractKind Kind;
@@ -20,7 +21,8 @@ namespace HollowCurrent
         {
             switch(Kind)
             {
-                case InteractKind.Kit: game.Case.Equip(); break;
+                // fb-onboard: the castle equips at spawn, so the rack only answers (never a silent E). Bellwether: unchanged.
+                case InteractKind.Kit: if(!game.Case.Equip()&&game.Map==MapId.Castle)game.Notice("The rack is empty. You already carry the instruments."); break;
                 case InteractKind.Note: game.Case.Read(Label);game.ShowNote(Label,Body);break;
                 case InteractKind.Door: Door.Toggle();break;
                 case InteractKind.Hide: game.Player.Hide(this);break;
@@ -32,6 +34,7 @@ namespace HollowCurrent
                 case InteractKind.Altar: if(game.Castle)game.Castle.AltarHint();break;
                 // Castle crypt (FEAR_PLAN item 18, the cursed reading): CastleRun.Sarcophagus() once hc/count11 lands.
                 case InteractKind.Sarcophagus: if(game.Castle)game.Castle.Sarcophagus();break;
+                case InteractKind.Nailed: game.Notice("Nailed shut. Find another hiding place.");game.Sound.Cue("door_rattle",transform.position,.6f);break;
                 case InteractKind.Anchor:
                     if(game.Castle){game.Castle.RingBell();break;}
                     if(game.Case.Phase!=Phase.Containment)game.Say(game.Book.AnchorNotReady);break;

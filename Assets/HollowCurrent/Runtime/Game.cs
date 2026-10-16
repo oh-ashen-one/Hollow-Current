@@ -45,6 +45,8 @@ namespace HollowCurrent
         public Soundscape Sound {get;private set;}
         // Castle dread beats (F3); null in Bellwether.
         public CastleScares CastleDread {get;private set;}
+        // fb-onboard: the castle's opening (watched cues, objective log and nudges, hide audit); null in Bellwether.
+        public CastleOnboarding Onboarding {get;private set;}
         // Death penalty (FEAR_PLAN item 7): the relic index moved to its alternate place this run, or -1.
         public int MovedRelic {get;private set;}=-1;
         public bool Started, Paused, Journal;
@@ -118,13 +120,21 @@ namespace HollowCurrent
             // Castle rules (HuntRules.Castle or the Long Night dial) and real dice; Bellwether is built exactly as before.
             appliedLongNight=LongNight;
             Case=Map==MapId.Castle?new Investigation(CaseBook.For(Map),()=>UnityEngine.Random.value,HuntRules.For(Map,LongNight)):new Investigation(CaseBook.For(Map));
+            // fb-onboard (owner feedback 2026-10-15, items 6, 7, 12): the castle never waits on the equipment rack. Hari never found it,
+            // so the case sat in Briefing for five minutes: no hide (Investigator.Hide returns in Briefing), no scares, no hunt. She
+            // arrives carrying the instruments and the case is in Survey from the first frame (before Message/Changed are wired, so the
+            // kit line and its voice do not play). Bellwether keeps its van rack. Capture mode keeps the old calm Briefing (its stills
+            // must not get a hunt at 60-100 s); it equips where it needs to (CaptureMode S8).
+            if(Map==MapId.Castle&&!CaptureMode.Requested){Case.Equip();Case.EnterHouse();}
             if(Map==MapId.Castle)
             {
                 // Wave L3 cross-run anti-repeat: a first-hunt band not used in the last two runs, the other rhythm start than last run.
                 // A checkpoint retry keeps the history (it is the same run).
-                var history=RunHistory.Parse(PlayerPrefs.GetString("hc.castle.runs",""));
+                // The playtest driver's cold mode is a first-time player: no history (so the Early band), and it does not write one.
+                bool fresh=PlaytestDriver.Requested&&PlaytestDriver.Mode=="cold";
+                var history=RunHistory.Parse(fresh?"":PlayerPrefs.GetString("hc.castle.runs",""));
                 RunPlan=history.Next(UnityEngine.Random.value,UnityEngine.Random.value);Case.UseRunPlan(RunPlan);
-                if(!restoreCheckpoint){history.Push(RunPlan);PlayerPrefs.SetString("hc.castle.runs",history.Serialize());PlayerPrefs.Save();}
+                if(!restoreCheckpoint&&!fresh){history.Push(RunPlan);PlayerPrefs.SetString("hc.castle.runs",history.Serialize());PlayerPrefs.Save();}
                 Debug.Log("HC_RUN_PLAN band="+RunPlan.Band+" firstHunt="+RunPlan.FirstHuntMin.ToString("F0")+"-"+RunPlan.FirstHuntMax.ToString("F0")+" burstStart="+RunPlan.BurstStart+" history="+history.Serialize());
             }
             // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
@@ -165,6 +175,8 @@ namespace HollowCurrent
                 CastleWorld.UnnailHides();
                 // Nailed spots are deactivated; drop them from the hunter's search list too.
                 if(Case.Rules.NailedHides>0&&CastleWorld.NailHides(Case.Rules.NailedHides,Player.transform.position)>0)World.HidingPlaces.RemoveAll(h=>!h||!h.gameObject.activeInHierarchy);
+                // fb-onboard: the watched layer, the objective log and nudges, the hide-spot audit and HC_ONBOARD.
+                if(!CaptureMode.Requested){Onboarding=gameObject.AddComponent<CastleOnboarding>();Onboarding.Initialize(this);}
             }
             foreach(var lamp in World.Lamps)lampLevels[lamp]=lamp.intensity;
             foreach(var doll in World.Dolls)dollHomes[doll]=doll.position;
@@ -257,7 +269,7 @@ namespace HollowCurrent
             if((RealKey(KeyCode.J)||(pad&&pad.Journal))&&Started&&!Paused&&NoteBody==null&&!Case.Terminal){Journal=!Journal;ApplyFocus();}
             if(!Modal)
             {
-                float dt=Time.deltaTime;if(Map==MapId.Castle)CastleTick(dt);else Case.Tick(dt,Player.Inside);SubtitleTime-=dt;radioCooldown-=dt;
+                float dt=Time.deltaTime;if(Map==MapId.Castle)CastleTick(dt);else Case.Tick(dt,Player.Inside);SubtitleTime-=dt;radioCooldown-=dt;NoticeTime-=dt;
                 FrameSamples++;FrameTotal+=Time.unscaledDeltaTime;WorstFrame=Mathf.Max(WorstFrame,Time.unscaledDeltaTime);
                 int progress=(Case.Equipped?1:0)+Case.Evidence.Count*10+Case.Notes.Count*100+(Case.Survived?10000:0)+(Case.Diagnosed?100000:0);
                 if(progress!=checkpointProgress&&Case.Phase!=Phase.Warning&&Case.Phase!=Phase.Hunt&&Case.Phase!=Phase.Return)
@@ -437,8 +449,12 @@ namespace HollowCurrent
             foreach(var l in candleLights)if(l&&l.isActiveAndEnabled&&l.intensity>.05f&&(l.transform.position-p).sqrMagnitude<r2)return true;
             return false;
         }
-        // A short action card that is not dialogue (FieldMessages would drop it): "The door is held."
-        public void Notice(string value,float seconds=2.6f){Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);Subtitle=value;SubtitleTime=seconds;}
+        // A short action notice that is not dialogue: "The door is held." fb-onboard: it used to go into Subtitle, where the HUD's
+        // FieldMessages.ShowCard filter dropped it, so it was never drawn (E on a held door looked like E doing nothing). Interface
+        // now draws NoticeText on its own line above the interaction prompt while NoticeTime runs.
+        public string NoticeText {get;private set;}
+        public float NoticeTime {get;private set;}
+        public void Notice(string value,float seconds=2.6f){Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);NoticeText=value;NoticeTime=seconds;Debug.Log("HC_NOTICE text=\""+value+"\"");}
         void PhaseChanged(Phase phase)
         {
             // Wave K death first: Presence stops hunting once Won is set, so a grab under way when the win lands (the killing blow,
