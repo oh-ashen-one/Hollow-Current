@@ -1,7 +1,7 @@
 {
-    "sceneDependencies": "296fb7d3024d6ff340395bef0a96bf3b",
-    "sourceHash": "AF0bQbwUzlL0ZGQx+oGQLPplttIxTNBHGmx/6rRPX9U=",
-    "utc": "2026-10-16T00:20:56.6207170Z",
+    "sceneDependencies": "6eb8c05b6080e774476393ad31c5d04b",
+    "sourceHash": "Jj4Ry0v/OzuWt+Fo8EdmS7yz9i5s7KIVJmZocT4rpWk=",
+    "utc": "2026-10-16T00:58:42.8580320Z",
     "map": "Bellwether",
     "hashScope": "all .cs/.shader under Assets/HollowCurrent except NativeVerification.cs and castle-only paths",
     "lightmaps": 4,
