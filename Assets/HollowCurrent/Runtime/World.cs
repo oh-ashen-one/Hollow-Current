@@ -80,10 +80,11 @@ namespace HollowCurrent
             float floor=player.y< -1?-3.2f:player.y>2?3.2f:0;
             return inside?new Vector3(0,floor+.1f,10.5f):Spawn;
         }
-        // Footstep surface for Soundscape ("wood", "tile", "carpet", "gravel").
+        // Footstep surface for Soundscape ("wood", "tile", "carpet", "gravel", "stone"). The castle is "stone" indoors (step_stone_* in
+        // CastleAudio, noise only) because the shared step_tile_* clips carry a 335-390 Hz tone that rang like a ding on every step (r13 item 1).
         public string StepSurface(Vector3 position)
         {
-            if(Map!=MapId.Bellwether)return !IsInside(position)&&!IsSafe(position)?"gravel":"tile";
+            if(Map!=MapId.Bellwether)return !IsInside(position)&&!IsSafe(position)?"gravel":"stone";
             bool van=position.z< -8.2f&&position.z> -14.1f&&Mathf.Abs(position.x)<1.9f;
             bool rug=position.y>-.4f&&position.y<.5f&&Mathf.Abs(position.x+5.4f)<1.8f&&Mathf.Abs(position.z-4.4f)<1.8f;
             return van||rug?"carpet":position.z<0?"gravel":position.y>2?"carpet":position.y< -1||position.x>3?"tile":"wood";

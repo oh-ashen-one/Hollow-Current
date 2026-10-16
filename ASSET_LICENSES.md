@@ -35,12 +35,12 @@ The ten clips below are Higgsfield Seed Audio 1.0 outputs under the same grant a
 - `CastleAudio/candle_whisper_bed.wav` — Higgsfield Seed Audio 1.0, job `dcf0e64b-4be5-4d44-b2b1-6d347313f949`.
 - `CastleAudio/crypt_blood_trickle.wav` — Higgsfield Seed Audio 1.0, job `8ebb04d9-a782-4810-a797-2002f8ef3867`.
 
-`CastleAudio/orrery_tick.wav` is synthesised locally by `tools/audio_orrery_tick.py` (project CC BY 4.0 grant). `CastleAudio/voice_cc_*.wav` are eSpeak NG recordings of original lines (same basis as `Resources/Audio/voice_*.wav`), reproducible with `python3 tools/generate_open_voice.py --castle`.
+`CastleAudio/orrery_tick.wav` is synthesised locally by `tools/audio_orrery_tick.py` (project CC BY 4.0 grant). `CastleAudio/voice_cc_*.wav` are Kokoro-82M (hexgrad, Apache-2.0; output redistributable) renderings of original lines, processed with our own FX chain; reproducible with `tools/generate_castle_voice.py` (phonemes via misaki and espeak-ng used as a program, MIT/GPL-3 tools, no third-party audio in the output). `CastleAudio/step_stone_*` and `step_gravel_*` are synthesised by `tools/audio_castle_steps.py` (project CC BY 4.0 grant). Bellwether's `Resources/Audio/voice_*.wav` remain eSpeak NG.
 
 Fear-wave clips (added 2026-10-13/14, pieces F4 and audio3; provenance in `docs/haunted-castle/ASSET_LOG.md`):
 - `CastleAudio/heartbeat_loop.wav`, `wind_battlements_loop.wav`, `door_rattle.wav`, `book_drop.wav`, `knife_stick.wav`, `claw_steps_0..3.wav` and `bat_pass.wav` are synthesised by the project's own script `tools/audio_castle_sfx.py` (numpy/scipy, deterministic, no third-party samples). Project CC BY 4.0 grant.
 - `CastleAudio/bell_single.wav` is one strike cut from `chapel_bell_toll.wav` by `tools/audio_castle_sfx.py`. It is a derivative of that Higgsfield output and carries the same Higgsfield grant and restrictions (credit "Hollow Current by Ashen — audio generated with Higgsfield"; no AI/ML training use).
-- `CastleAudio/voice_cc_kit`, `voice_cc_ending`, `voice_cc_contain`, `voice_cc_hint_signal`, `voice_cc_hint_trace`, `voice_cc_hint_voice` and `voice_cc_dispatch` are eSpeak NG recordings of original lines, on the same basis as the other `voice_cc_*` clips.
+- `CastleAudio/voice_cc_kit`, `voice_cc_ending`, `voice_cc_contain`, `voice_cc_hint_signal`, `voice_cc_hint_trace`, `voice_cc_hint_voice` and `voice_cc_dispatch` are Kokoro-82M renderings of original lines (Apache-2.0 model, redistributable output), on the same basis as the other `voice_cc_*` clips.
 
 ## Excluded or independently obtained material
 

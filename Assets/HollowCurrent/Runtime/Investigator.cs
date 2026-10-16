@@ -257,7 +257,7 @@ namespace HollowCurrent
             if(Moving&&Controller.isGrounded)
             {
                 footstep-=dt;
-                if(footstep<=0){footstep=Running?.3f:Crouched?.8f:.51f;Game.Sound.Cue("step",transform.position,.22f);Game.Creature.Hear(transform.position,Running?10:Crouched?1.8f:4.5f);}
+                if(footstep<=0){footstep=Running?.3f:Crouched?.8f:.51f;Game.Sound.Cue("step",transform.position,Game.Map==MapId.Castle?(Crouched?.06f:Running?.15f:.11f):.22f);Game.Creature.Hear(transform.position,Running?10:Crouched?1.8f:4.5f);}
             }
         }
         bool AimAt(Vector3 point,float range,float cone)
