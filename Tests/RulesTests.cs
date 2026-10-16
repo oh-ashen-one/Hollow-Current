@@ -56,8 +56,33 @@ static class RulesTests
         Relic none;Assert(!LedgerHints.TryRelicFor("cc_ledger_unknown",out none)&&!LedgerHints.TryRelicFor(null,out none),"unknown ledger entry reveals nothing");
         var journal=new Forge();Assert(journal.ReadLedger("cc_ledger_orrery")&&journal.HintKnown(Relic.HallowedHilt)&&!journal.HintKnown(Relic.Moonstone),"reading an entry unlocks its hint");Assert(!journal.ReadLedger("cc_ledger_orrery")&&!journal.ReadLedger("nonsense"),"hints unlock once; unknown entries ignored");
     }
+    // Piece fb-docui: the note reader never repeats its header and classifies every shipped note.
+    static void DocumentTextTests()
+    {
+        var steward=DocumentText.Parse(true,CaseBook.Castle.NoteTitles[0],CaseBook.Castle.NoteBodies[0]);
+        Assert(steward.Kind==DocKind.Ledger&&steward.Kicker=="BLOOD LEDGER"&&steward.Heading=="The steward","ledger header becomes kicker + heading once");
+        Assert(steward.Lines.Count==3&&steward.Lines[1]==""&&!steward.Lines[0].StartsWith("BLOOD",StringComparison.Ordinal),"ledger body no longer starts with the duplicated header");
+        foreach(var title in CaseBook.Castle.NoteTitles){var d=DocumentText.Parse(true,title,CaseBook.Castle.NoteBodies[Array.IndexOf(CaseBook.Castle.NoteTitles,title)]);foreach(var l in d.Lines)Assert(!DocumentText.IsHeader(l),"no header line left in body: "+title);Assert(d.Heading.Length>0&&!DocumentText.SameWords(d.Kicker,d.Heading),"kicker differs from heading: "+title);}
+        var gate=DocumentText.Parse(true,"Gate keeper's letter",CaseBook.Castle.ArrivalNoteBody.Replace("THE GATEHOUSE","THE MARGRAVE'S GATE"));
+        Assert(gate.Kind==DocKind.Letter&&gate.Heading=="The Margrave's gate"&&gate.Kicker=="GATE KEEPER'S LETTER","letter: kicker is the card title, heading the typed header");
+        var stone=DocumentText.Parse(true,"Chapel inscription","Cut into the altar slab:\n\nWHAT WAS BARGAINED FOR NIGHT IS PAID IN BLOOD.\n\nBring them here.");
+        Assert(stone.Kind==DocKind.Inscription&&stone.Kicker=="CUT INTO THE ALTAR SLAB"&&stone.Lines.Count==3&&stone.Lines[0].StartsWith("WHAT",StringComparison.Ordinal),"inscription: lead-in becomes the kicker, caps body is kept");
+        var last=DocumentText.Parse(true,"Steward's last entry","BLOOD LEDGER, LAST PAGE IN THE STEWARD'S HAND\n\nI have hidden them.");
+        Assert(last.Kind==DocKind.Ledger&&last.Heading=="Last page in the steward's hand","ledger comma header");
+        var margrave=DocumentText.Parse(true,"Blood Ledger page","BLOOD LEDGER, THE MARGRAVE'S OWN HAND\n\nFirst night.");
+        Assert(margrave.Heading=="The Margrave's own hand","proper nouns keep their capital");
+        var tally=DocumentText.Parse(true,"Kitchen tally","Tally cut into the table:\n\nMonday, six places set.\nTuesday, six places set.");
+        Assert(tally.Kind==DocKind.Tally&&tally.Lines.Count==2&&tally.Kicker=="TALLY CUT INTO THE TABLE","tally keeps one logical line per day");
+        var photo=DocumentText.Parse(false,"Family photograph","A FAMILY OF FOUR\n\nThe mother's face has been rubbed away.");
+        Assert(photo.Kind==DocKind.FieldReport&&photo.Heading=="Family photograph"&&photo.Subject=="A FAMILY OF FOUR"&&photo.Lines.Count==1,"Bellwether: typed subject line");
+        var brief=DocumentText.Parse(false,"Case briefing","HOLLOW CURRENT / CASE 014\n\nBellwether House.\n\n1 Induction: hold.\n2 Ultraviolet: light.");
+        Assert(brief.Lines.Count==4&&brief.Lines[2]=="1 Induction: hold."&&brief.Lines[3]=="2 Ultraviolet: light.","numbered lines stay separate logical lines");
+        var empty=DocumentText.Parse(true,null,null);Assert(empty.Lines.Count==0,"null note parses to an empty document");
+        var same=DocumentText.Parse(false,"Arrival note","ARRIVAL NOTE\n\nText.");Assert(same.Subject=="","a header equal to the title is not repeated");
+    }
     static void Main()
     {
+        DocumentTextTests();
         // Every source of a full apparition shares the same cooldown.
         var rhythm=new ScareRhythm();Assert(!rhythm.CanSurprise,"opening is quiet");rhythm.Tick(35);Assert(rhythm.CanSurprise&&!rhythm.AppearanceDue,"basement eligible before ordinary apparition");
         rhythm.RecordAppearance(0);rhythm.Tick(89.9f);Assert(!rhythm.CanSurprise,"scripted basement cannot stack with ordinary scare");rhythm.Tick(.2f);Assert(rhythm.CanSurprise&&!rhythm.AppearanceDue,"ordinary scares have a longer variable interval");rhythm.Tick(15);Assert(rhythm.AppearanceDue,"ordinary apparition eventually becomes due");
