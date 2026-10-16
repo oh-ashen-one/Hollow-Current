@@ -115,20 +115,49 @@ namespace HollowCurrent
             if(duckClock<4+duckHold)return Mathf.Lerp(duckDepth,1,(duckClock-1-duckHold)/3);
             duckClock=-1;return 1;
         }
-        public void Speak(string id,Vector3? location=null)
+        // ---- Castle speech policy (owner item 13, hc/fb-voice2) -----------------------------------------------------------
+        // The castle never speaks from a speaker: a line with no location is DROPPED (never the 2D dispatch source), a located
+        // line is only played within SpeechMaxDistance of the player's ears, on a 3D rolloff (min 1.2, logarithmic, max 14) and
+        // low-passed at SpeechOccludedCutoff when a wall is between the source and the player. Bellwether keeps its radio.
+        public const float SpeechMinDistance=1.2f,SpeechMaxDistance=14f,SpeechOccludedCutoff=900f;
+        public int SpeechRequests {get;private set;}
+        public int SpeechSpatial {get;private set;}
+        public int SpeechDropped {get;private set;}
+        readonly HashSet<string> droppedLogged=new HashSet<string>();
+        bool Drop(string id,string reason)
+        {
+            SpeechDropped++;
+            if(droppedLogged.Add(id))Debug.Log("HC_VOICE_DROPPED id="+id+" reason="+reason);
+            return false;
+        }
+        public void LogVoiceSummary()=>Debug.Log("HC_VOICE_SUMMARY lines="+SpeechRequests+" spatial="+SpeechSpatial+" dropped="+SpeechDropped);
+        void OnApplicationQuit(){if(castle&&SpeechRequests>0)LogVoiceSummary();}
+        /// <summary>Plays a line; true when it was actually played (the castle drops 2D, over-distance and unmapped lines).</summary>
+        public bool Speak(string id,Vector3? location=null)
         {
             // Castle speech uses its own cc_ lines only (voice_cc_*); never the house's voices.
-            // Shared ids map onto Count lines; "cc_*" ids are used as given.
             AudioClip clip;
             if(castle)
             {
-                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":id=="arrival"?"cc_night":id=="warning"?"cc_hunt_hungry":id=="return"?"cc_stay":id=="dispatch"?"cc_dispatch":"cc_"+id;
-                if(!clips.TryGetValue("voice_"+key,out clip)){MissingArt.Report("speech","voice_"+key);return;}
+                SpeechRequests++;
+                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":null;
+                if(key==null)return Drop(id,"not a castle line");
+                if(!location.HasValue)return Drop(id,"no location (2D castle speech is forbidden)");
+                float dist=game.Player?Vector3.Distance(game.Player.View.transform.position,location.Value):0;
+                if(dist>SpeechMaxDistance)return Drop(id,"too far "+dist.ToString("F1")+" m");
+                if(!clips.TryGetValue("voice_"+key,out clip)){MissingArt.Report("speech","voice_"+key);return Drop(id,"missing clip");}
+                bool occluded=game.Player&&Physics.Linecast(game.Player.View.transform.position,location.Value,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
+                PlayedSpeech++;SpeechSpatial++;
+                int castleSlot=Play(clip,location.Value,.70f,1,true);speechUntil[castleSlot]=Time.unscaledTime+clip.length;
+                filters[castleSlot].cutoffFrequency=occluded?SpeechOccludedCutoff:22000;
+                Debug.Log("HC_COUNT_VOICE id="+key+" dist="+dist.ToString("F1")+" occluded="+occluded);
+                return true;
             }
-            else if(!clips.TryGetValue("voice_"+id,out clip))throw new InvalidOperationException("Missing speech "+id);
+            if(!clips.TryGetValue("voice_"+id,out clip))throw new InvalidOperationException("Missing speech "+id);
             PlayedSpeech++;
-            if(location.HasValue){int slot=Play(clip,location.Value,.70f,1);speechUntil[slot]=Time.unscaledTime+clip.length;return;}
+            if(location.HasValue){int slot=Play(clip,location.Value,.70f,1);speechUntil[slot]=Time.unscaledTime+clip.length;return true;}
             dispatch.Stop();dispatch.clip=clip;dispatch.Play();
+            return true;
         }
         public void Cue(string id,Vector3 position,float volume=.55f)
         {
@@ -158,13 +187,14 @@ namespace HollowCurrent
             if(game.Loading||Time.unscaledTime<uiCooldown)return;
             uiCooldown=Time.unscaledTime+.10f;interfaceVoice.Stop();interfaceVoice.clip=clips[id];interfaceVoice.volume=.42f;interfaceVoice.Play();GeneratedCues++;
         }
-        int Play(AudioClip clip,Vector3 position,float volume,float pitch)
+        int Play(AudioClip clip,Vector3 position,float volume,float pitch,bool castleSpeech=false)
         {
             // Preserve intelligible spatial speech when footsteps/scares share the pool.
             int first=cursor++%voices.Count,index=-1;
             for(int i=0;i<voices.Count;i++){int candidate=(first+i)%voices.Count;if(!voices[candidate].isPlaying){index=candidate;break;}if(index<0&&speechUntil[candidate]<=Time.unscaledTime)index=candidate;}
             if(index<0)index=first;
             var a=voices[index];a.Stop();speechUntil[index]=0;a.transform.position=position;a.clip=clip;a.volume=volume;a.pitch=pitch;
+            a.minDistance=castleSpeech?SpeechMinDistance:1.5f;a.maxDistance=castleSpeech?SpeechMaxDistance:22;
             filters[index].cutoffFrequency=22000;filters[index].enabled=true;a.Play();PlayedCues++;return index;
         }
         void CastleMix(float dt,float bed,bool hunting,bool terminal)
@@ -247,7 +277,7 @@ namespace HollowCurrent
                 if(!voices[i].isPlaying){filters[i].enabled=false;continue;}
                 filters[i].enabled=true;
                 bool obstructed=Physics.Linecast(game.Player.View.transform.position,voices[i].transform.position,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
-                filters[i].cutoffFrequency=obstructed?1150:22000;
+                filters[i].cutoffFrequency=obstructed?(castle&&speechUntil[i]>Time.unscaledTime?SpeechOccludedCutoff:1150):22000;
             }
         }
     }

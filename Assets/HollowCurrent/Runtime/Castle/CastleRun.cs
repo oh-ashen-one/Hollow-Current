@@ -42,7 +42,7 @@ namespace HollowCurrent
             switch(id)
             {
                 case "near-miss":   // he breathes at the cupboard slats and rattles the door (item 10)
-                    if(count.NearMissHasDoor)Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);Game.Sound.Speak("cc_hunt_smell",count.HeadPosition);played=(count.NearMissHasDoor?"door_rattle+":"")+"cc_hunt_smell";break;
+                    {if(count.NearMissHasDoor)Game.Sound.Cue("door_rattle",count.NearMissDoor,.8f);bool smelled=count.CountSpeak("cc_hunt_smell");played=(count.NearMissHasDoor?"door_rattle":"")+(smelled?(count.NearMissHasDoor?"+":"")+"cc_hunt_smell":"");if(played=="")played=null;break;}
                 case "hide-open":   // he saw her go in: the door rattles half a second before he opens it (r10 #16)
                     if(count.NearMissHasDoor){Game.Sound.Cue("door_rattle",count.NearMissDoor,.95f);played="door_rattle";}break;
                 case "gatehouse":   // he says cc_stay himself (Presence); the chains answer (item 11)
@@ -137,7 +137,7 @@ namespace HollowCurrent
             if(title=="Sarcophagus"){Sarcophagus();return;}
             string id=Game.Book.NoteIdFor(title);if(id==null)return;
             if(Forge.ReadLedger(id)&&LedgerHints.TryRelicFor(id,out var relic))Game.Say(Game.Book.RelicHints[(int)relic]);
-            Game.Sound.Speak(id);
+            // Owner feedback 13: the page is read, not announced. No 2D voice in the castle; the note card is the whole experience.
         }
         // ---- Item 14: seconds the investigator spends on each floor (crypt, ground, upper, tower) --------------------
         public readonly float[] FloorSeconds=new float[World.CastleFloors.Length];

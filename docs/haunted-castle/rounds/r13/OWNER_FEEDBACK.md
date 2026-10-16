@@ -20,3 +20,7 @@ Hari played the castle ~5 min himself. Verbatim-ish items, all to be fixed in th
 ## Design / fear (the big one)
 12. After 5 min: no idea what to do or where to go. Nothing scary happened. **Too well lit.** Feels like exploring, not being hunted. No pressure, no "being watched", no sense something bad is about to happen. The first map (Bellwether) had that; the castle does not. Only random voice lines.
     - Needs: clear early objective/direction, darker lighting, early stalking pressure (watched/followed cues) well before the first hunt, the first-map dread layer ported.
+
+## Added later (2026-10-15)
+13. **No speaker voice in the castle.** Verbatim: "Whatever voice is saying 'I am so very hungry', we need to fix that and get rid of it. There's no need for that. Nothing should be talked about as if it's a f***ing speaker throughout the entire house. That ruins the scary effect of the game."
+    - Delete `cc_hunt_hungry`; no 2D speech in the castle at all (kit/arrival/hints/contain/ending/dispatch/ledger readings gone, cards stay); the Count only speaks diegetically from his head, near her, rarely. Piece `fb-voice2` (`hc/fb-voice2`).

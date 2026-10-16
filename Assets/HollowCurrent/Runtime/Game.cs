@@ -344,14 +344,17 @@ namespace HollowCurrent
         }
         public static bool ScriptedRun=>PlaytestDriver.Requested||CaptureMode.Requested||NativeVerification.Requested;
         public void ApplyFocus(){bool modal=Modal;Time.timeScale=modal?0:1;AudioListener.pause=Loading||!Started||Paused||Journal||NoteBody!=null;Cursor.lockState=modal||ScriptedRun?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=(modal&&!PadInput.Active)||ScriptedRun;if(uiProbe)Debug.Log("HC_UI_STATE started="+Started+" paused="+Paused+" journal="+Journal+" cursor="+Cursor.lockState+" visible="+Cursor.visible+" timeScale="+Time.timeScale);}
+        // Bellwether's dispatch is a real radio, so its lines are 2D. The castle has no radio voice: its cards stay, its speech is only
+        // the Count's diegetic voice (Presence.CountSpeak, Soundscape.Speak with a location). Owner feedback 13 (hc/fb-voice2).
+        void BellwetherSpeak(string id){if(Map==MapId.Castle)return;Sound.Speak(id);}
         public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();if(Castle)Castle.NoteRead(title);}
         public void Say(string value)
         {
             Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);
             if(FieldMessages.ShowCard(value)){Subtitle=value;SubtitleTime=FieldMessages.CardSeconds(value);}
             if(Sound==null)return;
-            if(value.Contains(Book.ArrivalCue))Sound.Speak("arrival");
-            else if(value.Contains(Book.KitCue))Sound.Speak("kit");
+            if(value.Contains(Book.ArrivalCue))BellwetherSpeak("arrival");
+            else if(value.Contains(Book.KitCue))BellwetherSpeak("kit");
         }
         public void ToggleCircuit(Light lamp,Vector3 switchPosition)
         {
@@ -373,17 +376,17 @@ namespace HollowCurrent
             }
             else
             {
-                if(Scares&&Scares.Interference){Sound.Speak("whisper");Say(Book.RadioInterference);return;}
-                if(Case.Phase==Phase.Hunt||Case.Phase==Phase.Warning){Say(Book.RadioHunt);Sound.Speak("warning");return;}
+                if(Scares&&Scares.Interference){BellwetherSpeak("whisper");Say(Book.RadioInterference);return;}
+                if(Case.Phase==Phase.Hunt||Case.Phase==Phase.Warning){Say(Book.RadioHunt);BellwetherSpeak("warning");return;}
             }
-            if(Case.Diagnosed){Say("Dispatch / "+HeldGoal());Sound.Speak(Case.Phase==Phase.Return?"return":"contain");return;}
+            if(Case.Diagnosed){Say("Dispatch / "+HeldGoal());BellwetherSpeak(Case.Phase==Phase.Return?"return":"contain");return;}
             string hint=!Case.Evidence.Contains(Evidence.Induction)?"hint_signal":!Case.Evidence.Contains(Evidence.Handprint)?"hint_trace":"hint_voice";
-            Say("Dispatch / "+(hint=="hint_signal"?Book.HintSignal:hint=="hint_trace"?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
+            Say("Dispatch / "+(hint=="hint_signal"?Book.HintSignal:hint=="hint_trace"?Book.HintTrace:Book.HintVoice));BellwetherSpeak(hint);
         }
         void CastleHint(int which)
         {
             string hint=which==0?"hint_signal":which==1?"hint_trace":"hint_voice";
-            Say("Dispatch / "+(which==0?Book.HintSignal:which==1?Book.HintTrace:Book.HintVoice));Sound.Speak(hint);
+            Say("Dispatch / "+(which==0?Book.HintSignal:which==1?Book.HintTrace:Book.HintVoice));BellwetherSpeak(hint);
         }
         // Castle: dread-aware tick (HuntRules.Castle: dice hunts, lies, hostile return) and the
         // torch failing for a second when he dives.
@@ -464,17 +467,18 @@ namespace HollowCurrent
                 if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" grace="+Case.GraceSeconds.ToString("F1")+" huntDreadAdded="+Case.HuntDreadAdded.ToString("F1")+" huntShare="+Case.HuntShare.ToString("F3")+" governor="+Case.GovernorAtLastGrace.ToString("F2")+" governorShare="+Case.GovernorShare.ToString("F3")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             }
             Creature?.PhaseChanged(phase);
+            if(Map==MapId.Castle&&Case.Terminal)Sound?.LogVoiceSummary();
             if(phase==Phase.Disturbance&&!Case.Survived&&!evidenceAppearanceScheduled)
             {evidenceAppearanceScheduled=true;StartCoroutine(RevealFirstRecord());}
             if(phase==Phase.Warning)
             {
                 // Castle escalation (a 1.5 s tell after a close apparition) strobes but has no dispatch line.
                 bool escalation=Map==MapId.Castle&&Case.EscalatedWarning; // wave H: told/false warnings are drawn 5-14 s
-                Scares?.Pulse(Player.transform.position+Player.transform.forward*3,Map==MapId.Castle?Case.CurrentWarningSeconds:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)Sound.Speak("warning");
+                Scares?.Pulse(Player.transform.position+Player.transform.forward*3,Map==MapId.Castle?Case.CurrentWarningSeconds:9);Sound.Cue("knock",Player.transform.position+Vector3.forward*3);if(!escalation)BellwetherSpeak("warning");
             }
-            // Castle hostile return (critic r10 #34): the Count's swoop speaks cc_dispatch (voice_cc_dispatch) and raises the
+            // Castle hostile return (critic r10 #34): the Count's swoop (silent: no speaker voice) raises the
             // "return-swoop" beat, which shows the card (CountBeat). Bellwether keeps "return".
-            if(phase==Phase.Return&&!(Map==MapId.Castle&&Case.Rules.HostileReturn))Sound.Speak("return");
+            if(phase==Phase.Return&&!(Map==MapId.Castle&&Case.Rules.HostileReturn))BellwetherSpeak("return");
             // Castle: the sealed bell lowers the drawbridge for the escape.
             if(phase==Phase.Return&&Map==MapId.Castle&&World.Castle!=null&&World.Castle.Drawbridge)
             {
@@ -483,9 +487,9 @@ namespace HollowCurrent
                 if(Case.Rules.HostileReturn)World.Castle.Drawbridge.DegreesPerSecond=CastleDrawbridge.RaisedAngle/7.2f;
                 World.Castle.Drawbridge.Lower();
             }
-            if(phase==Phase.Containment)Sound.Speak("contain");
+            if(phase==Phase.Containment)BellwetherSpeak("contain");
             // Castle: a same-frame grab can still turn Won into Dead (death first), so the win's audio waits one frame.
-            if(phase==Phase.Won){if(Map==MapId.Castle)StartCoroutine(CastleWinAudio());else Sound.Speak("ending");}
+            if(phase==Phase.Won){if(Map==MapId.Castle)StartCoroutine(CastleWinAudio());else BellwetherSpeak("ending");}
             if(phase==Phase.Dead&&Case.DeathOverrodeWin)Debug.Log("HC_DEATH_OVER_WIN deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F1"));
             if(phase==Phase.Return)Sound.Cue("containment_release",World.Anchor,.65f);
             if(phase==Phase.Dead||phase==Phase.Won&&Map!=MapId.Castle){Sound.Cue(phase==Phase.Won?"evidence_filed":"capture",Player.transform.position,.65f);ApplyFocus();}
@@ -494,7 +498,7 @@ namespace HollowCurrent
         {
             yield return null;
             if(Case.Phase!=Phase.Won)yield break;
-            Sound.Speak("ending");Sound.Cue("evidence_filed",Player.transform.position,.65f);ApplyFocus();
+            Sound.Cue("evidence_filed",Player.transform.position,.65f);ApplyFocus(); // no spoken ending in the castle (owner item 13)
         }
         IEnumerator RevealFirstRecord()
         {

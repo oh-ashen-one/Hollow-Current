@@ -220,10 +220,12 @@ namespace HollowCurrent
         public float GatehouseSeenSeconds=1.2f, GatehouseMaxHoldSeconds=14f;
         // A dive that came within this of her and ended without a kill counts as a grab survived (Dread).
         public float GrabSurvivedDistance=1.6f;
-        // Item 13, hunt voices: each line at most once per VoiceCooldown, never two lines closer than VoiceGap.
-        // r10 blind P2: lines are never closer than VoiceGap (5 s) and a search line waits a random VoiceJitterMin-Max after its
-        // trigger, so nothing lands on a fixed hunt time.
+        // Item 13 / owner feedback 13, the Count's voice is diegetic only (Presence.CountSpeak): from his head, in the world, within
+        // VoiceMaxDistance of her; the four hunt lines (found/smell/run/stay) within VoiceCloseDistance; one line per hunt and one per
+        // VoiceOffHuntGap seconds outside hunts. FoundVoiceDistance gates the "found" trigger. (VoiceCooldown/VoiceGap/VoiceJitter* are
+        // retired with the search line; kept so serialised profiles still load.)
         public float VoiceCooldown=8f, VoiceGap=5f, FoundVoiceDistance=6f, VoiceJitterMin=.8f, VoiceJitterMax=4.5f;
+        public float VoiceMaxDistance=14f, VoiceCloseDistance=6f, VoiceOffHuntGap=180f;
         // Item 4, hostile return (F1 HuntActive in Phase Return): short perch, no perch tell, straight-glide speed everywhere
         // he can fly, and he hears her again every ReturnHearSeconds.
         public float ReturnPerchSeconds=.4f, ReturnHearSeconds=3f;
