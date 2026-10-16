@@ -396,7 +396,23 @@ namespace HollowCurrent
             var matrix=GUI.matrix;GUIUtility.RotateAroundPivot(Mathf.Atan2(d.y,d.x)*Mathf.Rad2Deg,a);
             Panel(new Rect(a.x,a.y-.9f,length+.6f,1.8f),c);GUI.matrix=matrix;
         }
+        readonly DocumentUi docs=new DocumentUi();
+        // Found-document reader (piece fb-docui): full-bleed paper, one heading, quiet close line. Falls back to the old card
+        // (NoteLegacy) only if the paper sheets are missing from Resources/UI/Documents.
         void Note()
+        {
+            docs.Load(serif);
+            string asset=Book.NoteArtFor(Game.NoteTitle);
+            var print=asset==null?null:Resources.Load<Texture2D>(asset);
+            var pad=PadInput.Active?PadInput.Current:null;
+            if(!docs.Draw(artworkMaterial,Game.Map==MapId.Castle,Game.NoteTitle,Game.NoteBody,print,pad!=null,pad!=null?pad.Navigate:Vector2.zero,pad!=null&&pad.PlayStation)){NoteLegacy();return;}
+            var matrix=GUI.matrix;GUI.matrix=Matrix4x4.identity;
+            bool clicked=TitleHit(docs.CloseRect,"NOTE CLOSE",out bool hover,out bool focus);
+            GUI.matrix=matrix;
+            docs.DrawClose(hover||focus);
+            if(clicked){Game.NoteBody=null;Game.ApplyFocus();}
+        }
+        void NoteLegacy()
         {
             Backdrop(false,.48f);Brand("RECOVERED DOCUMENT / "+Book.CaseTag);
             Card(new Rect(80,166,1440,633));
@@ -444,13 +460,14 @@ namespace HollowCurrent
                 bool yes=Game.Case.Evidence.Contains(e);Panel(new Rect(111,y+4,3,67),yes?copper:line);
                 Track(130,y,yes?"RECORDED":"NOT RECORDED",yes?copper:muted);Label(130,y+26,526,65,EvidenceText(e,yes),evidenceStyle);y+=90;
             }
-            Rule(111,570,548);Track(111,592,Book.ContextTrack);
+            Rule(111,570,548);docs.Load(serif);if(docs.Ready)docs.JournalKicker(111,592,Book.ContextTrack,Game.Map==MapId.Castle);else Track(111,592,Book.ContextTrack);
             if(Game.Map==MapId.Castle){Track(111,734,"PULSE",muted);PulseLine(new Rect(190,728,469,58));}
             string[] names=Book.NoteTitles;
             for(int i=0;i<3;i++)
             {
                 bool filed=Game.Case.Notes.Contains(names[i]);GUI.enabled=filed;
-                if(Action(110,620+i*34,549,32,names[i],filed?"OPEN":"—",false,true))OpenFiledNote(names[i]);GUI.enabled=true;
+                if(docs.Ready){if(JournalDocRow(new Rect(110,620+i*34,549,32),names[i],filed))OpenFiledNote(names[i]);}
+                else if(Action(110,620+i*34,549,32,names[i],filed?"OPEN":"—",false,true))OpenFiledNote(names[i]);GUI.enabled=true;
             }
             Choice(260,"ANCHOR / WHAT KEEPS RETURNING?",Book.AnchorChoices,ref anchor,1);
             Choice(387,"PATTERN / WHAT IS REPEATED?",Book.PatternChoices,ref pattern,4);
@@ -459,6 +476,13 @@ namespace HollowCurrent
             GUI.enabled=CanSubmit();if(Action(760,690,718,46,"FILE RECONSTRUCTION","ENTER",true))Submit();GUI.enabled=true;
             if(Action(1240,149,280,48,"CLOSE JOURNAL","J",false,true)){Game.Journal=false;Game.ApplyFocus();}
             Footer("1–9 choose a conclusion   ·   ENTER file reconstruction   ·   J or ESC close");
+        }
+        // A recovered-document row in the journal, drawn in the same faces as the reader; hit testing and controller focus stay here.
+        bool JournalDocRow(Rect r,string title,bool filed)
+        {
+            bool clicked=TitleHit(r,title,out bool hover,out bool focus);
+            docs.JournalRow(r,title,filed,hover||focus,Game.Map==MapId.Castle);
+            return clicked&&filed;
         }
         void OpenFiledNote(string title)
         {foreach(var item in Game.World.Root.GetComponentsInChildren<Interactable>())if(item.Kind==InteractKind.Note&&item.Label==title){item.Use(Game);return;}}
