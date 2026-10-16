@@ -144,9 +144,9 @@ namespace HollowCurrent
                 // fb-doors (owner items 3-5): the Hall great doors closed and open, 3 m back on the courtyard side (the owner's approach, door
                 // leaves must be visible and fill the opening) and 3 m back inside the hall. The open views open both leaves first.
                 views.Add(("hall_doors_closed",new Vector3(0,1.64f,11),new Vector3(0,2.2f,14)));
-                views.Add(("hall_doors_closed_inside",new Vector3(0,1.64f,17),new Vector3(0,2.2f,14)));
+                views.Add(("hall_doors_closed_inside",new Vector3(1.6f,1.64f,17.2f),new Vector3(0,2.2f,14)));
                 views.Add(("hall_doors_open",new Vector3(0,1.64f,11),new Vector3(0,2.2f,14)));
-                views.Add(("hall_doors_open_inside",new Vector3(0,1.64f,17),new Vector3(0,2.2f,14)));
+                views.Add(("hall_doors_open_inside",new Vector3(1.6f,1.64f,17.2f),new Vector3(0,2.2f,14)));
             }
             else if(set=="layout")
             {
