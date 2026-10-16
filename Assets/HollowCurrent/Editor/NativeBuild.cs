@@ -37,6 +37,7 @@ namespace HollowCurrent.Editor
             if(map==MapId.Castle){Physics.SyncTransforms();CastleOnboarding.AuditHides(authored.HidingPlaces,true,"prepare",out int ha,out int hf);if(hf<ha)Debug.LogWarning("HC_HIDE_SPOTS_FAIL "+(ha-hf)+" of "+ha+" hide spots are not focusable from 1.2 m (prepare)");}
             authored.Snapshot();
             PersistLayoutAssets(authored.Root,info.LayoutFolder);
+            if(map==MapId.Castle)CastleWorld.LogDoorLeaves(authored.Root,"persisted");
             AssetDatabase.SaveAssets();
             foreach(var component in authored.Root.GetComponentsInChildren<MonoBehaviour>(true))
             {

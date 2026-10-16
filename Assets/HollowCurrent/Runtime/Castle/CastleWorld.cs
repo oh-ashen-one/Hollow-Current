@@ -600,6 +600,14 @@ namespace HollowCurrent
                 panel.transform.localPosition = new Vector3(lw * .5f, h * .5f, 0); panel.transform.localScale = new Vector3(lw, h, .09f);
                 panel.GetComponent<Renderer>().enabled = false;      // CastleArt supplies the visible leaf
                 var leafPlaced = CastleArt.Place(leafArt, hinge.transform, Vector3.zero, Quaternion.identity);
+                // fb-doors (owner items 3 and 4): the leaf FBX is authored to extend +X from the hinge, but the Blender export plus Unity's importer map
+                // Blender (x, y, z) to Unity (-x, z, -y) (art-exterior2.md section 4), so the leaf landed on the -X side of the hinge, i.e. inside the
+                // wall next to the opening: invisible while closed, swinging the wrong way when opened. Turn it 180 degrees about the hinge when its
+                // meshes sit on the -X side (a re-exported leaf that already extends +X is left alone). Logged at prepare time.
+                var leafCentre = ArtLocalCentre(leafPlaced, hinge.transform);
+                bool turned = leafCentre.x < 0;
+                if (turned) leafPlaced.transform.localRotation = Quaternion.Euler(0, 180, 0);
+                Debug.Log("HC_DOOR_LEAF_AXIS name=" + label + " art=" + leafArt + " centre=" + leafCentre.ToString("F2") + " turned=" + turned + " now=" + ArtLocalCentre(leafPlaced, hinge.transform).ToString("F2"));
                 if (portrait) Paint(leafPlaced, "child");
                 var it = panel.AddComponent<Interactable>(); it.Kind = InteractKind.Door; it.Label = d.Name;
                 var door = hinge.AddComponent<Door>(); door.Closed = hinge.transform.localRotation; it.Door = door;
@@ -667,6 +675,41 @@ namespace HollowCurrent
             var deckTag = hinge.gameObject.AddComponent<SetPiece>(); deckTag.label = "plank_deck"; deckTag.shot = "S4"; deckTag.explicitCentre = new Vector3(0, -.1f, -3f); deckTag.explicitSize = new Vector3(3.2f, .3f, 6f);
             bridge = hinge.AddComponent<CastleDrawbridge>(); bridge.Hinge = hinge.transform;
             var vis = hinge.AddComponent<ChainVisibility>(); vis.bridge = bridge; vis.chains = chainGate;
+        }
+
+        // fb-doors, prepare-time evidence: one HC_DOOR_LEAF line per door hinge with the closed leaf's world bounds, how much of it lies inside a
+        // wall collider (inWall = more than half; a visible closed leaf is 0.00) and whether any leaf renderer is batching-static. Walls are the
+        // "Wall" box colliders; the hinge sits on a wall face, so a leaf on the correct side shares only a face with them.
+        public static void LogDoorLeaves(Transform root, string stage)
+        {
+            if (!root) return;
+            var walls = new List<Bounds>();
+            foreach (var c in root.GetComponentsInChildren<BoxCollider>(true))
+                if (c.name == "Wall" && !c.isTrigger && c.enabled && !c.GetComponentInParent<Door>()) walls.Add(c.bounds);
+            int n = 0, bad = 0;
+            foreach (var door in root.GetComponentsInChildren<Door>(true))
+            {
+                bool any = false; var b = new Bounds(); bool isStatic = false, batched = false;
+                foreach (var r in door.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (!r.enabled) continue;   // the invisible collision panel
+                    if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds);
+                    isStatic |= r.gameObject.isStatic; batched |= r.isPartOfStaticBatch;
+                }
+                if (!any) { Debug.Log("HC_DOOR_LEAF name=" + door.name + " stage=" + stage + " bounds=none inWall=True static=False (no leaf renderer)"); bad++; continue; }
+                float volume = Mathf.Max(1e-6f, b.size.x * b.size.y * b.size.z), inside = 0;
+                foreach (var w in walls)
+                {
+                    float dx = Mathf.Min(b.max.x, w.max.x) - Mathf.Max(b.min.x, w.min.x), dy = Mathf.Min(b.max.y, w.max.y) - Mathf.Max(b.min.y, w.min.y), dz = Mathf.Min(b.max.z, w.max.z) - Mathf.Max(b.min.z, w.min.z);
+                    if (dx > 0 && dy > 0 && dz > 0) inside += dx * dy * dz;
+                }
+                float fraction = Mathf.Clamp01(inside / volume);
+                bool inWall = fraction > .5f;
+                if (inWall || isStatic || batched) bad++;
+                n++;
+                Debug.Log("HC_DOOR_LEAF name=" + door.name + " stage=" + stage + " bounds=" + b.center.ToString("F2") + "/" + b.size.ToString("F2") + " inWall=" + inWall + " wallOverlap=" + fraction.ToString("F2") + " static=" + isStatic + " batched=" + batched);
+            }
+            Debug.Log("HC_DOOR_LEAF_SUMMARY stage=" + stage + " doors=" + n + " problems=" + bad);
         }
 
         // Centre of an art object's meshes in `space`'s local coordinates (exact for rotated parents; no AABB).

@@ -119,7 +119,7 @@ namespace HollowCurrent
             Log(id+" "+texture.width+"x"+texture.height+" "+file);
             Destroy(texture);
         }
-        // -hc-capture-art exterior|props: extra art-review views (castle-local = world coordinates), eye -> target at the player's
+        // -hc-capture-art exterior|props|doors: extra art-review views (castle-local = world coordinates), eye -> target at the player's
         // 72 deg FOV, plus a frame-time sample at the crypt view for props. Used with the normal full capture for S1-S4.
         static string ArtSet{get{var a=Environment.GetCommandLineArgs();for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-capture-art")return a[i+1];return null;}}
         IEnumerator ArtRun(string set)
@@ -137,6 +137,15 @@ namespace HollowCurrent
                 views.Add(("courtyard_east",new Vector3(-4,1.64f,9),new Vector3(6,8,5)));
                 views.Add(("battlement_out",new Vector3(3.6f,9,-.4f),new Vector3(0,3,-30)));   // wave L: looks down the approach: bridge, moat, far bank and the ridge on the horizon
                 views.Add(("battlement_in",new Vector3(3.6f,9,.4f),new Vector3(0,9,16)));
+            }
+            else if(set=="doors")
+            {
+                // fb-doors (owner items 3-5): the Hall great doors closed and open, 3 m back on the courtyard side (the owner's approach, door
+                // leaves must be visible and fill the opening) and 3 m back inside the hall. The open views open both leaves first.
+                views.Add(("hall_doors_closed",new Vector3(0,1.64f,11),new Vector3(0,2.2f,14)));
+                views.Add(("hall_doors_closed_inside",new Vector3(0,1.64f,17),new Vector3(0,2.2f,14)));
+                views.Add(("hall_doors_open",new Vector3(0,1.64f,11),new Vector3(0,2.2f,14)));
+                views.Add(("hall_doors_open_inside",new Vector3(0,1.64f,17),new Vector3(0,2.2f,14)));
             }
             else
             {
@@ -174,10 +183,19 @@ namespace HollowCurrent
                             foreach(var r in off)r.enabled=true;
                         }
                 }
-                Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0?3f:1.5f);
+                // fb-doors: the *_open views swing the Hall great doors open from where the camera stands, so the swing side is chosen the way the player's would be.
+                var hallLeaves=new List<Door>();
+                if(set=="doors")
+                {
+                    Place(v.eye,v.target);yield return null;yield return null;
+                    foreach(var d in game.World.Doors)if(d&&d.name.Contains("Hall great doors")){if(v.id.Contains("_open"))d.Open=true;hallLeaves.Add(d);}
+                }
+                Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0||hallLeaves.Count>0?3f:1.5f);
+                foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer);
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);
                 foreach(var d in gateLeaves)d.Open=false;
+                foreach(var d in hallLeaves)d.Open=false;
                 if(v.id=="crypt_ceiling"){yield return CryptFrames("after_shot");yield return new WaitForSecondsRealtime(1);yield return CryptFrames("settled");}
             }
             File.WriteAllText(Path.Combine(Directory,"capture_art_"+set+".json"),"{\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");

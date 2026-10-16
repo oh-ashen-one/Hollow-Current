@@ -536,7 +536,7 @@ namespace HollowCurrent
             Label(1290,28,268,28,Location(),rightBody);Panel(new Rect(1355,62,200,1),copper);Label(1290,73,268,24,recordLabel,rightBody);
             Panel(new Rect(798,448,4,4),new Color(.8f,.8f,.7f,.7f));var p=Game.Player;
             string use=PadInput.Active?(PadInput.Current.PlayStation?"[×] ":"[A] "):"[E] ",torch=PadInput.Active?(PadInput.Current.PlayStation?"[□] ":"[X] "):"[F] ";
-            string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+"TORCH OFF":"Stay quiet"):p.Focus!=null?use+p.Focus.Label+(p.Focus.Kind==InteractKind.Anchor?" · hold":""):"";
+            string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+"TORCH OFF":"Stay quiet"):p.Focus!=null?use+p.Focus.Prompt+(p.Focus.Kind==InteractKind.Anchor?" · hold":""):"";
             Label(405,510,790,62,interaction,center);if(p.Capture>0)Panel(new Rect(630,568,340*Mathf.Clamp01(p.Capture),3),copper);
             if(Game.Castle&&Game.Castle.Forge.CraftProgress01>0&&!Game.Castle.Forge.HasSword){Label(545,583,510,30,"FORGING "+Mathf.RoundToInt(Game.Castle.Forge.CraftProgress01*100)+"%",center);Panel(new Rect(615,622,370*Game.Castle.Forge.CraftProgress01,3),copper);}
             if(Game.Castle&&(Game.Castle.Forge.RelicCount>0||Game.Castle.Forge.HasSword))Label(1290,100,268,24,Game.Castle.Forge.HasSword?"MOONSTONE SWORD · "+Game.Castle.Fight.Hits+" / 3":"RELICS "+Game.Castle.Forge.RelicCount+" / 3",rightBody);

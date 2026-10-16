@@ -12,6 +12,8 @@ namespace HollowCurrent
         public string Label, Body;
         public Vector3 HidePoint, ExitPoint;
         public Door Door;
+        // The line the HUD shows after the key: a door reads "Open Hall great doors" / "Close ..." (fb-doors); everything else is its Label.
+        public string Prompt=>Kind==InteractKind.Door&&Door?(Door.Open?"Close ":"Open ")+Label:Label;
         public Light Circuit;
         // Kind Relic: 0 silver blade, 1 hallowed hilt, 2 moonstone (Forge.Relic order).
         public int RelicIndex=-1;
