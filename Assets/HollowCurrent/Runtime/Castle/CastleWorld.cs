@@ -860,8 +860,8 @@ namespace HollowCurrent
         void GreatHall()
         {
             foreach (int side in new[] { -1, 1 })
-                foreach (float z in new[] { 15.6f, 18.6f, 21.6f, 24.4f })
-                    Pier(new Vector3(side * 3.9f, 0, z));
+                foreach (float z in CastleLayout.HallPierZ)
+                    Pier(new Vector3(side * CastleLayout.HallPierX, 0, z));
             // The banquet table lies on the hall axis (x = 0), its throne at the far end, chairs down both sides.
             var table = ArtAt(Art.LongTable, CastleLayout.TablePos, CastleLayout.TableYaw);
             table.localScale = new Vector3(CastleLayout.TableLengthScale, 1, CastleLayout.TableWidthScale);
@@ -896,6 +896,7 @@ namespace HollowCurrent
             VaultCeiling();
             var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
             skeleton.localScale = CastleLayout.SkeletonScaleVec;
+            SkeletonCollision();
             CheckHallAxis(skeleton);
             foreach (var b in CastleLayout.HallBanners) ArtAt(CastleArt.Names.TapestryPanel, b.Pos, b.Yaw);
             // focal piece on the hall axis: the iron chandelier hangs over the table (hub y 3.9, 4.7 m of chain to the vault) behind
@@ -1001,29 +1002,93 @@ namespace HollowCurrent
             var m = new Material(Shader.Find("Standard")) { name = "HC castle / vault", color = new Color(.30f, .32f, .38f) };
             var tex = Resources.Load<Texture2D>("Castle/Textures/Castle_Stone_albedo");
             if (tex) { m.mainTexture = tex; m.mainTextureScale = Vector2.one; }
-            m.SetFloat("_Glossiness", .1f); m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(.035f, .045f, .075f));
+            m.SetFloat("_Glossiness", .1f); m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(.014f, .018f, .032f));   // wave FB: was (.035,.045,.075); the vault must fall into the dark with the rest of the hall
             m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             mr.sharedMaterial = m;
             mats["vault"] = m;
             g.AddComponent<VaultCeiling>();
         }
 
-        // Numeric checks for the owner's layout rule: the table and the rune ring sit on the hall axis (x = 0, within 0.05 m) and the
-        // skeleton stays on the west side (its bounds never cross x = -3). Logged as HC_HALL_AXIS; a violation also logs an error.
+        // Walkable footprint of the skeleton (wave FB): one 1.8 m high box per merged art cell where bone stands, nothing over the open
+        // floor around the ribcage (CastleLayout.SkeletonFootprint). The proxies are plain BoxColliders under the root, so the nav-mesh
+        // bake (BuildNavigation / World.BuildNavigation) carves exactly this footprint and the Count walks round it.
+        void SkeletonCollision()
+        {
+            var pos = CastleLayout.SkeletonPos; var sc = CastleLayout.SkeletonScaleVec;
+            int n = 0;
+            foreach (var f in CastleLayout.SkeletonFootprint)
+            {
+                float x0 = pos.x + f.x * sc.x, x1 = pos.x + f.y * sc.x;   // art x is hall x
+                float z0 = pos.z - f.w * sc.z, z1 = pos.z - f.z * sc.z;   // art +y is hall -z
+                var g = Proxy("Skeleton bone collision", new Vector3((x0 + x1) * .5f, CastleLayout.SkeletonBlockHeight * .5f, (z0 + z1) * .5f), new Vector3(x1 - x0, CastleLayout.SkeletonBlockHeight, z1 - z0));
+                g.name = "Skeleton bone collision " + (n++);
+            }
+        }
+
+        // Numeric checks for the owner's layout rules. HC_HALL_AXIS: the table and the rune ring sit on the hall axis (x = 0, within 0.05 m)
+        // and so does the skeleton (ribcage centre within SkeletonAxisTolerance). HC_SKELETON (wave FB, owner: "stuck between three poles"):
+        // the skeleton's measured bounds (union of its renderer bounds, hall-local plan rectangle) against the eight pier collision boxes, the
+        // table and the chairs, with the required clearance CastleLayout.SkeletonClearance; `columns_hit` lists every pier whose box is
+        // closer than that (empty = PASS). The footprint boxes (what actually blocks the player) are checked the same way. A violation
+        // logs an error.
         void CheckHallAxis(Transform skeleton)
         {
             float tableX = CastleLayout.TablePos.x, ringX = RuneLocal.x;
-            // analytic bounds of the art (Blender x +-2.06 lateral) after the squeeze, and the measured renderer bounds
-            float analyticMax = CastleLayout.SkeletonPos.x + CastleLayout.SkeletonHalfEast * CastleLayout.SkeletonScaleVec.x;
-            float measuredMax = float.NegativeInfinity; bool any = false;
+            // measured: renderer bounds of the placed art, hall-local (axis-aligned corners of each renderer's world bounds)
+            float mx0 = float.PositiveInfinity, mx1 = float.NegativeInfinity, mz0 = float.PositiveInfinity, mz1 = float.NegativeInfinity, my1 = float.NegativeInfinity;
+            bool any = false;
             foreach (var r in skeleton.GetComponentsInChildren<Renderer>())
             {
-                var b = r.bounds; var local = root.InverseTransformPoint(b.max);
-                measuredMax = Mathf.Max(measuredMax, local.x); any = true;
+                var b = r.bounds;
+                foreach (var sx in new[] { b.min.x, b.max.x }) foreach (var sy in new[] { b.min.y, b.max.y }) foreach (var sz in new[] { b.min.z, b.max.z })
+                {
+                    var local = root.InverseTransformPoint(new Vector3(sx, sy, sz));
+                    mx0 = Mathf.Min(mx0, local.x); mx1 = Mathf.Max(mx1, local.x); mz0 = Mathf.Min(mz0, local.z); mz1 = Mathf.Max(mz1, local.z); my1 = Mathf.Max(my1, local.y); any = true;
+                }
             }
-            bool ok = Mathf.Abs(tableX) <= .05f && Mathf.Abs(ringX) <= .05f && analyticMax <= CastleLayout.SkeletonMaxX && (!any || measuredMax <= CastleLayout.SkeletonMaxX);
-            string line = "HC_HALL_AXIS table centre x=" + tableX.ToString("F3") + " rune ring centre x=" + ringX.ToString("F3") + " skeleton max x analytic=" + analyticMax.ToString("F2") + " measured=" + (any ? measuredMax.ToString("F2") : "n/a") + " (limit " + CastleLayout.SkeletonMaxX.ToString("F1") + ") " + (ok ? "PASS" : "FAIL");
-            if (ok) Debug.Log(line); else Debug.LogError(line);
+            var plan = CastleLayout.SkeletonPlanBounds();   // analytic bounds from the measured art extents
+            if (!any) { mx0 = plan.x; mx1 = plan.y; mz0 = plan.z; mz1 = plan.w; my1 = CastleLayout.SkeletonPos.y + CastleLayout.SkeletonArtHeight * CastleLayout.SkeletonScaleVec.y; }
+            float clear = CastleLayout.SkeletonClearance;
+            // plan-view gap between two axis-aligned rectangles (0 when they overlap)
+            float Gap(float ax0, float ax1, float az0, float az1, float bx0, float bx1, float bz0, float bz1)
+            {
+                float dx = Mathf.Max(0, Mathf.Max(ax0 - bx1, bx0 - ax1)), dz = Mathf.Max(0, Mathf.Max(az0 - bz1, bz0 - az1));
+                return Mathf.Sqrt(dx * dx + dz * dz);
+            }
+            var hit = new List<string>(); float minPier = float.PositiveInfinity;
+            foreach (int side in new[] { -1, 1 })
+                foreach (float z in CastleLayout.HallPierZ)
+                {
+                    float px = side * CastleLayout.HallPierX, h = CastleLayout.HallPierHalf;
+                    float gap = Gap(mx0, mx1, mz0, mz1, px - h, px + h, z - h, z + h);
+                    minPier = Mathf.Min(minPier, gap);
+                    if (gap < clear) hit.Add("pier(" + px.ToString("F1") + "," + z.ToString("F1") + ") gap=" + gap.ToString("F2"));
+                }
+            // the table (3.3 x 1.3, yaw 90: long axis along z) and the chairs at x +-1.15, z 22.9 / 24.5 (0.5 m square)
+            var ts = CastleLayout.ArtSize(Art.LongTable); float tl = ts.x * CastleLayout.TableLengthScale * .5f, tw = ts.z * CastleLayout.TableWidthScale * .5f;
+            float tableGap = Gap(mx0, mx1, mz0, mz1, CastleLayout.TablePos.x - tw, CastleLayout.TablePos.x + tw, CastleLayout.TablePos.z - tl, CastleLayout.TablePos.z + tl);
+            if (tableGap < clear) hit.Add("table gap=" + tableGap.ToString("F2"));
+            // the footprint boxes against the piers (what blocks movement), same clearance
+            float minBoneToPier = float.PositiveInfinity;
+            foreach (var f in CastleLayout.SkeletonFootprint)
+            {
+                float x0 = CastleLayout.SkeletonPos.x + f.x * CastleLayout.SkeletonScaleVec.x, x1 = CastleLayout.SkeletonPos.x + f.y * CastleLayout.SkeletonScaleVec.x;
+                float z0 = CastleLayout.SkeletonPos.z - f.w * CastleLayout.SkeletonScaleVec.z, z1 = CastleLayout.SkeletonPos.z - f.z * CastleLayout.SkeletonScaleVec.z;
+                foreach (int side in new[] { -1, 1 })
+                    foreach (float z in CastleLayout.HallPierZ)
+                    {
+                        float px = side * CastleLayout.HallPierX, h = CastleLayout.HallPierHalf;
+                        minBoneToPier = Mathf.Min(minBoneToPier, Gap(x0, x1, z0, z1, px - h, px + h, z - h, z + h));
+                    }
+            }
+            float centreX = (mx0 + mx1) * .5f;
+            bool axisOk = Mathf.Abs(tableX) <= .05f && Mathf.Abs(ringX) <= .05f && Mathf.Abs(centreX) <= CastleLayout.SkeletonAxisTolerance;
+            bool ok = axisOk && hit.Count == 0 && minBoneToPier >= clear;
+            string skeletonLine = "HC_SKELETON bounds=x[" + mx0.ToString("F2") + "," + mx1.ToString("F2") + "] z[" + mz0.ToString("F2") + "," + mz1.ToString("F2") + "] y_max=" + my1.ToString("F2")
+                + " source=" + (any ? "renderers" : "analytic") + " centre_x=" + centreX.ToString("F2") + " columns_hit=[" + string.Join("; ", hit) + "] min_pier_gap=" + minPier.ToString("F2")
+                + " min_bone_to_pier=" + minBoneToPier.ToString("F2") + " table_gap=" + tableGap.ToString("F2") + " footprint_boxes=" + CastleLayout.SkeletonFootprint.Length + " (clearance " + clear.ToString("F1") + ") " + (ok ? "PASS" : "FAIL");
+            string line = "HC_HALL_AXIS table centre x=" + tableX.ToString("F3") + " rune ring centre x=" + ringX.ToString("F3") + " skeleton centre x=" + centreX.ToString("F3") + " (limit +-" + CastleLayout.SkeletonAxisTolerance.ToString("F2") + ") " + (axisOk ? "PASS" : "FAIL");
+            if (ok) { Debug.Log(line); Debug.Log(skeletonLine); } else { Debug.LogError(line); Debug.LogError(skeletonLine); }
         }
 
         // Colonnade pier built from the wall modules (round 6): the round ColumnGreat art stood inside the square arch piers and poked
@@ -1102,10 +1167,11 @@ namespace HollowCurrent
             Box("Altar step high", new Vector3(12.875f, .24f, 6.5f), new Vector3(1.35f, .16f, 4.0f), "stone");
             Prop(Art.Altar, new Vector3(13.0f, .32f, 6.5f), -90);
             altarAnchor = new GameObject("Forge altar anchor").transform; altarAnchor.SetParent(root, false); altarAnchor.localPosition = AltarLocal;
-            foreach (float x in new[] { 8.4f, 9.7f, 11.0f })
-                foreach (float z in new[] { 1.7f, 4.2f, 8.8f, 11.3f })
+            foreach (float x in CastleLayout.ChapelPewRows)
+                foreach (float z in CastleLayout.ChapelPewZ)
                     if (!CastleLayout.IsFallenPew(x, z)) Prop(Art.Pew, new Vector3(x, 0, z), 90);
             foreach (var pew in CastleLayout.ChapelFallenPews) FallenPew(pew);
+            LogChapelClearances();
             Prop(Art.ChapelBell, new Vector3(AnchorLocal.x, 0, AnchorLocal.z), -90, false);
             Interact("Chapel bell", AnchorLocal, new Vector3(.6f, 1.2f, .6f), "brass", InteractKind.Anchor, "The chapel bell", "", false);
             Hide("Confessional", new Vector3(7.3f, 0, 12.7f), 0);
@@ -1209,7 +1275,36 @@ namespace HollowCurrent
             Proxy("Fallen pew collision", new Vector3(d.X, 0, d.Z) + yawRot * new Vector3(0, .4f, side * .45f), new Vector3(2.4f, .8f, 1.1f), d.Yaw);
         }
 
-        // The stone font in the aisle, its basin brimming with a glossy red liquid.
+        // Walking-width check for the owner's "chapel too crowded" (wave FB), measured from the collision proxies actually built: the centre aisle
+        // between the pew blocks (>= CastleLayout.ChapelMinAisle), the two side passages between the pew blocks and the walls (>= ChapelMinPassage),
+        // the font's distance from the aisle band, and whether anything but a pew sits in the aisle. Logged as HC_CHAPEL; a violation logs an error.
+        void LogChapelClearances()
+        {
+            // analytic, from the same data the pews are built from (collider bounds are not synced yet at Prepare time): a pew proxy is a
+            // 2.4 m long, 1.1 m deep box (standing: 0.7 m) rotated by its yaw, so its z half-extent is 1.2 |sin yaw| + depth/2 |cos yaw|
+            float southMax = float.NegativeInfinity, northMin = float.PositiveInfinity, southMin = float.PositiveInfinity, northMax = float.NegativeInfinity;
+            int standing = 0, fallen = CastleLayout.ChapelFallenPews.Length;
+            foreach (float x in CastleLayout.ChapelPewRows)
+                foreach (float z in CastleLayout.ChapelPewZ)
+                {
+                    float yaw = 90, depth = .7f;
+                    foreach (var f in CastleLayout.ChapelFallenPews) if (Mathf.Abs(f.X - x) < .01f && Mathf.Abs(f.Z - z) < .01f) { yaw = f.Yaw; depth = 1.1f; }
+                    if (depth < 1f) standing++;
+                    float half = 1.2f * Mathf.Abs(Mathf.Sin(yaw * Mathf.Deg2Rad)) + depth * .5f * Mathf.Abs(Mathf.Cos(yaw * Mathf.Deg2Rad));
+                    if (z < 6.5f) { southMax = Mathf.Max(southMax, z + half); southMin = Mathf.Min(southMin, z - half); }
+                    else { northMin = Mathf.Min(northMin, z - half); northMax = Mathf.Max(northMax, z + half); }
+                }
+            float aisle = northMin - southMax, passageSouth = southMin - CastleLayout.ChapelWallSouth, passageNorth = CastleLayout.ChapelWallNorth - northMax;
+            var font = CastleLayout.FontPos; float fontHalf = CastleLayout.ArtSize(Art.StoneFont).x * .5f;
+            bool fontOut = font.z + fontHalf <= southMax && font.z - fontHalf >= CastleLayout.ChapelWallSouth - .01f;   // wholly south of the south pew block's aisle edge, inside the room
+            bool ok = aisle >= CastleLayout.ChapelMinAisle && passageSouth >= CastleLayout.ChapelMinPassage && passageNorth >= CastleLayout.ChapelMinPassage && fallen <= 2 && fontOut;
+            string line = "HC_CHAPEL aisle=" + aisle.ToString("F2") + " (min " + CastleLayout.ChapelMinAisle.ToString("F1") + ") passage_south=" + passageSouth.ToString("F2") + " passage_north=" + passageNorth.ToString("F2")
+                + " (min " + CastleLayout.ChapelMinPassage.ToString("F1") + ") pews_standing=" + standing + " pews_fallen=" + fallen + " font=(" + font.x.ToString("F2") + "," + font.z.ToString("F2")
+                + ") font_outside_aisle=" + fontOut + " " + (ok ? "PASS" : "FAIL");
+            if (ok) Debug.Log(line); else Debug.LogError(line);
+        }
+
+        // The stone font, against the south wall in the south-east corner (wave FB; it stood in the aisle), its basin brimming with a glossy red liquid.
         void ChapelFont()
         {
             Prop(Art.StoneFont, CastleLayout.FontPos, 0);
@@ -1228,23 +1323,27 @@ namespace HollowCurrent
             Interact("Chapel brazier", p + new Vector3(0, .5f, 0), new Vector3(.7f, 1.0f, .7f), "metal", InteractKind.Breaker, "Chapel brazier", "", false);
         }
 
-        // 56 candles hang in the chapel, ALL burning (billboard flame plus halo, no point light; the point-light count is unchanged).
-        // 40 sit inside the S2 view cone (eye (7,1.64,6.5) looking +x) so the frame holds well over 30 flames; the hero candle above
+        // Candles hang in the chapel (ChapelCandleCount), ALL burning (billboard flame plus halo, no point light; the point-light count is unchanged).
+        // most sit inside the S2 view cone (eye (7,1.64,6.5) looking +x) so the frame holds well over 30 flames; the hero candle above
         // the altar burns brightest.
+        // wave FB (owner: "way too crowded"): 46 candles instead of 56 (37 in the S2 cone instead of 41), none below 2.0 m (they hung at eye height, 1.5 m,
+        // and read as clutter in front of the face); the S2 frame still holds well over 30 flames.
+        const int ChapelCandleCount = 46, ChapelCandlesInCone = 37;
+        const float ChapelCandleMinY = 2.0f;
         void ChapelCandles()
         {
             var rnd = new System.Random(2026);
             var placed = new List<Vector3> { new Vector3(12.2f, 2.4f, 5.0f) };
             SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.2f, true);
             int guard = 0;
-            while (placed.Count < 56 && guard++ < 8000)
+            while (placed.Count < ChapelCandleCount && guard++ < 8000)
             {
-                bool inCone = placed.Count < 41;
+                bool inCone = placed.Count < ChapelCandlesInCone;
                 float x = inCone ? Mathf.Lerp(8.6f, 13.2f, (float)rnd.NextDouble()) : Mathf.Lerp(7.4f, 13.2f, (float)rnd.NextDouble());
                 float half = (x - 7f) * 1.0f;   // the S2 cone is about +-52 degrees wide: stay inside +-45
                 float z = inCone ? Mathf.Clamp(6.5f + ((float)rnd.NextDouble() * 2 - 1) * half, .9f, 12.1f) : Mathf.Lerp(.9f, 12.1f, (float)rnd.NextDouble());
                 float top = inCone ? Mathf.Min(5.2f, 1.64f + .65f * (x - 7f)) : 5.0f;
-                var p = new Vector3(x, Mathf.Lerp(1.5f, Mathf.Max(1.9f, top), (float)rnd.NextDouble()), z);
+                var p = new Vector3(x, Mathf.Lerp(ChapelCandleMinY, Mathf.Max(ChapelCandleMinY + .4f, top), (float)rnd.NextDouble()), z);
                 if (p.x > 11.3f && Mathf.Abs(p.z - 6.5f) < 1.5f && p.y < 2.2f) continue;                                    // the altar block
                 if (Mathf.Abs(p.x - CastleLayout.FontPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.FontPos.z) < .8f && p.y < 2.2f) continue;
                 if (Mathf.Abs(p.x - CastleLayout.BrazierPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.BrazierPos.z) < .8f && p.y < 2.2f) continue;
@@ -1693,7 +1792,7 @@ namespace HollowCurrent
             var pts = new[]
             {
                 new Vector3(0, .1f, 7.5f), new Vector3(-3.5f, .1f, 10f), new Vector3(3.5f, .1f, 10f),
-                new Vector3(0, .1f, 17.5f), new Vector3(0, .1f, 22.5f), new Vector3(-5f, .1f, 19.5f),
+                new Vector3(2.4f, .1f, 17.5f), new Vector3(0, .1f, 22.5f), new Vector3(-5f, .1f, 19.5f),
                 new Vector3(-11.8f, .1f, 12.5f), new Vector3(-7.2f, .1f, 19f), new Vector3(-8.5f, .1f, 2.5f), new Vector3(-11f, .1f, 8.5f),
                 new Vector3(9.5f, .1f, 6.5f), new Vector3(7.2f, .1f, 6.5f), new Vector3(10f, .1f, 20.5f), new Vector3(9f, .1f, 15f),
                 new Vector3(-8.5f, 3.3f, 13.5f), new Vector3(-8.5f, 3.3f, 19f), new Vector3(-8.5f, 3.3f, 4f), new Vector3(-10f, 3.3f, 1.5f),

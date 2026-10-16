@@ -12,6 +12,9 @@ namespace HollowCurrent
     //   "Window moonlight"    spot, baked       -> cold blue, intensity raised per window class
     //   "Castle moonlight"    directional       -> cold blue, dimmer than the candles
     //   "Castle second moon"  directional       -> dim crimson
+    // Wave FB (owner: "it's too well-lit", castle should be dark and lantern-led like Bellwether): every default below was lowered, the old
+    // value is kept in the comment. Targets (tools/exposure_report.py --lantern off|on): interior near-black (luma < 8) 35-55 % with the
+    // lantern off, 12-25 % with it on. The Investigator's grave-ash lantern is the main light: TorchIntensityScale / TorchRange below.
     // Round 4: tuning now runs in Awake. Game.Awake adds this component and THEN records every lamp's intensity in `lampLevels`,
     // which Game.Update writes back every frame; tuning in Start was silently overwritten with the original intensity.
     // Idempotent per session (tuned instance ids are remembered; names are left alone because World.cs finds "Castle second moon"
@@ -23,40 +26,47 @@ namespace HollowCurrent
 
         [Header("Candles (realtime point lights)")]
         public Color CandleColor = new Color(1.0f, 0.77f, 0.55f);   // less saturated than r4 (S1 was 15% warm, ref 1.6%)
-        public float CandleIntensityScale = 0.82f;
+        public float CandleIntensityScale = 0.53f;   // was .82 (-35 %)
         public float CandleRangeScale = 1.3f;
         public float CandleMinRange = 6.5f;
         public float CandleMaxRange = 10f;
 
         [Header("Moonlight (cold blue; must stay dimmer than the candles)")]
         public Color MoonColor = new Color(.36f, .51f, .75f);
-        public float WindowMoonlightCrypt = .43f;    // was .17 (FloorY < 0)
-        public float WindowMoonlightFloor = .80f;    // was .36
-        public float WindowMoonlightRose = 1.10f;    // was .50 (the shadowed rose window)
-        public float MoonDirectional = .16f;         // was .22
+        public float WindowMoonlightCrypt = .34f;    // was .43 (r6; .17 originally) (FloorY < 0): the crypt only loses 20 %, its fog profile stays
+        public float WindowMoonlightFloor = .48f;    // was .80 (-40 %)
+        public float WindowMoonlightRose = .66f;     // was 1.10 (-40 %; the shadowed rose window)
+        public float MoonDirectional = .10f;         // was .16
         public Color SecondMoonColor = new Color(.62f, .24f, .34f);
-        public float SecondMoonDirectional = .05f;   // was .06
+        public float SecondMoonDirectional = .035f;  // was .05
 
         [Header("Chapel (round 6: S2 was 35% near-black)")]
         public Color ChapelMoonColor = new Color(.42f, .56f, .90f);
-        public float ChapelMoonIntensity = 1.1f;      // cold light pouring through the sun window above the altar
+        public float ChapelMoonIntensity = .95f;      // was 1.1: the cold light pouring through the sun window above the altar stays the chapel's landmark
         public Vector3 ChapelMoonPosition = new Vector3(13.1f, 3.3f, 6.5f);
-        public float ChapelCandleIntensity = 1.0f;    // two warm pools at the altar, one over the nave
+        public float ChapelCandleIntensity = .6f;     // was 1.0: two warm pools at the altar, one over the nave
         public Vector3 ChapelCandleA = new Vector3(12.5f, 1.5f, 4.8f);
         public Vector3 ChapelCandleB = new Vector3(12.5f, 1.5f, 8.2f);
         public Vector3 ChapelNaveFill = new Vector3(9.0f, 2.6f, 6.5f);
 
+        [Header("The grave-ash lantern (Investigator torch) is the main light source of the castle")]
+        // Investigator.Torch is a 52 degree spot, range 20, intensity .85 x Brightness (Bellwether keeps exactly that). In the castle the player
+        // reads the room 6-8 m ahead with it and barely without, so it is scaled up modestly here; the scale is stored on the Investigator
+        // (TorchScale) so Bellwether is untouched. TorchRange 0 keeps the shared range.
+        public float TorchIntensityScale = 1.35f;     // 1.15 absolute with Brightness 1
+        public float TorchRange = 0f;
+
         [Header("Extra fill lights (castle-local positions; realtime, no shadows)")]
         public bool AddFillLights = true;
         public Color VaultFillColor = new Color(.42f, .55f, .90f);
-        public float VaultFillIntensity = .32f;       // faint cold light under the great-hall vault so the ribs and ceiling read
+        public float VaultFillIntensity = .10f;       // was .32: faint cold light under the great-hall vault so the ribs and ceiling just read
         public Vector3 VaultFillPosition = new Vector3(0f, 7.6f, 21f);
         public float VaultFillRange = 12f;
         public Color CryptCandleColor = new Color(1.0f, .66f, .38f);
-        public float CryptCandleIntensity = .85f;     // ONE warm pool on the west curb (r5: four pools at 1.6 = 4.2% near-black and 16% warm; r6: four at 0.65 = 41.9%)
+        public float CryptCandleIntensity = .6f;      // was .85; ONE warm pool on the west curb (r5: four pools at 1.6 = 4.2% near-black and 16% warm; r6: four at 0.65 = 41.9%)
         public float CryptCandleRange = 5f;
         public Color CryptColdColor = new Color(.34f, .44f, .80f);
-        public float CryptColdIntensity = .55f;       // cold base so the room reads blue with one warm accent
+        public float CryptColdIntensity = .42f;       // was .55: cold base so the room reads blue with one warm accent
         public Vector3 CryptColdPosition = new Vector3(0f, -1.3f, 22.5f);
         public Color CryptRuneColor = new Color(.60f, .32f, .90f);
         public float CryptRuneIntensity = .9f;       // violet rune glow over the sarcophagus
@@ -65,11 +75,11 @@ namespace HollowCurrent
 
         [Header("Warm fills for the dark shots (round 5)")]
         public Color WarmFillColor = new Color(1.0f, .70f, .45f);
-        public float CourtyardFillIntensity = 2.6f;   // two candle pools by the courtyard/gatehouse where S6 stands the Count
+        public float CourtyardFillIntensity = 1.3f;   // was 2.6: two candle pools by the courtyard/gatehouse where S6 stands the Count
         public float CourtyardFillRange = 9f;
         public Vector3 CourtyardFillA = new Vector3(-4.6f, 2.0f, 9.5f);
         public Vector3 CourtyardFillB = new Vector3(-1.5f, 2.0f, 12.5f);
-        public float BalconyFillIntensity = 1.4f;      // warm rim on the perch above the hall for S5 and the hunt's first frames
+        public float BalconyFillIntensity = .7f;       // was 1.4: warm rim on the perch above the hall for S5 and the hunt's first frames
         public float BalconyFillRange = 8f;
         public Vector3 BalconyFillPosition = new Vector3(-3.5f, 4.9f, 19.5f);
         public Vector3 BalconyFillPositionB = new Vector3(-5.2f, 4.8f, 22.5f);   // second candle pool by the rose-window ledge
@@ -145,8 +155,19 @@ namespace HollowCurrent
             {
                 Light[] lights = Root ? Root.GetComponentsInChildren<Light>(true) : FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None);
                 Tune(lights, this);
+                ApplyTorch();
             }
             catch (Exception e) { Debug.LogWarning("[CastleLightTuning] skipped: " + e.Message); }
+        }
+
+        // The lantern: scale (and optionally lengthen) the Investigator's torch for the castle. Safe to repeat; the Investigator may not exist yet
+        // in the first Apply (the later passes catch it).
+        public void ApplyTorch()
+        {
+            var player = FindFirstObjectByType<Investigator>();
+            if (!player) return;
+            player.TorchScale = TorchIntensityScale;
+            if (TorchRange > 0 && player.Torch) player.Torch.range = TorchRange;
         }
 
         // Editor/bake entry point: tune every light under the castle root with the default values.

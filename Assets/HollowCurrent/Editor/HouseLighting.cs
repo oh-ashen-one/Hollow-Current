@@ -51,7 +51,7 @@ namespace HollowCurrent.Editor
                 if(map==MapId.Castle)
                 {
                     // hc/look3 bake ambient (docs/haunted-castle/handoffs/look3.md); keep in step with it.
-                    RenderSettings.ambientSkyColor=new Color(.050f,.065f,.100f);RenderSettings.ambientEquatorColor=new Color(.022f,.028f,.040f);RenderSettings.ambientGroundColor=new Color(.010f,.012f,.016f);
+                    RenderSettings.ambientSkyColor=new Color(.034f,.044f,.068f);RenderSettings.ambientEquatorColor=new Color(.015f,.019f,.027f);RenderSettings.ambientGroundColor=new Color(.007f,.008f,.011f);   // wave FB (fb-layout): x0.68 of hc/look3's (.050,.065,.100)/(.022,.028,.040)/(.010,.012,.016); the castle is dark and lantern-led
                     // Window spots and both directional moons are baked: apply hc/look3's tuned
                     // intensities to the layout before the bake reads them.
                     // Candle tuning is multiplicative and realtime; the runtime CastleLightTuning

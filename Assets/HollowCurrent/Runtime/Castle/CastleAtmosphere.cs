@@ -20,20 +20,28 @@ namespace HollowCurrent
     {
         [Header("Fog (exponential squared)")]
         public bool EnableFog = true;
-        // f = exp(-(d * density)^2): 12 m (S1 camera to far wall) keeps 70%, 25 m keeps 21%, 28 m 12% of the surface colour.
-        // The fog colour is lighter than the surroundings so distant geometry visibly dissolves into mist.
-        public Color FogColor = new Color(.30f, .37f, .52f);
-        public float FogDensity = .05f;
+        // Wave FB (owner: "too well-lit ... feels like exploring, not being hunted"): the castle is dark and lantern-led, like Bellwether
+        // (fog (.025,.04,.055), ambient sky (.105,.13,.16)). f = exp(-(d * density)^2): at density .03, 12 m (S1 camera to far wall)
+        // keeps 88 %, 25 m keeps 57 %. The fog colour is now near-black blue instead of the old lighter mist (.30,.37,.52 at .05), so
+        // distant geometry dissolves into darkness instead of into haze. The exterior (camera outside the gate) keeps the old mist so
+        // the bridge, moat and facade still read against the sky; the crypt keeps its own profile below.
+        public Color FogColor = new Color(.04f, .05f, .08f);
+        public float FogDensity = .03f;
+        public bool ExteriorFogProfile = true;
+        public Color ExteriorFogColor = new Color(.30f, .37f, .52f);
+        public float ExteriorFogDensity = .05f;
+        public float ExteriorBelowZ = .5f;   // castle-local z: the gate wall is at 0
 
         [Header("Ambient (trilight; gamma-space colours as in the Lighting window)")]
-        public Color AmbientSky = new Color(.16f, .20f, .30f);
-        public Color AmbientEquator = new Color(.095f, .12f, .185f);
-        public Color AmbientGround = new Color(.04f, .04f, .06f);
-        public float AmbientIntensity = 1f;
+        // was sky (.16,.20,.30), equator (.095,.12,.185), ground (.04,.04,.06), intensity 1; Bellwether: (.105,.13,.16) / (.055,.06,.07) / (.025,.028,.03)
+        public Color AmbientSky = new Color(.10f, .125f, .19f);
+        public Color AmbientEquator = new Color(.055f, .07f, .11f);
+        public Color AmbientGround = new Color(.025f, .027f, .04f);
+        public float AmbientIntensity = .75f;
 
         [Header("Ambient fill for the castle surface shaders (linear). Kept low so shadows can reach real black.")]
-        public Color FillSky = new Color(.010f, .014f, .024f);
-        public Color FillGround = new Color(.008f, .010f, .018f);   // downward faces (vault undersides) pick this up, so ribs and ceilings read
+        public Color FillSky = new Color(.005f, .007f, .012f);       // was (.010,.014,.024)
+        public Color FillGround = new Color(.004f, .005f, .009f);    // was (.008,.010,.018); downward faces (vault undersides) pick this up
 
         [Header("Materials")]
         public bool UpgradeMaterials = true;
@@ -41,7 +49,7 @@ namespace HollowCurrent
 
         [Header("Vignette (camera post-render)")]
         public bool Vignette = true;
-        [Range(0f, 1f)] public float VignetteStrength = .22f;
+        [Range(0f, 1f)] public float VignetteStrength = .30f;   // was .22
 
         [Header("Ground fog (layered noise planes, castle-local)")]
         public bool GroundFog = true;
@@ -49,9 +57,9 @@ namespace HollowCurrent
         // the blood channel mauve (R/B 2.6 -> 1.2 in round 4).
         public Vector3[] FogAreaCentres = { new Vector3(0f, 0f, 21f), new Vector3(0f, -3.2f, 21f) };   // floor centre of the great hall, crypt
         public Vector2[] FogAreaSizes = { new Vector2(12f, 14f), new Vector2(12f, 14f) };
-        public Color[] FogAreaColors = { new Color(.34f, .42f, .58f), new Color(.30f, .27f, .30f) };
+        public Color[] FogAreaColors = { new Color(.12f, .15f, .21f), new Color(.30f, .27f, .30f) };   // hall was (.34,.42,.58): a bright floor mist; wave FB darkened it
         public int[] FogAreaLayers = { 8, 3 };
-        public float[] FogAreaAlpha = { .26f, .09f };            // per-layer alpha at the floor (fades x0.35 towards the top layer)
+        public float[] FogAreaAlpha = { .15f, .09f };            // per-layer alpha at the floor (fades x0.35 towards the top layer)
         public float[] FogAreaHeight = { 1.1f, .40f };           // top layer height above the floor, metres
 
         [Header("Room fog profile (exponential fog while the camera is in the crypt, castle-local y below CryptBelowY)")]
@@ -95,12 +103,13 @@ namespace HollowCurrent
         readonly HashSet<Renderer> done = new HashSet<Renderer>();
 
         Camera view;
-        float cryptBlend;   // 0 = hall/exterior fog, 1 = crypt fog
+        float cryptBlend;     // 0 = hall fog, 1 = crypt fog
+        float exteriorBlend;  // 0 = hall fog, 1 = exterior mist (camera outside the gate)
 
-        // Smoothly swap the exponential fog between the room profiles as the camera goes down into the crypt.
+        // Smoothly swap the exponential fog between the room profiles as the camera goes down into the crypt or out through the gate.
         void Update()
         {
-            if (!CryptFogProfile || !EnableFog) return;
+            if (!EnableFog || (!CryptFogProfile && !ExteriorFogProfile)) return;
             if (!view || !view.isActiveAndEnabled)
             {
                 view = null;
@@ -108,10 +117,12 @@ namespace HollowCurrent
             }
             if (!view) return;
             var root = Root ? Root : transform;
-            float y = root.InverseTransformPoint(view.transform.position).y;
-            cryptBlend = Mathf.MoveTowards(cryptBlend, y < CryptBelowY ? 1f : 0f, Time.unscaledDeltaTime * 2f);
-            RenderSettings.fogColor = Color.Lerp(FogColor, CryptFogColor, cryptBlend);
-            RenderSettings.fogDensity = Mathf.Lerp(FogDensity, CryptFogDensity, cryptBlend);
+            var local = root.InverseTransformPoint(view.transform.position);
+            cryptBlend = Mathf.MoveTowards(cryptBlend, CryptFogProfile && local.y < CryptBelowY ? 1f : 0f, Time.unscaledDeltaTime * 2f);
+            exteriorBlend = Mathf.MoveTowards(exteriorBlend, ExteriorFogProfile && local.z < ExteriorBelowZ && local.y > CryptBelowY ? 1f : 0f, Time.unscaledDeltaTime * 2f);
+            var hallColor = Color.Lerp(FogColor, ExteriorFogColor, exteriorBlend); float hallDensity = Mathf.Lerp(FogDensity, ExteriorFogDensity, exteriorBlend);
+            RenderSettings.fogColor = Color.Lerp(hallColor, CryptFogColor, cryptBlend);
+            RenderSettings.fogDensity = Mathf.Lerp(hallDensity, CryptFogDensity, cryptBlend);
             SetFill();
         }
 
