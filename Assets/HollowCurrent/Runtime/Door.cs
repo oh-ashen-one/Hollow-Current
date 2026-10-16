@@ -53,26 +53,88 @@ namespace HollowCurrent
             for(int i=0;i<count;i++)if(contacts[i]&&!contacts[i].transform.IsChildOf(transform))return false;
             return true;
         }
+        // ---- swing direction ---------------------------------------------------------------------------------------------
+        // The leaf extends +X from the hinge; a negative angle swings it toward +Z, a positive angle toward -Z. Open away from the player
+        // whenever that side has at least MinAwayClear degrees of clear arc, else take the widest clear arc (fb-doors, owner item 4).
+        public const float MinAwayClear=85;
+        // Chooses openAngle for an opening that starts now. Returns the side the player stands on (local z sign) for the log.
+        float ChooseSwing(Game game)
+        {
+            Measure();
+            float side=0;
+            if(game&&game.Player)
+            {
+                var closed=(transform.parent?transform.parent.rotation:Quaternion.identity)*Closed;
+                var local=Quaternion.Inverse(closed)*(game.Player.transform.position-transform.position);
+                side=local.z;
+                if(local.z<0&&negative>=MinAwayClear)openAngle=-negative;
+                else if(local.z>=0&&positive>=MinAwayClear)openAngle=positive;
+            }
+            if(NativeVerification.Requested)Debug.Log("HC_DOOR_STATE "+name+" pivot="+transform.position+" positive="+positive+" negative="+negative+" playerSide="+(side<0?"-z":"+z")+" selected="+openAngle);
+            return side;
+        }
         public void Toggle()
         {
             if(!measured)Measure();
             var game=FindFirstObjectByType<Game>();
-            if(!Open)
-            {
-                Measure();openAngle=negative>=positive?-negative:positive;
-                if(transform.position.x<0&&game&&game.Player)
-                {
-                    var local=Quaternion.Inverse(transform.rotation)*(game.Player.transform.position-transform.position);
-                    if(local.z<0&&negative>=85)openAngle=-negative;else if(local.z>=0&&positive>=85)openAngle=positive;
-                }
-                if(NativeVerification.Requested)Debug.Log("HC_DOOR_STATE "+name+" pivot="+transform.position+" positive="+positive+" negative="+negative+" selected="+openAngle);
-            }
-            Open=!Open;if(game&&game.Sound)game.Sound.Cue(Open?"door":"latch",transform.position+Vector3.up);
+            if(!Open)ChooseSwing(game);
+            Open=!Open;lastOpen=Open;BeginMotion(game);
+            if(game&&game.Sound)game.Sound.Cue(Open?"door":"latch",transform.position+Vector3.up);
         }
+
+        // ---- never push the player (fb-doors, owner item 5) --------------------------------------------------------------
+        // A leaf that sweeps through the CharacterController makes the controller depenetrate, so the door shoved the player. While the leaf
+        // moves, for SettleSeconds after it stops, and for as long as the controller still overlaps a leaf collider, the controller ignores the
+        // door's colliders; they come back the moment the player stands clear (a closed door still stops you, an open one is a solid leaf).
+        // The Count and the hunter navigation never use these colliders as a body, and Door.Open / Toggle behave exactly as before.
+        public const float SettleSeconds=.5f;
+        Collider[] leafColliders;
+        CharacterController ignored;
+        bool want,applied,lastOpen;
+        float settleUntil;
+        public bool IgnoringPlayer=>want;
+        void BeginMotion(Game game)
+        {
+            settleUntil=Time.time+SettleSeconds;want=true;Apply(game);
+        }
+        // Idempotent and repeated every frame while wanted: the controller's collider is switched off and on by Investigator.Teleport (hiding),
+        // and an ignored pair may not survive that, so the pair is asserted again rather than trusted.
+        void Apply(Game game)
+        {
+            var cc=game&&game.Player?game.Player.Controller:null;
+            if(!cc)return;
+            if(ignored!=cc){if(ignored&&applied)Set(ignored,false);ignored=cc;applied=false;}
+            if(!cc.enabled||!cc.gameObject.activeInHierarchy)return;
+            if(want){Set(cc,true);applied=true;}
+            else if(applied){Set(cc,false);applied=false;}
+        }
+        void Set(CharacterController cc,bool ignore)
+        {
+            if(leafColliders==null)leafColliders=GetComponentsInChildren<Collider>(true);
+            foreach(var c in leafColliders)if(c&&c.enabled&&!c.isTrigger&&c!=cc)Physics.IgnoreCollision(c,cc,ignore);
+        }
+        bool PlayerOverlapsLeaf()
+        {
+            if(!ignored||leafColliders==null)return false;
+            var body=ignored.bounds;body.Expand(.06f);
+            foreach(var c in leafColliders)if(c&&!c.isTrigger&&c.enabled&&c.bounds.Intersects(body))return true;
+            return false;
+        }
+        void OnDisable(){if(ignored&&applied)Set(ignored,false);want=false;applied=false;}
         void Update()
         {
             if(!measured)Measure();
-            transform.localRotation=Quaternion.RotateTowards(transform.localRotation,Closed*Quaternion.Euler(0,Open?openAngle:0,0),Time.deltaTime*150);
+            var game=Owner;
+            // Something other than Toggle (the hunter walking through) set Open: pick the swing the same way and treat it as motion.
+            if(Open!=lastOpen){lastOpen=Open;if(Open)ChooseSwing(game);BeginMotion(game);}
+            var target=Closed*Quaternion.Euler(0,Open?openAngle:0,0);
+            transform.localRotation=Quaternion.RotateTowards(transform.localRotation,target,Time.deltaTime*150);
+            bool moving=Quaternion.Angle(transform.localRotation,target)>.05f;
+            if(moving){settleUntil=Time.time+SettleSeconds;want=true;}
+            else if(want&&Time.time>=settleUntil&&!PlayerOverlapsLeaf())want=false;
+            if(want||applied)Apply(game);
         }
+        Game cachedGame;
+        Game Owner{get{if(!cachedGame)cachedGame=FindFirstObjectByType<Game>();return cachedGame;}}
     }
 }

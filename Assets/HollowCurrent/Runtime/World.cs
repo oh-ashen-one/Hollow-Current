@@ -155,6 +155,7 @@ namespace HollowCurrent
                 t.position=centre-n*(half+.02f);Physics.SyncTransforms();float back=door.MeasureSwing();
                 if(front>=back){t.position=centre+n*(half+.02f);Physics.SyncTransforms();door.MeasureSwing();}
             }
+            Physics.SyncTransforms();CastleWorld.LogDoorLeaves(Root,"hinges placed");
             if(points.HidingPlaces!=null)HidingPlaces.AddRange(points.HidingPlaces);else foreach(var item in Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Hide)HidingPlaces.Add(item);
             if(points.Lamps!=null)Lamps.AddRange(points.Lamps);
             if(points.WindowLights!=null)WindowLights.AddRange(points.WindowLights);

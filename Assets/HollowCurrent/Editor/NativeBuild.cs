@@ -35,6 +35,7 @@ namespace HollowCurrent.Editor
             var authored=new World();authored.Build(map);
             authored.Snapshot();
             PersistLayoutAssets(authored.Root,info.LayoutFolder);
+            if(map==MapId.Castle)CastleWorld.LogDoorLeaves(authored.Root,"persisted");
             AssetDatabase.SaveAssets();
             foreach(var component in authored.Root.GetComponentsInChildren<MonoBehaviour>(true))
             {
