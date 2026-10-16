@@ -299,9 +299,13 @@ namespace HollowCurrent
         // (the round 6 rule still holds); the skeleton joins them on the axis instead of the west side.
         // Art axes at yaw 0: lateral x = hall x, art height = hall y, art +Y (head) = hall -Z (toward the doors). Measured art extents
         // (Blender import of GiantSkeleton.fbx): x -1.469 .. 1.543, y -6.010 (tail) .. 6.103 (head), z -0.156 (skull sunk) .. 2.827.
-        public static readonly Vector3 SkeletonPos = new Vector3(0f, 0.05f, 18.4f);
+        // integ-fb (doors x layout): at z 18.4 / length scale .5 the skull (east jaw cells x 0.3-0.9, z 15.15) sat 1.04 m from the east great-door
+        // hinge (1.5, 14.3), inside the 1.5 m leaf sweep, so the east leaf could not swing into the hall (the swing probe fell back to opening
+        // toward the player, owner item 4). Length scale .45 and centre z 18.72 keep the tail 0.63 m from the table and put every footprint
+        // cell >= 1.6 m from both hinges: art z 15.97 (head) .. 21.42 (tail), 5.45 m long.
+        public static readonly Vector3 SkeletonPos = new Vector3(0f, 0.05f, 18.72f);
         public const float SkeletonYaw = 0f;
-        public static readonly Vector3 SkeletonScaleVec = new Vector3(.6f, .6f, .5f);   // local x lateral, y height, z length
+        public static readonly Vector3 SkeletonScaleVec = new Vector3(.6f, .6f, .45f);   // local x lateral, y height, z length
         public const float SkeletonArtMinX = -1.469f, SkeletonArtMaxX = 1.543f, SkeletonArtMinY = -6.010f, SkeletonArtMaxY = 6.103f, SkeletonArtHeight = 2.827f;
         public const float SkeletonClearance = .6f;        // required walking clearance to every pier, the table and the chairs (m)
         public const float SkeletonAxisTolerance = .15f;   // the ribcage centre must sit this close to x = 0

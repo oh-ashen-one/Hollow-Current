@@ -156,7 +156,7 @@ namespace HollowCurrent
                 views.Add(("hall_from_doors",new Vector3(0,1.64f,14.6f),new Vector3(0,1.2f,22.5f)));                       // the owner's view: what you walk into from the great doors
                 views.Add(("hall_skeleton_side_west",new Vector3(-3.0f,1.64f,18.4f),new Vector3(0,.9f,18.4f)));               // between the piers, broadside on the ribcage
                 views.Add(("hall_skeleton_side_east",new Vector3(3.0f,1.64f,18.4f),new Vector3(0,.9f,18.4f)));
-                views.Add(("hall_skeleton_head",new Vector3(-1.4f,1.5f,14.9f),new Vector3(.05f,.4f,15.6f)));                 // the skull, 1 m inside the doors
+                views.Add(("hall_skeleton_head",new Vector3(-1.4f,1.5f,15.0f),new Vector3(.05f,.4f,16.0f)));                 // the skull, 1 m inside the doors
                 views.Add(("hall_skeleton_tail",new Vector3(1.6f,1.5f,23.0f),new Vector3(.3f,.5f,20.5f)));                    // from the table end, the tail clear of the table front
                 views.Add(("hall_pier_gap",new Vector3(-4.6f,1.64f,20.1f),new Vector3(-0.5f,.9f,18.4f)));                    // from the west bay through the pier gap: nothing pinned between columns
                 views.Add(("chapel_from_great_doors",new Vector3(6.6f,1.64f,9.0f),new Vector3(11.5f,1.1f,6.5f)));            // entering from the courtyard doors
@@ -172,8 +172,8 @@ namespace HollowCurrent
                 // between the piers at z 15.6 and 18.6; these eyes look through the gap (z 16.05 to 18.15) from inside the hall.
                 // Wave FB: the skeleton lies on the hall axis now (spine x 0, z 15.35-21.41, skull at about (0.03, 0.4, 15.6)); the ids stay so
                 // earlier rounds' captures compare by name, the eyes follow the skull.
-                views.Add(("hall_skull_from_east",new Vector3(2.6f,1.5f,18.8f),new Vector3(.03f,.4f,15.6f)));
-                views.Add(("hall_skull_close",new Vector3(1.6f,1.3f,17.2f),new Vector3(.03f,.4f,15.6f)));
+                views.Add(("hall_skull_from_east",new Vector3(2.6f,1.5f,18.8f),new Vector3(.03f,.4f,16.0f)));
+                views.Add(("hall_skull_close",new Vector3(1.6f,1.3f,17.2f),new Vector3(.03f,.4f,16.0f)));
                 views.Add(("hall_west_end_skull",new Vector3(-2.4f,1.64f,21.0f),new Vector3(.03f,.9f,16.5f)));
                 views.Add(("hall_table_books",new Vector3(1.1f,1.35f,21.0f),new Vector3(0,.78f,23.7f)));
                 views.Add(("crypt_ceiling",new Vector3(0,-1.56f,20),new Vector3(0,-.2f,23)));

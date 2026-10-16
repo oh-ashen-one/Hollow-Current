@@ -37,7 +37,7 @@ namespace HollowCurrent
         public Color AmbientSky = new Color(.10f, .125f, .19f);
         public Color AmbientEquator = new Color(.055f, .07f, .11f);
         public Color AmbientGround = new Color(.025f, .027f, .04f);
-        public float AmbientIntensity = .75f;
+        public float AmbientIntensity = .65f;   // integ-fb .75 -> .65 (hall too bright with the lantern off)
 
         [Header("Ambient fill for the castle surface shaders (linear). Kept low so shadows can reach real black.")]
         public Color FillSky = new Color(.005f, .007f, .012f);       // was (.010,.014,.024)
