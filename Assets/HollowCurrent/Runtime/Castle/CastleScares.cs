@@ -920,8 +920,8 @@ namespace HollowCurrent
                 return wingTexture;
             }
         }
-        // A tall cloaked figure with a small head: only the alpha matters.
-        static Texture2D FigureTexture
+        // A tall cloaked figure with a small head: only the alpha matters. (fb-onboard: CastleOnboarding's doorway figure uses it too.)
+        internal static Texture2D FigureTexture
         {
             get
             {

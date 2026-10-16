@@ -130,6 +130,7 @@ static class RulesTests
         WaveKTests();
         WaveLTests();
         WaveL3Tests();
+        OnboardTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
@@ -191,6 +192,9 @@ static class RulesTests
     // The castle without the wave L3 "no escalation before the first hunt" gate: for tests of the escalation mechanism itself.
     static HuntRules EscMech(HuntRules from){var r=from.Clone();r.EscalationNeedsFirstHunt=false;r.FirstHuntAfterHold=0;r.LullHoldSeconds=0;return r;}
     // The castle without the wave L3 holds (for wave I-K mechanism tests that roll dice right after the first hunt).
+    // fb-onboard: the castle's first-hunt clock runs from spawn; mechanism tests of the dice, the floor and the record-keyed
+    // guarantee use the record-keyed clock so the from-spawn hunt does not end them early.
+    static HuntRules RecordKeyed(HuntRules from){var r=from.Clone();r.FirstHuntFromSpawn=false;return r;}
     static HuntRules NoHold(HuntRules from){var r=from.Clone();r.FirstHuntAfterHold=0;r.LullHoldSeconds=0;return r;}
     static HuntRules RecoveryMech(){var r=HuntRules.Castle.Clone();r.Name="Castle (wave I damping off)";r.GraceMin=0;r.GraceMax=0;r.DreadDecayRecovery=0;r.DreadDecayCalm=0;r.HuntDreadCap=0;r.GovernorGain=0;r.FirstHuntAfterHold=0;r.LullHoldSeconds=0;return r;}
     static Investigation StartOn(CaseBook book,Func<float> random=null,HuntRules rules=null){var c=new Investigation(book,random,rules);c.Equip();c.EnterHouse();return c;}
@@ -243,9 +247,9 @@ static class RulesTests
         Assert(Math.Abs(r.DiceChance(45,1)-.125f)<.0001f&&Math.Abs(r.DiceChance(65,1)-.25f)<.0001f&&Math.Abs(r.DiceChance(85,3)-.625f)<.0001f&&r.DiceChance(39.9f,3)==0,"dice chance by band times evidence");
 
         // Dice hunts occur / do not occur by band (one record: no first-hunt guarantee; dread held outside).
-        var low=StartOn(CaseBook.Castle,()=>0f);low.Record(Evidence.Induction);low.AddDread(low.RunDreadMin-.1f);
+        var low=StartOn(CaseBook.Castle,()=>0f,RecordKeyed(HuntRules.Castle));low.Record(Evidence.Induction);low.AddDread(low.RunDreadMin-.1f);
         Assert(TickUntilLeaves(low,Phase.Disturbance,300)==300&&low.Hunts==0,"before the first hunt, below the run's boundary: no dice, no floor, even with a certain roll");
-        var band=StartOn(CaseBook.Castle,()=>.2f);band.Record(Evidence.Induction);band.ForceDread(45);
+        var band=StartOn(CaseBook.Castle,()=>.2f,RecordKeyed(HuntRules.Castle));band.Record(Evidence.Induction);band.ForceDread(45);
         Assert(TickUntilLeaves(band,Phase.Disturbance,90)==90&&band.Hunts==0,"40-60 band: 0.125 chance never beats a 0.2 roll");
         band.ForceDread(65);int waited=TickUntilLeaves(band,Phase.Disturbance,30);
         Assert(waited<=7&&band.Phase==Phase.Hunt&&band.NoTellHunt&&band.HuntActive&&band.Hunts==1&&band.BreakerOn,"60-80 band: 0.25 chance beats 0.2; the 0.2 tell roll makes it a no-tell hunt (brazier untouched)");
@@ -255,9 +259,9 @@ static class RulesTests
         high.Tick(9,false);Assert(high.Phase==Phase.Hunt&&high.Hunts==1,"rolled Warning becomes a hunt after 9 s");
 
         // Forced floor: 240 s at Dread >= 40 since the last hunt; the clock pauses below 40.
-        var floor=StartOn(CaseBook.Castle,()=>.99f);floor.Record(Evidence.Induction);floor.ForceDread(floor.RunDreadMin+5);
+        var floor=StartOn(CaseBook.Castle,()=>.99f,RecordKeyed(HuntRules.Castle));floor.Record(Evidence.Induction);floor.ForceDread(floor.RunDreadMin+5);
         Assert(TickUntilLeaves(floor,Phase.Disturbance,300)==240&&floor.Phase==Phase.Warning&&!floor.FalseWarning&&floor.CurrentWarningSeconds>=5&&floor.CurrentWarningSeconds<=14,"floor forces a hunt after 240 s just above the run's boundary");
-        var pause=StartOn(CaseBook.Castle,()=>.99f);pause.Record(Evidence.Induction);pause.ForceDread(pause.RunDreadMin+5);
+        var pause=StartOn(CaseBook.Castle,()=>.99f,RecordKeyed(HuntRules.Castle));pause.Record(Evidence.Induction);pause.ForceDread(pause.RunDreadMin+5);
         Assert(TickUntilLeaves(pause,Phase.Disturbance,200)==200,"200 s above the boundary is not enough");pause.ForceDread(pause.Dread-10);
         Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==100,"floor clock pauses below the boundary");pause.ForceDread(pause.Dread+10);
         Assert(TickUntilLeaves(pause,Phase.Disturbance,100)==40,"floor clock resumes where it stopped");
@@ -422,7 +426,7 @@ static class RulesTests
         var bwt=Start();bwt.BeginWarning();Assert(!bwt.BreakerOn,"Bellwether warning still cuts the breaker");
 
         // #15 first hunt measured from the second record, not from Disturbance entry.
-        var slow=StartOn(CaseBook.Castle);slow.Record(Evidence.Induction);Assert(TickUntilLeaves(slow,Phase.Disturbance,300)==300,"one record for 300 s: no hunt");
+        var slow=StartOn(CaseBook.Castle,null,RecordKeyed(HuntRules.Castle));slow.Record(Evidence.Induction);Assert(TickUntilLeaves(slow,Phase.Disturbance,300)==300,"one record for 300 s: no hunt");
         slow.Record(Evidence.Handprint);slow.Tick(1,false);Assert(slow.Phase==Phase.Disturbance,"second record does not trigger the hunt on the next tick");
         Assert(TickUntilLeaves(slow,Phase.Disturbance,200)==94&&slow.Phase==Phase.Warning,"first hunt 95 s after the second record");
         var slowSave=StartOn(CaseBook.Castle);slowSave.Record(Evidence.Induction);slowSave.Record(Evidence.Handprint);slowSave.Tick(90,false);var ss=slowSave.SaveCheckpoint();
@@ -447,7 +451,7 @@ static class RulesTests
         var fa=StartOn(CaseBook.Castle,Seeded(80),low30);var fb=StartOn(CaseBook.Castle,Seeded(80),high50);bool same=fa.RunDreadMin!=fb.RunDreadMin;float rampStep=0,rp=fa.FeltDread;
         for(int i=0;i<300;i++){fa.AddDread(.4f);fb.AddDread(.4f);fa.Tick(1,false);fb.Tick(1,false);if(fa.Phase!=Phase.Disturbance||fa.FeltDread!=fb.FeltDread)same=same&&fa.Phase!=Phase.Disturbance;rampStep=Math.Max(rampStep,Math.Abs(fa.FeltDread-rp));rp=fa.FeltDread;}
         Assert(same,"FeltDread is identical for runs that differ only in the boundary");Assert(rampStep<6.5f,"no step in FeltDread anywhere on a 0-100 ramp");
-        int feltCalls=0;var quiet=new Investigation(CaseBook.Castle,()=>{feltCalls++;return .5f;});quiet.Equip();quiet.EnterHouse();for(int i=0;i<300;i++){quiet.AddDread(.3f);quiet.Tick(1,true,false,false);}
+        int feltCalls=0;var quiet=new Investigation(CaseBook.Castle,()=>{feltCalls++;return .5f;},RecordKeyed(HuntRules.Castle));quiet.Equip();quiet.EnterHouse();for(int i=0;i<300;i++){quiet.AddDread(.3f);quiet.Tick(1,true,false,false);}
         Assert(feltCalls==3&&quiet.Phase==Phase.Survey,"FeltDread never consumes dice (only the 3 construction draws in Survey)");
         var cpA=new Investigation(CaseBook.Castle,()=>.9f);cpA.Equip();cpA.EnterHouse();cpA.Record(Evidence.Induction);var cpS=cpA.SaveCheckpoint();var cpB=new Investigation(CaseBook.Castle,()=>.1f);cpB.RestoreCheckpoint(cpS);
         Assert(Math.Abs(cpS.RunDreadMin-48)<.01f&&cpB.RunDreadMin==cpS.RunDreadMin,"the run's boundary survives a checkpoint restore");
@@ -482,7 +486,7 @@ static class RulesTests
         Assert(b.WarningSecondsMin==9&&b.WarningSecondsMax==9&&b.QuietPhaseChance==0&&b.RecoveryLowChance==0&&b.FeltEpisodeGapMax==0,"Bellwether: no wave H randomisation");
 
         // N7: Survey and Containment roll after the first hunt; Recovery below 80 rolls (distribution in the wave G block).
-        Assert(TickUntilLeaves(StartOn(CaseBook.Castle,()=>0f),Phase.Survey,600)==600,"Survey before any hunt stays quiet even with certain dice");
+        Assert(TickUntilLeaves(StartOn(CaseBook.Castle,()=>0f,RecordKeyed(HuntRules.Castle)),Phase.Survey,600)==600,"record-keyed clock: Survey before any hunt stays quiet even with certain dice");
         var sv=SurveyAfterHunt(()=>.005f);Assert(sv.Phase==Phase.Survey&&TickUntilLeaves(sv,Phase.Survey,30)<10&&sv.Phase==Phase.Hunt&&sv.ThreatFrom==Phase.Survey,"Survey after a hunt: a 1/80 roll hunts");
         Assert(TickUntilLeaves(SurveyAfterHunt(()=>.99f),Phase.Survey,600)==600,"Survey roll above 1/80 never hunts");
         var ct=DiagnosedCastle(()=>.99f);Assert(ct.Phase==Phase.Containment&&TickUntilLeaves(ct,Phase.Containment,600)==600,"setup: Containment with high rolls stays quiet");
@@ -793,6 +797,30 @@ static class RulesTests
             +" | runs with a >=120 s gap after the first hunt="+everyGap.ToString("F4")+" (min longest gap "+Quantile(maxq,0).ToString("F0")+" s)"
             +" | share mean="+shareMean.ToString("F3")+" p10="+shareP10.ToString("F3")+" p90="+Quantile(share,.9f).ToString("F3")+" | hunts <=10 s after an apparition="+within10.ToString("F3");
     }
+    // fb-onboard (owner feedback 2026-10-15, item 12): the castle HUD objective chain.
+    static void OnboardTests()
+    {
+        var b=CaseBook.Castle;var none=new bool[3];
+        var c=StartOn(CaseBook.Castle);var o=CastleObjective.For(c,none,false,false);
+        Assert(o.Step==CastleObjective.Letter&&o.Text.Contains("gate keeper's letter"),"spawn: read the gate keeper's letter");
+        Assert(CastleObjective.Nudge(o.Step,c,none)!=null,"the letter step has an idle nudge");
+        c.Read(b.ArrivalNoteTitle);o=CastleObjective.For(c,none,false,false);
+        Assert(o.Step==CastleObjective.Ledger&&o.Text.Contains("(0/3)")&&o.Text.Contains("dining hall")&&o.Text.Contains("portrait hall")&&o.Text.Contains("chapel"),"letter read: find the ledger pages, all three rooms named");
+        c.Read(b.NoteTitles[0]);c.Read(b.NoteTitles[2]);o=CastleObjective.For(c,none,false,false);
+        Assert(o.Step==CastleObjective.Ledger&&o.Text.Contains("(2/3)")&&!o.Text.Contains("dining hall")&&o.Text.Contains("portrait hall")&&!o.Text.Contains("chapel (")
+            &&CastleObjective.Nudge(o.Step,c,none).Contains("portrait hall"),"two pages read: only the missing page's room is named, and the nudge points there");
+        c.Read(b.NoteTitles[1]);o=CastleObjective.For(c,none,false,false);
+        Assert(o.Step==CastleObjective.Relics&&o.Text.Contains("(0/3)")&&o.Text.Contains("reliquary"),"pages read: the relics, the first missing one's place named");
+        o=CastleObjective.For(c,new[]{true,false,false},false,false);Assert(o.Step==CastleObjective.Relics&&o.Text.Contains("(1/3)")&&o.Text.Contains("orrery"),"blade found: next the hilt in the orrery");
+        o=CastleObjective.For(c,new[]{true,true,true},false,false);Assert(o.Step==CastleObjective.Forge&&o.Text.Contains("altar"),"three relics: forge at the altar");
+        o=CastleObjective.For(c,new[]{true,true,true},true,false);Assert(o.Step==CastleObjective.Fight&&o.Text.Contains("bell")&&o.Tracker.Contains("FORGED"),"sword: ring the bell for the fight");
+        foreach(Evidence e in Enum.GetValues(typeof(Evidence)))c.Record(e);
+        o=CastleObjective.For(c,none,false,true);Assert(o.Step==CastleObjective.Reconstruct&&o.Text==b.GoalReconstruct&&o.Tracker.Contains("RECORDS 3/3")&&o.Tracker.Contains("HUNT SURVIVED"),"records, pages and a hunt survived: reconstruct in the journal");
+        o=CastleObjective.For(c,none,false,false);Assert(o.Step==CastleObjective.Relics&&o.Tracker.Contains("RECORDS 3/3")&&!o.Tracker.Contains("HUNT SURVIVED"),"records and pages without a survived hunt: the relic route stays the objective, the tracker shows the rest");
+        var w=StartOn(CaseBook.Castle);w.Read(b.ArrivalNoteTitle);w.BeginWarning();o=CastleObjective.For(w,none,false,false);Assert(o.Step==CastleObjective.Warning&&o.Text==b.GoalWarning,"a Warning shows the case's warning goal");
+        var s=SealedCastle();o=CastleObjective.For(s,none,false,true);Assert(o.Step==CastleObjective.Contain||o.Step==CastleObjective.Return,"containment and return keep the bell and winch goals ("+o.Step+")");
+        var h=StartOn(CaseBook.Castle);h.Read(b.ArrivalNoteTitle);h.BeginNoTellHunt();o=CastleObjective.For(h,none,false,false);Assert(h.Phase==Phase.Hunt&&o.Step==CastleObjective.Ledger,"a hunt keeps the calm objective (critic r10 #4)");
+    }
     static void WaveL3Tests()
     {
         // Block model: a due time that expires inside a block is not fired at the block's end; a fresh 40-55 s gap is drawn.
@@ -815,6 +843,20 @@ static class RulesTests
         foreach(var band in new[]{FirstHuntBand.Early,FirstHuntBand.Mid,FirstHuntBand.Late})foreach(var u in new[]{0f,.5f,.99f})
         {var c=StartOn(CaseBook.Castle,()=>u);var plan=new RunPlan{Band=band};c.UseRunPlan(plan);c.Record(Evidence.Induction);c.Record(Evidence.Handprint);int t=TickUntilLeaves(c,Phase.Disturbance,400);
          Assert(t>=plan.FirstHuntMin&&t<=plan.FirstHuntMax+1,"first hunt inside its planned band ("+band+", roll "+u+")");}
+        // fb-onboard (owner feedback 2026-10-15, item 12): the castle's first-hunt clock runs from spawn. A player who records nothing
+        // (Survey all along) meets the Count inside the plan's band; records neither restart nor shorten that clock.
+        Assert(HuntRules.Castle.FirstHuntFromSpawn&&HuntRules.LongNight.FirstHuntFromSpawn&&!HuntRules.Bellwether.FirstHuntFromSpawn,"castle and Long Night: first-hunt clock from spawn; Bellwether: never");
+        foreach(var band in new[]{FirstHuntBand.Early,FirstHuntBand.Mid,FirstHuntBand.Late})foreach(var u in new[]{0f,.5f,.99f})
+        {var c=StartOn(CaseBook.Castle,()=>u);var plan=new RunPlan{Band=band};c.UseRunPlan(plan);int t=TickUntilLeaves(c,Phase.Survey,400);
+         Assert(c.Evidence.Count==0&&t>=plan.FirstHuntMin&&t<=plan.FirstHuntMax+1&&(c.Phase==Phase.Warning||c.Phase==Phase.Hunt)&&c.ThreatFrom==Phase.Survey,"no records: first hunt from Survey inside its band, counted from spawn ("+band+", roll "+u+", t "+t+")");}
+        {var c=StartOn(CaseBook.Castle,()=>.5f);c.UseRunPlan(new RunPlan{Band=FirstHuntBand.Early});for(int i=0;i<40;i++)c.Tick(1,false);c.Record(Evidence.Induction);c.Record(Evidence.Handprint);
+         int t=40+TickUntilLeaves(c,Phase.Disturbance,400);Assert(t>=60&&t<=101,"records at 40 s do not restart the from-spawn clock (first hunt at "+t+" s from spawn)");}
+        {var c=StartOn(CaseBook.Castle,()=>.5f);c.UseRunPlan(new RunPlan{Band=FirstHuntBand.Late});c.BeginNoTellHunt();Assert(c.Hunts==1,"setup: an early sarcophagus hunt");
+         for(int i=0;i<400&&c.Hunts==1;i++)c.Tick(1,false);Assert(c.FirstHuntDeadline<0,"a hunt before the deadline ends the first-hunt clock (never drawn)");}
+        var briefed=new Investigation(CaseBook.Castle,()=>0f);for(int i=0;i<300;i++)briefed.Tick(1,false);Assert(briefed.Phase==Phase.Briefing&&briefed.Hunts==0&&briefed.Elapsed==0,"the clock does not run in Briefing (Game equips the castle at spawn)");
+        // A first run (no history) is always Early; the band after it never repeats it.
+        foreach(var u in new[]{0f,.34f,.67f,.99f}){var first=new RunHistory().Next(u,u);Assert(first.Band==FirstHuntBand.Early,"no history: Early band (roll "+u+")");var h2=new RunHistory();h2.Push(first);Assert(h2.Next(u,u).Band!=FirstHuntBand.Early,"second run: not Early again");}
+        Assert(RunHistory.Parse("").Next(.9f,.9f).Band==FirstHuntBand.Early&&RunHistory.Parse("-,-,-").Next(.9f,.9f).Band==FirstHuntBand.Early,"empty or unset history parses to a first run");
         // Escalation never before the first hunt.
         var eb=StartOn(CaseBook.Castle,()=>0f);eb.Record(Evidence.Induction);eb.NoteApparition();eb.NoteApparition();Assert(eb.EscalationBlock(false)=="before_first_hunt"&&!eb.TryEscalate(true),"no escalation before the run's first hunt");
         // Lull dice hold: 120 s of non-threat time, unless Dread >= 60; the countdown stops in a hunt.
@@ -906,7 +948,7 @@ static class RulesTests
         Assert(HuntRules.Bellwether.GovernorGain==0,"Bellwether has no governor");
         var bw=Start();Hunt(bw);bw.Tick(38,true);Assert(bw.Governor==1&&bw.GovernorAtLastGrace==1,"Bellwether governor stays neutral");
         // Neutral, then quiet.
-        var q=StartOn(CaseBook.Castle);q.Record(Evidence.Induction);Assert(q.GovernorShare==0&&q.Governor==1,"no threat yet: neutral");
+        var q=StartOn(CaseBook.Castle,null,RecordKeyed(HuntRules.Castle));q.Record(Evidence.Induction);Assert(q.GovernorShare==0&&q.Governor==1,"no threat yet: neutral");
         for(int t=0;t<179;t++)q.Tick(1,false);Assert(q.Governor==1,"quiet for under 3 minutes: neutral");q.Tick(1,false);Assert(q.Governor==.8f,"quiet for 3 minutes: graces shorten (0.8)");
         q.BeginNoTellHunt();for(int t=0;t<60&&q.Phase==Phase.Hunt;t++)q.Tick(1,false);
         Assert(q.Phase==Phase.Recovery&&q.GovernorAtLastGrace==.8f&&Math.Abs(q.GraceSeconds-48)<.01f,"a hunt that began after 3 quiet minutes gets 0.8 x the 60 s grace");

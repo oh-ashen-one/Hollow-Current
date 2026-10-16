@@ -221,16 +221,7 @@ namespace HollowCurrent
             else
             {
                 Move(dt);
-                Focus=null;
-                if(Physics.Raycast(View.transform.position,View.transform.forward,out var hit,2.7f))
-                {
-                    Focus=hit.collider.GetComponent<Interactable>();
-                    // Deliberate Bellwether bug fix (2026-10-14): a hide's focus trigger sits in the same plane as its solid lower door
-                    // (89dac7e on main), so the ray could stop on the door and lose the cupboard. Accept an interactable whose collider the
-                    // same ray meets within 12 cm of the first hit.
-                    if(!Focus)foreach(var h in Physics.RaycastAll(View.transform.position,View.transform.forward,Mathf.Min(2.7f,hit.distance+.12f)))
-                    {var it=h.collider.GetComponent<Interactable>();if(it&&h.distance<=hit.distance+.12f){Focus=it;break;}}
-                }
+                Focus=FocusRay(View.transform.position,View.transform.forward,out _);
                 if(input.Use&&Focus!=null)Focus.Use(Game);
             }
             UseEquipment(dt);
@@ -259,6 +250,19 @@ namespace HollowCurrent
                 footstep-=dt;
                 if(footstep<=0){footstep=Running?.3f:Crouched?.8f:.51f;Game.Sound.Cue("step",transform.position,.22f);Game.Creature.Hear(transform.position,Running?10:Crouched?1.8f:4.5f);}
             }
+        }
+        // The interaction ray (also used by CastleOnboarding's HC_HIDE_SPOTS audit, so the audit tests exactly what E does).
+        public const float FocusRange=2.7f;
+        public static Interactable FocusRay(Vector3 origin,Vector3 direction,out RaycastHit first)
+        {
+            if(!Physics.Raycast(origin,direction,out first,FocusRange))return null;
+            var focus=first.collider.GetComponent<Interactable>();
+            // Deliberate Bellwether bug fix (2026-10-14): a hide's focus trigger sits in the same plane as its solid lower door
+            // (89dac7e on main), so the ray could stop on the door and lose the cupboard. Accept an interactable whose collider the
+            // same ray meets within 12 cm of the first hit.
+            if(!focus)foreach(var h in Physics.RaycastAll(origin,direction,Mathf.Min(FocusRange,first.distance+.12f)))
+            {var it=h.collider.GetComponent<Interactable>();if(it&&h.distance<=first.distance+.12f){focus=it;break;}}
+            return focus;
         }
         bool AimAt(Vector3 point,float range,float cone)
         {
@@ -372,7 +376,10 @@ namespace HollowCurrent
         }
         public void Hide(Interactable spot)
         {
-            if(Game.Case.Phase==Phase.Briefing)return;
+            // fb-onboard (owner feedback items 6, 7: "everything you can hide in doesn't work"): E on a hide always hides or says why.
+            // The castle never sits in Briefing any more (Game equips at spawn); this is the safety net, never a silent return.
+            // Bellwether keeps its silent Briefing refusal unchanged (its van rack still starts the case).
+            if(Game.Case.Phase==Phase.Briefing){if(Game.Map==MapId.Castle){Game.Notice("Not yet: the case has not started.");Debug.Log("HC_PLAYER_HIDE_REFUSED hide="+spot.name+" reason=briefing");}return;}
             if(Game.Map==MapId.Castle)
             {
                 // Wave K: from Dread 60, one hide attempt in six is held from inside (FEAR_PLAN item 5; injected dice).
@@ -384,6 +391,7 @@ namespace HollowCurrent
             }
             Game.Creature.WitnessHide(spot.HidePoint);
             hiding=spot;Hidden=true;Teleport(spot.HidePoint);
+            if(Game.Map==MapId.Castle)Debug.Log("HC_PLAYER_HID hide="+spot.name+" phase="+Game.Case.Phase+" t="+Game.Case.Elapsed.ToString("F0"));
             var outward=Vector3.ProjectOnPlane(spot.ExitPoint-spot.HidePoint,Vector3.up).normalized;
             hideYaw=Quaternion.LookRotation(outward).eulerAngles.y;transform.rotation=Quaternion.Euler(0,hideYaw,0);
             pitch=0;View.transform.localRotation=Quaternion.identity;View.transform.localPosition=new Vector3(0,1.65f,.18f);

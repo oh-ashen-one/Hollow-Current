@@ -275,6 +275,7 @@ namespace HollowCurrent
             h.transform.localRotation = rot;
             h.GetComponent<Collider>().isTrigger = true;
             h.HidePoint = W(p); h.ExitPoint = W(p + rot * new Vector3(0, 0, -1.2f));
+            CastleOnboarding.ProtrudeHideFocus(h);   // fb-onboard: the focus trigger stands proud of the door, so E always finds it
             hides.Add(h);
         }
 
@@ -1625,6 +1626,13 @@ namespace HollowCurrent
                 plank.transform.localScale = new Vector3(1.35f, .13f, .035f);
                 nailPlanks.Add(plank);
             }
+            // fb-onboard (owner feedback item 7, "never silent"): the nailed door still answers E. A focus-only trigger over the door
+            // (InteractKind.Nailed, not Hide, so no hunter or hide list ever treats it as a hiding place) says "Nailed shut".
+            var marker = new GameObject("Nailed shut / " + item.name);
+            marker.transform.SetParent(t.parent, true); marker.transform.SetPositionAndRotation(t.position, rot); marker.transform.localScale = t.lossyScale;
+            var box = marker.AddComponent<BoxCollider>(); box.isTrigger = true; box.size = new Vector3(1, 1, 3); box.center = new Vector3(0, 0, -1);
+            var says = marker.AddComponent<Interactable>(); says.Kind = InteractKind.Nailed; says.Label = item.Label + " · nailed shut"; says.Body = "";
+            nailPlanks.Add(marker);
             item.gameObject.SetActive(false);
         }
         // Reopens every nailed hide and removes the planks (a new run, or a retry from checkpoint).

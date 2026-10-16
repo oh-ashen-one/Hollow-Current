@@ -177,7 +177,8 @@ namespace HollowCurrent
             GoalNeedContext="The instrument records need context. Find the steward's, astronomer's and painter's ledger pages.",
             GoalReconstruct="Reconstruct the bargain in your journal [J].",
             GoalDefault="Follow his residue. Record what the instruments reveal. Compare it with the Blood Ledger.",
-            Arrival="Dispatch / Castle gate. The household is long gone. Keep the drawbridge in reach. He can fly the walls. Take the instruments and read the gate keeper's letter.",
+            // fb-onboard: she arrives carrying the instruments (Game equips the castle at spawn); the letter is the first objective.
+            Arrival="Dispatch / Castle gate. The household is long gone. You carry the instruments. Read the gate keeper's letter on the table, then find the Blood Ledger. He can fly the walls.",
             ArrivalCue="household is long gone",KitCue="Three instruments",
             RadioInterference="Radio / ...the bell... ring... the bell...",
             RadioHunt="Radio / Get under cover. Lantern off. Stay quiet.",
