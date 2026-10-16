@@ -1,3 +1,46 @@
+# HANDOFF: wave FB (owner feedback 2026-10-15) integrated, built and proved (read this section first)
+
+Branch `haunted-castle` = `hc/integ-fb`, pushed. Integrator: Opus 5.5 (piece fb-integ). Owner feedback: `docs/haunted-castle/rounds/r13/OWNER_FEEDBACK.md` (items 1-13). Nothing left running, GPU slot released, `.wt/wallart-art` (Codex) and the uncommitted `CODEX_HANDOFF.md` edit untouched.
+
+**Merged on `hc/integ-fb` (from `hc/owner-feedback-1` `d0903fa`):** hc/fb-onboard `019699d` (items 6, 7, 12), hc/fb-doors `9aa6235` (3, 4, 5), hc/fb-audio `76265d3` (1, 2, 11), hc/fb-layout `1598b76` (8, 9, 12 lighting), hc/fb-docui `986349e` (10), hc/fb-voice2 `309d348` (13). Conflicts: `CaptureMode.cs` (doors + layout capture sets, both kept), `ASSET_LOG.md` (both sections kept). Handoffs: `docs/haunted-castle/handoffs/fb-*.md`.
+
+**Integrator changes:**
+- Skeleton vs great doors: at z 18.4 / length .5 the skull sat 1.04 m from the east great-door hinge, so that leaf could not swing into the hall and opened toward the player. Now `SkeletonPos` z 18.72, `SkeletonScaleVec` (.6, .6, .45): skeleton z 15.97-21.42, table gap 0.63, `columns_hit=[]`; both hall leaves now open 155 deg into the hall from the courtyard.
+- One lighting round (`CastleLightTuning`/`CastleAtmosphere`): candles .53 -> .40, rose moon .66 -> .50, vault fill .10 -> .05, crypt cold .42 -> .32, ambient .75 -> .65, chapel candles .6 -> .75; castle lantern scale 1.35 -> 2.4, range 24, cone 80 deg (new `TorchSpotAngle`, castle only).
+- fb-voice2 follow-up: deleted the nine retired `voice_cc_*` clips (hunt_hungry, dispatch, night, kit, ending, contain, hint_signal/trace/voice) and their 8 remaining `voice-lines.json` entries.
+- Doors capture inside views moved east of the skeleton.
+
+**Build:** `Builds/macOS/Hollow Current.app` (both maps, windowed 1920x1080), binary 2026-10-15 20:58:57 from the tree committed as `627f588` (bake commit). Bakes: Castle 7 maps / 197 probes / 17 reflections, Bellwether 4 / 124 / 9 (Bellwether had to be re-baked: its receipt hashes every non-castle `.cs`, so Interface/World/Game/Investigator edits stale it; any `.cs` change needs both re-bakes before `BuildPreparedMacAll`).
+
+**Static checks (on `627f588`):** check_source PASS (1191 assertions), check_castle_scares PASS, check_audio_keys OK, check_audio_quality OK (not strict), check_throwables_scene OK, bellwether_fuzz identical, check_castle_doors OK. Prepare log: 23 `HC_DOOR_LEAF_AXIS turned=True`, `HC_DOOR_LEAF_SUMMARY problems=0` (both stages), `HC_HIDE_SPOTS_SUMMARY failed=[]` (prepare, validate, runtime), `HC_SKELETON columns_hit=[] PASS`, `HC_HALL_AXIS PASS`, `HC_CHAPEL aisle=2.35 passages 2.43/2.57 PASS`; runtime `HC_DOC_UI fonts_complete=True paper=True`.
+
+**Proofs on the final build** (logs `.playtest-fb-*.log` in the clone, frames `docs/haunted-castle/rounds/r13/captures/fb2/`, local; first-build runs in `fb/`):
+
+| Proof | Result |
+|---|---|
+| cold 1 | PASS: no Briefing after 1 s, 6 HC_WATCHED in 180 s, first 7.5 s, Warning->hunt 74 s (Early), 4 HC_OBJECTIVE, hides 5/5 hidden, runtime hides 8/8, blockers 0 |
+| cold 2 | PASS: 6 cues, first 6.7 s, hunt 103 s after a Warning at ~92 s, hides 5/5, blockers 0 |
+| natural (cleared `hc.castle.runs`) | WON: band Early, first hunt 91 s, share 0.208, longest gap 233 s, 3 hunts, 1 mode 12 grab (no loop), no "cannot be sampled", 0 exceptions; `HC_VOICE_SUMMARY lines=2 spatial=2 dropped=0`, 1 `HC_VOICE_GATE spoke`, 0 `cc_hunt_hungry`, 0 dispatch. Onboard: firstCue 17.7, 7 cues, 2 before the first hunt. Only 2 apparitions, grabContinuity 0/3 (r13 critic metrics, not FB) |
+| natural (history not cleared) | WON: first hunt 77 s, share 0.276, gap 187 s, 4 hunts / 4 `spoke` (one per hunt), dropped 0, no cc_hunt_hungry |
+| doors capture | PASS: closed leaves fill the opening from the courtyard; opened from the courtyard both swing into the hall (openAngle -155/+155). From inside they also open into the hall (hinged on the inner face) and pass through the player |
+| layout capture | skeleton centred on the axis, clear of every pier, skull ~1.7 m inside the doors; chapel aisle and side passages open, font in the SE corner |
+| exposure (lantern off / on, near-black %) | S1 26.8 / 19.4, S2 41.3 / 40.0, S3 35.1 / 28.9 (round 1 was 24.7/21.9, 46.9/46.7, 32.5/30.4). Off in band: S2, S3; hall views 21-32 % off (FAIL, too bright); on in band: S1 and 4 hall views; chapel views 25-55 % on (too dark) |
+| docui | letter, 3 ledger pages, S8 journal ledger, Bellwether child's drawing: readable, no duplicated heading, text sits on (not through) the ruled lines; no offset change made |
+| escape | WON, blockers 0, 4 `HC_DOC_OPEN`, dropped 0 |
+| Bellwether `-hc-verify` | PASS (`HC_NATIVE_ROUTE_PASS`, 0 frames over 33 ms, p99 11.8 ms; `performance_pass` False = the known 60-fps floor flag). `-hc-ui-only` UI PASS (that mode waits for human input at the end; the runner's SIGTERM closed it) |
+
+**Open items:**
+1. Hall still too bright with the lantern off (21-32 % near-black against 35-55 %). Realtime cuts barely moved it (candles -25 % gave +2 points): the hall is lit by the bake (HouseLighting castle bake ambient x0.68, window moonlight). Next: lower the castle bake ambient and `WindowMoonlightFloor`, re-bake, recapture. Chapel is the opposite with the lantern on (narrow-room views 40-55 %).
+2. Audio: human listen, owner pending (Kokoro `bm_george` voice and stone steps). Voice audition set: `docs/haunted-castle/audition/voice_<voice>_cc_hunt_hungry.wav` (the line itself is now retired; the files compare voices only). Re-render: `tools/generate_castle_voice.py --voice <v>`.
+3. Doc UI mocks for owner sign-off: `docs/haunted-castle/rounds/r13/docui_mock_*.png`; in-engine captures in `fb2/escape/` and `fb2/s8/`.
+4. Cold driver: one `cold_unstick` per run at (1.7, 14.6), the corner behind the open east hall leaf (its nav corner hugs the jamb). A steering player sees the leaf; not a blocker.
+5. `ASSET_LOG.md` rows still list the nine retired voice clips; `tools/audio_castle_sfx.py --check` reports them missing (harmless).
+6. r13 critic metrics still open (apparition CV, grab continuity), from the previous section's "Next session" list. The r13 blind critic (`rounds/r13/CRITIC_BRIEF.md`) has not run on this build.
+7. Merges to `main` need the owner.
+
+---
+
+
 # HANDOFF: Haunted Castle loop STOPPED by owner 2026-10-15 (read this section first)
 
 Branch `haunted-castle` = `hc/integ-l3` in `/Users/midir/hollow-current-haunted-castle`, pushed. Director: Fable 5.1; integrator Opus 5.5 (stopped mid proof run on owner's order, nothing left running, GPU slot free, merged worktrees removed, `.wt/wallart-art` is Codex's and untouched).
