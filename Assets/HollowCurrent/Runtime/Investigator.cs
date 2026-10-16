@@ -34,6 +34,8 @@ namespace HollowCurrent
         public float Sensitivity = 1.65f;
         public bool InvertY;
         public float Brightness = 1;
+        // Multiplier on the torch intensity set by the castle's light tuning (CastleLightTuning.TorchIntensityScale); 1 = Bellwether.
+        public float TorchScale = 1;
         // Map regions come from the active World (Bellwether: house / van; Castle: walls / gatehouse).
         public bool Inside => Game.World.IsInside(transform.position);
         public bool InVan => Game.World.IsSafe(transform.position);
@@ -147,7 +149,7 @@ namespace HollowCurrent
         {
             if(Game==null)return;
             UpdateMicrophone();
-            Torch.enabled=Game.Case.Equipped&&TorchOn&&!(Game.Scares&&Game.Scares.TorchFailed);Torch.intensity=.85f*Brightness;
+            Torch.enabled=Game.Case.Equipped&&TorchOn&&!(Game.Scares&&Game.Scares.TorchFailed);Torch.intensity=.85f*Brightness*TorchScale;
             Ultraviolet.enabled=Game.Case.Equipped&&Tool==2&&!Hidden;
             hiddenVision.enabled=Hidden&&!Game.Modal;hiddenVision.intensity=.09f*Brightness;
             bool swordOut=Game.Castle&&Game.Castle.Forge.HasSword&&Game.Case.Equipped&&!Game.Modal&&!Hidden;

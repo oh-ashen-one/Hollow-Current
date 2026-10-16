@@ -125,6 +125,7 @@ namespace HollowCurrent
         IEnumerator ArtRun(string set)
         {
             game.StartCase();ui.enabled=false;yield return null;yield return null;game.Player.enabled=false;game.Player.View.fieldOfView=72;
+            Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2"));
             var views=new List<(string id,Vector3 eye,Vector3 target)>();
             if(set=="exterior")
             {
@@ -138,13 +139,33 @@ namespace HollowCurrent
                 views.Add(("battlement_out",new Vector3(3.6f,9,-.4f),new Vector3(0,3,-30)));   // wave L: looks down the approach: bridge, moat, far bank and the ridge on the horizon
                 views.Add(("battlement_in",new Vector3(3.6f,9,.4f),new Vector3(0,9,16)));
             }
+            else if(set=="layout")
+            {
+                // wave FB (hc/fb-layout): the great-hall skeleton on the axis and the thinned-out chapel. Run once with -hc-capture-lantern off and once
+                // with on, then tools/exposure_report.py <dir> --lantern off|on. The skeleton spans x -0.88..0.93, z 15.35..21.41 (CastleLayout.SkeletonPlanBounds);
+                // the chapel aisle is z 5.3-7.7 and the font stands at (12.4, 1.05).
+                views.Add(("hall_from_doors",new Vector3(0,1.64f,14.6f),new Vector3(0,1.2f,22.5f)));                       // the owner's view: what you walk into from the great doors
+                views.Add(("hall_skeleton_side_west",new Vector3(-3.0f,1.64f,18.4f),new Vector3(0,.9f,18.4f)));               // between the piers, broadside on the ribcage
+                views.Add(("hall_skeleton_side_east",new Vector3(3.0f,1.64f,18.4f),new Vector3(0,.9f,18.4f)));
+                views.Add(("hall_skeleton_head",new Vector3(-1.4f,1.5f,14.9f),new Vector3(.05f,.4f,15.6f)));                 // the skull, 1 m inside the doors
+                views.Add(("hall_skeleton_tail",new Vector3(1.6f,1.5f,23.0f),new Vector3(.3f,.5f,20.5f)));                    // from the table end, the tail clear of the table front
+                views.Add(("hall_pier_gap",new Vector3(-4.6f,1.64f,20.1f),new Vector3(-0.5f,.9f,18.4f)));                    // from the west bay through the pier gap: nothing pinned between columns
+                views.Add(("chapel_from_great_doors",new Vector3(6.6f,1.64f,9.0f),new Vector3(11.5f,1.1f,6.5f)));            // entering from the courtyard doors
+                views.Add(("chapel_from_guard_door",new Vector3(6.6f,1.64f,3.0f),new Vector3(11.5f,1.1f,6.5f)));             // entering from the gatehouse door
+                views.Add(("chapel_aisle",new Vector3(7.0f,1.64f,6.5f),new Vector3(13.0f,1.1f,6.5f)));                       // S2 eye along the aisle: the font no longer stands in front of it
+                views.Add(("chapel_font_corner",new Vector3(9.5f,1.64f,4.4f),new Vector3(12.4f,.8f,1.0f)));                  // the font in the south-east corner
+                views.Add(("chapel_confessional",new Vector3(8.2f,1.64f,9.4f),new Vector3(7.3f,1.2f,12.5f)));               // the hide spot's approach
+                views.Add(("chapel_altar_approach",new Vector3(9.0f,1.64f,6.5f),new Vector3(12.9f,1.3f,6.5f)));             // the sockets seen from the pews' end
+            }
             else
             {
                 // round 13: the old eye (2, 1.64, 12) stood in the courtyard and framed the dead tree. The skull lies at about (-4.55, 0.35, 16.8)
                 // between the piers at z 15.6 and 18.6; these eyes look through the gap (z 16.05 to 18.15) from inside the hall.
-                views.Add(("hall_skull_from_east",new Vector3(1.6f,1.5f,21.6f),new Vector3(-4.55f,.4f,16.8f)));
-                views.Add(("hall_skull_close",new Vector3(-1.2f,1.3f,19.6f),new Vector3(-4.55f,.4f,16.8f)));
-                views.Add(("hall_west_end_skull",new Vector3(-1.5f,1.64f,25),new Vector3(-4.5f,1,16.8f)));
+                // Wave FB: the skeleton lies on the hall axis now (spine x 0, z 15.35-21.41, skull at about (0.03, 0.4, 15.6)); the ids stay so
+                // earlier rounds' captures compare by name, the eyes follow the skull.
+                views.Add(("hall_skull_from_east",new Vector3(2.6f,1.5f,18.8f),new Vector3(.03f,.4f,15.6f)));
+                views.Add(("hall_skull_close",new Vector3(1.6f,1.3f,17.2f),new Vector3(.03f,.4f,15.6f)));
+                views.Add(("hall_west_end_skull",new Vector3(-2.4f,1.64f,21.0f),new Vector3(.03f,.9f,16.5f)));
                 views.Add(("hall_table_books",new Vector3(1.1f,1.35f,21.0f),new Vector3(0,.78f,23.7f)));
                 views.Add(("crypt_ceiling",new Vector3(0,-1.56f,20),new Vector3(0,-.2f,23)));
             }
@@ -222,8 +243,12 @@ namespace HollowCurrent
             samples.Sort();float sum=0;foreach(var x in samples)sum+=x;
             Log("FRAMETIME crypt_"+window+" frames="+samples.Count+" mean="+(sum/samples.Count).ToString("F2")+"ms p99="+samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.99f))].ToString("F2")+"ms max="+samples[samples.Count-1].ToString("F2")+"ms hitches_over_33ms="+hitches+" audioClipsLoadedDuring="+(audioLoaded1-audioLoaded0));
         }
-        // The investigator's flashlight as in play (Investigator input is off in capture).
-        void Torch(bool on){var l=game.Player.Torch;l.enabled=on;l.intensity=.85f*game.Player.Brightness;}
+        // The investigator's flashlight as in play (Investigator input is off in capture); the castle's TorchScale is applied like Investigator.Update does.
+        void Torch(bool on){var l=game.Player.Torch;l.enabled=on;l.intensity=.85f*game.Player.Brightness*game.Player.TorchScale;}
+        // -hc-capture-lantern off|on (wave FB): the grave-ash lantern state for the world shots (default off = the kit is not collected, as before).
+        // "on" lights the lantern for every world shot (S1-S3, the art views), so tools/exposure_report.py --lantern on judges the lantern-lit
+        // interior (12-25 % near-black); "off" (default) is the dark-room case (35-55 %). S5/S6 and the hunt frames always had the lantern on.
+        public static bool LanternOn{get{var a=Environment.GetCommandLineArgs();for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-capture-lantern")return a[i+1]=="on";return false;}}
         static string V(Vector3 v)=>v.x.ToString("F2")+","+v.y.ToString("F2")+","+v.z.ToString("F2");
         // Unscaled frame times for `seconds`: mean / p95 / max in milliseconds.
         IEnumerator Measure(string id,float seconds)
@@ -255,6 +280,7 @@ namespace HollowCurrent
             // World shots: no HUD, investigator input off, kit not collected (torch off).
             game.StartCase();ui.enabled=false;yield return null;yield return null;
             game.Player.enabled=false;
+            Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2")+" range="+game.Player.Torch.range.ToString("F1"));
             var spots=game.World.Castle;
             // S1: great hall from the entrance doors at eye level.
             var e=new Vector3(0,1.64f,14.7f);var t=new Vector3(0,2.6f,27);Place(e,t);
@@ -382,7 +408,7 @@ namespace HollowCurrent
                 Log("S6 framing countHeadTop="+Vp(head)+" countFeet="+Vp(new Vector3(-.2f,0,2.2f))+" figureTop="+Vp(new Vector3(1.05f,1.8f,2.2f))+" figureFeet="+Vp(new Vector3(1.05f,0,2.2f))+" headTopY="+head.y.ToString("F2"));
             }
             yield return Shot("S6_lord_sheet","refs/lord_sheet.png",e,t,"gatehouse facing the gate (eye 0.4,1.3,5.6); Count feet (-0.2,0,2.2) Mode "+game.Creature.Profile.ModeSearch+", 1.80 m ScaleReference at (1.05,0,2.2), investigator torch on");
-            game.Creature.Dismiss();Torch(false);CastleRun.ClearFlameTarget();Destroy(man);
+            game.Creature.Dismiss();Torch(LanternOn);CastleRun.ClearFlameTarget();Destroy(man);
             // S8: journal open on a Blood Ledger entry.
             ui.enabled=true;game.Journal=true;var book=game.Book;
             string body=book.NoteBodies[0];foreach(var item in game.World.Root.GetComponentsInChildren<Interactable>(true))if(item.Kind==InteractKind.Note&&item.Label==book.NoteTitles[0])body=item.Body;

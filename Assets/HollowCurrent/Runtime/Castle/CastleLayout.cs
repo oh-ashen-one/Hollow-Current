@@ -287,18 +287,49 @@ namespace HollowCurrent
 
 
         // ---- dressing data (round 2) ---------------------------------------------------------------
-        // Great hall, round 6 (owner: the skeleton in the middle of the entrance looked stupid and uncentred): the centre axis from the
-        // great doors (x = 0) is clean: rune ring, banquet table, throne and rose window all sit on x = 0. The giant skeleton lies
-        // along the west colonnade against the wall. Round 12 (hc/art-props, r11 blind critic: "a small rib fragment"): the squeeze is
-        // gone. The new art is one full-scale carcass (12.1 m, ribcage 3.0 m across from x -1.47 to +1.54 about its spine, 2.83 m high, skull
-        // sunk 0.15 m into the floor) placed at scale 1 with the spine at x -4.58: the east rib tips end at x -3.04, the west ribs
-        // run into the wall relief, the spine clears the pier faces (x -4.35) and nothing touches the gallery slab (underside y 3.0).
-        // Head at z about 16.3 (art +Y imports as local -Z, so yaw 0 points it at the entrance), tail into the back wall.
-        public static readonly Vector3 SkeletonPos = new Vector3(-4.58f, 0.05f, 22.4f);
+        // Great hall skeleton. History: round 6 (owner: "the skeleton in the middle of the entrance looked stupid and uncentred") moved it
+        // off the axis; round 12 laid the 12.1 m carcass at scale 1 along the west colonnade, spine at x -4.58. Wave FB (owner 2026-10-15:
+        // "stuck in between three different poles ... put it in a section or change the size of it so that it's there in the middle as the
+        // main thing you walk into and so that it's not stuck inside of any poles"): the west bay between the piers (x -4.35) and the wall
+        // relief (x -5.83) is only 1.5 m wide and the 3.0 m ribcage cannot fit it at any scale that still reads, so the skeleton now lies
+        // FULLY CENTRED on the hall axis (x = 0) between the great doors and the banquet table, head toward the doors, inside the rune
+        // ring. The 12.1 m carcass is scaled (0.6 lateral, 0.6 high, 0.5 long): 6.06 m long, ribcage 1.8 m across and 1.7 m high. The
+        // pier faces are at |x| 3.45, so the ribs clear every pier by 2.5 m; the head tip is 1.05 m inside the doors (z 15.35 against the
+        // wall at 14.3) and the tail ends 0.65 m short of the table front (z 22.05). Table, rune ring, throne and rose window stay on x = 0
+        // (the round 6 rule still holds); the skeleton joins them on the axis instead of the west side.
+        // Art axes at yaw 0: lateral x = hall x, art height = hall y, art +Y (head) = hall -Z (toward the doors). Measured art extents
+        // (Blender import of GiantSkeleton.fbx): x -1.469 .. 1.543, y -6.010 (tail) .. 6.103 (head), z -0.156 (skull sunk) .. 2.827.
+        public static readonly Vector3 SkeletonPos = new Vector3(0f, 0.05f, 18.4f);
         public const float SkeletonYaw = 0f;
-        public static readonly Vector3 SkeletonScaleVec = Vector3.one;   // local x lateral, y height, z length
-        public const float SkeletonHalfEast = 1.55f;                       // art extent east of the spine (measured 1.543)
-        public const float SkeletonMaxX = -3.0f;
+        public static readonly Vector3 SkeletonScaleVec = new Vector3(.6f, .6f, .5f);   // local x lateral, y height, z length
+        public const float SkeletonArtMinX = -1.469f, SkeletonArtMaxX = 1.543f, SkeletonArtMinY = -6.010f, SkeletonArtMaxY = 6.103f, SkeletonArtHeight = 2.827f;
+        public const float SkeletonClearance = .6f;        // required walking clearance to every pier, the table and the chairs (m)
+        public const float SkeletonAxisTolerance = .15f;   // the ribcage centre must sit this close to x = 0
+        // Great hall colonnade: the eight pier feet (x +-3.9) and the 0.9 m square collision box each one gets (CastleWorld.Pier).
+        public const float HallPierX = 3.9f, HallPierHalf = .45f;
+        public static readonly float[] HallPierZ = { 15.6f, 18.6f, 21.6f, 24.4f };
+        // Plan footprint of the skeleton art in the XZ plane, hall-local, at SkeletonPos / SkeletonScaleVec: x = lateral, z = hall z
+        // (art +Y is -Z). Returned as (xMin, xMax, zMin, zMax).
+        public static Vector4 SkeletonPlanBounds()
+        {
+            float x0 = SkeletonPos.x + SkeletonArtMinX * SkeletonScaleVec.x, x1 = SkeletonPos.x + SkeletonArtMaxX * SkeletonScaleVec.x;
+            float z0 = SkeletonPos.z - SkeletonArtMaxY * SkeletonScaleVec.z, z1 = SkeletonPos.z - SkeletonArtMinY * SkeletonScaleVec.z;
+            return new Vector4(x0, x1, z0, z1);
+        }
+        // Walkable footprint (round FB): the art-space cells (0.5 x 0.5 art units, from Blender triangle sampling of GiantSkeleton.fbx) where bone
+        // stands between the step offset (0.26 m) and head height (1.85 m) at the scale above. Each Vector4 is (xMin, xMax, yMin, yMax) in
+        // ART units (x lateral, y along the body, +y = head); CastleWorld turns them into 1.8 m high collision boxes at
+        // hall x = SkeletonPos.x + x * scale.x, hall z = SkeletonPos.z - y * scale.z. Everything else (the gaps between the tail, the
+        // splayed limbs and the head, and all the floor beside the ribcage) is walkable: no invisible walls where there is no bone.
+        // Regenerate with `blender -b -P tools/castle_skeleton_footprint.py` (it prints this initialiser) if scale or art change.
+        public static readonly Vector4[] SkeletonFootprint =
+        {
+            new Vector4(0.00f, 0.50f, -5.50f, 6.00f), new Vector4(0.50f, 1.00f, -5.00f, 3.50f), new Vector4(-0.50f, 0.00f, -3.50f, 5.50f),
+            new Vector4(-1.50f, -1.00f, -3.00f, -1.50f), new Vector4(1.00f, 1.50f, -3.00f, -1.50f), new Vector4(-1.00f, -0.50f, -2.50f, 3.50f),
+            new Vector4(-1.50f, -1.00f, -1.00f, 3.50f), new Vector4(1.00f, 1.50f, -1.00f, 3.50f), new Vector4(1.50f, 2.00f, 0.50f, 1.00f),
+            new Vector4(0.50f, 1.00f, 4.50f, 6.50f), new Vector4(1.00f, 1.50f, 5.50f, 6.50f),
+        };
+        public const float SkeletonBlockHeight = 1.8f;
         public static readonly Vector3 TablePos = new Vector3(0f, 0, 23.7f);   // round 8: shorter (3.3 m, z 22.05-25.35) to leave room for the dais (z 25.5-27.55)
         public const float TableYaw = 90f;         // length axis along the hall axis (z)
         public const float TableLengthScale = 1f, TableWidthScale = 1f;   // round 13: the trestle table is authored at its 3.3 x 1.3 m size (the old mesh was 6.6 m, squeezed to .5)
@@ -356,19 +387,33 @@ namespace HollowCurrent
             new CastleBannerDef(-2.4f, 3.5f, 27.36f, 180), new CastleBannerDef(2.4f, 3.5f, 27.36f, 180),
         };
 
-        // Chapel: knocked-over pews. Roll is about the pew's own length axis; the top leans toward +x for positive roll.
+        // Chapel (wave FB, owner: "way too crowded ... you keep running into the bench or that chalice that has the blood in it"). Net room:
+        // x 6.3 (spine wall face) .. 13.55 (east wall face), z 0.45 (south wall face) .. 12.7 (north wall face); altar axis z 6.5; doors:
+        // guard door x 6, z 2.25-3.75, great doors x 6, z 7.5-10.5, vestibule door z 12.7, x 9.25-10.75. Before: three rows of two pews per side
+        // (4.9 m of bench per side, 0.5 m outer passages), four toppled pews leaning into a 2.1 m aisle, and the blood font standing IN the
+        // aisle (x 7.55, z 6.95) directly in front of both the great doors and the S2 eye. Now: two pew rows (x 9.1 and 10.4), one 2.4 m pew
+        // per side per row, so the centre aisle is 2.4 m wide (z 5.3-7.7), the side passages 2.45 m (south) and 2.6 m (north) wide, and the
+        // 2.4 m between the doors and the first pew (x 6.3-8.75) is open floor. Two of the four pews are toppled, both leaning toward the
+        // altar (so nothing leans into the aisle or the door paths); the font moved to the south-east corner, out of every walking line.
+        // The pew grid is data here so CastleWorld.Chapel and its HC_CHAPEL log read the same numbers.
         public readonly struct CastlePewDef
         {
             public readonly float X, Z, Yaw, Roll;
             public CastlePewDef(float x, float z, float yaw, float roll) { X = x; Z = z; Yaw = yaw; Roll = roll; }
         }
+        public static readonly float[] ChapelPewRows = { 9.1f, 10.4f };      // x of the pew rows (depth 0.7 m, 1.3 m pitch; the first pew face is x 8.75)
+        public static readonly float[] ChapelPewZ = { 4.1f, 8.9f };          // z of the pew centres: south side and north side of the aisle (length 2.4 m along z)
+        public const float ChapelWallSouth = .45f, ChapelWallNorth = 12.7f;   // wall faces
+        public const float ChapelMinAisle = 2.0f, ChapelMinPassage = 1.2f;    // the owner-feedback minima (m)
+        // Roll is about the pew's own length axis; the top leans toward +x (the altar) for positive roll. At most 2 (owner: thin it out hard).
         public static readonly CastlePewDef[] ChapelFallenPews =
         {
-            new CastlePewDef(11.0f, 1.7f, 90, 78), new CastlePewDef(8.4f, 4.2f, 84, -76),
-            new CastlePewDef(9.7f, 11.3f, 100, -70), new CastlePewDef(11.0f, 8.8f, 76, -62),
+            new CastlePewDef(10.4f, 4.1f, 88, 76), new CastlePewDef(10.4f, 8.9f, 93, 70),
         };
         public static bool IsFallenPew(float x, float z) { foreach (var p in ChapelFallenPews) if (Mathf.Abs(p.X - x) < .01f && Mathf.Abs(p.Z - z) < .01f) return true; return false; }
-        public static readonly Vector3 FontPos = new Vector3(7.55f, 0, 6.95f);
+        // The blood font, against the south wall in the south-east corner (footprint 1.04 m: x 11.88-12.92, z 0.53-1.57). It is lit by the
+        // south window at x 11.5 and stands clear of the pew rows, both door paths and the altar approach.
+        public static readonly Vector3 FontPos = new Vector3(12.4f, 0, 1.05f);
         public static readonly Vector3 BrazierPos = new Vector3(12.6f, 0, 11.2f);
 
         // Crypt: coffin niches cut into the walls. Inward is the room side along the wall normal.
