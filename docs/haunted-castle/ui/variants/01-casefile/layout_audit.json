@@ -1,0 +1,1554 @@
+[
+  {
+    "screen": "document_castle",
+    "text": "HOLLOW CURRENT / FIELD EVIDENCE",
+    "box": [
+      270,
+      166,
+      754,
+      189
+    ],
+    "size": 26,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#d1c6a6",
+    "contrast": 8.582,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "07",
+    "box": [
+      1554,
+      245,
+      1650,
+      293
+    ],
+    "size": 80,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "BLOOD LEDGER",
+    "box": [
+      275,
+      250,
+      499,
+      268
+    ],
+    "size": 31,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "The steward",
+    "box": [
+      275,
+      310,
+      737,
+      355
+    ],
+    "size": 70,
+    "role": "display",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "Every midnight the chapel bell rings with no hand",
+    "box": [
+      380,
+      453,
+      1556,
+      488
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "on the rope, and every midnight one of us is",
+    "box": [
+      380,
+      505,
+      1436,
+      540
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "written out of the book.",
+    "box": [
+      380,
+      557,
+      956,
+      584
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "I hid the silver blade where he cannot bear to",
+    "box": [
+      380,
+      631,
+      1484,
+      658
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "look: in the reliquary box below, under the marks",
+    "box": [
+      380,
+      683,
+      1556,
+      718
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "his own claws left. Light the ash and you will",
+    "box": [
+      380,
+      735,
+      1484,
+      770
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "see it.",
+    "box": [
+      380,
+      787,
+      548,
+      814
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "RECOVERED",
+    "box": [
+      282,
+      853,
+      450,
+      871
+    ],
+    "size": 31,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "CHAPEL ARCHIVE / FOLIO 03",
+    "box": [
+      740,
+      862,
+      1145,
+      886
+    ],
+    "size": 27,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "document_castle",
+    "text": "ESC",
+    "box": [
+      1686,
+      906,
+      1740,
+      924
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "HOLLOW CURRENT / FIELD EVIDENCE",
+    "box": [
+      270,
+      166,
+      754,
+      189
+    ],
+    "size": 26,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#d1c6a6",
+    "contrast": 8.582,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "02",
+    "box": [
+      1554,
+      245,
+      1650,
+      293
+    ],
+    "size": 80,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "BELLWETHER / IMAGE 01",
+    "box": [
+      275,
+      250,
+      666,
+      276
+    ],
+    "size": 31,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "Family photograph",
+    "box": [
+      275,
+      310,
+      989,
+      370
+    ],
+    "size": 70,
+    "role": "display",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "Four of them on the",
+    "box": [
+      1090,
+      455,
+      1523,
+      480
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "porch, summer. The",
+    "box": [
+      1090,
+      505,
+      1501,
+      537
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "youngest is holding the",
+    "box": [
+      1090,
+      555,
+      1614,
+      588
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "music box. Someone has",
+    "box": [
+      1090,
+      605,
+      1592,
+      631
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "scratched out the",
+    "box": [
+      1090,
+      655,
+      1478,
+      681
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "father's face.",
+    "box": [
+      1090,
+      705,
+      1409,
+      730
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "TRANSCRIPT / 1994",
+    "box": [
+      1090,
+      780,
+      1366,
+      804
+    ],
+    "size": 27,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "document_bellwether",
+    "text": "ESC",
+    "box": [
+      1686,
+      906,
+      1740,
+      924
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "HAUNTED CASTLE / INVESTIGATION",
+    "box": [
+      270,
+      240,
+      810,
+      266
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Case journal",
+    "box": [
+      270,
+      303,
+      817,
+      369
+    ],
+    "size": 76,
+    "role": "display",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "RECOVERED DOCUMENTS",
+    "box": [
+      270,
+      417,
+      601,
+      435
+    ],
+    "size": 29,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "CONCLUSIONS",
+    "box": [
+      1090,
+      417,
+      1282,
+      435
+    ],
+    "size": 29,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Gate keeper's letter",
+    "box": [
+      294,
+      487,
+      726,
+      518
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "01",
+    "box": [
+      230,
+      491,
+      260,
+      506
+    ],
+    "size": 25,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Ledger: the steward",
+    "box": [
+      294,
+      554,
+      705,
+      585
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#e6dfc9",
+    "backing": "#252a26",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "02",
+    "box": [
+      230,
+      558,
+      260,
+      573
+    ],
+    "size": 25,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Ledger: the portrait",
+    "box": [
+      294,
+      621,
+      726,
+      653
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "03",
+    "box": [
+      230,
+      625,
+      260,
+      640
+    ],
+    "size": 25,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Ledger: the orrery",
+    "box": [
+      294,
+      688,
+      683,
+      719
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "04",
+    "box": [
+      230,
+      692,
+      260,
+      707
+    ],
+    "size": 25,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Altar inscription",
+    "box": [
+      294,
+      755,
+      662,
+      787
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "05",
+    "box": [
+      230,
+      759,
+      260,
+      774
+    ],
+    "size": 25,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Anchor",
+    "box": [
+      1090,
+      479,
+      1198,
+      498
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "The chapel bell",
+    "box": [
+      1118,
+      522,
+      1424,
+      552
+    ],
+    "size": 34,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "\u2039",
+    "box": [
+      1090,
+      521,
+      1111,
+      537
+    ],
+    "size": 35,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "\u203a",
+    "box": [
+      1670,
+      521,
+      1691,
+      537
+    ],
+    "size": 35,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Pattern",
+    "box": [
+      1090,
+      593,
+      1216,
+      611
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "The bargain's toll",
+    "box": [
+      1118,
+      636,
+      1486,
+      666
+    ],
+    "size": 34,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "\u2039",
+    "box": [
+      1090,
+      635,
+      1111,
+      651
+    ],
+    "size": 35,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "\u203a",
+    "box": [
+      1670,
+      635,
+      1691,
+      651
+    ],
+    "size": 35,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Closure",
+    "box": [
+      1090,
+      707,
+      1216,
+      726
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Let the last stroke fade",
+    "box": [
+      1118,
+      750,
+      1608,
+      773
+    ],
+    "size": 34,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "\u2039",
+    "box": [
+      1090,
+      749,
+      1111,
+      765
+    ],
+    "size": 35,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "\u203a",
+    "box": [
+      1670,
+      749,
+      1691,
+      765
+    ],
+    "size": 35,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "DREAD",
+    "box": [
+      270,
+      814,
+      351,
+      830
+    ],
+    "size": 27,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "Close the case",
+    "box": [
+      1090,
+      866,
+      1435,
+      893
+    ],
+    "size": 41,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "journal",
+    "text": "ESC",
+    "box": [
+      1686,
+      906,
+      1740,
+      924
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "Find the Blood Ledger: steward \u00b7 portrait \u00b7 orrery \u2014 rooms",
+    "box": [
+      112,
+      105,
+      1330,
+      135
+    ],
+    "size": 35,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "left: chapel, dining hall",
+    "box": [
+      112,
+      149,
+      637,
+      179
+    ],
+    "size": 35,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "Open Great door [E]",
+    "box": [
+      764,
+      641,
+      1176,
+      673
+    ],
+    "size": 36,
+    "role": "mono",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "The door is held.",
+    "box": [
+      786,
+      734,
+      1154,
+      759
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "STAMINA",
+    "box": [
+      96,
+      904,
+      214,
+      920
+    ],
+    "size": 28,
+    "role": "mono",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "LANTERN  62%",
+    "box": [
+      350,
+      903,
+      545,
+      919
+    ],
+    "size": 27,
+    "role": "mono",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "BREAK LINE OF SIGHT \u00b7 hide [E] \u00b7 lantern off [F] \u00b7 stay",
+    "box": [
+      692,
+      909,
+      1748,
+      937
+    ],
+    "size": 32,
+    "role": "mono",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "hud",
+    "text": "quiet",
+    "box": [
+      692,
+      949,
+      788,
+      976
+    ],
+    "size": 32,
+    "role": "mono",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "HOLLOW",
+    "box": [
+      265,
+      245,
+      690,
+      316
+    ],
+    "size": 118,
+    "role": "display",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "CURRENT",
+    "box": [
+      265,
+      378,
+      761,
+      449
+    ],
+    "size": 118,
+    "role": "display",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "A CASE OF THE UNEXPLAINED",
+    "box": [
+      265,
+      173,
+      679,
+      188
+    ],
+    "size": 26,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "Continue",
+    "box": [
+      305,
+      570,
+      497,
+      597
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "New case",
+    "box": [
+      305,
+      638,
+      497,
+      662
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "Settings",
+    "box": [
+      305,
+      706,
+      497,
+      741
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "Quit",
+    "box": [
+      305,
+      774,
+      401,
+      807
+    ],
+    "size": 40,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "14 Bellwether Lane",
+    "box": [
+      1024,
+      455,
+      1435,
+      480
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "Haunted Castle",
+    "box": [
+      1024,
+      750,
+      1343,
+      776
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "SELECTED",
+    "box": [
+      1027,
+      570,
+      1147,
+      585
+    ],
+    "size": 25,
+    "role": "mono",
+    "foreground": "#eee9d8",
+    "backing": "#111713",
+    "contrast": 14.953,
+    "semantic": true
+  },
+  {
+    "screen": "title",
+    "text": "CHOOSE A CASE",
+    "box": [
+      1000,
+      845,
+      1231,
+      861
+    ],
+    "size": 28,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "PAUSED / HOLLOW CURRENT",
+    "box": [
+      270,
+      240,
+      684,
+      266
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Settings",
+    "box": [
+      270,
+      303,
+      635,
+      369
+    ],
+    "size": 76,
+    "role": "display",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Continue",
+    "box": [
+      270,
+      464,
+      477,
+      493
+    ],
+    "size": 43,
+    "role": "body",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "New case",
+    "box": [
+      270,
+      550,
+      453,
+      573
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Settings",
+    "box": [
+      270,
+      625,
+      453,
+      658
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Quit",
+    "box": [
+      270,
+      700,
+      362,
+      732
+    ],
+    "size": 38,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Look sensitivity",
+    "box": [
+      850,
+      450,
+      1205,
+      482
+    ],
+    "size": 37,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "55%",
+    "box": [
+      1592,
+      450,
+      1650,
+      469
+    ],
+    "size": 32,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Volume",
+    "box": [
+      850,
+      560,
+      984,
+      584
+    ],
+    "size": 37,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "80%",
+    "box": [
+      1592,
+      560,
+      1650,
+      579
+    ],
+    "size": 32,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Windowed",
+    "box": [
+      850,
+      670,
+      1028,
+      695
+    ],
+    "size": 37,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "ON",
+    "box": [
+      1611,
+      670,
+      1650,
+      689
+    ],
+    "size": 32,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "Invert Y",
+    "box": [
+      850,
+      780,
+      1028,
+      801
+    ],
+    "size": 37,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "OFF",
+    "box": [
+      1592,
+      780,
+      1650,
+      799
+    ],
+    "size": 32,
+    "role": "mono",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "settings",
+    "text": "ESC",
+    "box": [
+      1686,
+      906,
+      1740,
+      924
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "ending_closed",
+    "text": "FIELD OFFICE / FINAL DISPOSITION",
+    "box": [
+      681,
+      245,
+      1239,
+      271
+    ],
+    "size": 29,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "ending_closed",
+    "text": "CASE CLOSED",
+    "box": [
+      689,
+      444,
+      1231,
+      494
+    ],
+    "size": 82,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "ending_closed",
+    "text": "At dawn, the bell kept its silence.",
+    "box": [
+      582,
+      644,
+      1338,
+      676
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "ending_closed",
+    "text": "ESC",
+    "box": [
+      1686,
+      906,
+      1740,
+      924
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "ending_lost",
+    "text": "FIELD OFFICE / FINAL DISPOSITION",
+    "box": [
+      681,
+      245,
+      1239,
+      271
+    ],
+    "size": 29,
+    "role": "mono",
+    "foreground": "#515548",
+    "backing": "#e6dfc9",
+    "contrast": 5.747,
+    "semantic": true
+  },
+  {
+    "screen": "ending_lost",
+    "text": "SIGNAL LOST",
+    "box": [
+      689,
+      444,
+      1231,
+      494
+    ],
+    "size": 82,
+    "role": "display",
+    "foreground": "#813b2e",
+    "backing": "#e6dfc9",
+    "contrast": 6.066,
+    "semantic": true
+  },
+  {
+    "screen": "ending_lost",
+    "text": "The house has learned another name.",
+    "box": [
+      582,
+      644,
+      1338,
+      668
+    ],
+    "size": 36,
+    "role": "body",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  },
+  {
+    "screen": "ending_lost",
+    "text": "ESC",
+    "box": [
+      1686,
+      906,
+      1740,
+      924
+    ],
+    "size": 30,
+    "role": "mono",
+    "foreground": "#252a26",
+    "backing": "#e6dfc9",
+    "contrast": 10.963,
+    "semantic": true
+  }
+]

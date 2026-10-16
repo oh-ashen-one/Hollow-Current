@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "checks": 5776,
+  "measured": [
+    {
+      "slug": "01-casefile",
+      "screens": 8,
+      "text_runs": 97,
+      "minimum_contrast": 5.747
+    },
+    {
+      "slug": "02-occult-folio",
+      "screens": 8,
+      "text_runs": 87,
+      "minimum_contrast": 5.367
+    },
+    {
+      "slug": "03-last-light",
+      "screens": 8,
+      "text_runs": 90,
+      "minimum_contrast": 7.575
+    },
+    {
+      "slug": "04-dead-channel",
+      "screens": 8,
+      "text_runs": 105,
+      "minimum_contrast": 8.269
+    },
+    {
+      "slug": "05-two-moons",
+      "screens": 8,
+      "text_runs": 87,
+      "minimum_contrast": 9.456
+    }
+  ],
+  "reproduced_files": 81,
+  "errors": []
+}

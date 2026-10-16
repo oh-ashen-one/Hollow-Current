@@ -1,0 +1,107 @@
+{
+  "revision": "1d0e46c7933245c8180fe83e47917961c913bbdb",
+  "files": [
+    {
+      "path": "01-casefile/fonts/courierprime/CourierPrime-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/courierprime/CourierPrime-Regular.ttf",
+      "sha256": "72f793376f8e2841656bf21d77a5de010f2929bd6956a22ee848ad0c7eb978af",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "01-casefile/fonts/courierprime/CourierPrime-Bold.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/courierprime/CourierPrime-Bold.ttf",
+      "sha256": "ff1f38786c849d1c41fa8e447960abdb2bd75fdfb0cfcdeb524fad65a5af3638",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "01-casefile/fonts/courierprime/OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/courierprime/OFL.txt",
+      "sha256": "9a755af092b494944c99f471be6fddd19b006a448fefdc4717e4ee0aa09a97b0",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "02-occult-folio/fonts/imfellenglish/IMFeENrm28P.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/imfellenglish/IMFeENrm28P.ttf",
+      "sha256": "fe9705bbde51af802719246d4608d08d37bde956ab99d9a590da996a5221a24c",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "02-occult-folio/fonts/imfellenglish/OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/imfellenglish/OFL.txt",
+      "sha256": "2a3ca501fc4d5efcad9798531e3e06962b1e20c60e464f6cbd6c17630112c773",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "03-last-light/fonts/barlowcondensed/BarlowCondensed-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/barlowcondensed/BarlowCondensed-Regular.ttf",
+      "sha256": "583cec5da3b84bc4dc7c9c72e2a565c94d34e431518b19d7e250b7830ad5f996",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "03-last-light/fonts/barlowcondensed/BarlowCondensed-SemiBold.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/barlowcondensed/BarlowCondensed-SemiBold.ttf",
+      "sha256": "7b619d14bc2327509a9ef32b0890f709626f7ecc9ff61191c2a4314c5499d2d9",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "03-last-light/fonts/barlowcondensed/OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/barlowcondensed/OFL.txt",
+      "sha256": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "04-dead-channel/fonts/sharetechmono/ShareTechMono-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/sharetechmono/ShareTechMono-Regular.ttf",
+      "sha256": "9ceab1f87414829af259c0f537573ae03ef7dd3147c0b27a36a1a0beb6732677",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "04-dead-channel/fonts/sharetechmono/OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/sharetechmono/OFL.txt",
+      "sha256": "9d96f445b6e9c701428811d0177f894874f8d6f07ecc30d568c506542368f3ff",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "04-dead-channel/fonts/courierprime/CourierPrime-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/courierprime/CourierPrime-Regular.ttf",
+      "sha256": "72f793376f8e2841656bf21d77a5de010f2929bd6956a22ee848ad0c7eb978af",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "04-dead-channel/fonts/courierprime/CourierPrime-Bold.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/courierprime/CourierPrime-Bold.ttf",
+      "sha256": "ff1f38786c849d1c41fa8e447960abdb2bd75fdfb0cfcdeb524fad65a5af3638",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "04-dead-channel/fonts/courierprime/OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/courierprime/OFL.txt",
+      "sha256": "9a755af092b494944c99f471be6fddd19b006a448fefdc4717e4ee0aa09a97b0",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "05-two-moons/fonts/unifrakturmaguntia/UnifrakturMaguntia-Book.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/unifrakturmaguntia/UnifrakturMaguntia-Book.ttf",
+      "sha256": "d64afc0547059dd2e4a78da48bda0aba0a9901be58c7f8c201a8b2b6b4492cc8",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "05-two-moons/fonts/unifrakturmaguntia/OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/unifrakturmaguntia/OFL.txt",
+      "sha256": "96199bf9ff12dd471a66911dee95440737b437e7f5a6fd30e9e950c16d66e8df",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "05-two-moons/fonts/imfellenglish/IMFeENrm28P.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/imfellenglish/IMFeENrm28P.ttf",
+      "sha256": "fe9705bbde51af802719246d4608d08d37bde956ab99d9a590da996a5221a24c",
+      "license": "OFL-1.1"
+    },
+    {
+      "path": "05-two-moons/fonts/imfellenglish/OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/1d0e46c7933245c8180fe83e47917961c913bbdb/ofl/imfellenglish/OFL.txt",
+      "sha256": "2a3ca501fc4d5efcad9798531e3e06962b1e20c60e464f6cbd6c17630112c773",
+      "license": "OFL-1.1"
+    }
+  ]
+}
