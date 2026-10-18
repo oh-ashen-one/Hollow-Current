@@ -418,7 +418,13 @@ namespace HollowCurrent
         // The blood font, against the south wall in the south-east corner (footprint 1.04 m: x 11.88-12.92, z 0.53-1.57). It is lit by the
         // south window at x 11.5 and stands clear of the pew rows, both door paths and the altar approach.
         public static readonly Vector3 FontPos = new Vector3(12.4f, 0, 1.05f);
-        public static readonly Vector3 BrazierPos = new Vector3(12.6f, 0, 11.2f);
+        // fc-props: the brazier stood at (12.6, 11.2), 0.2 m from the chapel bell (12.4, 11.2; art footprint 0.9 x 1.2 m at yaw -90) so the two
+        // overlapped in the north-east corner. It now stands at (12.3, 9.7): 0.5 m north of the high altar step's end (z 9.0), 0.5 m south of the
+        // bell footprint (z 10.6), in the open corner east of the pew block (pews end at x 10.75), so it still lights the altar side of the nave and
+        // is seen from the S2 eye, and neither it nor the bell touches the pew-to-north-wall passage (x 6.3..10.75).
+        public static readonly Vector3 BrazierPos = new Vector3(12.3f, 0, 9.7f);
+        public const float BrazierHalf = .38f;        // widest part of the brazier: the bowl, 0.72 m across, plus a little for the interact box (0.7 m)
+        public const float ChapelPropMinGap = .3f;    // minimum clear floor between the bell footprint and the brazier (m)
 
         // Crypt: coffin niches cut into the walls. Inward is the room side along the wall normal.
         public const float NicheWidth = 1.1f, NicheSill = .35f, NicheTop = 1.15f;
