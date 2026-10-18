@@ -465,7 +465,7 @@ namespace HollowCurrent
                 return sconceMesh=b.Build("Surreal wall sconce");
             }
         }
-        internal static Material[] SconceMaterials=>sconceMaterials!=null?sconceMaterials:sconceMaterials=new[]{Lit("Wall sconce iron",new Color(.085f,.075f,.07f),.45f,.32f)};
+        internal static Material[] SconceMaterials=>sconceMaterials!=null?sconceMaterials:sconceMaterials=new[]{Lit("Wall sconce iron",new Color(.16f,.13f,.10f),.55f,.38f)};
 
         // ---- hand-roots (crypt): dark root strands hanging from the ceiling, each ending in pale hands ----
         public const int HandRootVariants=6;

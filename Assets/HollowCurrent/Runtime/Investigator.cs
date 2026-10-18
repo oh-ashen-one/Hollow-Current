@@ -140,7 +140,7 @@ namespace HollowCurrent
             workingHand=FirstPersonHands.Attach(heldTool,new Vector3(.052f,-.050f,-.003f),new Vector3(4,-15,82));
             // The exported flashlight lies on X with its broad reflector at -X.
             // fc-light2: in the castle the left hand carries the brass hand lantern (the castle's light source) instead of the modern flashlight mesh; Bellwether keeps the flashlight.
-            if(period){torchModel=CastleInstrumentArt.CreateHandLantern(camera);torchModel.localPosition=new Vector3(-.205f,-.175f,.445f);torchModel.localRotation=Quaternion.Euler(4,0,6);torchModel.localScale=Vector3.one*1.15f;}
+            if(period){torchModel=CastleInstrumentArt.CreateHandLantern(camera);torchModel.localPosition=new Vector3(-.215f,-.19f,.45f);torchModel.localRotation=Quaternion.Euler(4,0,6);torchModel.localScale=Vector3.one*.95f;}
             else torchModel=FieldKitArt.Create(camera,"Flashlight",.22f,new Vector3(-.20f,-.24f,.44f),Quaternion.Euler(0,90,0));
             radioModel=FieldKitArt.Create(camera,"FieldRadio",.20f,new Vector3(.28f,-.16f,.42f),Quaternion.Euler(8,-8,0));
             radioHand=FirstPersonHands.Attach(radioModel,new Vector3(.052f,-.049f,-.003f),new Vector3(4,-15,82));

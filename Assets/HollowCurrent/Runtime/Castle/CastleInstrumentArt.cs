@@ -71,7 +71,7 @@ namespace HollowCurrent
             // the lantern does not light (Investigator.Torch excludes layer 30), so the Standard parchment dial rendered as a dark grey disc under
             // a white glare veil and read as a hand mirror. The dial is now drawn unlit at a dim parchment level (as if catching the lantern's
             // spill) so the dark needle and the ember pips read on it at a glance; the glass is a faint rim and one soft streak.
-            var dial = Sprite("Compass dial", DialTexture(), new Color(DialLevel, DialLevel, DialLevel, 1));
+            var dial = Sprite("Compass dial", DialTexture(), new Color(DialLevel, DialLevel * .93f, DialLevel * .80f, 1));   // r1: read pale grey; warmer parchment
             var glass = Sprite("Compass glass", GlareTexture(), new Color(1, 1, 1, .85f));
 
             // case, bezel and back: one lathe about the z axis (r, z); front (toward the player) is -z. Counter-clockwise outline, outside on the right.
@@ -117,7 +117,7 @@ namespace HollowCurrent
             Part(visual, "Lantern frame", metal.ToMesh("Lantern frame"), brass, iron);
 
             var light = LanternLightGeometry();
-            if (warm) Part(visual, "Lantern glass and core", light.ToMesh("Lantern glass"), Sprite("Lantern amber glass", null, new Color(1f, .62f, .26f, .38f)), Glow("Lantern flame core", new Color(1.7f, .95f, .38f)));
+            if (warm) Part(visual, "Lantern glass and core", light.ToMesh("Lantern glass"), Sprite("Lantern amber glass", null, new Color(1f, .60f, .24f, .22f)), Glow("Lantern flame core", new Color(1.15f, .60f, .20f)));
             else Part(visual, "Lantern glass and core", light.ToMesh("Lantern glass"), Sprite("Lantern violet glass", null, new Color(.50f, .20f, 1f, .46f)), Glow("Lantern core", new Color(.80f, .50f, 1.25f)));
             return root;
         }
