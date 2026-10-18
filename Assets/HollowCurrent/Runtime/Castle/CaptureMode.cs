@@ -125,7 +125,7 @@ namespace HollowCurrent
         IEnumerator ArtRun(string set)
         {
             game.StartCase();ui.enabled=false;yield return null;yield return null;game.Player.enabled=false;game.Player.View.fieldOfView=72;
-            Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2"));
+            Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2")+" range="+game.Player.Torch.range.ToString("F1")+" angle="+game.Player.Torch.spotAngle.ToString("F0")+" mode="+game.Player.Torch.renderMode);
             var views=new List<(string id,Vector3 eye,Vector3 target)>();
             if(set=="exterior")
             {
@@ -298,7 +298,7 @@ namespace HollowCurrent
             // World shots: no HUD, investigator input off, kit not collected (torch off).
             game.StartCase();ui.enabled=false;yield return null;yield return null;
             game.Player.enabled=false;
-            Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2")+" range="+game.Player.Torch.range.ToString("F1"));
+            Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2")+" range="+game.Player.Torch.range.ToString("F1")+" angle="+game.Player.Torch.spotAngle.ToString("F0")+" mode="+game.Player.Torch.renderMode);
             var spots=game.World.Castle;
             // S1: great hall from the entrance doors at eye level.
             var e=new Vector3(0,1.64f,14.7f);var t=new Vector3(0,2.6f,27);Place(e,t);

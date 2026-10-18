@@ -59,7 +59,13 @@ namespace HollowCurrent
         public Vector2[] FogAreaSizes = { new Vector2(12f, 14f), new Vector2(12f, 14f) };
         public Color[] FogAreaColors = { new Color(.12f, .15f, .21f), new Color(.30f, .27f, .30f) };   // hall was (.34,.42,.58): a bright floor mist; wave FB darkened it
         public int[] FogAreaLayers = { 8, 3 };
-        public float[] FogAreaAlpha = { .15f, .09f };            // per-layer alpha at the floor (fades x0.35 towards the top layer)
+        public float[] FogAreaAlpha = { .12f, .09f };            // per-layer alpha at the floor (fades x0.35 towards the top layer); fc-light: hall .15 -> .12
+        // fc-light (2026-10-18; docs/haunted-castle/handoffs/fc-light.md): the hall floor mist is unlit and alpha-blended, so it lifts every floor
+        // pixel under it to luma 15-25 whatever the lights do; in the fb2 captures it was most of the hall's lantern-off brightness (floor bands
+        // 0-6 % near-black while the walls were black). Linear multiplier on FogAreaColors[0] (the hall layers only; the crypt mist is untouched).
+        // 1 = wave FB mist, .5 = fc-light. Integrator knob: lower it if the hall is still too bright with the lantern off (S1 < 35 % near-black),
+        // raise it if hall views go past 55 %.
+        public float HallMistBrightness = .5f;
         public float[] FogAreaHeight = { 1.1f, .40f };           // top layer height above the floor, metres
 
         [Header("Room fog profile (exponential fog while the camera is in the crypt, castle-local y below CryptBelowY)")]
@@ -311,6 +317,7 @@ namespace HollowCurrent
                 float alpha = a < FogAreaAlpha.Length ? FogAreaAlpha[a] : .2f;
                 float height = a < FogAreaHeight.Length ? FogAreaHeight[a] : 1f;
                 Color colour = a < FogAreaColors.Length ? FogAreaColors[a] : new Color(.34f, .42f, .58f);
+                if (a == 0) { var lin = colour.linear * Mathf.Max(0f, HallMistBrightness); colour = new Color(lin.r, lin.g, lin.b, colour.a).gamma; }
                 for (int i = 0; i < layers; i++)
                 {
                     float t = i / (float)Mathf.Max(1, layers - 1);
