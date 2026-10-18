@@ -13,10 +13,24 @@ namespace HollowCurrent
         public bool available;
         public int samples,over_16ms,skipped_samples;
         public float p50_ms,p99_ms,max_ms;
+        // Main-thread time spent blocked in Present (FrameTiming.cpuMainThreadPresentWaitTime), already subtracted
+        // from the main-thread figure inside the cost. Shown so a reader can see what was taken out.
+        public float present_wait_mean_ms,present_wait_max_ms;
+        public int present_wait_frames;
         public string source;
-        public static CostStatistics Measure(IReadOnlyList<float> costs,int skipped,string source)
+        public static CostStatistics Measure(IReadOnlyList<float> costs,int skipped,string source,IReadOnlyList<float> presentWaits=null)
         {
             var result=new CostStatistics{source=source,skipped_samples=skipped};
+            if(presentWaits!=null)
+            {
+                double sum=0;int n=0;
+                foreach(float w in presentWaits)
+                {
+                    if(float.IsNaN(w)||float.IsInfinity(w)||w<0)continue;
+                    n++;sum+=w;if(w>0)result.present_wait_frames++;if(w>result.present_wait_max_ms)result.present_wait_max_ms=w;
+                }
+                if(n>0)result.present_wait_mean_ms=(float)(sum/n);
+            }
             var valid=new List<float>(costs.Count);
             foreach(float c in costs)if(!(c<=0||float.IsNaN(c)||float.IsInfinity(c)))valid.Add(c);
             result.samples=valid.Count;if(valid.Count==0)return result;
@@ -35,6 +49,18 @@ namespace HollowCurrent
     {
         public const float BudgetMs=16.667f;
         public const int MinWallSamples=3000,MinCostSamples=1000;
+        // Engine cost of one frame. FrameTiming.cpuMainThreadFrameTime runs from the start of the frame to the end of
+        // the main thread's work and therefore contains the time the main thread sat blocked in Present (a window that
+        // is not frontmost is paced to the display rate, so that wait shows as ~16.7 ms at targetFrameRate 90). That
+        // wait is not engine work: subtract cpuMainThreadPresentWaitTime (clamped at 0). Render-thread and GPU time
+        // are taken as reported, so a frame that is slow because the GPU is slow still counts in full.
+        public static float EngineCostMs(float mainThread,float presentWait,float renderThread,float gpu)
+        {
+            float wait=(float.IsNaN(presentWait)||float.IsInfinity(presentWait)||presentWait<0)?0f:presentWait;
+            float main=mainThread-wait;if(float.IsNaN(main)||main<0)main=0f;
+            float render=float.IsNaN(renderThread)?0f:renderThread,g=float.IsNaN(gpu)?0f:gpu;
+            return Math.Max(main,Math.Max(render,g));
+        }
         public static bool Evaluate(bool routePassed,FrameStatistics timing,FrameStatistics ui,CostStatistics cost,out string reason)
         {
             var why=new List<string>();
