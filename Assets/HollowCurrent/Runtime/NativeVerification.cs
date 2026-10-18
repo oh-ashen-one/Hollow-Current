@@ -40,8 +40,8 @@ namespace HollowCurrent
         [Serializable] sealed class CostFrame
         {
             public int sample;
-            public float elapsed_seconds,cpu_main_ms,cpu_render_ms,gpu_ms;
-            public string phase;
+            public float elapsed_seconds,cpu_main_ms,present_wait_ms,cpu_main_minus_wait_ms,cpu_render_ms,gpu_ms;
+            public string phase,bound_by;
         }
         [Serializable] sealed class SlowFrame
         {
@@ -74,7 +74,7 @@ namespace HollowCurrent
         bool costTimingOn;
         ulong lastCostStamp;
         readonly FrameTiming[] costBuffer=new FrameTiming[1];
-        readonly List<float> costFrames=new List<float>(120000);
+        readonly List<float> costFrames=new List<float>(120000),costPresentWaits=new List<float>(120000);
         readonly List<CostFrame> costSlow=new List<CostFrame>(64);
         bool previousIntervalPlayable;
         Game previousIntervalGame;
@@ -133,9 +133,14 @@ namespace HollowCurrent
             var t=costBuffer[0];if(t.cpuTimeFrameComplete==lastCostStamp)return;
             lastCostStamp=t.cpuTimeFrameComplete;
             if(!measured||Time.frameCount<costBlackoutUntil){costSkipped++;return;}
-            float main=(float)t.cpuMainThreadFrameTime,render=(float)t.cpuRenderThreadFrameTime,gpu=(float)t.gpuFrameTime,cost=Mathf.Max(main,Mathf.Max(render,gpu));
-            costFrames.Add(cost);
-            if(cost>16.667f&&costSlow.Count<64)costSlow.Add(new CostFrame{sample=costFrames.Count,elapsed_seconds=Time.realtimeSinceStartup-start,cpu_main_ms=main,cpu_render_ms=render,gpu_ms=gpu,phase=game!=null&&game.Case!=null?game.Case.Phase.ToString():""});
+            float main=(float)t.cpuMainThreadFrameTime,wait=(float)t.cpuMainThreadPresentWaitTime,render=(float)t.cpuRenderThreadFrameTime,gpu=(float)t.gpuFrameTime;
+            float cost=PerformanceVerdict.EngineCostMs(main,wait,render,gpu);
+            costFrames.Add(cost);costPresentWaits.Add(wait);
+            if(cost>16.667f&&costSlow.Count<64)
+            {
+                float mainNet=Mathf.Max(0f,main-Mathf.Max(0f,wait));
+                costSlow.Add(new CostFrame{sample=costFrames.Count,elapsed_seconds=Time.realtimeSinceStartup-start,cpu_main_ms=main,present_wait_ms=wait,cpu_main_minus_wait_ms=mainNet,cpu_render_ms=render,gpu_ms=gpu,bound_by=gpu>=mainNet&&gpu>=render?"gpu":(render>=mainNet?"render_thread":"main_thread"),phase=game!=null&&game.Case!=null?game.Case.Phase.ToString():""});
+            }
         }
         // The readback stalls this frame and the next ones; keep them out of the timing and say so in the report.
         void Shot(string path)
@@ -173,7 +178,7 @@ namespace HollowCurrent
             finished=true;Record((passed?"PASS ":"FAIL ")+detail);
             var timing=FrameStatistics.Measure(frames);
             var uiTiming=FrameStatistics.Measure(uiFrames);
-            var engineCost=CostStatistics.Measure(costFrames,costSkipped,costTimingOn?"FrameTimingManager max(cpuMainThread, cpuRenderThread, gpu)":"unavailable");
+            var engineCost=CostStatistics.Measure(costFrames,costSkipped,costTimingOn?"FrameTimingManager max(cpuMainThread - cpuMainThreadPresentWait, cpuRenderThread, gpu)":"unavailable",costPresentWaits);
             bool performancePass=PerformanceVerdict.Evaluate(passed,timing,uiTiming,engineCost,out string performanceReason);
             File.WriteAllLines(Path.Combine(folder,"route-events.txt"),events);
             var report=new NativeReport{passed=passed,width=Screen.width,height=Screen.height,frames=frames.Count,
@@ -184,7 +189,7 @@ namespace HollowCurrent
                 higgsfield_cues=previousGenerated+game.Sound.GeneratedCues,music_frames=previousMusic+game.Sound.MusicFrames,breathing_frames=previousBreathing+game.Sound.BreathingFrames,ducked_frames=previousDucked+game.Sound.DuckedFrames,music_state_mask=previousMusicMask|game.Sound.MusicMask,audio_nonzero_samples=audioNonzero,audio_output_peak=audioPeak,
                 audio_cues=previousAudio+game.Sound.PlayedCues,speech_takes=previousSpeech+game.Sound.PlayedSpeech,captures_enabled=!ProfileOnly,timing=timing,performance_pass=performancePass,performance_reason=performanceReason,engine_cost=engineCost,engine_cost_slow_frames=costSlow.ToArray(),excluded_harness_frames=excludedHarnessFrames,excluded_loading_frames=loadingFrames,excluded_loading_ms=loadingMilliseconds,slow_frames=slowFrames.ToArray(),ui_timing=uiTiming,ui_slow_frames=uiSlowFrames.ToArray()};
             File.WriteAllText(Path.Combine(folder,"native-report.json"),JsonUtility.ToJson(report,true));
-            Debug.Log("HC_PERF pass="+performancePass+" reason="+performanceReason+" frames_over_16ms="+timing.frames_over_16ms+" p99="+timing.p99_ms.ToString("F1",CultureInfo.InvariantCulture)+" floor=60 frames="+timing.frames+" engine_cost_over_16ms="+engineCost.over_16ms+" engine_cost_p99="+engineCost.p99_ms.ToString("F1",CultureInfo.InvariantCulture)+" engine_cost_samples="+engineCost.samples+" ui_frames_over_16ms="+uiTiming.frames_over_16ms+" harness_excluded_frames="+excludedHarnessFrames);
+            Debug.Log("HC_PERF pass="+performancePass+" reason="+performanceReason+" frames_over_16ms="+timing.frames_over_16ms+" p99="+timing.p99_ms.ToString("F1",CultureInfo.InvariantCulture)+" floor=60 frames="+timing.frames+" engine_cost_over_16ms="+engineCost.over_16ms+" engine_cost_p99="+engineCost.p99_ms.ToString("F1",CultureInfo.InvariantCulture)+" engine_cost_samples="+engineCost.samples+" present_wait_mean_ms="+engineCost.present_wait_mean_ms.ToString("F2",CultureInfo.InvariantCulture)+" present_wait_max_ms="+engineCost.present_wait_max_ms.ToString("F2",CultureInfo.InvariantCulture)+" present_wait_frames="+engineCost.present_wait_frames+" ui_frames_over_16ms="+uiTiming.frames_over_16ms+" harness_excluded_frames="+excludedHarnessFrames);
             Debug.Log(passed?(EnhancementsOnly?"HC_NATIVE_ENHANCEMENTS_PASS":UIOnly?"HC_NATIVE_UI_PASS":KitOnly?"HC_NATIVE_KIT_PASS":ArtOnly?"HC_NATIVE_ART_PASS":"HC_NATIVE_ROUTE_PASS"):"HC_NATIVE_ROUTE_FAIL");Application.Quit(passed?0:2);
         }
         void RetryCase()

@@ -1107,5 +1107,22 @@ static class RulesTests
         Assert(!PerformanceVerdict.Evaluate(true,dt,ui,CostStatistics.Measure(costOk,0,"t"),out r)&&r.Contains("one_percent_low_fps")&&r.Contains("min_one_second_fps"),"sustained wall-clock drop fails even if engine cost looks clean: "+r);
         Assert(!PerformanceVerdict.Evaluate(false,clean,ui,CostStatistics.Measure(costOk,0,"t"),out r)&&r.Contains("route_failed"),"a failed route never passes performance");
         Assert(!PerformanceVerdict.Evaluate(true,FrameStatistics.Measure(new float[100]),ui,CostStatistics.Measure(costOk,0,"t"),out r)&&r.Contains("too_few_frames"),"too few samples cannot pass");
+        // Present wait is not engine work: a main thread blocked ~7 ms in Present of a 16.9 ms frame costs ~9.9 ms.
+        Assert(Math.Abs(PerformanceVerdict.EngineCostMs(16.9f,7f,3f,2f)-9.9f)<.001f,"main-thread cost is cpuMainThreadFrameTime minus present wait");
+        Assert(PerformanceVerdict.EngineCostMs(16.7f,16.7f,3f,2f)==3f,"a main thread that only waited costs its render-thread figure");
+        Assert(PerformanceVerdict.EngineCostMs(5f,9f,0f,0f)==0f,"present wait larger than the frame clamps main-thread cost at 0");
+        Assert(PerformanceVerdict.EngineCostMs(16.9f,-3f,0f,0f)==16.9f&&PerformanceVerdict.EngineCostMs(16.9f,float.NaN,0f,0f)==16.9f,"negative or NaN present wait subtracts nothing");
+        Assert(PerformanceVerdict.EngineCostMs(12f,11f,3f,18.2f)==18.2f&&PerformanceVerdict.EngineCostMs(12f,0f,17.5f,4f)==17.5f,"GPU and render-thread time are never reduced by the wait");
+        Assert(PerformanceVerdict.EngineCostMs(21.6f,2f,1.6f,.6f)>PerformanceVerdict.BudgetMs,"a main thread that is really busy 19.6 ms still fails");
+        // Series: 5000 frames whose main thread reads 16.9 ms of which 8 ms is Present wait pass; the same without the
+        // wait figure (reported 0) fails, so the subtraction is what decides, and a real 25 ms frame still fails.
+        var mainRaw=new float[5000];var waits=new float[5000];var net=new float[5000];var noWait=new float[5000];
+        for(int i=0;i<5000;i++){mainRaw[i]=i%50==0?16.9f:9f;waits[i]=i%50==0?8f:0f;net[i]=PerformanceVerdict.EngineCostMs(mainRaw[i],waits[i],3f,2f);noWait[i]=PerformanceVerdict.EngineCostMs(mainRaw[i],0f,3f,2f);}
+        var withWait=CostStatistics.Measure(net,0,"t",waits);
+        Assert(withWait.over_16ms==0&&withWait.present_wait_max_ms==8f&&withWait.present_wait_frames==100&&Math.Abs(withWait.present_wait_mean_ms-.16f)<.001f,"present wait mean/max/frames are reported");
+        Assert(PerformanceVerdict.Evaluate(true,clean,ui,withWait,out r)&&r.StartsWith("ok"),"frames that only waited in Present pass: "+r);
+        Assert(!PerformanceVerdict.Evaluate(true,clean,ui,CostStatistics.Measure(noWait,0,"t",new float[5000]),out r)&&r.Contains("engine_cost_over_16ms=100"),"the same frames with no reported wait fail: "+r);
+        var busy=(float[])net.Clone();busy[2500]=PerformanceVerdict.EngineCostMs(25f,8f,3f,2f);
+        Assert(!PerformanceVerdict.Evaluate(true,clean,ui,CostStatistics.Measure(busy,0,"t",waits),out r)&&r.Contains("engine_cost_over_16ms=1"),"a real 17 ms of main-thread work after the wait still fails: "+r);
     }
 }
