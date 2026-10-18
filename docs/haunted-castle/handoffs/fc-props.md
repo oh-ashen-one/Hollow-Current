@@ -42,7 +42,7 @@ All three castle held instruments, not only the two the critic named (CaseBook c
 1. Prepare + bake the castle (`HouseLighting.PrepareAndBakeCastle`): read the log for `HC_CHAPEL ... PASS` and the new `HC_CHAPEL_PROPS ... overlap=False ... PASS` (brazier moved, so re-bake lighting: the brazier flame is a sprite, no baked light, but the bake receipts' source hash changes anyway). `check_throwables_scene.py` after Prepare.
 2. Player build, then `-hc-capture <dir> -hc-capture-art layout [-hc-capture-lantern on]`: look at `art_layout_chapel_aisle`, `..._chapel_altar_approach`, `..._chapel_from_great_doors` (brazier right of the altar steps, bell alone in the corner behind it); add `-hc-capture-art instruments` and check the four held views plus `HC_INSTRUMENTS` (build log) and `HC_CAPTURE_HELD` lines.
 3. Bellwether: `-hc-verify` unchanged (must still pass, `HeldAssetName` / vertex-count requires on the Tripo meshes).
-4. Playtest proofs that use the bell/brazier (`Find(InteractKind.Anchor)`, `Find(InteractKind.Breaker)`) unchanged; confirm the brazier is still reachable from the aisle (it is 1.9 m from the aisle edge).
+4. Playtest proofs that use the bell/brazier (`Find(InteractKind.Anchor)`, `Find(InteractKind.Breaker)`) unchanged; confirm the brazier is still reachable from the aisle (it is about 1.6 m from the aisle edge).
 
 ## Risks
 
