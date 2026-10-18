@@ -29,9 +29,19 @@ namespace HollowCurrent
             public float excluded_loading_ms;
             public SlowFrame[] slow_frames;
             public FrameStatistics ui_timing;
+            public CostStatistics engine_cost;
+            public CostFrame[] engine_cost_slow_frames;
+            public string performance_reason;
+            public int excluded_harness_frames;
             public SlowFrame[] ui_slow_frames;
             public int higgsfield_cues,music_frames,breathing_frames,ducked_frames,music_state_mask,audio_nonzero_samples;
             public float audio_output_peak;
+        }
+        [Serializable] sealed class CostFrame
+        {
+            public int sample;
+            public float elapsed_seconds,cpu_main_ms,cpu_render_ms,gpu_ms;
+            public string phase;
         }
         [Serializable] sealed class SlowFrame
         {
@@ -58,11 +68,20 @@ namespace HollowCurrent
         readonly List<float> uiFrames=new List<float>(4000);
         readonly List<SlowFrame> uiSlowFrames=new List<SlowFrame>(32);
         int lastGc0,lastGc1,lastGc2;
+        // Harness frames: the frames right after a ScreenCapture readback are stalled by the capture itself, not by the
+        // game, so they are counted separately and kept out of the timing. Engine cost is polled for the same frames.
+        int harnessUntilFrame,excludedHarnessFrames,costBlackoutUntil,costSkipped;
+        bool costTimingOn;
+        ulong lastCostStamp;
+        readonly FrameTiming[] costBuffer=new FrameTiming[1];
+        readonly List<float> costFrames=new List<float>(120000);
+        readonly List<CostFrame> costSlow=new List<CostFrame>(64);
         bool previousIntervalPlayable;
         Game previousIntervalGame;
         void Start()
         {
             DontDestroyOnLoad(gameObject);Application.runInBackground=true;
+            costTimingOn=FrameTimingManager.IsFeatureEnabled();Debug.Log("HC_PERF engine_cost_source="+(costTimingOn?"FrameTimingManager":"unavailable (Frame Timing Stats off); strict wall-clock rule")+" target_fps="+Application.targetFrameRate+" vsync="+QualitySettings.vSyncCount);
             var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,"-hc-evidence");
             folder=i>=0&&i+1<args.Length?args[i+1]:Path.Combine(Application.persistentDataPath,"verification");
             Directory.CreateDirectory(folder);start=Time.realtimeSinceStartup;
@@ -81,28 +100,53 @@ namespace HollowCurrent
                 loadingFrames++;loadingMilliseconds+=Time.unscaledDeltaTime*1000;
                 if(!ProfileOnly&&!loadingCaptureQueued){loadingCaptureQueued=true;StartCoroutine(CaptureLoadingFrame(game));}
                 previousIntervalPlayable=false;previousIntervalGame=game;
+                costBlackoutUntil=Time.frameCount+8;PollEngineCost(false);
                 lastGc0=gc0;lastGc1=gc1;lastGc2=gc2;return;
             }
             loadingCaptureQueued=false;
+            bool measured=false;
             bool playable=game!=null&&game.Started&&!game.Paused&&!game.Journal&&game.NoteBody==null&&!finished;
-            if(playable&&previousIntervalPlayable&&previousIntervalGame==game)
+            if(Time.frameCount<=harnessUntilFrame){excludedHarnessFrames++;}
+            else if(playable&&previousIntervalPlayable&&previousIntervalGame==game)
             {
-                float ms=Time.unscaledDeltaTime*1000;frames.Add(ms);
+                measured=true;float ms=Time.unscaledDeltaTime*1000;frames.Add(ms);
                 if(ms>16.667f)slowFrames.Add(new SlowFrame{sample=frames.Count,elapsed_seconds=Time.realtimeSinceStartup-start,frame_ms=ms,phase=game.Case.Phase.ToString(),position=game.Player.transform.position,tool=game.Player.Tool,gc0=gc0-lastGc0,gc1=gc1-lastGc1,gc2=gc2-lastGc2});
             }
             else if(playable&&previousIntervalGame!=game){loadingFrames++;loadingMilliseconds+=Time.unscaledDeltaTime*1000;}
             else if(game!=null&&game.Started&&previousIntervalGame==game&&!finished)
             {
-                float ms=Time.unscaledDeltaTime*1000;uiFrames.Add(ms);
+                measured=true;float ms=Time.unscaledDeltaTime*1000;uiFrames.Add(ms);
                 if(ms>16.667f)uiSlowFrames.Add(new SlowFrame{sample=uiFrames.Count,elapsed_seconds=Time.realtimeSinceStartup-start,frame_ms=ms,phase="UI transition / "+game.Case.Phase,position=game.Player.transform.position,tool=game.Player.Tool,gc0=gc0-lastGc0,gc1=gc1-lastGc1,gc2=gc2-lastGc2});
             }
+            if(!measured)costBlackoutUntil=Time.frameCount+8;
+            PollEngineCost(measured);
             previousIntervalPlayable=playable;previousIntervalGame=game;
             lastGc0=gc0;lastGc1=gc1;lastGc2=gc2;
+        }
+        // FrameTimingManager results arrive a few frames late, so a sample is only kept when this frame and the
+        // previous 8 were measured (not loading, not paused-transition, not a capture readback).
+        void PollEngineCost(bool measured)
+        {
+            if(!costTimingOn)return;
+            FrameTimingManager.CaptureFrameTimings();
+            if(FrameTimingManager.GetLatestTimings(1,costBuffer)==0)return;
+            var t=costBuffer[0];if(t.cpuTimeFrameComplete==lastCostStamp)return;
+            lastCostStamp=t.cpuTimeFrameComplete;
+            if(!measured||Time.frameCount<costBlackoutUntil){costSkipped++;return;}
+            float main=(float)t.cpuMainThreadFrameTime,render=(float)t.cpuRenderThreadFrameTime,gpu=(float)t.gpuFrameTime,cost=Mathf.Max(main,Mathf.Max(render,gpu));
+            costFrames.Add(cost);
+            if(cost>16.667f&&costSlow.Count<64)costSlow.Add(new CostFrame{sample=costFrames.Count,elapsed_seconds=Time.realtimeSinceStartup-start,cpu_main_ms=main,cpu_render_ms=render,gpu_ms=gpu,phase=game!=null&&game.Case!=null?game.Case.Phase.ToString():""});
+        }
+        // The readback stalls this frame and the next ones; keep them out of the timing and say so in the report.
+        void Shot(string path)
+        {
+            harnessUntilFrame=Time.frameCount+3;costBlackoutUntil=Time.frameCount+12;
+            ScreenCapture.CaptureScreenshot(path);
         }
         IEnumerator CaptureLoadingFrame(Game current)
         {
             yield return new WaitForEndOfFrame();
-            if(current&&current.Loading){ScreenCapture.CaptureScreenshot(Path.Combine(folder,"ui-loading-"+(++loadingCaptures)+".png"));Record("Native loading screen presented before scene activation");}
+            if(current&&current.Loading){Shot(Path.Combine(folder,"ui-loading-"+(++loadingCaptures)+".png"));Record("Native loading screen presented before scene activation");}
         }
         void Record(string text){events.Add((Time.realtimeSinceStartup-start).ToString("F2",CultureInfo.InvariantCulture)+" "+text);if(!ProfileOnly){Debug.Log("HC_VERIFY "+text);File.WriteAllLines(Path.Combine(folder,"route-events.txt"),events);}}
         void Require(bool condition,string message){if(!condition)throw new Exception(message);Record("PASS "+message);}
@@ -116,7 +160,7 @@ namespace HollowCurrent
                 catch(Exception e){error=e;}
                 if(error!=null)
                 {
-                    yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(folder,"failure.png"));
+                    yield return new WaitForEndOfFrame();Shot(Path.Combine(folder,"failure.png"));
                     yield return null;yield return null;Complete(false,error.ToString());yield break;
                 }
                 if(!moved){stack.Pop();continue;}
@@ -129,6 +173,8 @@ namespace HollowCurrent
             finished=true;Record((passed?"PASS ":"FAIL ")+detail);
             var timing=FrameStatistics.Measure(frames);
             var uiTiming=FrameStatistics.Measure(uiFrames);
+            var engineCost=CostStatistics.Measure(costFrames,costSkipped,costTimingOn?"FrameTimingManager max(cpuMainThread, cpuRenderThread, gpu)":"unavailable");
+            bool performancePass=PerformanceVerdict.Evaluate(passed,timing,uiTiming,engineCost,out string performanceReason);
             File.WriteAllLines(Path.Combine(folder,"route-events.txt"),events);
             var report=new NativeReport{passed=passed,width=Screen.width,height=Screen.height,frames=frames.Count,
                 p50_ms=timing.p50_ms,p95_ms=timing.p95_ms,p99_ms=timing.p99_ms,frames_over_33ms=frames.FindAll(x=>x>33.33f).Count,frames_over_16ms=frames.FindAll(x=>x>16.667f).Count,animated_frames=previousAnimation+game.Creature.Actor.AnimatedFrames,character_bones=game.Creature.Actor.BoneCount,
@@ -136,8 +182,9 @@ namespace HollowCurrent
                 scope=EnhancementsOnly?"enhancement scenarios; not a full investigation":UIOnly?"prepared native UI, keyboard reconstruction and loading":KitOnly?"equipment":ArtOnly?"three-floor visual/controller":ProfileOnly?"capture-free full investigation and retry":"full investigation and retry",
                 color_space=QualitySettings.activeColorSpace.ToString(),authored_scene=FindFirstObjectByType<WorldLayout>()!=null,
                 higgsfield_cues=previousGenerated+game.Sound.GeneratedCues,music_frames=previousMusic+game.Sound.MusicFrames,breathing_frames=previousBreathing+game.Sound.BreathingFrames,ducked_frames=previousDucked+game.Sound.DuckedFrames,music_state_mask=previousMusicMask|game.Sound.MusicMask,audio_nonzero_samples=audioNonzero,audio_output_peak=audioPeak,
-                audio_cues=previousAudio+game.Sound.PlayedCues,speech_takes=previousSpeech+game.Sound.PlayedSpeech,captures_enabled=!ProfileOnly,timing=timing,performance_pass=passed&&ProfileOnly&&timing.meets_60_fps_floor&&uiTiming.frames_over_16ms==0,excluded_loading_frames=loadingFrames,excluded_loading_ms=loadingMilliseconds,slow_frames=slowFrames.ToArray(),ui_timing=uiTiming,ui_slow_frames=uiSlowFrames.ToArray()};
+                audio_cues=previousAudio+game.Sound.PlayedCues,speech_takes=previousSpeech+game.Sound.PlayedSpeech,captures_enabled=!ProfileOnly,timing=timing,performance_pass=performancePass,performance_reason=performanceReason,engine_cost=engineCost,engine_cost_slow_frames=costSlow.ToArray(),excluded_harness_frames=excludedHarnessFrames,excluded_loading_frames=loadingFrames,excluded_loading_ms=loadingMilliseconds,slow_frames=slowFrames.ToArray(),ui_timing=uiTiming,ui_slow_frames=uiSlowFrames.ToArray()};
             File.WriteAllText(Path.Combine(folder,"native-report.json"),JsonUtility.ToJson(report,true));
+            Debug.Log("HC_PERF pass="+performancePass+" reason="+performanceReason+" frames_over_16ms="+timing.frames_over_16ms+" p99="+timing.p99_ms.ToString("F1",CultureInfo.InvariantCulture)+" floor=60 frames="+timing.frames+" engine_cost_over_16ms="+engineCost.over_16ms+" engine_cost_p99="+engineCost.p99_ms.ToString("F1",CultureInfo.InvariantCulture)+" engine_cost_samples="+engineCost.samples+" ui_frames_over_16ms="+uiTiming.frames_over_16ms+" harness_excluded_frames="+excludedHarnessFrames);
             Debug.Log(passed?(EnhancementsOnly?"HC_NATIVE_ENHANCEMENTS_PASS":UIOnly?"HC_NATIVE_UI_PASS":KitOnly?"HC_NATIVE_KIT_PASS":ArtOnly?"HC_NATIVE_ART_PASS":"HC_NATIVE_ROUTE_PASS"):"HC_NATIVE_ROUTE_FAIL");Application.Quit(passed?0:2);
         }
         void RetryCase()
@@ -153,7 +200,7 @@ namespace HollowCurrent
             yield return null;Bind();
         }
         IEnumerator CaptureUI(string name)
-        {yield return new WaitForSecondsRealtime(.3f);yield return new WaitForEndOfFrame();ScreenCapture.CaptureScreenshot(Path.Combine(folder,name+".png"));yield return null;yield return new WaitForEndOfFrame();yield return null;Record("Capture "+name);}
+        {yield return new WaitForSecondsRealtime(.3f);yield return new WaitForEndOfFrame();Shot(Path.Combine(folder,name+".png"));yield return null;yield return new WaitForEndOfFrame();yield return null;Record("Capture "+name);}
         IEnumerator UIRoute()
         {
             game=FindFirstObjectByType<Game>();Require(Screen.width==1920&&Screen.height==1080,"Native UI at 1920x1080");
@@ -233,7 +280,7 @@ namespace HollowCurrent
         IEnumerator Capture(string name,Vector3 at)
         {
             yield return Look(at);yield return new WaitForSecondsRealtime(.25f);
-            yield return new WaitForEndOfFrame();if(!ProfileOnly)ScreenCapture.CaptureScreenshot(Path.Combine(folder,name+".png"));
+            yield return new WaitForEndOfFrame();if(!ProfileOnly)Shot(Path.Combine(folder,name+".png"));
             yield return null;yield return new WaitForEndOfFrame();yield return null;Record("Capture "+name);
         }
         IEnumerator ReadContext(string name,Vector3 approach)

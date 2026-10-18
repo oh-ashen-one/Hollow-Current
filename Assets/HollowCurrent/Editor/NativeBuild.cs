@@ -56,7 +56,7 @@ namespace HollowCurrent.Editor
             PlayerSettings.colorSpace=ColorSpace.Linear;
             PlayerSettings.bundleVersion="0.2.0";PlayerSettings.SetApplicationIdentifier(UnityEditor.Build.NamedBuildTarget.Standalone,"com.bellwether.hollowcurrent");
             PlayerSettings.defaultScreenWidth=1920;PlayerSettings.defaultScreenHeight=1080;PlayerSettings.fullScreenMode=FullScreenMode.Windowed;PlayerSettings.resizableWindow=true;PlayerSettings.defaultIsNativeResolution=false;
-            PlayerSettings.runInBackground=false;
+            PlayerSettings.runInBackground=false;PlayerSettings.enableFrameTimingStats=true;
             PlayerSettings.SetScriptingBackend(UnityEditor.Build.NamedBuildTarget.Standalone,ScriptingImplementation.Mono2x);
             PlayerSettings.SetArchitecture(UnityEditor.Build.NamedBuildTarget.Standalone,1);
             // Runtime creates Standard materials; retain that shader in standalone builds.
