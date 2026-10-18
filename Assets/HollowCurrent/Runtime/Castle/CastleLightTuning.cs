@@ -36,6 +36,10 @@ namespace HollowCurrent
         public float WindowMoonlightCrypt = .34f;    // was .43 (r6; .17 originally) (FloorY < 0): the crypt only loses 20 %, its fog profile stays
         public float WindowMoonlightFloor = .48f;    // was .80 (-40 %)
         public float WindowMoonlightRose = .50f;     // integ-fb .66 -> .50; was 1.10 (the shadowed rose window)
+        // fc-light: non-rose window spots that sit in the great hall (clerestories, the north lancets; castle-local |x| <= 6.8,
+        // z 13.5-29, y 0-9.5). Default = WindowMoonlightFloor, i.e. no change this round; it is the integrator's hall-only fallback knob
+        // (BAKED: re-bake the castle after editing it). Chapel, courtyard and crypt windows keep WindowMoonlightFloor / WindowMoonlightCrypt.
+        public float HallWindowMoonlight = .48f;
         public float MoonDirectional = .10f;         // was .16
         public Color SecondMoonColor = new Color(.62f, .24f, .34f);
         public float SecondMoonDirectional = .035f;  // was .05
@@ -55,7 +59,12 @@ namespace HollowCurrent
         // (TorchScale) so Bellwether is untouched. TorchRange 0 keeps the shared range.
         public float TorchIntensityScale = 2.4f;      // integ-fb 1.35 -> 2.4 (2.04 absolute): at 1.35 the lantern moved S1-S3 near-black by under 3 points
         public float TorchRange = 24f;               // integ-fb 0 (keep 20) -> 24
-        public float TorchSpotAngle = 80f;           // integ-fb: castle lantern cone 80 deg (Bellwether keeps 52); 0 keeps the shared angle
+        public float TorchSpotAngle = 100f;          // fc-light 80 -> 100 (chapel views kept 18-35 % of the frame near-black OUTSIDE the 80 deg cone); integ-fb: 80 (Bellwether keeps 52); 0 keeps the shared angle
+        // fc-light: the torch is an Auto light, so in forward rendering it only reaches objects where it ranks among the Ultra tier's 4 pixel
+        // lights. Diffing the fb2 lantern-on/off captures showed it lit the hall vault, candelabras and far wall but NOT the hall floor, near
+        // walls, skeleton, chapel floor, pews or altar (those objects already carry the ForcePixel fills plus nearer candles). ForcePixel makes
+        // the lantern light every surface in its cone (castle only; Bellwether's torch keeps Auto).
+        public bool TorchForcePixel = true;
 
         [Header("Extra fill lights (castle-local positions; realtime, no shadows)")]
         public bool AddFillLights = true;
@@ -170,6 +179,7 @@ namespace HollowCurrent
             player.TorchScale = TorchIntensityScale;
             if (TorchRange > 0 && player.Torch) player.Torch.range = TorchRange;
             if (TorchSpotAngle > 0 && player.Torch) { player.Torch.spotAngle = TorchSpotAngle; player.Torch.innerSpotAngle = TorchSpotAngle * .6f; }
+            if (TorchForcePixel && player.Torch) player.Torch.renderMode = LightRenderMode.ForcePixel;
         }
 
         // Editor/bake entry point: tune every light under the castle root with the default values.
@@ -201,7 +211,7 @@ namespace HollowCurrent
                 {
                     l.color = v.MoonColor;
                     float old = l.intensity;
-                    l.intensity = old >= .45f ? v.WindowMoonlightRose : old >= .25f ? v.WindowMoonlightFloor : v.WindowMoonlightCrypt;
+                    l.intensity = old >= .45f ? v.WindowMoonlightRose : old >= .25f ? (InHall(l.transform.localPosition) ? v.HallWindowMoonlight : v.WindowMoonlightFloor) : v.WindowMoonlightCrypt;
                 }
                 else if (baseName == "Castle moonlight" && l.type == LightType.Directional)
                 {
@@ -218,6 +228,10 @@ namespace HollowCurrent
             if (n > 0) Debug.Log("[CastleLightTuning] tuned " + n + " lights");
             return n;
         }
+
+        // Window spots are children of the castle root, so localPosition is castle-local. The hall is x -6..6, z 14.3..28; window spots
+        // sit 0.6 m outside their wall plane (|x| 6.6 for the clerestories, z 28.6 for the north wall).
+        static bool InHall(Vector3 p) => Mathf.Abs(p.x) <= 6.8f && p.z >= 13.5f && p.z <= 29f && p.y >= 0f && p.y <= 9.5f;
 
         // ---- extra fill lights -------------------------------------------------------------------------------------------
         void BuildFills()
