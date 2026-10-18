@@ -1185,6 +1185,7 @@ namespace HollowCurrent
             AltarInlay();
             ChapelFont();
             ChapelBrazier();
+            LogChapelProps();
             ChapelCandles();
         }
 
@@ -1305,6 +1306,32 @@ namespace HollowCurrent
             string line = "HC_CHAPEL aisle=" + aisle.ToString("F2") + " (min " + CastleLayout.ChapelMinAisle.ToString("F1") + ") passage_south=" + passageSouth.ToString("F2") + " passage_north=" + passageNorth.ToString("F2")
                 + " (min " + CastleLayout.ChapelMinPassage.ToString("F1") + ") pews_standing=" + standing + " pews_fallen=" + fallen + " font=(" + font.x.ToString("F2") + "," + font.z.ToString("F2")
                 + ") font_outside_aisle=" + fontOut + " " + (ok ? "PASS" : "FAIL");
+            if (ok) Debug.Log(line); else Debug.LogError(line);
+        }
+
+        // fc-props: the chapel bell and the brazier must not overlap (they did: both in the north-east corner, 0.2 m apart) and neither may stand in the
+        // pew-to-wall passages. Analytic, from the same data the props are placed from: the bell's art footprint (CastleLayout.ArtSize rotated by its yaw,
+        // -90) against the brazier's square (CastleLayout.BrazierHalf). Logged as HC_CHAPEL_PROPS; a violation logs an error.
+        void LogChapelProps()
+        {
+            var s = CastleLayout.ArtSize(Art.ChapelBell);
+            const float bellYaw = -90f;
+            float c = Mathf.Abs(Mathf.Cos(bellYaw * Mathf.Deg2Rad)), sn = Mathf.Abs(Mathf.Sin(bellYaw * Mathf.Deg2Rad));
+            float bhx = (s.x * c + s.z * sn) * .5f, bhz = (s.x * sn + s.z * c) * .5f;     // axis-aligned half extents of the rotated footprint
+            float bx0 = AnchorLocal.x - bhx, bx1 = AnchorLocal.x + bhx, bz0 = AnchorLocal.z - bhz, bz1 = AnchorLocal.z + bhz;
+            var br = CastleLayout.BrazierPos; float h = CastleLayout.BrazierHalf;
+            float rx0 = br.x - h, rx1 = br.x + h, rz0 = br.z - h, rz1 = br.z + h;
+            float gx = Mathf.Max(bx0 - rx1, rx0 - bx1), gz = Mathf.Max(bz0 - rz1, rz0 - bz1);
+            bool overlap = gx < 0 && gz < 0;
+            float gap = Mathf.Max(gx, gz);                                                  // < 0 only when they intersect; else the clear floor between them
+            float pewMaxX = float.NegativeInfinity;
+            foreach (float x in CastleLayout.ChapelPewRows) pewMaxX = Mathf.Max(pewMaxX, x + .55f);   // standing pew half-depth .35, a fallen one reaches about .55
+            bool passagesClear = Mathf.Min(bx0, rx0) > pewMaxX && Mathf.Max(bz1, rz1) <= CastleLayout.ChapelWallNorth && Mathf.Min(bz0, rz0) >= CastleLayout.ChapelWallSouth
+                                 && rz0 >= 9.0f;                                                   // the brazier also stays off the altar steps (z 4.0..9.0)
+            bool ok = !overlap && gap >= CastleLayout.ChapelPropMinGap && passagesClear;
+            string line = "HC_CHAPEL_PROPS bell=[x " + bx0.ToString("F2") + ".." + bx1.ToString("F2") + " z " + bz0.ToString("F2") + ".." + bz1.ToString("F2") + "] brazier=[x "
+                + rx0.ToString("F2") + ".." + rx1.ToString("F2") + " z " + rz0.ToString("F2") + ".." + rz1.ToString("F2") + "] overlap=" + overlap + " gap=" + gap.ToString("F2")
+                + " (min " + CastleLayout.ChapelPropMinGap.ToString("F1") + ") passages_clear=" + passagesClear + " " + (ok ? "PASS" : "FAIL");
             if (ok) Debug.Log(line); else Debug.LogError(line);
         }
 

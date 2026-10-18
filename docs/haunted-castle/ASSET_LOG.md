@@ -72,8 +72,8 @@ synthetic-reverb convolution; deterministic seeds; loops are periodic by constru
 |---|---|---|
 | `heartbeat_loop`, `wind_battlements_loop`, `door_rattle`, `book_drop`, `knife_stick`, `claw_steps_0..3`, `bat_pass` | `tools/audio_castle_sfx.py` (fully synthetic) | 0 |
 | `bell_single` | `tools/audio_castle_sfx.py` cuts one strike out of the existing `chapel_bell_toll.wav` (derived from the Higgsfield bell; no new job) | 0 |
-| `voice_cc_kit`, `voice_cc_ending` | eSpeak NG, Count treatment from `CASTLE_FX` | 0 |
-| `voice_cc_contain` | eSpeak NG, Count treatment from `CASTLE_FX` (added 2026-10-14 on `hc/throws`: `python3 tools/generate_open_voice.py --castle cc_contain`; the same pipeline reproduces the committed `voice_cc_kit.wav` byte for byte with eSpeak NG 1.52.0) | 0 |
+| ~~`voice_cc_kit`, `voice_cc_ending`~~ (retired 2026-10-15, see "Retired 2026-10-15" below) | eSpeak NG, Count treatment from `CASTLE_FX` | 0 |
+| ~~`voice_cc_contain`~~ (retired 2026-10-15) | eSpeak NG, Count treatment from `CASTLE_FX` (added 2026-10-14 on `hc/throws`: `python3 tools/generate_open_voice.py --castle cc_contain`; the same pipeline reproduces the committed `voice_cc_kit.wav` byte for byte with eSpeak NG 1.52.0) | 0 |
 
 No `ASSET_LICENSES.md` line is needed: everything here is generated from our own scripts (eSpeak NG output is redistributable per the existing voice entries).
 
@@ -115,22 +115,13 @@ critic or owner replaces the cell with a name and date once a clip is cleared. M
 | `orrery_tick.wav` | `tools/audio_orrery_tick.py` (synthetic) | Project CC BY 4.0 (own script) | not yet |
 | `stagger_screech.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
 | `voice_cc_bargain.wav` | `tools/generate_castle_voice.py cc_bargain` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_contain.wav` | `tools/generate_castle_voice.py cc_contain` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_dispatch.wav` | `tools/generate_castle_voice.py cc_dispatch` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_ending.wav` | `tools/generate_castle_voice.py cc_ending` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_hint_signal.wav` | `tools/generate_castle_voice.py cc_hint_signal` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_hint_trace.wav` | `tools/generate_castle_voice.py cc_hint_trace` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_hint_voice.wav` | `tools/generate_castle_voice.py cc_hint_voice` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_hunt_found.wav` | `tools/generate_castle_voice.py cc_hunt_found` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_hunt_hungry.wav` | `tools/generate_castle_voice.py cc_hunt_hungry` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_hunt_run.wav` | `tools/generate_castle_voice.py cc_hunt_run` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_hunt_smell.wav` | `tools/generate_castle_voice.py cc_hunt_smell` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_kit.wav` | `tools/generate_castle_voice.py cc_kit` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_ledger_orrery.wav` | `tools/generate_castle_voice.py cc_ledger_orrery` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_ledger_portrait.wav` | `tools/generate_castle_voice.py cc_ledger_portrait` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_ledger_steward.wav` | `tools/generate_castle_voice.py cc_ledger_steward` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_listen.wav` | `tools/generate_castle_voice.py cc_listen` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
-| `voice_cc_night.wav` | `tools/generate_castle_voice.py cc_night` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_relic_blade.wav` | `tools/generate_castle_voice.py cc_relic_blade` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_relic_hilt.wav` | `tools/generate_castle_voice.py cc_relic_hilt` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 | `voice_cc_relic_moon.wav` | `tools/generate_castle_voice.py cc_relic_moon` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
@@ -139,6 +130,22 @@ critic or owner replaces the cell with a name and date once a clip is cleared. M
 | `wind_battlements_loop.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic) | Project CC BY 4.0 (own script, no third-party samples) | not yet |
 | `wing_beats_loop.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
 | `wing_wrap_grab.wav` | Higgsfield Seed Audio 1.0 (job in the section above; post: `tools/audio_castle_post.py`) | Higgsfield grant in `ASSET_LICENSES.md` (credit "audio generated with Higgsfield"; no AI/ML training use) | not yet |
+
+### Retired 2026-10-15 (wave FB, fb-voice2): nine `voice_cc_*` clips
+
+`integ-fb` (commit 7eb25f9) removed nine Count voice lines and their `tools/voice-lines.json` entries per `fb-voice2` (owner item 13: nothing should be spoken as if from a house-wide speaker; the castle now voices only located Count and `cc_`/`evp`/`whisper` lines, see `handoffs/fb-voice2.md`): `voice_cc_hunt_hungry`, `voice_cc_dispatch`, `voice_cc_night`, `voice_cc_kit`, `voice_cc_ending`, `voice_cc_contain`, `voice_cc_hint_signal`, `voice_cc_hint_trace`, `voice_cc_hint_voice`. The `.wav` files are no longer in `Resources/CastleAudio`; `python3 tools/audio_castle_sfx.py --check` no longer expects the seven it used to own (`VOICES` is empty, `RETIRED_VOICES` lists them). Their rows are kept here as history only (the file and the original licence statement no longer ship, nothing to redistribute):
+
+| Clip (retired) | Origin / generator when shipped | Licence when shipped | Human listen |
+|---|---|---|---|
+| `voice_cc_contain.wav` | `tools/generate_castle_voice.py cc_contain` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_dispatch.wav` | `tools/generate_castle_voice.py cc_dispatch` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_ending.wav` | `tools/generate_castle_voice.py cc_ending` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_hint_signal.wav` | `tools/generate_castle_voice.py cc_hint_signal` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_hint_trace.wav` | `tools/generate_castle_voice.py cc_hint_trace` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_hint_voice.wav` | `tools/generate_castle_voice.py cc_hint_voice` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_hunt_hungry.wav` | `tools/generate_castle_voice.py cc_hunt_hungry` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_kit.wav` | `tools/generate_castle_voice.py cc_kit` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
+| `voice_cc_night.wav` | `tools/generate_castle_voice.py cc_night` (Kokoro-82M `bm_george` + dark hall FX chain; replaced the eSpeak NG render on `hc/fb-audio`, 2026-10-15) | Line text: project CC BY 4.0. Voice model: Kokoro-82M, Apache-2.0, output redistributable (`ASSET_LICENSES.md`) | not yet (owner pending) |
 
 ## Wave K audio repair (`hc/audio4`, 2026-10-14, from the r11 critic): cost 0
 
@@ -151,22 +158,22 @@ CPU-only, in place on the committed WAVs; `tools/audio_castle_fix.py` (crossfade
 | candle_whisper_bed | 7.53 -> 7.23 | -30.0 -> -29.9 | -12.2 -> -12.2 | 0.00 -> 0.00 | 0.0081 -> 0.0000 |
 | bell_single | 3.00 -> 2.85 | -30.0 -> -30.0 | -14.9 -> -14.9 | 0.30 -> 0.15 | 0.0000 -> 0.0002 |
 | voice_cc_bargain | 9.14 -> 7.54 | -29.0 -> -24.2 | -12.3 -> -7.5 | 1.75 -> 0.06 | 0.0008 -> 0.0014 |
-| voice_cc_contain | 9.06 -> 7.46 | -29.4 -> -24.2 | -12.4 -> -7.2 | 1.75 -> 0.10 | 0.0003 -> 0.0005 |
-| voice_cc_dispatch | 8.24 -> 6.64 | -28.6 -> -24.2 | -12.0 -> -7.6 | 1.75 -> 0.15 | 0.0000 -> 0.0000 |
-| voice_cc_ending | 10.42 -> 8.84 | -29.6 -> -24.2 | -11.4 -> -6.0 | 1.73 -> 0.15 | 0.0000 -> 0.0000 |
-| voice_cc_hint_signal | 10.03 -> 8.44 | -28.6 -> -24.2 | -11.1 -> -6.8 | 1.74 -> 0.13 | 0.0000 -> 0.0000 |
-| voice_cc_hint_trace | 9.54 -> 7.97 | -28.8 -> -24.2 | -12.0 -> -7.5 | 1.71 -> 0.15 | 0.0000 -> 0.0000 |
-| voice_cc_hint_voice | 9.24 -> 7.48 | -28.5 -> -24.2 | -11.0 -> -6.7 | 1.92 -> 0.06 | 0.0005 -> 0.0009 |
+| ~~voice_cc_contain~~ (retired) | 9.06 -> 7.46 | -29.4 -> -24.2 | -12.4 -> -7.2 | 1.75 -> 0.10 | 0.0003 -> 0.0005 |
+| ~~voice_cc_dispatch~~ (retired) | 8.24 -> 6.64 | -28.6 -> -24.2 | -12.0 -> -7.6 | 1.75 -> 0.15 | 0.0000 -> 0.0000 |
+| ~~voice_cc_ending~~ (retired) | 10.42 -> 8.84 | -29.6 -> -24.2 | -11.4 -> -6.0 | 1.73 -> 0.15 | 0.0000 -> 0.0000 |
+| ~~voice_cc_hint_signal~~ (retired) | 10.03 -> 8.44 | -28.6 -> -24.2 | -11.1 -> -6.8 | 1.74 -> 0.13 | 0.0000 -> 0.0000 |
+| ~~voice_cc_hint_trace~~ (retired) | 9.54 -> 7.97 | -28.8 -> -24.2 | -12.0 -> -7.5 | 1.71 -> 0.15 | 0.0000 -> 0.0000 |
+| ~~voice_cc_hint_voice~~ (retired) | 9.24 -> 7.48 | -28.5 -> -24.2 | -11.0 -> -6.7 | 1.92 -> 0.06 | 0.0005 -> 0.0009 |
 | voice_cc_hunt_found | 3.76 -> 2.22 | -30.3 -> -24.2 | -13.5 -> -7.4 | 1.69 -> 0.15 | 0.0000 -> 0.0000 |
-| voice_cc_hunt_hungry | 6.44 -> 4.89 | -28.9 -> -24.2 | -12.8 -> -8.1 | 1.69 -> 0.15 | 0.0000 -> 0.0000 |
+| ~~voice_cc_hunt_hungry~~ (retired) | 6.44 -> 4.89 | -28.9 -> -24.2 | -12.8 -> -8.1 | 1.69 -> 0.15 | 0.0000 -> 0.0000 |
 | voice_cc_hunt_run | 6.27 -> 4.72 | -29.1 -> -24.2 | -12.6 -> -7.9 | 1.69 -> 0.15 | 0.0002 -> 0.0004 |
 | voice_cc_hunt_smell | 5.14 -> 3.60 | -28.8 -> -24.2 | -13.7 -> -9.2 | 1.69 -> 0.14 | 0.0009 -> 0.0014 |
-| voice_cc_kit | 9.63 -> 8.08 | -30.3 -> -24.2 | -11.6 -> -5.5 | 1.69 -> 0.15 | 0.0000 -> 0.0000 |
+| ~~voice_cc_kit~~ (retired) | 9.63 -> 8.08 | -30.3 -> -24.2 | -11.6 -> -5.5 | 1.69 -> 0.15 | 0.0000 -> 0.0000 |
 | voice_cc_ledger_orrery | 18.10 -> 16.71 | -29.2 -> -24.2 | -11.8 -> -6.7 | 1.54 -> 0.15 | 0.0000 -> 0.0000 |
 | voice_cc_ledger_portrait | 17.42 -> 16.03 | -29.1 -> -24.2 | -12.5 -> -7.7 | 1.54 -> 0.15 | 0.0000 -> 0.0000 |
 | voice_cc_ledger_steward | 18.35 -> 16.91 | -29.0 -> -24.2 | -12.4 -> -7.6 | 1.59 -> 0.11 | 0.0003 -> 0.0005 |
 | voice_cc_listen | 7.17 -> 5.57 | -28.6 -> -24.2 | -12.3 -> -7.8 | 1.75 -> 0.06 | 0.0008 -> 0.0013 |
-| voice_cc_night | 7.88 -> 6.43 | -28.1 -> -24.2 | -13.4 -> -9.5 | 1.60 -> 0.15 | 0.0000 -> 0.0000 |
+| ~~voice_cc_night~~ (retired) | 7.88 -> 6.43 | -28.1 -> -24.2 | -13.4 -> -9.5 | 1.60 -> 0.15 | 0.0000 -> 0.0000 |
 | voice_cc_relic_blade | 8.87 -> 7.40 | -29.4 -> -24.2 | -12.6 -> -7.4 | 1.63 -> 0.13 | 0.0000 -> 0.0000 |
 | voice_cc_relic_hilt | 9.77 -> 8.32 | -29.6 -> -24.2 | -13.3 -> -7.9 | 1.60 -> 0.15 | 0.0002 -> 0.0003 |
 | voice_cc_relic_moon | 8.39 -> 6.89 | -28.2 -> -24.2 | -12.8 -> -8.8 | 1.64 -> 0.13 | 0.0002 -> 0.0002 |
@@ -212,7 +219,7 @@ No paid generation. Owner items 1, 2 and 11 of `rounds/r13/OWNER_FEEDBACK.md`.
 | Asset | Source | Licence | Human listen |
 |---|---|---|---|
 | `step_stone_0..3.wav`, `step_gravel_0..3.wav` (CastleAudio, 48 kHz mono, peak -14 dBFS) | `tools/audio_castle_steps.py` (numpy/scipy filtered noise events: heel, sole scuff, cloth swish, toe settle, short hall tail; deterministic seeds). No tonal component (`check_audio_quality.py` tonality rule). | Project CC BY 4.0 (own script, no third-party samples) | Human listen: owner pending |
-| `voice_cc_*.wav` x22 (48 kHz mono, -24.2 LUFS, rewritten texts in `tools/voice-lines.json`) | `tools/generate_castle_voice.py`: Kokoro-82M (hexgrad, Apache-2.0, v1.0 weights from Hugging Face `hexgrad/Kokoro-82M`), voice `bm_george`, speed 0.84, then 5 % pitch drop, breath layer, warm EQ, compression, stone-hall reverb. Python 3.12 venv with `kokoro 0.9.4`, `misaki 0.9.4`, `torch 2.14.1`, `spacy 3.8.16` + `en_core_web_sm 3.8.0` (MIT), `espeakng-loader 0.2.4` (espeak-ng GPL-3 is used as a phonemiser program only; no eSpeak audio is in the clips). CPU only. | Kokoro-82M: Apache-2.0; its output is redistributable. Line text: project CC BY 4.0. | Human listen: owner pending |
+| `voice_cc_*.wav` x22 when written (nine were retired the same day, 13 remain; see "Retired 2026-10-15") (48 kHz mono, -24.2 LUFS, rewritten texts in `tools/voice-lines.json`) | `tools/generate_castle_voice.py`: Kokoro-82M (hexgrad, Apache-2.0, v1.0 weights from Hugging Face `hexgrad/Kokoro-82M`), voice `bm_george`, speed 0.84, then 5 % pitch drop, breath layer, warm EQ, compression, stone-hall reverb. Python 3.12 venv with `kokoro 0.9.4`, `misaki 0.9.4`, `torch 2.14.1`, `spacy 3.8.16` + `en_core_web_sm 3.8.0` (MIT), `espeakng-loader 0.2.4` (espeak-ng GPL-3 is used as a phonemiser program only; no eSpeak audio is in the clips). CPU only. | Kokoro-82M: Apache-2.0; its output is redistributable. Line text: project CC BY 4.0. | Human listen: owner pending |
 | `docs/haunted-castle/audition/voice_<voice>_cc_hunt_hungry.wav` (`bm_george`, `bm_lewis`, `am_michael`, `am_adam`, `bm_fable`) | `python tools/generate_castle_voice.py --audition` (same FX chain) | same as above | Human listen: owner pending |
 
 Bellwether's eSpeak lines (`Resources/Audio/voice_*`) are unchanged. `generate_open_voice.py` no longer renders `cc_*` entries (it exits with a pointer to the Kokoro script unless `--legacy-espeak-castle` is given).
@@ -232,3 +239,13 @@ files; the paper is numpy + Pillow.
 Contrast of every ink colour against the worst 0.5 % of each sheet's text zone is printed by `python3 tools/docui_paper.py --check` (body 5.7:1 ledger,
 6.5:1 letter, 11.7:1 field; titles and kickers >= 4.9:1; close line >= 5.2:1). The static look proofs are `docs/haunted-castle/rounds/r13/docui_mock_*.png`
 (`tools/docui_mock.py`, real note texts and fonts; PIL, not the engine).
+
+## Period held instruments (piece `hc/fc-props`, wave FC, 2026-10-18): cost 0, no files
+
+Owner/critic r12 ("modern props under gothic names"). The castle's three held instruments are generated in code by `Runtime/Castle/CastleInstrumentArt.cs` (Bellwether keeps its Tripo field-kit meshes unchanged). **No binary asset, no model, no generation job, no new texture file**: meshes are built at runtime from primitives (lathes and tube sweeps), the three small textures are painted at runtime from an integer hash (no files, so no `tools/` generator is needed), materials are Unity `Standard` plus the existing `CastleEmissive` / `CastleSprite` shaders. All of it is original project work, CC BY 4.0.
+
+| Instrument | Castle name | Geometry | Vertices (printed by `HC_INSTRUMENTS`) |
+|---|---|---|---|
+| tool 1 (was the induction reader) | Hollow Compass | brass case, bezel and suspension ring; parchment dial (runtime texture: inked ring, 24 ticks, red 12 o'clock mark); glass glare disc; red-tipped needle; five reading pips | 1277 (measured offline with the same builder code) |
+| tool 2 (was the UV lamp) | Grave-ash Lantern | brass foot, cap and bail ring; six iron cage bars; violet glass chimney (translucent sprite) round a glowing core | 1150 |
+| tool 3 (was the EVP recorder) | Vellum Ear-Trumpet | flared brass horn, vellum wrap (runtime texture), three leather bindings, dark bell interior | 1026 |

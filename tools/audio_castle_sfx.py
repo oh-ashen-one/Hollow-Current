@@ -5,8 +5,8 @@ usage: audio_castle_sfx.py [name ...]      (no names = everything)
        audio_castle_sfx.py --check         (re-measure every file this script owns and print the table)
 
 Clips: heartbeat_loop, wind_battlements_loop, door_rattle, book_drop, knife_stick, claw_steps_0..3,
-bat_pass, bell_single (derived from chapel_bell_toll.wav). Voices voice_cc_kit / ending / contain / hint_signal / hint_trace / hint_voice / dispatch come from
-tools/generate_open_voice.py --castle (entries cc_kit, cc_ending, cc_contain in tools/voice-lines.json).
+bat_pass, bell_single (derived from chapel_bell_toll.wav). The seven eSpeak voices voice_cc_kit / ending / contain / hint_signal / hint_trace / hint_voice / dispatch were
+retired on 2026-10-15 (RETIRED_VOICES below; --check no longer expects them). Castle voices are made by tools/generate_castle_voice.py.
 
 Method: numpy/scipy only. Damped modal synthesis (wood, stone, steel), filtered noise, filtered impulses and
 synthetic-reverb convolution. Loops are built with circular (FFT) filtering and integer-cycle modulators so the
@@ -351,7 +351,10 @@ CLIPS.update({'castle_hide_breath_0':lambda:castle_hide_breath(0),'castle_hide_b
   'castle_hide_clawstep':castle_hide_clawstep,'castle_hide_handle':castle_hide_handle,'castle_hide_whisper':castle_hide_whisper})
 for _i,_p in enumerate(CLAWS):CLIPS[f'claw_steps_{_i}']=(lambda p=_p:claw_step(p))
 LOOPS={'heartbeat_loop','wind_battlements_loop'}
-VOICES=['voice_cc_kit','voice_cc_ending','voice_cc_contain','voice_cc_hint_signal','voice_cc_hint_trace','voice_cc_hint_voice','voice_cc_dispatch']
+# Retired 2026-10-15 (wave FB, fb-voice2; integ-fb 7eb25f9 deleted the files): the castle no longer ships these eSpeak voice clips, so --check must not
+# expect them. (voice_cc_night and voice_cc_hunt_hungry were never owned by this script.) The live castle voices belong to tools/generate_castle_voice.py.
+RETIRED_VOICES=['voice_cc_kit','voice_cc_ending','voice_cc_contain','voice_cc_hint_signal','voice_cc_hint_trace','voice_cc_hint_voice','voice_cc_dispatch']
+VOICES=[]
 OWNED=list(CLIPS)+VOICES
 
 def read(name):

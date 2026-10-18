@@ -119,7 +119,7 @@ namespace HollowCurrent
             Log(id+" "+texture.width+"x"+texture.height+" "+file);
             Destroy(texture);
         }
-        // -hc-capture-art exterior|props|doors|layout|kit: extra art-review views (castle-local = world coordinates), eye -> target at the player's
+        // -hc-capture-art exterior|props|doors|layout|kit|instruments: extra art-review views (castle-local = world coordinates), eye -> target at the player's
         // 72 deg FOV, plus a frame-time sample at the crypt view for props. Used with the normal full capture for S1-S4.
         static string ArtSet{get{var a=Environment.GetCommandLineArgs();for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-capture-art")return a[i+1];return null;}}
         IEnumerator ArtRun(string set)
@@ -175,6 +175,17 @@ namespace HollowCurrent
                 views.Add(("chapel_confessional",new Vector3(8.2f,1.64f,9.4f),new Vector3(7.3f,1.2f,12.5f)));               // the hide spot's approach
                 views.Add(("chapel_altar_approach",new Vector3(9.0f,1.64f,6.5f),new Vector3(12.9f,1.3f,6.5f)));             // the sockets seen from the pews' end
             }
+            else if(set=="instruments")
+            {
+                // fc-props: the period instruments as held, from the player camera. The eye stands in the chapel nave (candle-lit, altar behind) looking down the
+                // aisle; CaptureMode poses the held instrument by hand (Investigator.CaptureHeld, the player's Update is off). Run once with -hc-capture-lantern on
+                // (the flashlight at the left hand lights the nave) and once off. Log lines: HC_INSTRUMENTS (at build) and HC_CAPTURE_HELD (per view).
+                var eye=new Vector3(8.0f,1.64f,6.5f);var look=new Vector3(12.9f,1.3f,6.5f);
+                views.Add(("held_compass_idle",eye,look));
+                views.Add(("held_compass_reading5",eye,look));
+                views.Add(("held_lantern",eye,look));
+                views.Add(("held_trumpet",eye,look));
+            }
             else
             {
                 // round 13: the old eye (2, 1.64, 12) stood in the courtyard and framed the dead tree. The skull lies at about (-4.55, 0.35, 16.8)
@@ -220,6 +231,7 @@ namespace HollowCurrent
                     Place(v.eye,v.target);yield return null;yield return null;
                     foreach(var d in game.World.Doors)if(d&&d.name.Contains("Hall great doors")){if(v.id.Contains("_open"))d.Open=true;hallLeaves.Add(d);}
                 }
+                if(set=="instruments")game.Player.CaptureHeld(v.id.StartsWith("held_compass")?1:v.id=="held_lantern"?2:3,v.id.EndsWith("reading5")?5:0);
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0||hallLeaves.Count>0?3f:1.5f);
                 foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer);
                 if(set=="kit")KitLog(v.id);

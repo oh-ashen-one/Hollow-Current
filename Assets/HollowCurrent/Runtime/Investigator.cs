@@ -61,6 +61,7 @@ namespace HollowCurrent
         // Castle hollow compass: a needle over the reader's face points at the compass spot and spins at nothing
         // while CastleScares.FalseCompass is set (FEAR_PLAN item 5).
         Transform needle;
+        CastleInstrumentArt.CompassParts compassParts;
         public bool NeedleSpinning {get;private set;}
         // Item 19: opt-in microphone (castle only, never in automated runs). One Microphone.Start per enable,
         // 16 kHz, 1 s ring buffer, RMS every 0.1 s; above Game.MicThreshold during a hunt he hears you at 9 m.
@@ -111,18 +112,31 @@ namespace HollowCurrent
             heldTool=new GameObject("Field instrument mount").transform;heldTool.SetParent(camera,false);
             heldTool.localPosition=new Vector3(.28f,-.16f,.42f);heldTool.localRotation=Quaternion.Euler(8,-8,0);
             float[] lengths={.19f,.19f,.17f};
-            for(int i=0;i<3;i++)instrumentModels[i]=FieldKitArt.Create(heldTool,FieldKitArt.Names[i],lengths[i],Vector3.zero,Quaternion.identity);
+            // fc-props: the castle holds period instruments (brass compass, grave-ash lantern, vellum ear-trumpet) instead of the field-kit meshes Bellwether keeps.
+            bool period=Game.Map==MapId.Castle;
+            for(int i=0;i<3;i++)
+            {
+                if(period){instrumentModels[i]=CastleInstrumentArt.Create(i,heldTool,out var made);if(made!=null)compassParts=made;}
+                else instrumentModels[i]=FieldKitArt.Create(heldTool,FieldKitArt.Names[i],lengths[i],Vector3.zero,Quaternion.identity);
+            }
+            if(period)
+            {
+                int vc=CastleInstrumentArt.Vertices(instrumentModels[0]),vl=CastleInstrumentArt.Vertices(instrumentModels[1]),vt=CastleInstrumentArt.Vertices(instrumentModels[2]);
+                bool inBudget=vc>0&&vl>0&&vt>0&&vc<=CastleInstrumentArt.MaxVertices&&vl<=CastleInstrumentArt.MaxVertices&&vt<=CastleInstrumentArt.MaxVertices;
+                string line="HC_INSTRUMENTS map=castle compass="+vc+" trumpet="+vt+" period="+inBudget+" lantern="+vl+" (max "+CastleInstrumentArt.MaxVertices+")";
+                if(inBudget)Debug.Log(line);else Debug.LogError(line);
+            }
             var readout=new GameObject("Live induction LCD");readout.transform.SetParent(instrumentModels[0],false);readout.transform.localPosition=new Vector3(0,.044f,-.041f);readout.layer=30;
             inductionReadout=readout.AddComponent<TextMesh>();inductionReadout.text="0.0";inductionReadout.fontSize=32;inductionReadout.characterSize=.0048f;inductionReadout.anchor=TextAnchor.MiddleCenter;inductionReadout.alignment=TextAlignment.Center;inductionReadout.color=new Color(.35f,.9f,.48f);
             readout.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
             if(Game.Map==MapId.Castle)
             {
-                var n=GameObject.CreatePrimitive(PrimitiveType.Cube);n.name="Hollow compass needle";Destroy(n.GetComponent<Collider>());n.layer=30;
-                needle=n.transform;needle.SetParent(readout.transform,false);needle.localPosition=new Vector3(0,0,-.002f);needle.localScale=new Vector3(.028f,.0022f,.0008f);
-                var r=n.GetComponent<Renderer>();r.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;r.receiveShadows=false;
-                var shader=Shader.Find("Sprites/Default");if(!shader)shader=Shader.Find("UI/Default");if(shader)r.sharedMaterial=new Material(shader){color=new Color(.86f,.22f,.16f)};
+                // fc-props: the period compass has no LCD. The number stays as data (InductionDisplay, the HUD ledger text); the player reads the
+                // needle (it trembles harder as the reading rises) and the five ember pips on the dial.
+                readout.GetComponent<Renderer>().enabled=false;
+                if(compassParts!=null)needle=compassParts.Needle;
             }
-            instrumentModels[1].localRotation=Quaternion.Euler(0,180,0); // UV emitter points into the scene.
+            else instrumentModels[1].localRotation=Quaternion.Euler(0,180,0); // UV emitter points into the scene.
             workingHand=FirstPersonHands.Attach(heldTool,new Vector3(.052f,-.050f,-.003f),new Vector3(4,-15,82));
             // The exported flashlight lies on X with its broad reflector at -X.
             torchModel=FieldKitArt.Create(camera,"Flashlight",.22f,new Vector3(-.20f,-.24f,.44f),Quaternion.Euler(0,90,0));
@@ -284,7 +298,25 @@ namespace HollowCurrent
                 var to=Vector3.ProjectOnPlane(Game.World.Induction-transform.position,Vector3.up);
                 angle=to.sqrMagnitude<.01f?0:-Vector3.SignedAngle(transform.forward,to,Vector3.up)+90;
             }
+            // fc-props: the period needle trembles like a real one near iron, harder as the reading (0..5, the first digit of the display) rises.
+            if(compassParts!=null)
+            {
+                string shown=inductionReadout?inductionReadout.text:"";int level=shown.Length>0&&shown[0]>='0'&&shown[0]<='5'?shown[0]-'0':0;
+                compassParts.SetLevel(level);
+                if(!NeedleSpinning)angle+=(Mathf.Sin(Time.time*41f)*.6f+Mathf.Sin(Time.time*23.7f+1.3f)*.4f)*(.5f+.9f*level);
+            }
             needle.localRotation=Quaternion.Euler(0,0,angle);
+        }
+        // Capture hook (-hc-capture-art instruments): CaptureMode disables the player's Update, so pose the held instrument by hand.
+        public void CaptureHeld(int tool,int level)
+        {
+            Tool=tool;priorTool=tool;equipPose=1;radioPose=0;
+            if(sword)sword.gameObject.SetActive(false);
+            heldTool.localPosition=new Vector3(.28f,-.16f,.42f);heldTool.localRotation=Quaternion.Euler(8,-8,0);
+            heldTool.gameObject.SetActive(true);radioModel.gameObject.SetActive(false);torchModel.gameObject.SetActive(true);leftHand.gameObject.SetActive(true);
+            for(int i=0;i<instrumentModels.Length;i++)instrumentModels[i].gameObject.SetActive(i==tool-1);
+            if(compassParts!=null){compassParts.SetLevel(level);if(needle)needle.localRotation=Quaternion.Euler(0,0,100);}
+            Debug.Log("HC_CAPTURE_HELD tool="+tool+" asset="+HeldAssetName+" verts="+HeldVertexCount+" level="+level);
         }
         void UpdateMicrophone()
         {
