@@ -12,11 +12,14 @@ and fails when
   * the closed leaf's bounds overlap a "Wall" box by more than 20 percent of the leaf volume (more than 50 percent = "inWall": the leaf is
     buried in the wall next to the opening, which is how the Great Hall doors were invisible while closed),
   * the leaf's centre lies on the -X side of its hinge (a leaf must extend +X from the hinge, the way the collision panel and Door.cs do),
-  * a hinge has no leaf art.
+  * a hinge has no leaf art,
+  * (fc-fbx) the collision panel's thickness differs from the leaf's visible oak slab (DOOR_LEAF_SPECS t in tools/castle_architecture.py times
+    the leaf art's Z scale) by more than 5 mm, or the slab is outside a real oak leaf (0.08-0.12 m great doors, 0.05-0.08 m the others).
 
 usage: check_castle_doors.py [Assets/HollowCurrent/Scenes/Castle.unity] [--simulate-fix] [-v]
-  --simulate-fix  apply CastleWorld.BuildDoor's runtime rule (turn a leaf whose meshes sit at -X by 180 degrees about the hinge) before checking,
-                  to show what a re-bake with the fix produces. Without it the file is judged as baked.
+  --simulate-fix  apply CastleWorld.BuildDoor's runtime rules (turn a leaf whose meshes sit at -X by 180 degrees about the hinge; fc-fbx: scale the
+                  leaf to CastleKitAxis.Leaves' slab and give the panel that thickness) before checking, to show what a re-bake with the fix
+                  produces. Without it the file is judged as baked.
 Exit 1 on any failure. The prepare step logs the same facts as HC_DOOR_LEAF lines.
 """
 import math, re, struct, sys, zlib
@@ -134,6 +137,11 @@ for g, n in name.items():
         sx, sy, sz = abs(M[0][0]), abs(M[1][1]), abs(M[2][2])
         wall_boxes.append(((P[0] - sx / 2, P[1] - sy / 2, P[2] - sz / 2), (P[0] + sx / 2, P[1] + sy / 2, P[2] + sz / 2)))
 
+# fc-fbx: authored slab per leaf (tools/castle_architecture.py DOOR_LEAF_SPECS: (w, h, t, straps, ring)) and the fitted slab (CastleKitAxis.Leaves)
+SPECS = {m.group(1): float(m.group(2)) for m in re.finditer(r'"(\w+Leaf)": \([\d.]+, [\d.]+, ([\d.]+),', (ROOT / 'tools/castle_architecture.py').read_text())}
+FITTED = {m.group(1): float(m.group(2).rstrip('f')) for m in re.finditer(r'\{ "(\w+Leaf)", new LeafSpec\([\d.]+f, [\d.]+f, ([\d.]+f)\) \}',
+          (ROOT / 'Assets/HollowCurrent/Runtime/Castle/CastleKitAxis.cs').read_text())}
+
 verts_cache = {}
 def art_vertices(art):
     if art not in verts_cache:
@@ -183,6 +191,14 @@ for g in sorted(hinges, key=lambda x: name[x]):
     if bad_static: problems.append('batching-static: ' + ', '.join(sorted(set(bad_static))[:3]))
     if frac > .2: problems.append('closed leaf %.0f%% inside wall boxes' % (frac * 100))
     if cx <= 0: problems.append('leaf extends to the -X side of its hinge (centre x %.2f)' % cx)
+    # fc-fbx: collision panel thickness vs the visible oak slab
+    panel = next((c for c in children.get(ht, []) if c != leaf and not name[go_of[c]].startswith('Castle / ')), None)
+    slab = SPECS.get(art, 0) * abs(s[2]); pz = abs(local[panel][2][2]) if panel else 0
+    if SIM and art in FITTED: slab = pz = FITTED[art]
+    great = art == 'GreatDoorLeaf'
+    if not panel: problems.append('no collision panel under the hinge')
+    elif abs(pz - slab) > .005: problems.append('collision panel %.3f m thick, visible oak slab %.3f m' % (pz, slab))
+    if slab and not ((.08 if great else .05) - 1e-4 <= slab <= (.12 if great else .08) + 1e-4): problems.append('oak slab %.3f m outside a real leaf' % slab)
     rows.append((name[g], art, cx, frac, in_wall, bool(bad_static), turned, lo, hi))
     if problems: failures.append('%s: %s' % (name[g], '; '.join(problems)))
 
@@ -196,4 +212,4 @@ if failures:
     print('FAIL %d' % len(failures))
     for f in failures[:40]: print('  ' + f)
     sys.exit(1)
-print('OK castle door leaves: none batching-static, none buried in a wall, all extend +X from the hinge')
+print('OK castle door leaves: none batching-static, none buried in a wall, all extend +X from the hinge, collider = oak slab')

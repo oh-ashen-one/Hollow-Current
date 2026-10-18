@@ -119,7 +119,7 @@ namespace HollowCurrent
             Log(id+" "+texture.width+"x"+texture.height+" "+file);
             Destroy(texture);
         }
-        // -hc-capture-art exterior|props|doors: extra art-review views (castle-local = world coordinates), eye -> target at the player's
+        // -hc-capture-art exterior|props|doors|layout|kit: extra art-review views (castle-local = world coordinates), eye -> target at the player's
         // 72 deg FOV, plus a frame-time sample at the crypt view for props. Used with the normal full capture for S1-S4.
         static string ArtSet{get{var a=Environment.GetCommandLineArgs();for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-capture-art")return a[i+1];return null;}}
         IEnumerator ArtRun(string set)
@@ -147,6 +147,15 @@ namespace HollowCurrent
                 views.Add(("hall_doors_closed_inside",new Vector3(1.6f,1.64f,17.2f),new Vector3(0,2.2f,14)));
                 views.Add(("hall_doors_open",new Vector3(0,1.64f,11),new Vector3(0,2.2f,14)));
                 views.Add(("hall_doors_open_inside",new Vector3(1.6f,1.64f,17.2f),new Vector3(0,2.2f,14)));
+            }
+            else if(set=="kit")
+            {
+                // fc-fbx (old-kit axis fix and door leaf thickness): the dining-hall fireplace between its two lancet windows from inside the room
+                // (fireplace, chairs and sideboard were turned; the window tracery is the hall kit), the portrait hall's south wall frames and the
+                // portrait door's canvas, and the closed Hall great doors seen almost edge-on from the hall side (slab inside the frame, no proud leaf).
+                views.Add(("kit_window_inside",new Vector3(-7.2f,1.64f,15.0f),new Vector3(-13.55f,1.4f,16.0f)));
+                views.Add(("kit_portrait",new Vector3(8.0f,4.84f,17.5f),new Vector3(9.4f,4.6f,13.8f)));
+                views.Add(("kit_door_edge",new Vector3(2.7f,1.7f,14.85f),new Vector3(-.6f,1.9f,14.32f)));
             }
             else if(set=="layout")
             {
@@ -213,6 +222,7 @@ namespace HollowCurrent
                 }
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0||hallLeaves.Count>0?3f:1.5f);
                 foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer);
+                if(set=="kit")KitLog(v.id);
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);
                 foreach(var d in gateLeaves)d.Open=false;
@@ -223,6 +233,22 @@ namespace HollowCurrent
             Log("ART DONE "+set+" "+entries.Count+" entries");
             Game.RestoreOwnerWindow();yield return null;yield return null;
             Application.Quit();
+        }
+        // fc-fbx: per kit view, the Hall great door and portrait door leaves (art scale along the thickness axis, collision panel thickness,
+        // leaf renderer thickness) and the portrait door canvas facing, so the frames can be read against the prepare log's HC_DOOR_LEAF_THICKNESS.
+        void KitLog(string view)
+        {
+            foreach(var d in game.World.Doors)
+            {
+                if(!d||!(d.name.Contains("Hall great doors")||d.name.Contains("Portrait door")))continue;
+                Transform leaf=null,panel=null;
+                foreach(Transform c in d.transform){if(c.name.StartsWith("Castle / ",StringComparison.Ordinal))leaf=c;else if(c.GetComponent<Interactable>())panel=c;}
+                var b=new Bounds();bool any=false;
+                if(leaf)foreach(var r in leaf.GetComponentsInChildren<Renderer>()){if(!any){b=r.bounds;any=true;}else b.Encapsulate(r.bounds);}
+                var canvas=leaf?leaf.Find("Canvas"):null;
+                Log("kit "+view+" "+d.name+" leafScaleZ="+(leaf?leaf.localScale.z.ToString("F3"):"none")+" panelZ="+(panel?panel.localScale.z.ToString("F3"):"none")+
+                    " leafBounds="+(any?b.size.ToString("F3"):"none")+(canvas?" canvasFacing="+canvas.forward.ToString("F2"):""));
+            }
         }
         // Crypt frame-time sample with hitch markers (r12 crypt 118.89 ms frame): per frame it records GC collections, managed allocation,
         // texture memory and streaming loads, and the profiler markers that a release player exposes (Valid=False when it does not).
