@@ -61,13 +61,18 @@ namespace HollowCurrent
         // ------------------------------------------------------------------------------------------------------------------------------
         // Hollow Compass
         // ------------------------------------------------------------------------------------------------------------------------------
+        public const float DialLevel = .46f;   // fc-light2: unlit dial brightness (parchment x this)
         static Transform BuildCompass(Transform parent, out CompassParts parts)
         {
             var root = NewRoot(parent, "Field kit art / Hollow Compass (period)");
             var visual = new GameObject("Compass visual").transform; visual.SetParent(root, false); visual.localPosition = new Vector3(0, .012f, 0);
             var brass = Brass("Compass brass");
-            var dial = Lit("Compass dial", Color.white, 0, .08f, DialTexture());
-            var glass = Sprite("Compass glass", GlareTexture(), Color.white);
+            // fc-light2 (director: "the compass glass is a mirror ... hides the dial and needle"): the held items sit on the equipment layer, which
+            // the lantern does not light (Investigator.Torch excludes layer 30), so the Standard parchment dial rendered as a dark grey disc under
+            // a white glare veil and read as a hand mirror. The dial is now drawn unlit at a dim parchment level (as if catching the lantern's
+            // spill) so the dark needle and the ember pips read on it at a glance; the glass is a faint rim and one soft streak.
+            var dial = Sprite("Compass dial", DialTexture(), new Color(DialLevel, DialLevel, DialLevel, 1));
+            var glass = Sprite("Compass glass", GlareTexture(), new Color(1, 1, 1, .85f));
 
             // case, bezel and back: one lathe about the z axis (r, z); front (toward the player) is -z. Counter-clockwise outline, outside on the right.
             var body = CompassBodyGeometry();
@@ -91,7 +96,17 @@ namespace HollowCurrent
         // ------------------------------------------------------------------------------------------------------------------------------
         // Grave-ash lantern
         // ------------------------------------------------------------------------------------------------------------------------------
-        static Transform BuildLantern(Transform parent)
+        // fc-light2: the castle's light source in the left hand (it replaces the modern flashlight mesh there; the Investigator's torch light is
+        // unchanged): the same brass cage with warm amber glass and a candle-coloured core instead of the grave-ash violet.
+        public static Transform CreateHandLantern(Transform parent)
+        {
+            var root = BuildLantern(parent, true);
+            root.name = "Field kit art / Hand lantern (period)";
+            foreach (var r in root.GetComponentsInChildren<Renderer>()) { r.gameObject.layer = 30; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false; }
+            root.gameObject.layer = 30;
+            return root;
+        }
+        static Transform BuildLantern(Transform parent, bool warm = false)
         {
             var root = NewRoot(parent, "Field kit art / Grave-ash Lantern (period)");
             var visual = new GameObject("Lantern visual").transform; visual.SetParent(root, false); visual.localPosition = new Vector3(.030f, .008f, 0);
@@ -102,7 +117,8 @@ namespace HollowCurrent
             Part(visual, "Lantern frame", metal.ToMesh("Lantern frame"), brass, iron);
 
             var light = LanternLightGeometry();
-            Part(visual, "Lantern glass and core", light.ToMesh("Lantern glass"), Sprite("Lantern violet glass", null, new Color(.50f, .20f, 1f, .46f)), Glow("Lantern core", new Color(.80f, .50f, 1.25f)));
+            if (warm) Part(visual, "Lantern glass and core", light.ToMesh("Lantern glass"), Sprite("Lantern amber glass", null, new Color(1f, .62f, .26f, .38f)), Glow("Lantern flame core", new Color(1.7f, .95f, .38f)));
+            else Part(visual, "Lantern glass and core", light.ToMesh("Lantern glass"), Sprite("Lantern violet glass", null, new Color(.50f, .20f, 1f, .46f)), Glow("Lantern core", new Color(.80f, .50f, 1.25f)));
             return root;
         }
 
@@ -325,9 +341,11 @@ namespace HollowCurrent
                 for (int x = 0; x < n; x++)
                 {
                     float fx = (x + .5f) / n * 2 - 1, fy = (y + .5f) / n * 2 - 1, r = Mathf.Sqrt(fx * fx + fy * fy);
-                    float streak = Mathf.Exp(-Mathf.Pow((fx + fy * .8f + .55f) / .16f, 2)) * .30f * Mathf.Clamp01(1.2f - r);
-                    float streak2 = Mathf.Exp(-Mathf.Pow((fx + fy * .8f + .85f) / .05f, 2)) * .16f * Mathf.Clamp01(1.2f - r);
-                    float a = (.05f + streak + streak2) * (r < 1 ? 1 : 0);
+                    // fc-light2: no veil (was .05 over the whole face), streaks .30/.16 -> .07/.04, plus a faint rim so the glass still reads as glass
+                    float streak = Mathf.Exp(-Mathf.Pow((fx + fy * .8f + .55f) / .16f, 2)) * .07f * Mathf.Clamp01(1.2f - r);
+                    float streak2 = Mathf.Exp(-Mathf.Pow((fx + fy * .8f + .85f) / .05f, 2)) * .04f * Mathf.Clamp01(1.2f - r);
+                    float rim = Mathf.SmoothStep(.86f, .98f, r) * .16f;
+                    float a = (streak + streak2 + rim) * (r < 1 ? 1 : 0);
                     px[y * n + x] = new Color(.92f, .96f, 1f, a);
                 }
             tex.SetPixels(px); tex.Apply(true, true); return tex;

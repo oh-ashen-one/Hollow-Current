@@ -7,7 +7,7 @@ lands on Unity (-x, z, -y), so an asset's authored front (+Y) faces -Z at yaw 0 
 policy table (parsed here, one row per line) and writes HC_KIT_AXIS lines at prepare time.
 
 usage:
-  check_castle_kit.py <prepare-or-validate.log>          parse HC_KIT_AXIS / HC_KIT_AXIS_SUMMARY; fail on problems > 0, on any ok=False line,
+  check_castle_kit.py <prepare-or-validate.log>          parse HC_KIT_AXIS / HC_KIT_AXIS_SUMMARY (and fc-light2's HC_CANDLES: floating must be 0); fail on problems > 0, on any ok=False line,
                                                          on a missing summary, or when a Turn piece is not turned
   check_castle_kit.py [Assets/.../Castle.unity] [--simulate-fix] [-v]
                                                          audit a baked scene the same way CastleKitAxis.Log does (walls = the "Wall" boxes,
@@ -63,6 +63,14 @@ def check_log(path):
     if summaries:
         missing = [a for a in MUST_SEE if a not in seen]
         if missing: failures.append('no per-instance HC_KIT_AXIS line for ' + ', '.join(missing) + ' (per-instance lines are written in the editor / -hc-verify)')
+    # fc-light2: every chapel candle taper stands in a wall sconce (CastleWorld.LogCandles). Logs from before fc-light2 have no line.
+    candles = re.findall(r'HC_CANDLES placed=(\d+) sconced=(\d+) snapped=(\d+) removed=(\d+) floating=(\d+)', text)
+    if not candles and '--allow-no-candles' not in sys.argv: failures.append('no HC_CANDLES line (log from before fc-light2; pass --allow-no-candles for old logs)')
+    for c in candles:
+        placed, sconced, snapped, removed, floating = map(int, c)
+        print('HC_CANDLES placed=%d sconced=%d snapped=%d removed=%d floating=%d' % (placed, sconced, snapped, removed, floating))
+        if floating: failures.append('HC_CANDLES floating=%d (a candle taper with nothing holding it)' % floating)
+        if sconced + snapped != placed: failures.append('HC_CANDLES sconced+snapped=%d != placed=%d' % (sconced + snapped, placed))
     print('HC_KIT_AXIS lines', len(lines), 'assets', len(seen))
     for l in (bad + unturned)[:40]: print('  ' + l[l.index('HC_KIT_AXIS '):])
     return failures

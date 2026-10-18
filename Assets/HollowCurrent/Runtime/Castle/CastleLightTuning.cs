@@ -57,9 +57,14 @@ namespace HollowCurrent
         // Investigator.Torch is a 52 degree spot, range 20, intensity .85 x Brightness (Bellwether keeps exactly that). In the castle the player
         // reads the room 6-8 m ahead with it and barely without, so it is scaled up modestly here; the scale is stored on the Investigator
         // (TorchScale) so Bellwether is untouched. TorchRange 0 keeps the shared range.
-        public float TorchIntensityScale = 2.4f;      // integ-fb 1.35 -> 2.4 (2.04 absolute): at 1.35 the lantern moved S1-S3 near-black by under 3 points
-        public float TorchRange = 18f;               // integ-fc fallback (fc-light table, all 7 hall views on 6-10 % < 12): 24 -> 18; integ-fb 0 (keep 20) -> 24
-        public float TorchSpotAngle = 100f;          // fc-light 80 -> 100 (chapel views kept 18-35 % of the frame near-black OUTSIDE the 80 deg cone); integ-fb: 80 (Bellwether keeps 52); 0 keeps the shared angle
+        // fc-light2 (director on fc2: "lantern on floods everything", S1 7.4 / S2 9.4 / S3 7.6 % near-black against 12-25, the hall lit flat to
+        // the far wall). fc-light made the lantern reach every surface (ForcePixel), so the FB compensation (scale 2.4, wide 100 deg cone, 18 m)
+        // now floods the room. A lantern is a POOL: lower, narrower, shorter, softer edge, warmer.
+        public float TorchIntensityScale = 1.2f;      // fc-light2 2.4 -> 1.2; integ-fb 1.35 -> 2.4 (2.04 absolute): at 1.35 the lantern moved S1-S3 near-black by under 3 points
+        public float TorchRange = 13f;               // fc-light2 18 -> 13 (the far half of the 14 m hall falls back to dark); integ-fc 24 -> 18; integ-fb 0 (keep 20) -> 24
+        public float TorchSpotAngle = 65f;           // fc-light2 100 -> 65; fc-light 80 -> 100; integ-fb: 80 (Bellwether keeps 52); 0 keeps the shared angle
+        public float TorchInnerFraction = .35f;      // fc-light2: inner/outer angle (was .6) for a soft pool edge (used where the pipeline reads innerSpotAngle)
+        public Color TorchColor = new Color(1f, .80f, .58f);   // fc-light2: a little warmer than the shared torch (1, .89, .72); castle only
         // fc-light: the torch is an Auto light, so in forward rendering it only reaches objects where it ranks among the Ultra tier's 4 pixel
         // lights. Diffing the fb2 lantern-on/off captures showed it lit the hall vault, candelabras and far wall but NOT the hall floor, near
         // walls, skeleton, chapel floor, pews or altar (those objects already carry the ForcePixel fills plus nearer candles). ForcePixel makes
@@ -178,7 +183,8 @@ namespace HollowCurrent
             if (!player) return;
             player.TorchScale = TorchIntensityScale;
             if (TorchRange > 0 && player.Torch) player.Torch.range = TorchRange;
-            if (TorchSpotAngle > 0 && player.Torch) { player.Torch.spotAngle = TorchSpotAngle; player.Torch.innerSpotAngle = TorchSpotAngle * .6f; }
+            if (TorchSpotAngle > 0 && player.Torch) { player.Torch.spotAngle = TorchSpotAngle; player.Torch.innerSpotAngle = TorchSpotAngle * TorchInnerFraction; }
+            if (player.Torch && TorchColor.maxColorComponent > 0) player.Torch.color = TorchColor;
             if (TorchForcePixel && player.Torch) player.Torch.renderMode = LightRenderMode.ForcePixel;
         }
 

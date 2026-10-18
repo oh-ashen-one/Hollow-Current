@@ -380,6 +380,26 @@ namespace HollowCurrent
             return floater;
         }
 
+        // fc-light2 (director: "the chapel candles hang in the air with nothing holding them"): the same taper, standing in an iron wall
+        // sconce. `socketTop` is where the taper's foot sits (castle-local), `outward` the wall normal into the room. The candle keeps its
+        // Floater for the candle rule (flames still lean toward the Count) but no longer bobs, drifts, tilts or spins. The sconce is a child
+        // of the candle, so the prepare-time light bake treats it like the candle (probe-lit, not lightmapped).
+        public static Floater MakeWallCandle(Transform parent,Vector3 socketTop,Vector3 outward,int seed,float scale=1,bool hero=false)
+        {
+            const float footEmbed=.012f;   // the taper's foot sits inside the socket cup
+            var floater=MakeFloatingCandle(parent,socketTop+Vector3.up*(.15f*scale-footEmbed),seed,true,scale,hero);
+            floater.name="Wall candle (lit)";
+            floater.bobAmplitude=0;floater.driftRadius=0;floater.tiltDegrees=0;floater.yawDegreesPerSecond=0;
+            outward.y=0;if(outward.sqrMagnitude<1e-6f)outward=Vector3.forward;
+            var sconce=NewRenderer("Wall sconce",floater.transform,Vector3.zero,Quaternion.identity,SconceMesh,SconceMaterials,false);
+            var parentRot=parent?parent.rotation:Quaternion.identity;
+            sconce.transform.position=parent?parent.TransformPoint(socketTop):socketTop;
+            sconce.transform.rotation=parentRot*Quaternion.LookRotation(outward.normalized,Vector3.up);
+            var s=floater.transform.lossyScale;
+            sconce.transform.localScale=new Vector3(1f/Mathf.Max(1e-4f,s.x),1f/Mathf.Max(1e-4f,s.y),1f/Mathf.Max(1e-4f,s.z));
+            return floater;
+        }
+
         static void Drop(GameObject item){if(Application.isPlaying)UnityEngine.Object.Destroy(item);else UnityEngine.Object.DestroyImmediate(item);}
 
         // ---- hand-roots ----

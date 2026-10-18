@@ -170,6 +170,7 @@ namespace HollowCurrent
             SmallProps();
             Roofline();
             foreach (var c in CastleLayout.Candles) Candle(c);
+            LogCandles(chapelCandlesPlaced, chapelCandlesRemoved);   // fc-light2: after every floater exists
             Moonlight();
             SearchPoints();
             BuildNavigation();
@@ -1361,12 +1362,21 @@ namespace HollowCurrent
         // and read as clutter in front of the face); the S2 frame still holds well over 30 flames.
         const int ChapelCandleCount = 46, ChapelCandlesInCone = 37;
         const float ChapelCandleMinY = 2.0f;
+        int chapelCandlesPlaced, chapelCandlesRemoved;
         void ChapelCandles()
         {
             var rnd = new System.Random(2026);
-            var placed = new List<Vector3> { new Vector3(12.2f, 2.4f, 5.0f) };
-            SurrealProps.MakeFloatingCandle(root, placed[0], 0, true, 1.2f, true);
-            int guard = 0;
+            var placed = new List<Vector3>();
+            int removed = 0, guard = 0;
+            // fc-light2: every taper now stands in an iron wall sconce on the nearest solid stretch of chapel wall (see ChapelWallSpot). The
+            // generator below is unchanged (same seed, same in-cone bias), so the wall a candle lands on follows where it used to hang.
+            var hero = new Vector3(12.2f, 2.4f, 5.0f);
+            if (ChapelWallSpot(hero, out var heroTop, out var heroOut))
+            {
+                SurrealProps.MakeWallCandle(root, heroTop, heroOut, 0, 1.2f, true);
+                placed.Add(heroTop);
+            }
+            else removed++;
             while (placed.Count < ChapelCandleCount && guard++ < 8000)
             {
                 bool inCone = placed.Count < ChapelCandlesInCone;
@@ -1375,14 +1385,95 @@ namespace HollowCurrent
                 float z = inCone ? Mathf.Clamp(6.5f + ((float)rnd.NextDouble() * 2 - 1) * half, .9f, 12.1f) : Mathf.Lerp(.9f, 12.1f, (float)rnd.NextDouble());
                 float top = inCone ? Mathf.Min(5.2f, 1.64f + .65f * (x - 7f)) : 5.0f;
                 var p = new Vector3(x, Mathf.Lerp(ChapelCandleMinY, Mathf.Max(ChapelCandleMinY + .4f, top), (float)rnd.NextDouble()), z);
-                if (p.x > 11.3f && Mathf.Abs(p.z - 6.5f) < 1.5f && p.y < 2.2f) continue;                                    // the altar block
-                if (Mathf.Abs(p.x - CastleLayout.FontPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.FontPos.z) < .8f && p.y < 2.2f) continue;
-                if (Mathf.Abs(p.x - CastleLayout.BrazierPos.x) < .8f && Mathf.Abs(p.z - CastleLayout.BrazierPos.z) < .8f && p.y < 2.2f) continue;
+                float scale = .9f + .4f * (float)rnd.NextDouble();
+                if (!ChapelWallSpot(p, out var socket, out var outward)) { removed++; continue; }
                 bool crowded = false;
-                foreach (var q in placed) if ((q - p).sqrMagnitude < .4f) { crowded = true; break; }
+                foreach (var q in placed) if ((q - socket).sqrMagnitude < .36f) { crowded = true; break; }
                 if (crowded) continue;
-                SurrealProps.MakeFloatingCandle(root, p, placed.Count, true, .9f + .4f * (float)rnd.NextDouble());
-                placed.Add(p);
+                SurrealProps.MakeWallCandle(root, socket, outward, placed.Count, scale);
+                placed.Add(socket);
+            }
+            chapelCandlesPlaced = placed.Count; chapelCandlesRemoved = removed;
+        }
+
+        // fc-light2: the chapel walls as data (castle-local; the net room of CastleLayout's chapel note): face line, normal into the room, the
+        // usable span along the wall (0.35 m clear of each corner) and the openings to keep clear (window/door openings widened 0.4 m for
+        // their frames, 0.35 m above and below; the altar reredos and sunburst as one full-height block; the confessional).
+        struct ChapelWall { public bool AlongX; public float Line; public Vector3 Normal; public float Min, Max; public Vector4[] Holes; }   // hole = (a0, a1, y0, y1)
+        static readonly ChapelWall[] ChapelWalls =
+        {
+            new ChapelWall { AlongX = false, Line = 6.3f, Normal = Vector3.right, Min = .8f, Max = 12.35f, Holes = new[] {
+                new Vector4(1.85f, 4.15f, 0, 2.6f), new Vector4(7.1f, 10.9f, 0, 5.1f), new Vector4(11.0f, 13f, 1.15f, 5.35f) } },        // guard door, great doors, west lancet
+            new ChapelWall { AlongX = false, Line = 13.55f, Normal = Vector3.left, Min = .8f, Max = 12.35f, Holes = new[] {
+                new Vector4(2.4f, 4.6f, 1.05f, 5.25f), new Vector4(5.05f, 7.95f, 0, 6.4f), new Vector4(8.4f, 10.6f, 1.05f, 5.25f),          // lancet, altar + sunburst, lancet
+                new Vector4(10.6f, 12.4f, 0, 2.3f) } },                                                                                     // the bell frame
+            new ChapelWall { AlongX = true, Line = .45f, Normal = Vector3.forward, Min = 6.65f, Max = 13.2f, Holes = new[] {
+                new Vector4(7.4f, 9.6f, 1.05f, 5.25f), new Vector4(10.4f, 12.6f, 1.05f, 5.25f), new Vector4(11.6f, 13.2f, 0, 1.9f) } },    // two tall lancets, the font
+            new ChapelWall { AlongX = true, Line = 12.7f, Normal = Vector3.back, Min = 6.65f, Max = 13.2f, Holes = new[] {
+                new Vector4(8.85f, 11.15f, 0, 2.6f), new Vector4(6.3f, 8.5f, 0, 2.9f) } },                                                 // vestibule door, confessional
+        };
+        const float ChapelSconceHalfHeight = .1f, ChapelSconceHalfWidth = .06f;
+        // Nearest solid wall spot for a taper wanted at `p` (its centre), at the same height: on each wall the candidates are the point straight
+        // across from `p` and, where that is an opening, the nearest solid edge beside it (the sconce slides along the wall); the closest valid
+        // spot over all four walls wins. Returns the socket top (where the taper's foot sits) and the wall normal. False if no wall has a solid
+        // spot at that height (the candle is then dropped and the generator draws another).
+        static bool ChapelWallSpot(Vector3 p, out Vector3 socket, out Vector3 outward)
+        {
+            socket = p; outward = Vector3.zero;
+            float footY = p.y - .15f, best = float.MaxValue;
+            bool Solid(ChapelWall w, float along)
+            {
+                if (along < w.Min - 1e-4f || along > w.Max + 1e-4f) return false;
+                foreach (var h in w.Holes)
+                    if (along + ChapelSconceHalfWidth > h.x && along - ChapelSconceHalfWidth < h.y && footY + .32f > h.z && footY - ChapelSconceHalfHeight - .06f < h.w) return false;
+                return true;
+            }
+            foreach (var w in ChapelWalls)
+            {
+                var tries = new List<float> { Mathf.Clamp(w.AlongX ? p.x : p.z, w.Min, w.Max) };
+                foreach (var h in w.Holes) { tries.Add(h.x - ChapelSconceHalfWidth - .01f); tries.Add(h.y + ChapelSconceHalfWidth + .01f); }
+                foreach (float along in tries)
+                {
+                    if (!Solid(w, along)) continue;
+                    var onFace = w.AlongX ? new Vector3(along, footY, w.Line) : new Vector3(w.Line, footY, along);
+                    var spot = onFace + w.Normal * SurrealProps.SconceReach;
+                    float d = (spot - new Vector3(p.x, footY, p.z)).sqrMagnitude;
+                    if (d < best) { best = d; socket = spot; outward = w.Normal; }
+                }
+            }
+            return best < float.MaxValue;
+        }
+
+        // HC_CANDLES (fc-light2): every candle taper in the castle must stand on something. Chapel tapers count as sconced when they carry a
+        // "Wall sconce" child whose plate is within 0.4 m of a chapel wall face; any other "Floating candle" left under the root is floating.
+        // The floating candelabras and books of the great hall are the design's surreal floaters (DESIGN.md) and are reported, not judged.
+        void LogCandles(int placed, int removed)
+        {
+            int sconced = 0, floating = 0, designed = 0;
+            foreach (var f in root.GetComponentsInChildren<Floater>(true))
+            {
+                string n = f.gameObject.name;
+                if (n.StartsWith("Wall candle", System.StringComparison.Ordinal))
+                {
+                    var sc = f.transform.Find("Wall sconce");
+                    bool held = false;
+                    if (sc)
+                    {
+                        var plate = root.InverseTransformPoint(sc.position - sc.forward * SurrealProps.SconceReach);
+                        foreach (var w in ChapelWalls) if (Mathf.Abs((w.AlongX ? plate.z : plate.x) - w.Line) < .4f) { held = true; break; }
+                    }
+                    if (held) sconced++; else floating++;
+                }
+                else if (n.StartsWith("Floating candle", System.StringComparison.Ordinal)) floating++;
+                else if (n.StartsWith("Floating candelabra", System.StringComparison.Ordinal) || n.StartsWith("Floating book", System.StringComparison.Ordinal)) designed++;
+            }
+            string line = "HC_CANDLES placed=" + placed + " sconced=" + sconced + " snapped=0 removed=" + removed + " floating=" + floating
+                + " (chapel tapers; designed hall floaters=" + designed + " not judged) " + (floating == 0 && sconced == placed ? "PASS" : "FAIL");
+            if (floating == 0 && sconced == placed) Debug.Log(line);
+            else
+            {
+                Debug.LogError(line);
+                if (!Application.isPlaying) throw new System.Exception(line);
             }
         }
 

@@ -15,7 +15,7 @@ namespace HollowCurrent
         }
         static void ResetMoreAssets()
         {
-            candleMesh=crownMesh=chandelierMesh=null;flameQuad=null;flameHaloTexture=null;flameHaloMaterial=null;chandelierMaterials=null;glowTexture=null;glowMaterial=null;handRootMeshes=null;candleMaterials=handRootMaterials=null;rootCrownMaterials=null;
+            candleMesh=crownMesh=chandelierMesh=sconceMesh=null;sconceMaterials=null;flameQuad=null;flameHaloTexture=null;flameHaloMaterial=null;chandelierMaterials=null;glowTexture=null;glowMaterial=null;handRootMeshes=null;candleMaterials=handRootMaterials=null;rootCrownMaterials=null;
             paleMoonTexture=redMoonTexture=sunWindowTexture=null;paleMoonMaterial=redMoonMaterial=sunWindowMaterial=violetRuneMaterial=null;
             runeAtlas=null;runeGlyphMeshes=null;portraitTexture=null;pupilTexture=null;batTexture=null;batMaterial=null;knifeMesh=null;knifeMaterials=null;frameMesh=null;frameMaterial=null;portraitMaterial=null;pupilMaterial=null;
         }
@@ -441,6 +441,31 @@ namespace HollowCurrent
             Lit("Floating candle wax",new Color(.82f,.76f,.62f),0,.25f),
             Lit("Floating candle wick",new Color(.05f,.04f,.03f),0,.05f)
         };
+
+        // ---- wall sconce (fc-light2, director: "the chapel candles float in mid-air with nothing holding them") ----
+        // A forged iron sconce: wall plate, a curled arm and a drip pan with a socket cup. Origin = the top of the socket (where the taper's
+        // foot sits); +Z points out of the wall, the wall face is at z = -SconceReach. One shared mesh, one iron material (instanced).
+        public const float SconceReach=.17f;
+        static Mesh sconceMesh;
+        static Material[] sconceMaterials;
+        internal static Mesh SconceMesh
+        {
+            get
+            {
+                if(sconceMesh)return sconceMesh;
+                var b=new MeshBuilder(1);
+                const float d=SconceReach;
+                b.Box(new Vector3(0,-.055f,-d+.007f),new Vector3(.075f,.17f,.014f),Quaternion.identity,0);          // wall plate
+                b.Box(new Vector3(0,.034f,-d+.016f),new Vector3(.022f,.022f,.01f),Quaternion.Euler(0,0,45),0);     // plate finial
+                b.Tube(new[]{new Vector3(0,-.105f,-d+.014f),new Vector3(0,-.118f,-d*.62f),new Vector3(0,-.098f,-d*.25f),new Vector3(0,-.062f,-.012f),new Vector3(0,-.040f,0)},
+                    new[]{.0075f,.0075f,.0068f,.006f,.0055f},6,0);                                                   // curled arm, plate to pan
+                b.Tube(new[]{new Vector3(0,-.02f,-d+.014f),new Vector3(0,-.045f,-d*.55f),new Vector3(0,-.058f,-.045f)},new[]{.004f,.004f,.0035f},5,0);   // upper stay
+                b.Prism(new Vector3(0,-.040f,0),.022f,.052f,.012f,12,0);                                             // drip pan (flared dish)
+                b.Prism(new Vector3(0,-.028f,0),.017f,.019f,.028f,10,0);                                             // socket cup
+                return sconceMesh=b.Build("Surreal wall sconce");
+            }
+        }
+        internal static Material[] SconceMaterials=>sconceMaterials!=null?sconceMaterials:sconceMaterials=new[]{Lit("Wall sconce iron",new Color(.085f,.075f,.07f),.45f,.32f)};
 
         // ---- hand-roots (crypt): dark root strands hanging from the ceiling, each ending in pale hands ----
         public const int HandRootVariants=6;
