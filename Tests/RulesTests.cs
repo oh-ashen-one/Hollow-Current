@@ -144,6 +144,7 @@ static class RulesTests
         Assert(Math.Abs(timing.minimum_one_second_fps-96)<.01,"rolling interval includes the hitch");
         Assert(timing.p99_ms==10&&timing.one_percent_low_fps<100,"percentile and one-percent-low remain distinct metrics");
         Assert(!FrameStatistics.Measure(new float[0]).meets_60_fps_floor,"no rendered samples cannot pass performance");
+        PerformanceVerdictTests();
         ForgeAndFightTests();
         MapTests();
         DreadRulesTests();
@@ -1083,5 +1084,28 @@ static class RulesTests
         Assert(pinned<5&&low>threats/4,"Dread no longer pins at 100, and hunts still start below the boundary");
         string dk=SessionReport("castle 25% dark",HuntRules.Castle,.25f,out meanAfter,out p50,out p90,out cv,out gaps,out pinned,out low,out threats);Console.WriteLine(dk);
         Assert(meanAfter<=.32f&&p90<=.32f&&cv>=.4f,"a darker player stays near the target too");
+    }
+    static void PerformanceVerdictTests()
+    {
+        var steady=new float[5000];for(int i=0;i<steady.Length;i++)steady[i]=11.1f;
+        var costOk=new float[5000];for(int i=0;i<costOk.Length;i++)costOk[i]=6f;
+        var ui=FrameStatistics.Measure(new float[]{11f,11f});
+        var clean=FrameStatistics.Measure(steady);
+        Assert(PerformanceVerdict.Evaluate(true,clean,ui,CostStatistics.Measure(costOk,0,"t"),out string r)&&r.StartsWith("ok"),"clean wall clock and clean engine cost pass: "+r);
+        // 0.2 % of wall-clock frames at 17-22 ms (OS scheduling) with engine cost clean: still passes, and says why.
+        var jitter=(float[])steady.Clone();for(int i=0;i<10;i++)jitter[i*400]=i%2==0?17.2f:22f;
+        var jt=FrameStatistics.Measure(jitter);Assert(!jt.meets_60_fps_floor&&jt.frames_over_16ms==10,"strict floor still flags the jitter frames");
+        Assert(PerformanceVerdict.Evaluate(true,jt,ui,CostStatistics.Measure(costOk,0,"t"),out r)&&r.Contains("wall_frames_over_16ms=10"),"wall jitter with clean engine cost passes and reports the count: "+r);
+        // The same jitter with engine cost unavailable keeps the strict rule.
+        Assert(!PerformanceVerdict.Evaluate(true,jt,ui,CostStatistics.Measure(new float[0],0,"unavailable"),out r)&&r.Contains("wall_frames_over_16ms=10")&&r.Contains("unavailable"),"no engine cost means strict wall clock: "+r);
+        // A build that really drops frames fails on engine cost.
+        var slow=(float[])costOk.Clone();slow[2500]=20f;
+        Assert(!PerformanceVerdict.Evaluate(true,clean,ui,CostStatistics.Measure(slow,0,"t"),out r)&&r.Contains("engine_cost_over_16ms=1"),"one engine frame over 16.667 ms fails: "+r);
+        // A sustained drop shows in wall clock too (p99 / 1 % low / one-second window).
+        var drop=(float[])steady.Clone();for(int i=0;i<200;i++)drop[1000+i]=25f;
+        var dt=FrameStatistics.Measure(drop);
+        Assert(!PerformanceVerdict.Evaluate(true,dt,ui,CostStatistics.Measure(costOk,0,"t"),out r)&&r.Contains("one_percent_low_fps")&&r.Contains("min_one_second_fps"),"sustained wall-clock drop fails even if engine cost looks clean: "+r);
+        Assert(!PerformanceVerdict.Evaluate(false,clean,ui,CostStatistics.Measure(costOk,0,"t"),out r)&&r.Contains("route_failed"),"a failed route never passes performance");
+        Assert(!PerformanceVerdict.Evaluate(true,FrameStatistics.Measure(new float[100]),ui,CostStatistics.Measure(costOk,0,"t"),out r)&&r.Contains("too_few_frames"),"too few samples cannot pass");
     }
 }
