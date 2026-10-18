@@ -39,7 +39,7 @@ namespace HollowCurrent
         // fc-light: non-rose window spots that sit in the great hall (clerestories, the north lancets; castle-local |x| <= 6.8,
         // z 13.5-29, y 0-9.5). Default = WindowMoonlightFloor, i.e. no change this round; it is the integrator's hall-only fallback knob
         // (BAKED: re-bake the castle after editing it). Chapel, courtyard and crypt windows keep WindowMoonlightFloor / WindowMoonlightCrypt.
-        public float HallWindowMoonlight = .48f;
+        public float HallWindowMoonlight = .30f;    // integ-fc fallback (fc-light table, S1 off 30.3 % < 31): .48 -> .30
         public float MoonDirectional = .10f;         // was .16
         public Color SecondMoonColor = new Color(.62f, .24f, .34f);
         public float SecondMoonDirectional = .035f;  // was .05
@@ -58,7 +58,7 @@ namespace HollowCurrent
         // reads the room 6-8 m ahead with it and barely without, so it is scaled up modestly here; the scale is stored on the Investigator
         // (TorchScale) so Bellwether is untouched. TorchRange 0 keeps the shared range.
         public float TorchIntensityScale = 2.4f;      // integ-fb 1.35 -> 2.4 (2.04 absolute): at 1.35 the lantern moved S1-S3 near-black by under 3 points
-        public float TorchRange = 24f;               // integ-fb 0 (keep 20) -> 24
+        public float TorchRange = 18f;               // integ-fc fallback (fc-light table, all 7 hall views on 6-10 % < 12): 24 -> 18; integ-fb 0 (keep 20) -> 24
         public float TorchSpotAngle = 100f;          // fc-light 80 -> 100 (chapel views kept 18-35 % of the frame near-black OUTSIDE the 80 deg cone); integ-fb: 80 (Bellwether keeps 52); 0 keeps the shared angle
         // fc-light: the torch is an Auto light, so in forward rendering it only reaches objects where it ranks among the Ultra tier's 4 pixel
         // lights. Diffing the fb2 lantern-on/off captures showed it lit the hall vault, candelabras and far wall but NOT the hall floor, near
