@@ -1,3 +1,46 @@
+# HANDOFF: wave FC (post-feedback open items) integrated, built and proved (read this section first)
+
+Branch `haunted-castle` = `hc/integ-fc`, pushed. Integrator: Opus 5.5 (piece fc-integ), 2026-10-18. Nothing left running, GPU slot released, the owner's `hc.castle.runs` is unchanged (`L,E,L`, backed up before and checked after), `.wt/wallart-art` / `.wt/codex-*` (Codex) and the uncommitted `CODEX_HANDOFF.md` edit untouched.
+
+**Merged on `hc/integ-fc` (from `haunted-castle` `0bd9db5`):** hc/fc-bw60 `f3a39b2` (Bellwether `performance_pass` on FrameTimingManager engine cost), hc/fc-light `ebc2b07` (hall mist .5 / alpha .12, castle lantern ForcePixel 100 deg), hc/fc-fbx `17cd51e` (door slabs thinned, collider = slab, portrait-door canvas, 45 old-kit pieces turned via `CastleKitAxis`), hc/fc-props `f0baa9c` (brazier moved, period held instruments, ASSET_LOG retired rows). One conflict: `CaptureMode.cs` header comment (the `kit` and `instruments` capture sets merged cleanly, both kept). Handoffs: `docs/haunted-castle/handoffs/fc-*.md`.
+
+**Integrator changes:**
+- `CastleKitAxis.TurnedModel` bug (`67af5e8`): `Transform.Find("FBX / <art>")` splits at the slash, so the prepare log said `turned=0 problems=22` although the scene held all 45 turned pieces (scene-mode `check_castle_kit.py`: turned=45 problems=0). Now compares child names and tests the rotation. Re-baked: `HC_KIT_AXIS_SUMMARY turned=45 problems=0`.
+- fc-light one-round fallback (`e5081a2`, the two matching rows of the fc-light table): `HallWindowMoonlight` .48 -> .30 (S1 off was 30.3 % < 31) and `TorchRange` 24 -> 18 (every hall view on was 6-10 % < 12). Measured effect: none on lantern-off (S1 30.3 -> 30.1), lantern-on mean luma 66 -> 56 but near-black unchanged (7-10 %). No further tuning (brief: one round).
+
+**Build:** `Builds/macOS/Hollow Current.app` (both maps), binary 2026-10-18 18:36:11, after the bake commit `65a5f58` (18:35:56). Bakes: Castle 7 maps / 196 probes / 17 reflections, Bellwether 4 / 124 / 9 (Bellwether re-baked once after the merges; the later commits are castle-only).
+
+**Static checks (HEAD):** check_source PASS (1199 assertions), check_castle_scares PASS, check_audio_keys OK, check_audio_quality OK, check_throwables_scene OK, check_castle_doors OK (collider = slab), check_castle_kit OK (scene and `.castle-bake-fc.log`), bellwether_fuzz identical, `audio_castle_sfx.py --check` 0 MISSING. Prepare log: 23 `HC_DOOR_LEAF_THICKNESS fitted=True`, `HC_DOOR_LEAF_SUMMARY problems=0` (both stages), `HC_PORTRAIT_CANVAS flipped=True now=+z`, no `HC_KIT_AXIS_IMPORT`, `HC_HIDE_SPOTS_SUMMARY failed=[]`, `HC_SKELETON PASS`, `HC_HALL_AXIS PASS`, `HC_CHAPEL PASS`, `HC_CHAPEL_PROPS overlap=False gap=0.52 PASS`; runtime `HC_INSTRUMENTS compass=1277 trumpet=1026 period=True lantern=1150`.
+
+**Proofs** (logs `.playtest-fc-*.log` in the clone; frames `docs/haunted-castle/rounds/r13/captures/fc/fc2/` final build, `fc1/` first build before the fallback; local, gitignored):
+
+| Proof | Result |
+|---|---|
+| fc-light first check | PASS: `HC_CAPTURE lantern on ... angle=100 mode=ForcePixel`; in-cone reach 92-97 % on S1-S3 and every layout view (fb2: 4-37 %). The pixel-light diagnosis was right |
+| exposure lantern off (35-55) | S1 30.1 (fb2 26.8), S2 41.5, S3 36.2. Hall views: from_doors 30.2, skeleton_head 29.2, side_east 27.5 (FAIL); pier_gap 35.4, side_west 48.1, tail 36.0 (in band; fb2 21-32). Hall darker than fb2 by 3-16 points, 3 of 6 hall views in band. Chapel unchanged (altar_approach 25.6 too bright, confessional 63.1 / guard door 59.2 too dark) |
+| exposure lantern on (12-25) | FAIL the other way: S1 7.4, S2 9.4 (fb2 40.0), S3 7.6 (fb2 28.9); 3 of 12 layout views in band (confessional 12.5, chapel doors 12.4 / 15.1). Chapel and crypt are much better lit than before; the hall is floodlit to the far wall and vault (mean luma 54-77). Skeleton and table read clearly |
+| frame time | S1 mean 11.11 ms max 11.33, hunt_dive mean 11.19-11.20 max 22.3 (fb2 11.15 / 21.8): no ForcePixel cost at the 90 fps cap. The `full` capture had one 189 ms hunt_dive hitch while another session's Unreal capture ran |
+| doors | PASS: closed leaves fill the opening (not see-through); open from inside both leaves swing into the hall (openAngle -155/+155) |
+| kit (3 views, lantern on/off) | fireplace front (mantel, recessed firebox) faces the dining room between the lancets; chairs face the table; portrait door now shows its painting, two south-wall frames; `kit_door_edge` the hall leaf a thin slab inside the reveal, rings a few cm proud; log `leafScaleZ=0.833 panelZ=0.100` / portrait `0.700 / 0.070 canvasFacing=(-1,0,0)`. S1: throne faces the hall, tapestries show their emblems |
+| layout / chapel | brazier stands right of the altar steps, apart from the bell (S2, chapel views) |
+| instruments (4 held views, on/off) | lantern: brass cage with violet chimney, reads period, glove holds the foot. Trumpet: flared horn, held by the narrow end, readable in the dark. Compass: brass case with bail ring and pips; the glass glare hides the dial and needle, so it reads more like a hand mirror (tune `GlareTexture`). Left-hand flashlight still the modern mesh |
+| cold | PASS: `HC_ONBOARD_START equipped=True`, first cue 18.5 s, 5 cues, Early band, Warning -> hunt 84 s, hides 5/5, runtime hides 8/8, blockers 0 |
+| natural (history not cleared) | WON: band Mid, first hunt 145 s, share 0.197, longest gap 134 s, 2 hunts, 3 `spoke`, `HC_VOICE_SUMMARY dropped=0`, 0 "cannot be sampled", 0 exceptions; grabContinuity 0/3 (known r13 metric) |
+| escape | WON, blockers 0, 4 `HC_DOC_OPEN` (letter + 3 ledger pages), 0 exceptions |
+| Bellwether `-hc-verify` | Route PASS (`HC_NATIVE_ROUTE_PASS`). `HC_PERF engine_cost_source=FrameTimingManager`, then `pass=False reason=engine_cost_over_16ms=104(max 84.3 ms)`, wall p99 11.9 ms, 1 % low 63.6 fps, 86 harness frames excluded. Of the 64 logged slow frames, 56 have main-thread 16.7-17.5 ms (1.5 x the 11.1 ms frame), GPU <= 19 ms, spread over every phase: `cpuMainThreadFrameTime` on Metal appears to include the frame limiter's wait (fc-bw60's stated risk). Strict rule kept, not relaxed |
+
+**Open items:**
+1. Lantern now too strong: with ForcePixel working, the integ-fb compensation (castle `TorchIntensityScale` 2.4, range 24 -> now 18) floods the hall. Next round: lower `CastleLightTuning.TorchIntensityScale` toward fb's 1.35 (and/or `TorchRange` 12) and recapture with `tools/exposure_report.py` / `tools/hall_light_model.py reach`.
+2. Hall lantern-off still 27-30 % in 3 views: neither the mist (halved) nor the hall window moonlight (.30, no measurable change) is the remaining floor light. Candidates: the castle bake ambient / reflection probes and the emissive rune ring. Needs a per-light diagnosis, not another blind cut.
+3. Bellwether `performance_pass` False on engine cost: check what `FrameTimingManager.cpuMainThreadFrameTime` includes on Metal (limiter wait) before using it as the 60-fps gate; the 4 UI note-open frames are still counted.
+4. Compass glass glare hides the dial; flashlight and field radio are still the modern meshes.
+5. Telescope still points into the observatory; kitchen hearth still covers the west lancet (fc-fbx notes).
+6. Art capture sets (`-hc-capture-art`) ignore `-hc-capture-size` and open at the largest window that fits (2416x1292 here, 3440x1440 display); rooms sets are 1920x1080.
+7. From FB: human audio listen, doc-UI sign-off, r13 critic metrics (apparition CV, grab continuity), the r13 blind critic has not run on this build. Merges to `main` need the owner.
+
+---
+
+
 # HANDOFF: wave FB (owner feedback 2026-10-15) integrated, built and proved (read this section first)
 
 Branch `haunted-castle` = `hc/integ-fb`, pushed. Integrator: Opus 5.5 (piece fb-integ). Owner feedback: `docs/haunted-castle/rounds/r13/OWNER_FEEDBACK.md` (items 1-13). Nothing left running, GPU slot released, `.wt/wallart-art` (Codex) and the uncommitted `CODEX_HANDOFF.md` edit untouched.
