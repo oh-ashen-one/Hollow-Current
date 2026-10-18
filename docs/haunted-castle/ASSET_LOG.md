@@ -239,3 +239,13 @@ files; the paper is numpy + Pillow.
 Contrast of every ink colour against the worst 0.5 % of each sheet's text zone is printed by `python3 tools/docui_paper.py --check` (body 5.7:1 ledger,
 6.5:1 letter, 11.7:1 field; titles and kickers >= 4.9:1; close line >= 5.2:1). The static look proofs are `docs/haunted-castle/rounds/r13/docui_mock_*.png`
 (`tools/docui_mock.py`, real note texts and fonts; PIL, not the engine).
+
+## Period held instruments (piece `hc/fc-props`, wave FC, 2026-10-18): cost 0, no files
+
+Owner/critic r12 ("modern props under gothic names"). The castle's three held instruments are generated in code by `Runtime/Castle/CastleInstrumentArt.cs` (Bellwether keeps its Tripo field-kit meshes unchanged). **No binary asset, no model, no generation job, no new texture file**: meshes are built at runtime from primitives (lathes and tube sweeps), the three small textures are painted at runtime from an integer hash (no files, so no `tools/` generator is needed), materials are Unity `Standard` plus the existing `CastleEmissive` / `CastleSprite` shaders. All of it is original project work, CC BY 4.0.
+
+| Instrument | Castle name | Geometry | Vertices (printed by `HC_INSTRUMENTS`) |
+|---|---|---|---|
+| tool 1 (was the induction reader) | Hollow Compass | brass case, bezel and suspension ring; parchment dial (runtime texture: inked ring, 24 ticks, red 12 o'clock mark); glass glare disc; red-tipped needle; five reading pips | 1277 (measured offline with the same builder code) |
+| tool 2 (was the UV lamp) | Grave-ash Lantern | brass foot, cap and bail ring; six iron cage bars; violet glass chimney (translucent sprite) round a glowing core | 1150 |
+| tool 3 (was the EVP recorder) | Vellum Ear-Trumpet | flared brass horn, vellum wrap (runtime texture), three leather bindings, dark bell interior | 1026 |
