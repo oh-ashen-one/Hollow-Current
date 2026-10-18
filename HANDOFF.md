@@ -1,3 +1,85 @@
+# HANDOFF: piece fc-light2 (lantern pool, chapel candle sconces, compass glass, castle hand lantern). Read this section first.
+
+Branch `haunted-castle` = `hc/fc-light2`, pushed. Builder: Opus 5.5, in the main clone, 2026-10-18. Nothing left running. The GPU slot was released; the one remaining holder is another session's Unreal editor.
+- The owner's `hc.castle.runs` (`unity.Bellwether Field Office.Hollow Current`) is still `L,E,L`.
+- The test runs rewrote `com.bellwether.hollowcurrent` `hc.castle.runs` from `E,M,B` to `E,M,L`. It was put back to `E,M,B`; backups are in the session scratchpad `fc3/prefs*.backup.plist`.
+- `CODEX_HANDOFF.md` is still uncommitted and was not touched.
+
+**Build:** `Builds/macOS/Hollow Current.app` (both maps). Binary 2026-10-18 19:45:41, built from the tree committed as bake commit `8ae142e`.
+- Castle bake: 7 maps, 196 probes, 17 reflections.
+- Bellwether was re-baked in rounds 1 and 2 (`Investigator.cs` changed). Round 3 changed only castle code, so only the castle was re-baked.
+- Commits: code `80fb55b`, round 2 code `8bc5653`, round 3 code `ac78c2b`. Bake commits: `378b23f`, `5453bc9`, `8ae142e`.
+
+**What changed**
+1. **Lantern = a pool** (`CastleLightTuning`, castle only).
+   - `TorchIntensityScale` 2.4 -> 1.8, `TorchRange` 18 -> 15, `TorchSpotAngle` 100 -> 88. New `TorchInnerFraction` .35 (was .6) and a warmer `TorchColor` (1, .80, .58).
+   - No continuous torch flicker exists (only the `lantern_flicker` scare cue), so none was added.
+   - Three bake+build+capture rounds:
+     - r1 (1.2 / 65 / 13): every room 22-51 % near-black with the lantern on, almost the lantern-off frame.
+     - r2 (1.7 / 75 / 15): hall in band, chapel 32-43 %.
+     - r3 (1.8 / 88 / 15): final.
+   - The response is very non-linear: range and angle each move the frame by 10-20 points.
+2. **Chapel candles stand in wall sconces** (`CastleWorld.ChapelCandles`, `ChapelWallSpot`, `LogCandles`; `SurrealProps.MakeWallCandle`; `SurrealAssets.SconceMesh`).
+   - The generator keeps its seed and in-cone bias. Each taper moves to the nearest solid spot on a chapel wall at the same height, sliding along the wall past openings: windows, doors, the altar/sunburst block, the confessional, the bell frame and the font.
+   - It stands in a procedural iron sconce (wall plate, curled arm, stay, drip pan, socket). The candle keeps its Floater for the candle rule (flames still lean) but no longer bobs, drifts or spins.
+   - Count unchanged at 46. About 25 are in the S2 view (was about 37).
+   - Prepare log: `HC_CANDLES placed=46 sconced=46 snapped=0 removed=0 floating=0 (chapel tapers; designed hall floaters=23 not judged) PASS`. The prepare throws if floating > 0.
+   - `tools/check_castle_kit.py <prepare log>` now also fails on a missing `HC_CANDLES` line or floating > 0 (`--allow-no-candles` for old logs).
+   - Not changed: the great hall's floating candelabras and books. DESIGN.md defines them as the surreal floaters ("candles that float", the candle rule), so they are counted, not judged. Director's call whether they also get holders.
+3. **Compass glass** (`CastleInstrumentArt`).
+   - Cause: held items sit on equipment layer 30, which the torch does not light, so the Standard dial rendered dark grey under a .05 white veil and read as a mirror.
+   - Fix: the dial is now drawn unlit at a dim level (`DialLevel` .46). The glass is a faint rim plus one soft streak, with no veil.
+   - Result: the dial, its ticks, the needle and the ember pips read in `instruments_on` (compass_idle / reading5).
+   - The dial reads pale neutral grey rather than parchment-warm. The tint does not seem to reach it; not investigated further.
+4. **Castle hand lantern** (`Investigator.BuildInstruments`, `CastleInstrumentArt.CreateHandLantern`).
+   - The left hand in the castle carries the brass cage lantern with amber glass and a warm core, instead of the flashlight mesh. Bellwether is unchanged (`-hc-verify` "flashlight meshes mounted" PASS).
+
+**Exposure, near-black %** (fc2 = build e83d33a; fc3 = this build, 1920x1080 except the layout sets, which open at 2416x1292). Bold = out of band.
+
+| View | off fc2 | off fc3 (35-55) | on fc2 | on fc3 (12-25) |
+|---|---|---|---|---|
+| S1_great_hall | 30.1 | **30.4** | 7.4 | 15.0 |
+| S2_chapel_altar | 41.5 | 41.7 | 9.4 | 21.7 |
+| S3_crypt | 36.2 | 36.1 | 7.6 | 16.8 |
+| chapel_aisle | 40.9 | 41.5 | 10.5 | 22.9 |
+| chapel_altar_approach | 25.6 | **25.8** | 10.1 | 18.8 |
+| chapel_confessional | 63.1 | **63.0** | 12.5 | **25.4** |
+| chapel_font_corner | 49.5 | 49.3 | 5.6 | 15.4 |
+| chapel_from_great_doors | 48.3 | 48.5 | 12.4 | **27.1** |
+| chapel_from_guard_door | 59.2 | **59.5** | 15.1 | **34.4** |
+| hall_from_doors | 30.2 | **30.5** | 7.3 | 14.6 |
+| hall_pier_gap | 35.4 | 35.6 | 7.5 | 16.2 |
+| hall_skeleton_head | 29.2 | **29.5** | 9.5 | 19.0 |
+| hall_skeleton_side_east | 27.5 | **27.5** | 6.5 | 13.2 |
+| hall_skeleton_side_west | 48.1 | 48.3 | 10.5 | 24.4 |
+| hall_skeleton_tail | 36.0 | 36.1 | 6.5 | 13.8 |
+
+- Lantern on: 12 of 15 views in band (fc2: 3).
+- Lantern off moved at most +0.6 (the sconced candles carry no light). The off misses are the pre-existing ones (hall bake/mist, chapel doors), not touched by brief.
+- Frame time (`capture.json`, 90 fps cap): S1 on mean 11.11 ms, max 11.39; hunt_dive mean 11.17, max 21.3. fc2: 11.11 / 11.33, hunt_dive 11.19-11.20 / 22.3.
+
+**Static checks (HEAD):**
+- check_source PASS; check_castle_scares PASS; check_audio_keys OK; check_throwables_scene rc 0; check_castle_doors OK.
+- check_castle_kit OK on `.castle-bake-fc3-r3.log`.
+- Prepare log: `HC_KIT_AXIS_SUMMARY problems=0`, `HC_DOOR_LEAF_SUMMARY problems=0`, `HC_HIDE_SPOTS_SUMMARY failed=[]`, `HC_SKELETON PASS`, `HC_CHAPEL PASS`.
+- Bellwether `-hc-verify`: `HC_NATIVE_ROUTE_PASS`, 0 `HC_VERIFY FAIL`. `HC_PERF pass=False engine_cost_over_16ms=83`, the known open item.
+
+**Evidence** (local, gitignored): `docs/haunted-castle/rounds/r13/captures/fc/fc3/r3/{rooms,layout}_{off,on}`, `instruments_on`, `bwverify`. Rounds 1 and 2 keep their rooms sets only. Logs are `.playtest-fc3-r*-*.log` and `.castle-bake-fc3-r*.log`.
+
+**Open items**
+1. Three chapel views with the lantern on are too dark: from_guard_door 34.4, from_great_doors 27.1, confessional 25.4. These are wide door-side views whose frame edges fall outside even an 88 degree cone.
+   - A wider cone floods the hall again; the rounds budget is used up.
+   - Next lever: a little more chapel-only fill (`ChapelCandleIntensity` .75 -> .9), not the lantern.
+2. S1 with the lantern on: the far wall and vault are dim but still read at range 15. They do not fully fall to black; range 13 made the hall 28 %.
+3. Hall with the lantern off is still 27-30 % in 4 views (fc open item 2, bake ambient). Not touched, per brief.
+4. Hall floating candelabras and books are unchanged (design floaters; see item 2 above).
+5. The compass dial reads neutral grey, not parchment.
+6. The field radio is still the modern mesh.
+7. Earlier FC open items 3-7 still stand. Merges to `main` need the owner.
+
+---
+
+
 # HANDOFF: wave FC (post-feedback open items) integrated, built and proved (read this section first)
 
 Branch `haunted-castle` = `hc/integ-fc`, pushed. Integrator: Opus 5.5 (piece fc-integ), 2026-10-18. Nothing left running, GPU slot released, the owner's `hc.castle.runs` is unchanged (`L,E,L`, backed up before and checked after), `.wt/wallart-art` / `.wt/codex-*` (Codex) and the uncommitted `CODEX_HANDOFF.md` edit untouched.
