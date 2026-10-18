@@ -71,6 +71,8 @@ namespace HollowCurrent
         // The Blender FBX -> Unity axis conversion could not be verified without launching Unity. Authoring assumes the standard
         // result (model front = +Z, +X stays +X). If the first in-engine check shows assets facing -Z (door leaves swinging the
         // wrong way, drawbridge extending +Z), set this to 180 once; every Place call applies it about the asset's own origin.
+        // fc-fbx: it does (the old kit lands turned 180 degrees, the hall kit and the exterior do not), so the correction is per asset:
+        // see CastleKitAxis (Place wraps the affected models). Keep this at 0.
         public const float ImportYaw = 0f;
 
         // Return value of Place: converts implicitly to Transform (what CastleLayout/CastleWorld use) and to GameObject.
@@ -327,6 +329,9 @@ namespace HollowCurrent
                     item = UnityEngine.Object.Instantiate(prefab);
                     item.name = "Castle / " + name;
                     ApplyMaterials(item);
+                    // fc-fbx: old-kit models that import turned 180 degrees and are placed by the contract come back wrapped in a contract-frame
+                    // root with the model turned inside it (CastleKitAxis.ImportFix; every other asset is returned unchanged)
+                    item = CastleKitAxis.ImportFix(name, item);
                 }
             }
             catch (Exception e) { Warn(name, e.Message); item = null; }

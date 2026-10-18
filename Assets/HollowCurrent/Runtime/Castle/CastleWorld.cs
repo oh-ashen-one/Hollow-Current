@@ -174,6 +174,7 @@ namespace HollowCurrent
             SearchPoints();
             BuildNavigation();
             Debug.Log("HC_ARCH_KIT wall and floor tiles placed=" + tileCount + " (stone variants, art-backed veneer; colliders unchanged)");
+            CastleKitAxis.Log(root);   // fc-fbx: HC_KIT_AXIS old-kit axis audit (tools/check_castle_kit.py)
         }
 
         // ---- materials and primitives -----------------------------------------------------------------
@@ -608,7 +609,10 @@ namespace HollowCurrent
                 bool turned = leafCentre.x < 0;
                 if (turned) leafPlaced.transform.localRotation = Quaternion.Euler(0, 180, 0);
                 Debug.Log("HC_DOOR_LEAF_AXIS name=" + label + " art=" + leafArt + " centre=" + leafCentre.ToString("F2") + " turned=" + turned + " now=" + ArtLocalCentre(leafPlaced, hinge.transform).ToString("F2"));
-                if (portrait) Paint(leafPlaced, "child");
+                // fc-fbx: the leaf art is thinned to a real oak slab and the collision panel gets exactly that thickness (CastleKitAxis.FitDoorLeaf);
+                // the portrait door's canvas, which faced into its own slab, is turned to face out (CastleKitAxis.FaceCanvasOut)
+                panel.transform.localScale = new Vector3(lw, h, CastleKitAxis.FitDoorLeaf(leafPlaced, hinge.transform, leafArt, label));
+                if (portrait) { CastleKitAxis.FaceCanvasOut(leafPlaced, hinge.transform, label); Paint(leafPlaced, "child"); }
                 var it = panel.AddComponent<Interactable>(); it.Kind = InteractKind.Door; it.Label = d.Name;
                 var door = hinge.AddComponent<Door>(); door.Closed = hinge.transform.localRotation; it.Door = door;
                 doors.Add(door); if (d.IsService) serviceDoors.Add(door);
