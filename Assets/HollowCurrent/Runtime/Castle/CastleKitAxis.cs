@@ -175,8 +175,16 @@ namespace HollowCurrent
         // The turned model under a placed root, or null when the root is the imported model itself.
         static Transform TurnedModel(Transform placed, string art)
         {
-            var model = placed.Find(ModelPrefix + art);
-            return model && Mathf.Abs(Mathf.DeltaAngle(model.localEulerAngles.y, 180f)) < 1f ? model : null;
+            // integ-fc: Transform.Find treats '/' as a path separator, so Find("FBX / <art>") never matched and every turned piece logged
+            // turned=False; compare the child names instead, and test the turn on the rotation itself (not a decomposed Euler angle).
+            string want = ModelPrefix + art;
+            for (int i = 0; i < placed.childCount; i++)
+            {
+                var model = placed.GetChild(i);
+                if (model.name != want) continue;
+                return Vector3.Dot(model.localRotation * Vector3.forward, Vector3.back) > .999f ? model : null;
+            }
+            return null;
         }
 
         // ---- door leaves (item 1) ----------------------------------------------------------------------------------------------
