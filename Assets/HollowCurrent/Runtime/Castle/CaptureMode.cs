@@ -421,7 +421,7 @@ namespace HollowCurrent
         // glass and the north sky card, CastleWorld.BlindGlassIntensity / NorthSkyIntensity), -hc-hall-table I (the two "Table candle light"
         // intensities), -hc-hall-sheen S (x the floor and table sheen _Strength): runtime values for one capture, so the integrator can sweep
         // the hall's lantern-off exposure on one build. Logged as HC_CAPTURE hall override ...
-        static void HallOverrides()
+        void HallOverrides()
         {
             var a=Environment.GetCommandLineArgs();var inv=System.Globalization.CultureInfo.InvariantCulture;
             float Arg(string k){for(int i=0;i<a.Length-1;i++)if(a[i]==k&&float.TryParse(a[i+1],System.Globalization.NumberStyles.Float,inv,out var v))return v;return float.NaN;}
@@ -438,7 +438,7 @@ namespace HollowCurrent
                 else if(!float.IsNaN(sheen)&&(m.name=="Castle hall floor sheen"||m.name=="Castle hall table sheen")&&m.HasProperty("_Strength"))
                 {m.SetFloat("_Strength",m.GetFloat("_Strength")*sheen);ns++;}
             }
-            if(!float.IsNaN(table))foreach(var l in FindObjectsByType<Light>(FindObjectsSortMode.None))if(l.name=="Table candle light"){l.intensity=table;nt++;}
+            if(!float.IsNaN(table))nt=game.SetLampLevel("Table candle light",table);   // Game re-applies lamp levels every frame
             Log("hall override mist="+mist.ToString("F3",inv)+" ("+nm+" layers) glass="+glass.ToString("F2",inv)+" ("+ng+") table="+table.ToString("F2",inv)+" ("+nt+" lights) sheen="+sheen.ToString("F2",inv)+" ("+ns+")");
         }
         static void MoatOverrides()

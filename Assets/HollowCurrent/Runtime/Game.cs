@@ -73,6 +73,8 @@ namespace HollowCurrent
         public int ManifestationCount => Scares?Scares.Events:manifestation;
         public int DollMovementCount {get;private set;}
         readonly Dictionary<Light,float> lampLevels=new Dictionary<Light,float>();
+        // wave FF: capture-time override of a lamp's base level (CaptureMode -hc-hall-table); the per-frame lamp loop multiplies it as before
+        public int SetLampLevel(string lightName,float level){int n=0;foreach(var l in new List<Light>(lampLevels.Keys))if(l&&l.name==lightName){lampLevels[l]=level;n++;}return n;}
         readonly HashSet<Light> darkCircuits=new HashSet<Light>();
         readonly Dictionary<Transform,Vector3> dollHomes=new Dictionary<Transform,Vector3>();
         public int FrameSamples;
@@ -293,7 +295,10 @@ namespace HollowCurrent
             }
             foreach(var kv in lampLevels)
             {
-                bool local=Vector3.Distance(Player.transform.position,kv.Key.transform.position)<8&&Mathf.Abs(Player.transform.position.y-kv.Key.transform.position.y+2.5f)<3;
+                // wave FF (hc/ff-art): the two banquet-table candles ("Table candle light", castle only) stay lit to 14 m, so the table reads from the
+                // great doors (S1 eye 8.3 / 10 m away); every other lamp keeps the 8 m rule
+                float reach=kv.Key.name=="Table candle light"?14f:8f;
+                bool local=Vector3.Distance(Player.transform.position,kv.Key.transform.position)<reach&&Mathf.Abs(Player.transform.position.y-kv.Key.transform.position.y+2.5f)<3;
                 kv.Key.enabled=local&&lampsPowered&&!darkCircuits.Contains(kv.Key);
                 kv.Key.shadows=kv.Key==nearest||kv.Key==second?LightShadows.Soft:LightShadows.None;
                 kv.Key.intensity=kv.Value*(Scares?Scares.LightMultiplier:1)*(Case.Phase==Phase.Warning&&Mathf.Sin(Time.time*17)>0?.08f:1);
