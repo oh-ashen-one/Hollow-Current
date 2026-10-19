@@ -362,7 +362,11 @@ namespace HollowCurrent
             // from the gate; the bridge constraint is only "far end of the lowered leaf in frame".
             e=S4Eye;float s4Pitch=S4Pitch,s4Fov=S4Fov;string s4="fallback";
             var moonDirs=new[]{("pale",CastleArt.PaleMoonDirection,.19f),("red",CastleArt.RedMoonDirection,.11f)}; // disc radius + 4% margin (r6: pale moon touched the top edge)
-            foreach(float back in new[]{14f,15f,16f,17f,18f})foreach(float height in new[]{3.5f,3f,2.5f})foreach(float f in new[]{90f,95f})
+            // Wave FD (r13 critic item 3): the front moat is a blood lake now and the search starts 22 m out, behind the far landing's ruined gateway
+            // (its piers at x +-4.5 frame the view like the reference's gate posts), so the causeway, the lake, its reflections and the castle's rock
+            // base fill the lower third instead of the castle foot at 14 m (simulated: back 22, eye height 1.64 (standing on the landing), FOV 90,
+            // pitch 28.5, both moons inset, gate base at viewport y 0.18). The old 14-18 m eyes stay as the fallback order.
+            foreach(float back in new[]{22f,20f,18f,16f,14f,15f,17f})foreach(float height in new[]{1.64f,2.5f,3f,3.5f})foreach(float f in new[]{90f,95f})
             {
                 if(s4!="fallback")break;
                 var eye=new Vector3(0,height,-back);

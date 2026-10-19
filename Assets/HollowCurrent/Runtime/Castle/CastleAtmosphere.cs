@@ -28,9 +28,13 @@ namespace HollowCurrent
         public Color FogColor = new Color(.04f, .05f, .08f);
         public float FogDensity = .03f;
         public bool ExteriorFogProfile = true;
-        public Color ExteriorFogColor = new Color(.30f, .37f, .52f);
-        public float ExteriorFogDensity = .05f;
-        public float ExteriorBelowZ = .5f;   // castle-local z: the gate wall is at 0
+        // Wave FD (r13 critic item 3: the exterior views were "a fog plane"): at .05 the castle front from the bridge (14-22 m) was 40-70 % mist and
+        // the far bank vanished. .034 keeps 57 % at 22 m and the colour is a darker, less milky night blue, so the keep, the rock and the far shore
+        // read as silhouettes against the sky like refs/exterior_sky.png. The gate passage counts as outside from z 1.6 (the gate_out_S6 eye at
+        // z 1.4 looks out through the arch and used to get the near-black hall fog over the whole view).
+        public Color ExteriorFogColor = new Color(.20f, .24f, .34f);
+        public float ExteriorFogDensity = .034f;
+        public float ExteriorBelowZ = 1.6f;   // castle-local z: the gate wall is at 0, the gate passage inner face at 0.45
 
         [Header("Ambient (trilight; gamma-space colours as in the Lighting window)")]
         // was sky (.16,.20,.30), equator (.095,.12,.185), ground (.04,.04,.06), intensity 1; Bellwether: (.105,.13,.16) / (.055,.06,.07) / (.025,.028,.03)
