@@ -1156,7 +1156,8 @@ namespace HollowCurrent
 
         void Kitchen()
         {
-            Prop(Art.KitchenHearth, new Vector3(-13.0f, 0, 5.0f), 90);
+            var hearth = Prop(Art.KitchenHearth, CastleLayout.KitchenHearthPos, CastleLayout.KitchenHearthYaw);
+            LogHearth(hearth);
             Prop(Art.ButcherBlock, new Vector3(-9.5f, 0, 5.0f), 0);
             knifeAnchor = new GameObject("KnifeOrbit anchor").transform; knifeAnchor.SetParent(root, false); knifeAnchor.localPosition = new Vector3(-9.5f, 1.4f, 5.0f);
             Prop(Art.Cauldron, new Vector3(-12.4f, 0, 1.6f), 0);
@@ -1164,6 +1165,76 @@ namespace HollowCurrent
             Hide("Kitchen larder", new Vector3(-7.5f, 0, .45f), 180);
             Note("Kitchen tally", new Vector3(-8.5f, .92f, 7.5f), "Kitchen tally",
                 "Tally cut into the table:\n\nMonday, six places set.\nTuesday, six places set.\nWednesday, five.\nThursday, four, and the knives would not stay in the block.\nFriday, one place, and it was not set by us.");
+        }
+
+        // fc-art2 D, prepare-time evidence (HC_HEARTH): the great hearth stood over the kitchen's west lancet (moonlight baked behind a hearth). Its footprint
+        // (the mesh bounds of the placed art, so it is the real width, not the nominal 2.8 m) must not overlap any window or door opening of the layout on
+        // the ground floor: an opening's box runs along its wall for its width and from the wall's outer face to 1.5 m into the room, from sill to head;
+        // the hearth's box is its footprint and height. window_gap is the clear distance along the wall to the nearest such opening. The hearth must also
+        // stand inside the kitchen (within 5 cm of the wall faces). A violation logs an error and fails the prepare.
+        void LogHearth(Transform art)
+        {
+            var pos = CastleLayout.KitchenHearthPos;
+            float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue, minZ = float.MaxValue, maxZ = float.MinValue; bool measured = false;
+            foreach (var f in art.GetComponentsInChildren<MeshFilter>())
+            {
+                if (!f.sharedMesh) continue;
+                var b = f.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = root.InverseTransformPoint(f.transform.TransformPoint(c));
+                    minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x); minY = Mathf.Min(minY, p.y); maxY = Mathf.Max(maxY, p.y); minZ = Mathf.Min(minZ, p.z); maxZ = Mathf.Max(maxZ, p.z); measured = true;
+                }
+            }
+            if (!measured)
+            {
+                var s = CastleLayout.ArtSize(Art.KitchenHearth); float yaw = CastleLayout.KitchenHearthYaw * Mathf.Deg2Rad, c = Mathf.Abs(Mathf.Cos(yaw)), sn = Mathf.Abs(Mathf.Sin(yaw));
+                float hx = (s.x * sn + s.z * c) * .5f, hz = (s.x * c + s.z * sn) * .5f;      // yaw 90: the 2.8 m width runs along z
+                minX = pos.x - hx; maxX = pos.x + hx; minZ = pos.z - hz; maxZ = pos.z + hz; minY = pos.y; maxY = pos.y + s.y;
+            }
+            const float depth = 1.5f;   // how far into the room an opening's box reaches
+            int checkedN = 0; bool overlap = false; float gap = float.MaxValue; string nearest = "none";
+            void Test(string what, bool alongX, float line, float center, float width, float sill, float head)
+            {
+                float hT0 = alongX ? minX : minZ, hT1 = alongX ? maxX : maxZ;
+                if (head <= minY || sill >= maxY) return;                                              // above or below the hearth
+                checkedN++;
+                float along = Mathf.Max((center - width * .5f) - hT1, hT0 - (center + width * .5f));   // < 0: the spans overlap along the wall
+                if (along < gap) { gap = along; nearest = what + "@" + (alongX ? "z=" : "x=") + line.ToString("F1") + "/" + center.ToString("F1"); }
+                if (along < 0) overlap = true;
+            }
+            foreach (var w in CastleLayout.Windows)
+            {
+                if (Mathf.Abs(w.FloorY - pos.y) > .01f) continue;
+                float half = Mathf.Abs(w.Line) < .01f || Mathf.Abs(w.Line - CastleLayout.Depth) < .01f || Mathf.Abs(Mathf.Abs(w.Line) - CastleLayout.HalfWidth) < .01f ? CastleLayout.ExteriorWallHalf : CastleLayout.SpineWallHalf;
+                // an opening's box spans the wall and reaches `depth` into the room on its inward side only
+                float lo = w.Line - (w.Inward > 0 ? half : half + depth), hi = w.Line + (w.Inward > 0 ? half + depth : half);
+                float hN0 = w.RunsAlongX ? minZ : minX, hN1 = w.RunsAlongX ? maxZ : maxX;
+                if (hN1 <= lo || hN0 >= hi) continue;
+                Test(w.Art, w.RunsAlongX, w.Line, w.Center, w.Width, w.Sill + w.FloorY, w.Top + w.FloorY);
+            }
+            foreach (var d in CastleLayout.Doors)
+            {
+                if (Mathf.Abs(d.FloorY - pos.y) > .01f) continue;
+                float hN0 = d.RunsAlongX ? minZ : minX, hN1 = d.RunsAlongX ? maxZ : maxX;
+                if (hN1 <= d.Line - depth || hN0 >= d.Line + depth) continue;
+                Test("door " + d.Name, d.RunsAlongX, d.Line, d.Center, d.Width, d.FloorY, d.FloorY + d.Height);
+            }
+            var room = CastleLayout.Room(CastleRoom.Kitchen);
+            float wx0 = room.X0 + CastleLayout.ExteriorWallHalf, wx1 = room.X1 - CastleLayout.SpineWallHalf, wz0 = room.Z0 + CastleLayout.ExteriorWallHalf, wz1 = room.Z1 - CastleLayout.SpineWallHalf;
+            float roomGap = Mathf.Min(Mathf.Min(minX - wx0, wx1 - maxX), Mathf.Min(minZ - wz0, wz1 - maxZ));
+            bool inside = roomGap >= -.05f;
+            bool ok = !overlap && gap >= CastleLayout.HearthWindowMinGap && inside;
+            string line = "HC_HEARTH window_overlap=" + overlap + " pos=" + pos.ToString("F2") + " yaw=" + CastleLayout.KitchenHearthYaw.ToString("F0") + " footprint=[x " + minX.ToString("F2") + ".." + maxX.ToString("F2") + " z "
+                + minZ.ToString("F2") + ".." + maxZ.ToString("F2") + " h " + (maxY - minY).ToString("F2") + "] openings_checked=" + checkedN + " nearest=" + nearest + " window_gap=" + (gap == float.MaxValue ? "none" : gap.ToString("F2"))
+                + " (min " + CastleLayout.HearthWindowMinGap.ToString("F1") + ") room_gap=" + roomGap.ToString("F2") + " bounds=" + (measured ? "mesh" : "art-size") + " " + (ok ? "PASS" : "FAIL");
+            if (ok) Debug.Log(line);
+            else
+            {
+                Debug.LogError(line);
+                if (!Application.isPlaying) throw new System.Exception(line);
+            }
         }
 
         void Chapel()
