@@ -55,6 +55,8 @@ namespace HollowCurrent
             if(message.StartsWith("HC_COUNT_GRAB mode=",StringComparison.Ordinal)){var mm=message.Substring(19);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm))lastGrabMode=gm;}
             // fd-grab: HC_GRAB_COMMIT carries the mode actually played (after 8->9 or headroom switches); the run's grab records.
             if(message.StartsWith("HC_GRAB_COMMIT mode=",StringComparison.Ordinal)){var mm=message.Substring(20);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm)){lastGrabMode=gm;commits.Add((gm,message.Contains(" hide=True"),message.Contains(" return=True"),message.Contains(" headroom=True")));}}
+            // fe-integ: frames of an armed escalation (fe-count: the apparition vanishes, the silent tell and the hunt come 11.5-13.5 s later).
+            if(message.StartsWith("HC_APPARITION_GATE deferred=escalation",StringComparison.Ordinal)&&escShots<2&&isActiveAndEnabled){escShots++;StartCoroutine(EscalationShots(escShots));}
             if(message.StartsWith("HC_GRAB_FIRSTFRAME",StringComparison.Ordinal)){firstFrames++;if(message.Contains(" visible=True"))firstVisible++;}
             // fe-count: every dive must end in a commit or a readable miss (HC_COUNT_DIVE end=commit / miss=True).
             if(message.StartsWith("HC_COUNT_DIVE position=",StringComparison.Ordinal))diveStarts++;
@@ -246,6 +248,17 @@ namespace HollowCurrent
             File.WriteAllBytes(Path.Combine(OutDir,shot.ToString("00")+"_"+phase+".png"),tex.EncodeToPNG());Destroy(tex);
         }
         IEnumerator Step(string phase,string detail=""){Log(phase,detail);yield return Shot(phase);}
+        int escShots;
+        IEnumerator EscalationShots(int n)
+        {
+            float t0=Time.realtimeSinceStartup;
+            foreach(var at in new[]{0f,1f,3f,6f,9f,11f,12.2f,13.2f,14.5f,16.5f})
+            {
+                while(Time.realtimeSinceStartup-t0<at)yield return null;
+                Debug.Log("HC_PLAY_ESC_SHOT n="+n+" at="+at.ToString("F1")+" t="+(game&&game.Case!=null?game.Case.Elapsed.ToString("F1"):"-")+" phase="+(game&&game.Case!=null?game.Case.Phase.ToString():"-"));
+                yield return Shot("esc"+n+"_t+"+at.ToString("F1"));
+            }
+        }
         IEnumerator Frames(int n){for(int i=0;i<n;i++)yield return null;}
         IEnumerator Wait(float seconds){float end=Time.realtimeSinceStartup+seconds;while(Time.realtimeSinceStartup<end)yield return null;}
         void Reset(){input.Use=input.UseHeld=input.Fire=input.FireHeld=input.Torch=input.Radio=input.Sprint=input.Crouch=false;input.SelectTool=0;input.Move=Vector2.zero;}
