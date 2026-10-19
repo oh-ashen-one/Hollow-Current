@@ -143,21 +143,26 @@ namespace HollowCurrent
         {
             public int Sign; public float Yaw;
             public bool LeftOk, RightOk; public float LeftYaw, RightYaw; public string LeftWhy = "", RightWhy = "";
+            // fg-polish: every yaw tried and why it failed (yaw:code, codes line | floor | room | reach | other), for HC_GRAB_FLANK yaws=.
+            public string LeftYaws = "", RightYaws = "";
         }
+        public static string ShortWhy(string why) => why == null ? "open" : why.Contains("line") ? "line" : why.Contains("floor") ? "floor" : why.Contains("room") ? "room"
+            : why.Contains("detour") || why.Contains("route") || why.Contains("direct") ? "reach" : "other";
         public static SidePlan Choose(Func<int, float, string> feasible, float[] yaws, int first)
         {
             var plan = new SidePlan();
             foreach (int sg in new[] { -1, 1 })
             {
-                string firstWhy = null; bool ok = false; float okYaw = 0;
+                string firstWhy = null; bool ok = false; float okYaw = 0; string tried = "";
                 foreach (float y in yaws)
                 {
                     string w = feasible(sg, y);
+                    tried += (tried.Length > 0 ? "," : "") + (y * sg).ToString("F0", System.Globalization.CultureInfo.InvariantCulture) + ":" + ShortWhy(w);
                     if (w == null) { ok = true; okYaw = y; break; }
                     if (firstWhy == null) firstWhy = w;
                 }
-                if (sg < 0) { plan.LeftOk = ok; plan.LeftYaw = okYaw; plan.LeftWhy = ok ? "" : firstWhy ?? "no frame"; }
-                else { plan.RightOk = ok; plan.RightYaw = okYaw; plan.RightWhy = ok ? "" : firstWhy ?? "no frame"; }
+                if (sg < 0) { plan.LeftOk = ok; plan.LeftYaw = okYaw; plan.LeftWhy = ok ? "" : firstWhy ?? "no frame"; plan.LeftYaws = tried; }
+                else { plan.RightOk = ok; plan.RightYaw = okYaw; plan.RightWhy = ok ? "" : firstWhy ?? "no frame"; plan.RightYaws = tried; }
             }
             foreach (int sg in new[] { first, -first })
             {
@@ -256,6 +261,32 @@ namespace HollowCurrent
             var tied = new List<int>(); for (int i = 0; i < played.Length; i++) if (played[i] == min && (i != last || played.Length == 1)) tied.Add(i);
             if (tied.Count == 0) for (int i = 0; i < played.Length; i++) if (played[i] == min) tied.Add(i);
             return tied[Math.Min(tied.Count - 1, (int)(Clamp01(u) * tied.Count))];
+        }
+    }
+    // fg-polish (FF fear: a hideopen crawl slid 0.91 m: its 0.92 m seat was exempt from the reseat and the cut, and FrameClaws eased the
+    // root another 0.5 m): the 0.45 m slide rule on every grab path. Pure; Presence and RulesTests share it.
+    public static class SideBalanceRules
+    {
+        // fg-polish: the side snatch's two clips share one deck group; the side with fewer commits than its pair scores `bonus` more, so a
+        // feasible starved flank wins a close call against the spin (FF natural3) without raising the side group's target share.
+        public static float Bonus(int haveThis, int havePair, float bonus) => haveThis < havePair ? bonus : 0;
+    }
+    public static class GrabSlideRules
+    {
+        public enum SeatPath { Keep, Reseat, Cut }
+        // The frame-0 seat: an open-floor drop or crawl keeps the horizontal gap beyond maxGap in its root (Reseat); a side, spin or hide
+        // grab is placed (the clip frame, the torn door) and cannot, so a gap over maxGap is a hard cut on frame 0 (Cut); else Keep.
+        public static SeatPath Seat(bool hide, bool variant, float gap, float flatGap, float maxGap)
+        {
+            if (hide || variant) return gap > maxGap ? SeatPath.Cut : SeatPath.Keep;
+            return flatGap > maxGap ? SeatPath.Reseat : SeatPath.Keep;
+        }
+        // The root leash: his rendered root's horizontal travel from frame 0 (dx, dz) is held to leash; returns the part taken back.
+        public static float Leash(float dx, float dz, float leash, out float bx, out float bz)
+        {
+            float m = (float)Math.Sqrt(dx * dx + dz * dz);bx = bz = 0;
+            if (m <= leash || m <= 0) return 0;
+            float k = 1 - leash / m;bx = dx * k;bz = dz * k;return m - leash;
         }
     }
 }

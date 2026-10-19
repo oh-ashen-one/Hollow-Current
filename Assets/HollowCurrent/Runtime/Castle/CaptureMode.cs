@@ -486,7 +486,13 @@ namespace HollowCurrent
             // wave FF (r14 critic: "the banquet table is a small dark shape at the far end"): the eye rises 2.3 -> 2.95 on the threshold and tips 1.8
             // degrees down, so the table and its chairs clear the shrouded ribcage (proxy: 12.5k -> 17.6k table px) and the frame holds the north
             // lancets, the blind gallery lancets and the floor between the piers (tools/ff_hall_raycast.py; CastleWorld.S1MoonEye must match)
-            var e=new Vector3(0,2.95f,14.55f);var t=new Vector3(0,2.55f,27);Place(e,t);
+            // wave FG (hc/fg-polish; FF build: table 10.8k of 15k px lantern off, "the skeleton fills the foreground, the table is small and far"):
+            // more table light could not reach 15k (integrator sweep), so the camera moves: gallery height (3.6 m, the galleries' floor is 3.2) and
+            // 1.45 m further in (z 16.0, over the skull), 11 degrees down the axis. The table sits near the frame centre with its lit top showing
+            // instead of edge-on, the shrouded ribcage drops to the bottom of the frame, the north lancets clear the north gallery rail.
+            // Offline (tools/ff_hall_raycast.py + the FF frame re-projected, tools/check_art_views.py on the estimate): table 18.3-19.5k px,
+            // lancets 3-5 >= 150 rows, a moon in the west lancet, near piers 2.47 / 2.89, near-black 40-43 %. CastleWorld.S1MoonEye must match.
+            var e=new Vector3(0,3.6f,16.0f);var t=new Vector3(0,1.27f,28);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S1_great_hall",3);
             yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");SetPiece.Report(game.Player.View,"S1");
             // S2: chapel altar from the nave.

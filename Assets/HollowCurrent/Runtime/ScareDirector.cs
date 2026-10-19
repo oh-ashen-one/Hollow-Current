@@ -101,8 +101,11 @@ namespace HollowCurrent
             }
             // ff-count: a first hunt whose lead drew "follow" asks for an apparition its lead before the deadline (Investigation.WantsApparitionNow);
             // the director checks at once and retries every 1-1.5 s while the window lasts (the rhythm's spacing still holds).
+            // fg-polish: an owed follow-up (Investigation.OwedFollowLead >= 0) asks the same way once the quiet ends within its lead; every new
+            // request episode checks at once (wantedLogged re-arms whenever the request is off, e.g. while the rhythm's spacing holds).
             bool wanted=IsCastle&&game.Case.WantsApparitionNow&&rhythm.CanSurprise&&!rhythm.AppearanceDue;
-            if(wanted&&!wantedLogged){wantedLogged=true;next=0;Debug.Log("HC_SCARE_WANTED reason=first_follow huntIn="+game.Case.PlannedThreatIn.ToString("F1")+" t="+game.Case.Elapsed.ToString("F1"));}
+            if(wanted&&!wantedLogged){wantedLogged=true;next=0;Debug.Log("HC_SCARE_WANTED reason="+(game.Case.Hunts>0?"owed_follow lead="+game.Case.OwedFollowLead.ToString("F1")+" grace="+game.Case.GraceRemaining.ToString("F1"):"first_follow huntIn="+game.Case.PlannedThreatIn.ToString("F1"))+" t="+game.Case.Elapsed.ToString("F1"));}
+            if(!wanted)wantedLogged=false;
             next-=dt;if(next>0)return;
             bool fired=false;
             if(!approachingHunt&&(rhythm.AppearanceDue||wanted))fired=Trigger(false,wanted);

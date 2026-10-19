@@ -135,6 +135,9 @@ namespace HollowCurrent
             return "huntsNonReturn="+nonReturn+" withinScare10s="+afterScare+" pctWithinScare10s="+(nonReturn>0?(100f*afterScare/nonReturn).ToString("F0"):"n/a")
                 +" apparitions="+scareTimes.Count+" apparitionCV="+cv+" apparitionTimes=["+arrivals.ToString().TrimEnd(',')+"]"
                 +" threatLeads=["+leads.ToString().TrimEnd(',')+"] lead25_60="+l2560+"/"+nl+" lead10_20="+l1020+"/"+nl+" lead10="+l10+"/"+nl
+                // fg-polish: the apparition follow-ups (drawn = direct + owed; cancelled covers armed and owed ones, HC_APPARITION_FOLLOWUP cancelled=).
+                +" followDrawn="+c.LeadFollows+" followOwed="+c.FollowOwed+" followAdopted="+c.FollowAdopted+" followFired="+c.LeadFollowFired+" followCancelled="+c.FollowCancelled
+                +" followCancelledPct="+(c.LeadFollows>0?(100f*c.FollowCancelled/c.LeadFollows).ToString("F0"):"n/a")
                 +" torchFails="+torchFails.Count+" torchDive="+tfDive+" torchHunt="+(torchFails.Count-tfDive)+" dives="+diveStarts+" torchBeforeContact15="+tfPre+"/"+torchFails.Count
                 +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
                 +" grabContinuity="+continuityPass+"/"+continuityGrabs+" grabContinuity20="+continuityPass20+"/"+continuity20+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0")
@@ -249,8 +252,10 @@ namespace HollowCurrent
                 " step_ok="+stepOk+" crawl_ok="+(crawl?crawlOk.ToString():"n/a")+" max_step="+maxStep.ToString("F2")+" max_dt="+maxDt.ToString("F3")+" pop="+pop+" min_eye_skull="+minEye.ToString("F2")+" line_blocked="+blocked+"/"+g.Count+
                 " pass="+pass+" legacy_pass="+(commitOk&&fallOk&&legacyOk)+" legacy_pop="+legacyPop+
                 " seat_cut="+commitCut+" central03="+(central03.HasValue?central03.Value+" x03="+x03.ToString("F2")+" y03="+y03.ToString("F2"):"n/a")+" variant="+variant+
-                " root_jump="+(commitHasPre?Vector3.Distance(commitPreRoot,grabRoot0).ToString("F2"):"n/a")+" root_slide="+rootSlide.ToString("F2")+" frame_cut="+frameCut+" root_ok="+(rootSlide<=.5f));
-            if(rootSlide<=.5f)rootSlideOk++;
+                " root_jump="+(commitHasPre?Vector3.Distance(commitPreRoot,grabRoot0).ToString("F2"):"n/a")+" root_slide="+rootSlide.ToString("F2")+" frame_cut="+frameCut+" root_ok="+(rootSlide<=.45f||commitCut)
+                +" leash_held="+(game&&game.Creature?game.Creature.GrabLeashHeld:0).ToString("F2"));
+            // fg-polish: the brief's bar, every grab path: root_slide <= 0.45 m, or a logged frame-0 seat cut (HC_GRAB_CUT).
+            if(rootSlide<=.45f||commitCut)rootSlideOk++;
         }
         bool grabShotBusy;
         IEnumerator GrabShot((string name,string measures) g)

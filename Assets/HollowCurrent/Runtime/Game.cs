@@ -137,7 +137,7 @@ namespace HollowCurrent
                 var history=RunHistory.Parse(fresh?"":PlayerPrefs.GetString("hc.castle.runs",""));
                 RunPlan=history.Next(UnityEngine.Random.value,UnityEngine.Random.value);Case.UseRunPlan(RunPlan);
                 if(!restoreCheckpoint&&!fresh){history.Push(RunPlan);PlayerPrefs.SetString("hc.castle.runs",history.Serialize());PlayerPrefs.Save();}
-                Debug.Log("HC_RUN_PLAN band="+RunPlan.Band+" firstHunt="+RunPlan.FirstHuntMin.ToString("F0")+"-"+RunPlan.FirstHuntMax.ToString("F0")+" burstStart="+RunPlan.BurstStart+" cold="+RunPlan.Cold+" coldCap="+Case.Rules.ColdFirstHuntCap.ToString("F0")+" history="+history.Serialize());
+                Debug.Log("HC_RUN_PLAN band="+RunPlan.Band+" firstHunt="+RunPlan.FirstHuntMin.ToString("F0")+"-"+RunPlan.FirstHuntMax.ToString("F0")+" burstStart="+RunPlan.BurstStart+" firstLead="+(Case.FirstLead.Length>0?Case.FirstLead:"none")+" cold="+RunPlan.Cold+" coldCap="+Case.Rules.ColdFirstHuntCap.ToString("F0")+" history="+history.Serialize());
             }
             // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
             // order Presence, CastleRun and Game run in this frame.

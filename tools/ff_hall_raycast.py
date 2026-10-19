@@ -49,7 +49,8 @@ def seg_d(p, a, b):
     ab = b - a; t = np.clip(np.dot(p - a, ab) / max(1e-4, ab @ ab), 0, 1); return np.linalg.norm(p - (a + ab * t))
 def near_line(p, r=1.2): p = np.array(p); return seg_d(p, S5E, S5S) < r or seg_d(p, S6E, S6S) < r
 EYE_OLD, TGT_OLD = (0.0, 2.3, 14.55), (0.0, 2.3, 27.0)
-EYE_FF, TGT_FF = (0.0, 2.95, 14.55), (0.0, 2.55, 27.0)           # CaptureMode S1 (wave FF)
+EYE_FF, TGT_FF = (0.0, 3.6, 16.0), (0.0, 1.27, 28.0)            # CaptureMode S1 (wave FG, hc/fg-polish: gallery height, 11 deg down the axis)
+# wave FF S1 was eye (0, 2.95, 14.55) target (0, 2.55, 27.0): pass it with --eye / --target to reproduce the FF masks
 eye = tuple(map(float, arg("--eye").split(","))) if arg("--eye") else (EYE_FF if FF else EYE_OLD)
 tgt = tuple(map(float, arg("--target").split(","))) if arg("--target") else (TGT_FF if FF else TGT_OLD)
 

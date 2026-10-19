@@ -129,6 +129,13 @@ namespace HollowCurrent
         // first-hunt deadline is further out pulls the deadline to ApparitionFollowMin..Max s after it (never before the plan's band minimum); with
         // FirstLeadRestChance apparitions are held for FirstLeadRestWindow s (not 11.5) before the planned first hunt, so its lead is longer.
         public float FirstLeadFollowChance, FirstLeadRestChance, FirstLeadRestWindow;
+        // Wave FG (FF proofs: 7 of 9 follows were cancelled because the apparition that drew them fell in the post-hunt grace or the long-quiet
+        // hold, so the 10-20 s band passed on one follow in five runs). A follow due with at most ApparitionFollowGraceCut s of grace left ends
+        // the grace and fires; one that would still meet more grace, or a dice hold (lull, the long quiet stretch), is owed instead: the director
+        // is asked for an apparition once the quiet ends within the follow's lead (Investigation.WantsApparitionNow), and the next visible
+        // apparition that can carry it adopts it (its threat 12-19.5 s later). An owed follow lapses ApparitionFollowOweSeconds s after it
+        // became placeable, and any threat, Containment or the end cancels it. 0 = the FF rule (cancelled when due).
+        public float ApparitionFollowGraceCut, ApparitionFollowOweSeconds;
         // Wave FF (r14 critic onboarding: the arrival letter, read at 4 s, opened the cold gate and a new player was hunted at 105 s with no
         // evidence): a cold run's first hunt waits for the first ledger page or evidence record (Investigation.FirstGateDocAt), not any
         // document; ColdFirstHuntCap still caps it. false = the FD rule (any document).
@@ -220,7 +227,7 @@ namespace HollowCurrent
             LieThreshold=0,DoorHeldThreshold=0,DeathPenalty=false,DeathDread=0,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
             ApparitionHuntGap=0,ShareFloor=0,ShareFloorAfter=0,ShareFloorPullMin=0,ShareFloorPullMax=0,ShareFloorMaxPulls=0,LateLowChanceScale=0,
-            ApparitionFollowChance=0,ApparitionFollowMin=0,ApparitionFollowMax=0,ApparitionRestChance=0,ApparitionRestMin=0,ApparitionRestMax=0,ColdGateNeedsLedger=false,FirstLeadFollowChance=0,FirstLeadRestChance=0,FirstLeadRestWindow=0,
+            ApparitionFollowChance=0,ApparitionFollowMin=0,ApparitionFollowMax=0,ApparitionRestChance=0,ApparitionRestMin=0,ApparitionRestMax=0,ColdGateNeedsLedger=false,FirstLeadFollowChance=0,FirstLeadRestChance=0,FirstLeadRestWindow=0,ApparitionFollowGraceCut=0,ApparitionFollowOweSeconds=0,
         };
 
         // The castle (FEAR_PLAN items 1-5, 7).
@@ -244,7 +251,7 @@ namespace HollowCurrent
             LieThreshold=70,DoorHeldThreshold=60,DeathPenalty=true,DeathDread=60,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
             ApparitionHuntGap=11.5f,ShareFloor=.15f,ShareFloorAfter=240,ShareFloorPullMin=20,ShareFloorPullMax=150,ShareFloorMaxPulls=1,LateLowChanceScale=3,
-            ApparitionFollowChance=.35f,ApparitionFollowMin=12,ApparitionFollowMax=19.5f,ApparitionRestChance=.3f,ApparitionRestMin=40,ApparitionRestMax=90,ColdGateNeedsLedger=true,FirstLeadFollowChance=.4f,FirstLeadRestChance=.4f,FirstLeadRestWindow=62,
+            ApparitionFollowChance=.35f,ApparitionFollowMin=12,ApparitionFollowMax=19.5f,ApparitionRestChance=.3f,ApparitionRestMin=40,ApparitionRestMax=90,ColdGateNeedsLedger=true,FirstLeadFollowChance=.4f,FirstLeadRestChance=.4f,FirstLeadRestWindow=62,ApparitionFollowGraceCut=20,ApparitionFollowOweSeconds=60,
         };
 
         // Field Settings "Long Night" dial on the castle (FEAR_PLAN item 6): no Warning

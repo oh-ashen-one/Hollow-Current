@@ -11,6 +11,9 @@ art_exterior}). Lantern state comes from the sibling player.log ("lantern on|off
 Geometry masks (tools/ff_art_masks/, made by tools/castle_fd_raycast.py --ff and tools/ff_hall_raycast.py, BVH proxies of the real layout at
 the capture eyes): the moat pixels of each exterior view; for S1 the lancet openings, the pier columns, the banquet table and chairs, and the
 floor and dais. A mask is only valid for its camera: the tool compares capture.json's eye/target with the mask's and says WARN when they differ.
+Wave FG (hc/fg-polish): the S1 masks are for the FG S1 camera (eye (0, 3.6, 16.0), target (0, 1.27, 28)), so FF-or-older S1 frames WARN;
+the S4 / battlement_out / bridge_left moat masks had the proxy's missing shore rocks and bank edge cut out by tools/fg_moat_masks.py (the
+FF "S4 glitter left" patch was 95 % foreground boulder, the battlement "seam" a lamp-lit water / dark rock edge inside the mask).
 
 Tests (luma = Rec.601 on 8-bit sRGB, as tools/exposure_report.py; Rec.709 where noted):
   S1 lancets        lancet openings whose visible (in-frame, unoccluded in the proxy) height is >= 150 px and whose glass shows in the frame

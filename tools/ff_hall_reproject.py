@@ -95,16 +95,16 @@ def main():
     for c, n in enumerate(nnames):
         key = next((k for k in force if n.startswith(k)), None)
         if key: est[valid & (nc == c)] = force[key]
-    # --moons: the two WindowMoon discs (fixed directions from the S1 eye through the north lancets, radius .5 m on the plane z 28.85),
+    # --moons: the two WindowMoon discs (fixed directions from CastleWorld.S1MoonEye through the north lancets, radius .5 m on the plane z 28.85),
     # painted where the pixel sees a sky panel (the night-sky card behind the openings)
     if "--moons" in sys.argv:
-        e1 = np.array([0, 2.95, 14.55]); eye = np.asarray(newz["eye"], float)
+        e1 = np.array([0, 3.6, 16.0]); eye = np.asarray(newz["eye"], float)      # CastleWorld.S1MoonEye (wave FG; FF was (0, 2.95, 14.55))
         D = P - eye[None]; D /= np.linalg.norm(D, axis=1, keepdims=True)
         tz = (28.85 - eye[2]) / np.maximum(D[:, 2], 1e-6); Q = eye[None] + D * tz[:, None]
         skyc = np.zeros(len(P), bool)
         for c, n in enumerate(nnames):
             if n.startswith("sky_"): skyc |= nc == c
-        for sx, col in ((-2.6, (226, 228, 236)), (2.6, (205, 52, 44))):
+        for sx, col in ((-2.45, (226, 228, 236)), (2.45, (205, 52, 44))):    # CastleWorld.MoonAimX (wave FG; FF aimed at x -+2.6)
             d = np.array([sx, 5.6, 28.0]) - e1; d /= np.linalg.norm(d)
             ctr = eye + d * ((28.85 - eye[2]) / d[2])
             disc = skyc & (np.linalg.norm(Q - ctr[None], axis=1) < .5)
