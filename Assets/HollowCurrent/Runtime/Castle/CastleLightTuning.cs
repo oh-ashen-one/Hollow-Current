@@ -44,7 +44,9 @@ namespace HollowCurrent
         // HallWindowMoonlight knob above measured no change in integ-fc): the other row of fc-light's fallback table, the castle bake ambient.
         // Linear multiplier on HouseLighting's castle trilight (x0.68 of hc/look3), applied in Tune(root) below, the castle-only bake hook, so
         // Bellwether's bake receipt is untouched. BAKED: re-bake the castle after editing it. 1 = wave FD.
-        public float BakeAmbientScale = .5f;
+        // fe r1 measured x0.5 against x1: every hall, chapel and crypt view moved 0.0-0.2 points (lantern off and on). The castle interior is
+        // enclosed, so the bake's sky ambient barely reaches it; the knob is back at 1 (wave FD lightmaps) and stays only as the documented row.
+        public float BakeAmbientScale = 1f;
         public float MoonDirectional = .10f;         // was .16
         public Color SecondMoonColor = new Color(.62f, .24f, .34f);
         public float SecondMoonDirectional = .035f;  // was .05
@@ -105,6 +107,15 @@ namespace HollowCurrent
         public Vector3 BalconyFillPositionB = new Vector3(-5.2f, 4.8f, 22.5f);   // second candle pool by the rose-window ledge
 
         [Header("Exterior facade fill (on only while the camera is outside the gate)")]
+        // fe-exterior (S4 frame time mean 16.7 / p99 23.1 ms against p99 <= 16.7): the facade, keep and bridge fills are ForcePixel lights with
+        // ranges 8-50 m. From outside (S4 on the far landing, battlement_out) their volumes cover the whole castle, so every interior renderer in
+        // the view frustum (walls, props and candles behind the solid curtain wall: hidden, but still drawn) took one forward-add pass per fill.
+        // fe r1 -hc-exterior-profile at the S4 eye: 10,616 batches; with these three fills culled 7,900, render thread 11.6 -> 8.7 ms, every
+        // frame 11.11 ms (p99 23.0 -> 11.1). Now interior render-only renderers sit on InteriorLayer, which the outside fills do not light.
+        // Renderers within OuterFaceBand of the shell's outer faces, everything outside the shell, and any renderer that carries a collider
+        // keep their layer (physics untouched). Every camera and every other light still renders and lights InteriorLayer.
+        public const int InteriorLayer = 27;
+        public float OuterFaceBand = 1.0f;
         public Color FacadeColor = new Color(.40f, .55f, .88f);
         public float FacadeIntensity = 1.05f;
         public float FacadeRange = 34f;
@@ -150,6 +161,7 @@ namespace HollowCurrent
             Apply();
             yield return new WaitForSeconds(6f);
             Apply();
+            if (fillsBuilt && outsideLights.Count > 0) TagInterior("later");   // props CastleRun placed after Awake
         }
 
         void Update()
@@ -212,7 +224,10 @@ namespace HollowCurrent
                     RenderSettings.ambientEquatorColor = Scale(RenderSettings.ambientEquatorColor);
                     RenderSettings.ambientGroundColor = Scale(RenderSettings.ambientGroundColor);
                     Debug.Log("HC_CASTLE_BAKE_AMBIENT scale=" + k.ToString("F2") + " sky=" + RenderSettings.ambientSkyColor + " equator=" + RenderSettings.ambientEquatorColor + " ground=" + RenderSettings.ambientGroundColor);
-                    CastleExteriorCost.BakeOcclusion(root);
+                    // fe r1 baked Unity occlusion data here: S4 drew 10,707 batches without it and 10,616 with it (no effect: the door leaves and
+                    // the gate are portals and the window openings leak), so the castle bakes none (CastleExteriorCost.BakeOcclusion is kept for a
+                    // later attempt with Occlusion Areas; the prepare's new scene carries no occlusion data).
+                    Debug.Log("HC_OCCLUSION baked=False (fe r2: no measured effect in r1)");
                 }
 #endif
                 return n;
@@ -288,7 +303,29 @@ namespace HollowCurrent
             var facade = Spot(group, "Facade moon fill", FacadePosition, FacadeTarget, FacadeColor, FacadeIntensity, FacadeRange, FacadeAngle);
             var keep = Spot(group, "Keep moon fill", KeepPosition, KeepTarget, KeepColor, KeepIntensity, KeepRange, KeepAngle);
             var bridge = Fill(group, "Bridge moon fill", BridgeFillPosition, FacadeColor, BridgeFillIntensity, 8f);
-            foreach (var l in new[] { facade, keep, bridge }) { l.enabled = false; outsideLights.Add(l); }
+            foreach (var l in new[] { facade, keep, bridge }) { l.enabled = false; l.cullingMask &= ~(1 << InteriorLayer); outsideLights.Add(l); }
+            TagInterior("build");
+        }
+
+        // Interior render-only renderers -> InteriorLayer (see the facade header). Idempotent: only Default-layer renderers are moved.
+        int TagInterior(string stage)
+        {
+            if (!Root) return 0;
+            int moved = 0, face = 0, collider = 0;
+            var min = CastleExteriorCost.ShellMin; var max = CastleExteriorCost.ShellMax; float band = OuterFaceBand;
+            foreach (var r in Root.GetComponentsInChildren<Renderer>(true))
+            {
+                if (!r || r.gameObject.layer != 0 || r is ParticleSystemRenderer || r is SkinnedMeshRenderer || r.GetComponentInParent<Animator>()) continue;   // characters keep their own layer logic (Presence)
+                if (CastleExteriorCost.Group(r, Root) != "interior") continue;
+                if (r.GetComponent<Collider>()) { collider++; continue; }
+                var b = r.bounds;
+                Vector3 lo = Root.InverseTransformPoint(b.min), hi = Root.InverseTransformPoint(b.max);
+                var bmin = Vector3.Min(lo, hi); var bmax = Vector3.Max(lo, hi);
+                if (bmin.x < min.x + band || bmax.x > max.x - band || bmin.z < min.z + band || bmax.z > max.z - band) { face++; continue; }
+                r.gameObject.layer = InteriorLayer; moved++;
+            }
+            Debug.Log("HC_EXTERIOR_FILL_MASK stage=" + stage + " interior_layer=" + InteriorLayer + " moved=" + moved + " outer_face_kept=" + face + " collider_kept=" + collider + " (outside fills do not light InteriorLayer)");
+            return moved;
         }
 
         static Light Spot(Transform parent, string name, Vector3 pos, Vector3 target, Color color, float intensity, float range, float angle)

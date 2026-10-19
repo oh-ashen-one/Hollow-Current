@@ -18,8 +18,10 @@
 //   * a second glade for the blood moon at its own azimuth (+42 deg; red-gold, hot core), under the same art-directed elevation and the same
 //     behind-the-camera rule, so every view over the lake has a glade on each side of the axis instead of one patch;
 //   * the pale glade is a little wider (_GladeRough .20 -> .26) and brighter, its core reads as a broken column instead of a dot field;
-//   * glitter: one hashed sparkle field (10 cm world cells re-rolled 4 times a second, a fixed share of them lit) scattered through a halo twice
-//     the width of each glade and along each lamp column, so the reflections break into hot points the way rippled water throws a light;
+//   * glitter: one hashed sparkle field (world cells re-rolled 4 times a second, a share of them lit, each a small round point at a random spot
+//     in its cell, only on chop facets that face the half-vector) scattered through a halo round each glade and along each lamp column, so the
+//     reflections break into hot points the way rippled water throws a light (fe r1's square 10 cm cells read as confetti; r2 makes them points);
+//   * the smooth glade lobe is weaker (_GladeBody .8 -> .55) so the water between the glints stays blood-red;
 //   * the castle-end lamps throw twice the glint (CastleExterior.Lamps) and every lamp column sparkles.
 // Cost: still one opaque pass, no texture, no render target: two extra half-vector lobes and one hash per pixel.
 // World space = castle-local space (the castle root sits at the origin). Constants are linear values of the castle_sky.py display colours.
@@ -41,8 +43,12 @@ Shader "HollowCurrent/CastleWater"
         _GladeColor ("Moon glade colour (linear)", Color) = (0.62, 0.52, 0.50, 1)
         _RedGlade ("Blood moon glade strength", Range(0, 4)) = 0.9
         _RedGladeColor ("Blood moon glade colour (linear)", Color) = (1.0, 0.30, 0.20, 1)
-        _Glitter ("Glitter strength (hot points in the glade halos and lamp columns)", Range(0, 6)) = 1.6
-        _GlitterDensity ("Glitter share of cells lit", Range(0, 0.5)) = 0.16
+        _GladeBody ("Smooth glade lobe weight", Range(0, 2)) = 0.55
+        _Glitter ("Glitter strength (hot points in the glade halos and lamp columns)", Range(0, 8)) = 2.6
+        _GlitterDensity ("Glitter share of cells lit", Range(0, 0.6)) = 0.18
+        _GlitterCell ("Glitter cells per metre", Range(2, 40)) = 12
+        _GlitterHalo ("Glitter halo width (x glade roughness)", Range(1, 3)) = 1.6
+        _GlitterFacet ("Glitter facet power (chop normal . half-vector)", Range(0, 64)) = 6
         _LampColor ("Lamp glint colour (linear)", Color) = (1.0, 0.36, 0.08, 1)
         _Lamp0 ("Lamp 0 (xyz pos, w intensity)", Vector) = (0, 0, 0, 0)
         _Lamp1 ("Lamp 1", Vector) = (0, 0, 0, 0)
@@ -64,6 +70,7 @@ Shader "HollowCurrent/CastleWater"
 
             float4 _Deep, _CastleTint, _RockTint, _BloodTint, _Ridge, _GladeColor, _LampColor, _Lamp0, _Lamp1, _Lamp2, _Lamp3, _RedGladeColor;
             float _Reflect, _Ripple, _Time2, _MoonKeep, _Glade, _GladeElev, _GladeRough, _FogKeep, _RedGlade, _Glitter, _GlitterDensity;
+            float _GladeBody, _GlitterCell, _GlitterHalo, _GlitterFacet;
             struct appdata { float4 vertex : POSITION; };
             struct v2f { float4 pos : SV_POSITION; float3 wpos : TEXCOORD0; UNITY_FOG_COORDS(1) };
             v2f vert (appdata v)
@@ -138,7 +145,7 @@ Shader "HollowCurrent/CastleWater"
                 float c = max(H.y, 1e-3), t2 = (1.0 - c * c) / (c * c);
                 float soft = exp(-t2 / (0.11 * 0.11));
                 float sharp = pow(saturate(dot(Nr, H)), 400.0) * exp(-t2 / (0.30 * 0.30));   // glints only along the reflection column
-                float glitter = spark * exp(-t2 / (0.24 * 0.24)) * _Glitter;
+                float glitter = spark * exp(-t2 / (0.24 * 0.24)) * pow(saturate(dot(Nr, H)), _GlitterFacet) * _Glitter;
                 return L.w * (soft * 0.55 + sharp * 3.0 + glitter) * saturate(30.0 / (dist + 6.0));
             }
 
@@ -153,7 +160,7 @@ Shader "HollowCurrent/CastleWater"
                 return m2;
             }
 
-            // one art-directed glade: x = soft column + rippled glints (wave FD's terms), y = glitter weight in a halo twice as wide
+            // one art-directed glade: x = soft column + rippled glints (wave FD's terms), y = glitter weight in a wider halo, on facing facets
             float2 Glade (float2 m2, float3 V, float3 Nr, float spark, float sparkCell)
             {
                 float ce = cos(radians(_GladeElev)), se = sin(radians(_GladeElev));
@@ -162,10 +169,11 @@ Shader "HollowCurrent/CastleWater"
                 float hc = max(Hg.y, 1e-3), ht2 = (1.0 - hc * hc) / (hc * hc);
                 float r2 = _GladeRough * _GladeRough;
                 float lobe = exp(-ht2 / r2);
-                float halo = exp(-ht2 / (r2 * 4.0));
-                float glint = pow(saturate(dot(Nr, Hg)), 160.0);
-                float body = lobe * 0.8 + glint * lobe * 2.2 * (0.35 + spark) + glint * 0.2 * spark * saturate(lobe * 8.0);
-                return float2(body, sparkCell * halo);
+                float halo = exp(-ht2 / (r2 * _GlitterHalo * _GlitterHalo));
+                float ndh = saturate(dot(Nr, Hg));
+                float glint = pow(ndh, 160.0);
+                float body = lobe * _GladeBody + glint * lobe * 2.2 * (0.35 + spark) + glint * 0.2 * spark * saturate(lobe * 8.0);
+                return float2(body, sparkCell * halo * pow(ndh, _GlitterFacet));
             }
 
             half4 frag (v2f i) : SV_Target
@@ -208,10 +216,15 @@ Shader "HollowCurrent/CastleWater"
                 // break the regular chop pattern: only some 12 cm cells sparkle at a time (wave FD)
                 float2 cell = floor(P.xz * 8.0);
                 float spark = step(0.55, frac(sin(dot(cell, float2(12.9898, 78.233)) + floor(t * 3.0) * 1.7) * 43758.5453));
-                // wave FE glitter: 10 cm cells, a share _GlitterDensity of them lit at any moment, re-rolled four times a second
-                float2 gcell = floor(P.xz * 10.0 + 0.37);
-                float gh = frac(sin(dot(gcell, float2(39.3468, 11.1353)) + floor(t * 4.0) * 2.3) * 24634.6345);
-                float sparkCell = step(1.0 - _GlitterDensity, gh);
+                // wave FE glitter: cells of 1/_GlitterCell m, a share _GlitterDensity of them lit at any moment, re-rolled four times a second;
+                // a lit cell is a small round point at a random spot inside it
+                float2 gp = P.xz * _GlitterCell + 0.37;
+                float2 gcell = floor(gp);
+                float ts = floor(t * 4.0);
+                float gh = frac(sin(dot(gcell, float2(39.3468, 11.1353)) + ts * 2.3) * 24634.6345);
+                float2 gofs = frac(sin(float2(dot(gcell, float2(73.156, 52.235)), dot(gcell, float2(17.719, 91.417))) + ts * 1.3) * 43758.5453);
+                float dotMask = 1.0 - smoothstep(0.17, 0.30, length(gp - (gcell + 0.2 + 0.6 * gofs)));
+                float sparkCell = step(1.0 - _GlitterDensity, gh) * dotMask;
                 float2 pale = Glade(GladeAzimuth(normalize(MOON_PALE.xz), f2), V, Nr, spark, sparkCell);
                 float2 red = Glade(GladeAzimuth(normalize(MOON_RED.xz), f2), V, Nr, spark, sparkCell);
                 col += _GladeColor.rgb * _Glade * (pale.x + pale.y * _Glitter);
