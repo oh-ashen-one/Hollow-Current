@@ -235,6 +235,7 @@ namespace HollowCurrent
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0||hallLeaves.Count>0?3f:1.5f);
                 foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer);
                 if(set=="kit")KitLog(v.id);
+                if(set=="exterior"&&(v.id=="gate_out_S6"||v.id=="battlement_out"))yield return Measure("art_exterior_"+v.id,3);   // wave FD: frame time looking over the lake
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);
                 foreach(var d in gateLeaves)d.Open=false;
@@ -317,9 +318,9 @@ namespace HollowCurrent
         {
             if(samples.Count==0)return;
             samples.Sort();float sum=0;foreach(var s in samples)sum+=s;
-            float mean=sum/samples.Count,p95=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.95f))],max=samples[samples.Count-1];
-            entries.Add("{\"frametime\":\""+id+"\",\"frames\":"+samples.Count+",\"mean_ms\":"+mean.ToString("F2")+",\"p95_ms\":"+p95.ToString("F2")+",\"max_ms\":"+max.ToString("F2")+"}");
-            Log("FRAMETIME "+id+" frames="+samples.Count+" mean="+mean.ToString("F2")+"ms p95="+p95.ToString("F2")+"ms max="+max.ToString("F2")+"ms");
+            float mean=sum/samples.Count,p95=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.95f))],p99=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.99f))],max=samples[samples.Count-1];
+            entries.Add("{\"frametime\":\""+id+"\",\"frames\":"+samples.Count+",\"mean_ms\":"+mean.ToString("F2")+",\"p95_ms\":"+p95.ToString("F2")+",\"p99_ms\":"+p99.ToString("F2")+",\"max_ms\":"+max.ToString("F2")+"}");
+            Log("FRAMETIME "+id+" frames="+samples.Count+" mean="+mean.ToString("F2")+"ms p95="+p95.ToString("F2")+"ms p99="+p99.ToString("F2")+"ms max="+max.ToString("F2")+"ms");
         }
         IEnumerator Run()
         {
@@ -396,7 +397,8 @@ namespace HollowCurrent
                 moons+=" "+m.Item1+"_moon inFrame="+inFrame+" occluded="+blocked+" viewport=("+vp.x.ToString("F2")+","+vp.y.ToString("F2")+")";
             }
             Log("S4"+moons);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);SetPiece.Report(game.Player.View,"S4");
+            yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S4_exterior_sky",3);   // wave FD: the exterior's frame time (lake, braziers)
+            yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);SetPiece.Report(game.Player.View,"S4");
             game.Player.View.fieldOfView=fov;
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5 (round 5): Count Claude crouched on the rose-window ledge (Presence.StageOnRoseLedge,

@@ -9,7 +9,7 @@
 //     haze, so the far shore and the mountains show in the water as a darker band under a brighter sky reflection;
 //   * art-directed moon glade: a glitter column at the pale moon's azimuth with an effective elevation of _GladeElev degrees (a mirror image of
 //     the real 55 degree moon would only appear 55 degrees below the horizon, outside every eye-level frame). When the moon is behind the camera
-//     (gate_out_S6 looks south, the moons are in the north sky) the glade is placed 17 degrees off the view axis on the moon's side. Documented cheat;
+//     (gate_out_S6 looks south, the moons are in the north sky) the glade is placed 21 degrees off the view axis on the moon's side. Documented cheat;
 //   * lamp glints: up to four warm point sources (_Lamp0.._Lamp3: xyz castle-local position, w intensity; the far-bank braziers and the causeway
 //     lamp posts, set by CastleExterior) give the elongated fire reflections of the reference;
 //   * the scene's exponential fog is applied at _FogKeep strength only, so the water does not dissolve into the grey mist.
@@ -165,10 +165,10 @@ Shader "HollowCurrent/CastleWater"
                 float2 f2 = normalize(fwd.xz + float2(1e-5, 0));
                 float2 m2 = normalize(MOON_PALE.xz);
                 float side = dot(m2, f2);
-                if (side < 0)   // moon behind the camera: put the glade 17 degrees off the view axis, on the moon's side
+                if (side < 0)   // moon behind the camera: put the glade 21 degrees off the view axis, on the moon's side
                 {
                     float2 r2 = float2(f2.y, -f2.x);
-                    m2 = normalize(f2 + 0.3 * (dot(m2, r2) >= 0 ? r2 : -r2));
+                    m2 = normalize(f2 + 0.38 * (dot(m2, r2) >= 0 ? r2 : -r2));
                 }
                 float ce = cos(radians(_GladeElev)), se = sin(radians(_GladeElev));
                 float3 Lg = float3(m2.x * ce, se, m2.y * ce);
@@ -176,7 +176,10 @@ Shader "HollowCurrent/CastleWater"
                 float hc = max(Hg.y, 1e-3), ht2 = (1.0 - hc * hc) / (hc * hc);
                 float lobe = exp(-ht2 / (_GladeRough * _GladeRough));
                 float glint = pow(saturate(dot(Nr, Hg)), 160.0);
-                col += _GladeColor.rgb * _Glade * (lobe * 0.45 + glint * lobe * 3.0 + glint * 0.25 * saturate(lobe * 8.0));
+                // break the regular chop pattern: only some 12 cm cells sparkle at a time
+                float2 cell = floor(P.xz * 8.0);
+                float spark = step(0.55, frac(sin(dot(cell, float2(12.9898, 78.233)) + floor(t * 3.0) * 1.7) * 43758.5453));
+                col += _GladeColor.rgb * _Glade * (lobe * 0.8 + glint * lobe * 2.2 * (0.35 + spark) + glint * 0.2 * spark * saturate(lobe * 8.0));
 
                 float3 Nl = Nr;
                 float lamps = Lamp(_Lamp0, P, V, Nl) + Lamp(_Lamp1, P, V, Nl) + Lamp(_Lamp2, P, V, Nl) + Lamp(_Lamp3, P, V, Nl);

@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 ARGV = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = Path(ARGV[0] if ARGV else "/tmp/fdproof"); OUT.mkdir(parents=True, exist_ok=True)
 SCALE = float(ARGV[ARGV.index("--scale") + 1]) if "--scale" in ARGV else .25
+ONLY = ARGV[ARGV.index("--views") + 1].split(",") if "--views" in ARGV else None
 sys.argv = [sys.argv[0], "--", "--no-export"]          # castle_exterior reads its own ARGS at import
 import castle_exterior as ext
 
@@ -148,6 +149,7 @@ def main():
     tree, mat_of, names = joined(objs)
     (OUT / "materials.json").write_text(json.dumps(names))
     for name, eye, tgt, fov, (W, H) in VIEWS:
+        if ONLY and name not in ONLY: continue
         w, h = int(W * SCALE), int(H * SCALE)
         e = np.array(eye, float)
         if tgt[0] == "pitch":

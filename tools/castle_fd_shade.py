@@ -98,13 +98,15 @@ def water(P, eye, fwd, T=3.0):
     m2 = np.array([M_PALE[0], M_PALE[2]]); m2 /= np.linalg.norm(m2)
     side = m2 @ f2
     if side < 0:
-        r2 = np.array([f2[1], -f2[0]]); m2 = f2 + .3 * (r2 if m2 @ r2 >= 0 else -r2); m2 /= np.linalg.norm(m2)
+        r2 = np.array([f2[1], -f2[0]]); m2 = f2 + .38 * (r2 if m2 @ r2 >= 0 else -r2); m2 /= np.linalg.norm(m2)
     ce, se = math.cos(math.radians(GLADE_ELEV)), math.sin(math.radians(GLADE_ELEV))
     Lg = np.array([m2[0] * ce, se, m2[1] * ce])
     Hg = norm(V + Lg[None]); hc = np.maximum(Hg[:, 1], 1e-3); ht2 = (1 - hc * hc) / (hc * hc)
     lobe = np.exp(-ht2 / GLADE_ROUGH ** 2)
     glint = np.clip((Nr * Hg).sum(1), 0, 1) ** 160
-    col += GLADE_COL[None] * GLADE * (lobe * .45 + glint * lobe * 3.0 + glint * .25 * np.clip(lobe * 8, 0, 1))[:, None]
+    cell = np.floor(P[:, [0, 2]] * 8.0)
+    spark = (np.modf(np.abs(np.sin(cell @ np.array([12.9898, 78.233]) + np.floor(T * 3.0) * 1.7) * 43758.5453))[0] >= .55).astype(float)
+    col += GLADE_COL[None] * GLADE * (lobe * .8 + glint * lobe * 2.2 * (.35 + spark) + glint * .2 * spark * np.clip(lobe * 8, 0, 1))[:, None]
     lamps = np.zeros(len(P))
     for (lx, ly, lz, li) in LAMPS:
         dd = np.array([lx, ly, lz])[None] - P; dist = np.linalg.norm(dd, axis=1); dd /= dist[:, None]
@@ -163,6 +165,8 @@ for f in sorted(RC.glob("*.npz")):
         luma = .2126 * u8[..., 0] + .7152 * u8[..., 1] + .0722 * u8[..., 2]
         m.update(moat_px=int(below.sum() * sc), moat_RG=round(R.mean() / max(G.mean(), 1e-3), 2), moat_mean=[round(float(u8[below][:, i].mean()), 1) for i in range(3)],
                  glade_px2=int(((luma >= 150) & below).sum() * sc))
+    if below.any():                                            # the water mask (below the horizon) for tools/fd_art_moat_test.py
+        Image.fromarray((below * 255).astype(np.uint8)).save(OUT / (name + "_water_mask.png"))
     farbank = solid & (pos[..., 2] < -16)
     m["far_bank_px"] = int(farbank.sum() * sc); m["far_bank_lit_px"] = int((farbank & (brz * 255 * .2 >= 8)).sum() * sc)
     metrics[name] = m
