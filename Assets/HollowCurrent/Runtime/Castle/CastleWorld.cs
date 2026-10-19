@@ -580,6 +580,7 @@ namespace HollowCurrent
         }
 
         // ---- openings -----------------------------------------------------------------------------------
+        public const float OpeningDepth = 1.1f;
         void BuildDoor(CastleDoorDef d)
         {
             if (d.Kind == CastleDoorKind.Gate) { BuildGate(); return; }
@@ -618,6 +619,21 @@ namespace HollowCurrent
                 var it = panel.AddComponent<Interactable>(); it.Kind = InteractKind.Door; it.Label = d.Name;
                 var door = hinge.AddComponent<Door>(); door.Closed = hinge.transform.localRotation; it.Door = door;
                 doors.Add(door); if (d.IsService) serviceDoors.Add(door);
+                // fg-integ (r15 critic 8f, "doors cannot be closed with E once fully swung"): the leaf's own panel swings with it and, flat on
+                // the wall at 155 deg, leaves the interaction ray. This leaf's half of the doorway gets a static door volume through the whole
+                // wall (OpeningDepth covers the 0.6 / 0.9 m walls wherever World puts the hinge): a trigger on layer 2 that only
+                // Investigator.FocusRay's fallback sees, so E on the opening toggles this leaf from either side. No renderer, no Door parent
+                // (the nav bake skips triggers anyway). The portrait door keeps its secret: no opening volume.
+                if (!portrait)
+                {
+                    var rot = Quaternion.Euler(0, yaw, 0);
+                    var opening = new GameObject(label + " / opening") { layer = 2 };
+                    opening.transform.SetParent(root, false);
+                    opening.transform.localPosition = hp + rot * new Vector3(lw * .5f, h * .5f, 0); opening.transform.localRotation = rot;
+                    var box = opening.AddComponent<BoxCollider>(); box.isTrigger = true;
+                    box.size = new Vector3(Mathf.Max(.3f, lw - .06f), Mathf.Max(.3f, h - .06f), OpeningDepth);
+                    var oi = opening.AddComponent<Interactable>(); oi.Kind = InteractKind.Door; oi.Label = d.Name; oi.Door = door;
+                }
             }
         }
 

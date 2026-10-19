@@ -449,7 +449,7 @@ def settings(L, bk, page):
     if page == 0:
         scr.tracked("p0-track", t["p0-track"], "CONTROLS & FIELD EQUIPMENT", 13, OXBLOOD)
         slider("p0-slider0", 244, "Look sensitivity", "2.10", "[1 / 2] Adjust mouse / right-stick sensitivity", .48)
-        slider("p0-slider1", 356, "Flashlight level", "100%", "[3 / 4] Adjust light output", .27)
+        slider("p0-slider1", 356, "Lantern level", "100%", "[3 / 4] Adjust light output", .27)
         slider("p0-slider2", 468, "Master volume", "65%", "[5 / 6] Adjust volume", .60)
         scr.rect(t["p0-rule"], LINE)
         toggle("p0-toggle0", 597, "Invert look Y", False, "[I]")

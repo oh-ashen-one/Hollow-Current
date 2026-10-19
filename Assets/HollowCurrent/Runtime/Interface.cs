@@ -343,7 +343,8 @@ namespace HollowCurrent
             Label(82,520,540,50,Game.LoadingProgress<.01f?"Preparing the case files…":"Restoring the house and field equipment…");
             Rule(82,604,510);Panel(new Rect(82,603,510*Mathf.Clamp01(Game.LoadingProgress),3),copper);
             Label(82,631,500,35,Game.LoadingProgress<.01f?"PLEASE WAIT":"LOADING  "+Mathf.RoundToInt(Game.LoadingProgress*100)+"%",kicker);
-            Footer("Listen before moving. Footsteps and radio calls can give your position away.");
+            // fg-integ (r15 critic: "Flashlight" and "radio" leak into the castle UI): castle wording here, Bellwether unchanged.
+            Footer(CastleScreen?"Listen before moving. Footsteps and the resonance box can give your position away.":"Listen before moving. Footsteps and radio calls can give your position away.");
         }
         void Metric(float x,float y,string value,string label)
         {Label(x,y,180,55,value,number);Track(x,y+65,label,muted);}
@@ -425,12 +426,12 @@ namespace HollowCurrent
             }
             Track(sx,202,"CONTROLS & FIELD EQUIPMENT");
             Game.Player.Sensitivity=SliderRow(sx,244,sw,"Look sensitivity",Game.Player.Sensitivity,.3f,4,Game.Player.Sensitivity.ToString("F2"),"[1 / 2] Adjust mouse / right-stick sensitivity");
-            Game.Player.Brightness=SliderRow(sx,356,sw,"Flashlight level",Game.Player.Brightness,.7f,1.8f,Mathf.RoundToInt(Game.Player.Brightness*100)+"%","[3 / 4] Adjust light output");
+            Game.Player.Brightness=SliderRow(sx,356,sw,CastleScreen?"Lantern level":"Flashlight level",Game.Player.Brightness,.7f,1.8f,Mathf.RoundToInt(Game.Player.Brightness*100)+"%","[3 / 4] Adjust light output");
             Game.Volume=SliderRow(sx,468,sw,"Master volume",Game.Volume,0,1,Mathf.RoundToInt(Game.Volume*100)+"%","[5 / 6] Adjust volume");
             Rule(sx,579,sw);Game.Player.InvertY=ToggleRow(sx,597,cc?sp.ToggleW(597):sw,"Invert look Y",Game.Player.InvertY,"[I]");
             Game.Subtitles=ToggleRow(sx,650,cc?sp.ToggleW(650):sw,"Subtitles",Game.Subtitles,"[T]");
             Game.HelpHints=ToggleRow(sx,703,cc?sp.ToggleW(703):sw,"Detailed field help",Game.HelpHints,"[H]");
-            castleCards=false;Footer("ESC return   ·   Shift sprint   ·   Ctrl crouch   ·   E interact   ·   F flashlight   ·   R radio");
+            castleCards=false;Footer(CastleScreen?"ESC return   ·   Shift sprint   ·   Ctrl crouch   ·   E interact   ·   F lantern   ·   R resonance box":"ESC return   ·   Shift sprint   ·   Ctrl crouch   ·   E interact   ·   F flashlight   ·   R radio");
         }
         DocLayout.SettingsSpec settingsSpec;
         // FEAR_PLAN items 6 and 19: the Long Night dial and the opt-in microphone (castle only).
@@ -698,7 +699,7 @@ namespace HollowCurrent
             Label(1290,28,268,28,Location(),rightBody);Panel(new Rect(1355,62,200,1),copper);Label(1290,73,268,24,recordLabel,rightBody);
             Panel(new Rect(798,448,4,4),new Color(.8f,.8f,.7f,.7f));var p=Game.Player;
             string use=PadInput.Active?(PadInput.Current.PlayStation?"[×] ":"[A] "):"[E] ",torch=PadInput.Active?(PadInput.Current.PlayStation?"[□] ":"[X] "):"[F] ";
-            string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+"TORCH OFF":"Stay quiet"):p.Focus!=null?use+p.Focus.Prompt+(p.Focus.Kind==InteractKind.Anchor?" · hold":""):"";
+            string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+(Game.Map==MapId.Castle?"LANTERN OFF":"TORCH OFF"):"Stay quiet"):p.Focus!=null?use+p.Focus.Prompt+(p.Focus.Kind==InteractKind.Anchor?" · hold":""):"";
             Label(405,510,790,62,interaction,center);if(p.Capture>0)Panel(new Rect(630,568,340*Mathf.Clamp01(p.Capture),3),copper);
             if(Game.Castle&&Game.Castle.Forge.CraftProgress01>0&&!Game.Castle.Forge.HasSword){Label(545,583,510,30,"FORGING "+Mathf.RoundToInt(Game.Castle.Forge.CraftProgress01*100)+"%",center);Panel(new Rect(615,622,370*Game.Castle.Forge.CraftProgress01,3),copper);}
             if(Game.Castle&&(Game.Castle.Forge.RelicCount>0||Game.Castle.Forge.HasSword))Label(1290,100,268,24,Game.Castle.Forge.HasSword?"MOONSTONE SWORD · "+Game.Castle.Fight.Hits+" / 3":"RELICS "+Game.Castle.Forge.RelicCount+" / 3",rightBody);
@@ -718,8 +719,9 @@ namespace HollowCurrent
             Label(42,824,290,48,Game.Scares.Interference?"SIGNAL UNSTABLE":p.Capture>0?"RECORDING… HOLD STEADY":p.Tool==1?p.InductionDisplay+" / 5.0":"FIELD KIT CONNECTED",hudTiny);
             bool ps=PadInput.Active&&PadInput.Current.PlayStation;
             KeyPill(1315,800,PadInput.Active?(ps?"R2":"RT"):"LMB",p.Tool==3?"ASK / RECORD":"HOLD TO RECORD");
-            KeyPill(1315,840,PadInput.Active?(ps?"□":"X"):"F","FLASHLIGHT");
-            if(Game.HelpHints)Label(365,869,855,25,PadInput.Active?(ps?"× INTERACT   △ JOURNAL   L2 RADIO   L3 SPRINT   ○ CROUCH":"A INTERACT   Y JOURNAL   LT RADIO   LS SPRINT   B CROUCH"):"E INTERACT   J JOURNAL   R RADIO   SHIFT SPRINT   CTRL CROUCH",hudTiny);
+            bool castleHud=Game.Map==MapId.Castle;string radioWord=castleHud?"RESONANCE BOX":"RADIO";
+            KeyPill(1315,840,PadInput.Active?(ps?"□":"X"):"F",castleHud?"LANTERN":"FLASHLIGHT");
+            if(Game.HelpHints)Label(365,869,855,25,PadInput.Active?(ps?"× INTERACT   △ JOURNAL   L2 "+radioWord+"   L3 SPRINT   ○ CROUCH":"A INTERACT   Y JOURNAL   LT "+radioWord+"   LS SPRINT   B CROUCH"):"E INTERACT   J JOURNAL   R "+radioWord+"   SHIFT SPRINT   CTRL CROUCH",hudTiny);
             if(p.Stamina<.99f){Panel(new Rect(44,878,220,2),line);Panel(new Rect(44,878,220*p.Stamina,2),copper);}
             // Castle: a non-numeric cue only (critic r10 #14); Bellwether keeps its countdown.
             if(Game.Case.Phase==Phase.Warning)Label(540,106,520,44,Game.Map==MapId.Castle?"SIGNAL COLLAPSING":"SIGNAL COLLAPSE  "+Mathf.Max(0,Mathf.CeilToInt(9-Game.Case.PhaseTime)),center);

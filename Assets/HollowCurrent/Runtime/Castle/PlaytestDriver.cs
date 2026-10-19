@@ -1020,7 +1020,7 @@ namespace HollowCurrent
         static readonly string[] ProofDoors={"Hall great doors","Dining hall door","Vestibule hall door"};
         IEnumerator DoorProof()
         {
-            var c=game.Case;int toward=0,toggles=0,unfocused=0;
+            var c=game.Case;int toward=0,toggles=0,unfocused=0,closesE=0,closeFail=0;
             // Driver choice (logged): the Late first-hunt band (160-200 s), so the ~70 s proof runs before the first hunt and the Count does not
             // open these doors himself mid-proof.
             c.UseRunPlan(new RunPlan{Band=FirstHuntBand.Late});Debug.Log("HC_DOORPROOF plan=Late (driver) t="+c.Elapsed.ToString("F1"));
@@ -1094,14 +1094,26 @@ namespace HollowCurrent
                     +" leafSide="+leafSide+" playerSide="+playerSide+" focus="+(autoOpened?"auto":focused.ToString())+" by="+door.LastOpener+" leafRot="+door.transform.localEulerAngles.y.ToString("F0")+" player="+player.ToString("F1")+" t="+c.Elapsed.ToString("F0"));
                 yield return Shot("doorproof_"+tag+"_open05");
                 yield return Wait(1f);
-                // Close it again with E, like a player (the ray may now miss the swung leaf: then Toggle, logged).
-                if(game.Player.Focus==panel)yield return Press(i=>i.Use=true);else{door.Toggle();Debug.Log("HC_DOORPROOF close=direct name=\""+door.name+"\"");}
-                yield return Wait(1.2f);
+                // Close it again with E, like a player (r15 critic: 8/8 closes needed close=direct). fg-integ: she looks at the middle of this
+                // leaf's half of the doorway (where the closed leaf stood), not at the swung leaf, and presses E through the interaction ray:
+                // the leaf panel or the opening volume (CastleWorld, Investigator.FocusRay) must focus THIS door. Door logs
+                // HC_DOOR_STATE ... state=closed closed_by=E; a press that does not close it is a close failure (then Toggle, close=direct).
+                var hingeRot=(door.transform.parent?door.transform.parent.rotation:Quaternion.identity)*door.Closed;
+                var gap=door.transform.position+hingeRot*door.ProbeCenter;bool closeFocused=false;
+                foreach(var aim in new[]{gap,gap+Vector3.down*.4f,gap+across*.3f,gap-across*.3f,gap+Vector3.up*.3f})
+                {input.Look=aim;yield return Frames(6);var f=game.Player.Focus;if(f&&f.Kind==InteractKind.Door&&f.Door==door){closeFocused=true;break;}}
+                string closeVia=closeFocused?(game.Player.Focus==panel?"leaf":"opening"):"none";
+                if(closeFocused)yield return Press(i=>i.Use=true);
+                float pressedClose=Time.realtimeSinceStartup;while(Time.realtimeSinceStartup-pressedClose<.3f)yield return null;
+                if(!door.Open){closesE++;Debug.Log("HC_DOORPROOF close=E via="+closeVia+" name=\""+door.name+"\" side="+(playerSide<0?"-z":"+z")+" t="+c.Elapsed.ToString("F0"));}
+                else{closeFail++;Debug.Log("HC_DOORPROOF close=direct close_fail name=\""+door.name+"\" side="+(playerSide<0?"-z":"+z")+" focus="+(game.Player.Focus?game.Player.Focus.name:"none"));door.Toggle();}
+                yield return Wait(.9f);
+                yield return Shot("doorproof_"+tag+"_closed");
             }
             input.Move=Vector2.zero;
-            bool pass=toward==0&&toggles>=8&&unfocused==0;
-            Debug.Log("HC_DOORPROOF toward="+toward+" toggles="+toggles+" unfocused="+unfocused+" leaves="+leaves.Count+" "+(pass?"PASS":"FAIL"));
-            if(!pass)Blocker("doorproof: toward="+toward+" toggles="+toggles+" unfocused="+unfocused);
+            bool pass=toward==0&&toggles>=8&&unfocused==0&&closeFail==0&&closesE>=8;
+            Debug.Log("HC_DOORPROOF toward="+toward+" toggles="+toggles+" unfocused="+unfocused+" closes="+closesE+" close_failures="+closeFail+" leaves="+leaves.Count+" "+(pass?"PASS":"FAIL"));
+            if(!pass)Blocker("doorproof: toward="+toward+" toggles="+toggles+" unfocused="+unfocused+" close_failures="+closeFail);
             yield return Finish();
         }
         // ---- cold: a first-time player (fb-onboard) ------------------------------------------------------------------------------
@@ -1158,7 +1170,7 @@ namespace HollowCurrent
                             if(Vector3.Distance(p,last)<.4f)
                             {
                                 // A closed door in the way: press E on it like a player would, then (if still stuck) step past.
-                                if(game.Player.Focus&&game.Player.Focus.Kind==InteractKind.Door){input.Move=Vector2.zero;yield return Press(i=>i.Use=true);Debug.Log("HC_PLAY cold_door_opened "+game.Player.Focus.name);}
+                                if(game.Player.Focus&&game.Player.Focus.Kind==InteractKind.Door&&!(game.Player.Focus.Door&&game.Player.Focus.Door.Open)){input.Move=Vector2.zero;yield return Press(i=>i.Use=true);Debug.Log("HC_PLAY cold_door_opened "+game.Player.Focus.name);}
                                 else{unstick++;TeleportPlayer(corner+Vector3.up*.05f);Debug.Log("HC_PLAY cold_unstick n="+unstick+" at="+p.ToString("F1")+" to="+corner.ToString("F1"));}
                             }
                             stuckClock=0;last=game.Player.transform.position;

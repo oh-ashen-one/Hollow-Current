@@ -97,11 +97,14 @@ namespace HollowCurrent
                     " by="+who+" positive="+positive+" negative="+negative+" pivot="+transform.position);
             return side;
         }
-        public void Toggle()
+        // by: "E" from the player's interaction (Interactable.Use), "direct" from code (drivers, editor tools). fg-integ: a castle close logs
+        // HC_DOOR_STATE ... state=closed closed_by=<by> (doorproof counts closed_by=E).
+        public void Toggle(string by="direct")
         {
             if(!measured)Measure();
             var game=FindFirstObjectByType<Game>();
             if(!Open)ChooseSwing(game);
+            else if(game&&game.Map==MapId.Castle)Debug.Log("HC_DOOR_STATE name=\""+name+"\" state=closed closed_by="+by+" angle="+openAngle.ToString("F0")+" leafRot="+transform.localEulerAngles.y.ToString("F0"));
             Open=!Open;lastOpen=Open;BeginMotion(game);
             if(game&&game.Sound)game.Sound.Cue(Open?"door":"latch",transform.position+Vector3.up);
         }

@@ -343,6 +343,13 @@ if "no location" not in sound or "SpeechSpatial" not in sound or "HC_VOICE_SUMMA
     failures.append("Soundscape.Speak must drop location-less castle speech and log HC_VOICE_SUMMARY")
 print("castle speech lint: %d located Speak call sites outside Game.cs, Game.cs routes Bellwether speech through BellwetherSpeak only" % speak_calls)
 
+# fg-integ (r15 critic: "Flashlight" and "radio" leak into the castle UI): every Interface.cs literal naming Bellwether's flashlight or
+# radio must sit on a line that picks the castle wording first (CastleScreen? / castleHud? / MapId.Castle), or be the Bellwether speaker test.
+iface = strip_comments((runtime / "Interface.cs").read_text())
+for n, ln in enumerate(iface.split("\n"), 1):
+    for lit in re.findall(r'"([^"\n]*)"', ln):
+        if re.search(r'radio|flashlight', lit, re.I) and not re.search(r'CastleScreen\?|castleHud\?|MapId\.Castle|dialogueSpeaker=="RADIO"', ln):
+            failures.append("Interface.cs:%d \"%s\" names Bellwether's flashlight/radio without a castle alternative (fg-integ)" % (n, lit))
 print("castle scares: %d beat methods, %d registered in TryBeat, %d lie methods, %d MakeThrowable call sites (the build logs HC_THROWABLES placed=<n> for the loop-expanded count)" % (len(beats), len(registered), len(lies), sites))
 if failures:
     for f in failures:

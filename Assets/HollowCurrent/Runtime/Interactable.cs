@@ -26,7 +26,7 @@ namespace HollowCurrent
                 // fb-onboard: the castle equips at spawn, so the rack only answers (never a silent E). Bellwether: unchanged.
                 case InteractKind.Kit: if(!game.Case.Equip()&&game.Map==MapId.Castle)game.Notice("The rack is empty. You already carry the instruments."); break;
                 case InteractKind.Note: game.Case.Read(Label);game.ShowNote(Label,Body);break;
-                case InteractKind.Door: Door.Toggle();break;
+                case InteractKind.Door: Door.Toggle("E");break;
                 case InteractKind.Hide: game.Player.Hide(this);break;
                 case InteractKind.LightSwitch: game.ToggleCircuit(Circuit,transform.position);break;
                 case InteractKind.Breaker: game.Case.RestorePower();game.Sound.Cue("switch",transform.position);break;

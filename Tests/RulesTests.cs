@@ -328,6 +328,15 @@ static class RulesTests
     // apparition the director asks for once the quiet ends within its lead. The long quiet stretch (gap >= 120 s) is never cut.
     static void WaveFGTests()
     {
+        // fg-integ (r15 critic: "Flashlight" and "radio" leak into the castle UI): no castle book string names Bellwether's kit; its
+        // resonance-box cards still show (FieldMessages), Bellwether's radio cards unchanged.
+        foreach(var f in typeof(CaseBook).GetFields())
+        {
+            if(f.FieldType==typeof(string)){var v=(string)f.GetValue(CaseBook.Castle)??"";Assert(v.IndexOf("radio",StringComparison.OrdinalIgnoreCase)<0&&v.IndexOf("flashlight",StringComparison.OrdinalIgnoreCase)<0,"castle CaseBook."+f.Name+" names no radio / flashlight: "+v);}
+            else if(f.FieldType==typeof(string[])){var arr=(string[])f.GetValue(CaseBook.Castle);if(arr!=null)foreach(var v in arr)Assert(v==null||v.IndexOf("radio",StringComparison.OrdinalIgnoreCase)<0&&v.IndexOf("flashlight",StringComparison.OrdinalIgnoreCase)<0,"castle CaseBook."+f.Name+" names no radio / flashlight: "+v);}
+        }
+        Assert(FieldMessages.ShowCard(CaseBook.Castle.RadioHunt)&&FieldMessages.ShowCard(CaseBook.Castle.RadioInterference),"castle resonance-box cards still show");
+        Assert(FieldMessages.ShowCard(CaseBook.Bellwether.RadioHunt)&&CaseBook.Bellwether.RadioHunt.StartsWith("Radio / ",StringComparison.Ordinal),"Bellwether radio cards unchanged");
         var R=HuntRules.Castle;
         Assert(R.ApparitionFollowGraceCut==20&&R.ApparitionFollowOweSeconds==60&&HuntRules.Bellwether.ApparitionFollowGraceCut==0&&HuntRules.Bellwether.ApparitionFollowOweSeconds==0,"castle fg values; Bellwether off");
         // 1. Owed in the first hunt's grace + long-quiet hold, asked for when the quiet ends within the lead, adopted, fired 12-19.5 s after.

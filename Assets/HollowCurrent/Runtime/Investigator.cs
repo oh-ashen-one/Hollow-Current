@@ -286,14 +286,32 @@ namespace HollowCurrent
         public const float FocusRange=2.7f;
         public static Interactable FocusRay(Vector3 origin,Vector3 direction,out RaycastHit first)
         {
-            if(!Physics.Raycast(origin,direction,out first,FocusRange))return null;
+            if(!Physics.Raycast(origin,direction,out first,FocusRange))return OpeningRay(origin,direction,FocusRange);
             var focus=first.collider.GetComponent<Interactable>();
             // Deliberate Bellwether bug fix (2026-10-14): a hide's focus trigger sits in the same plane as its solid lower door
             // (89dac7e on main), so the ray could stop on the door and lose the cupboard. Accept an interactable whose collider the
             // same ray meets within 12 cm of the first hit.
             if(!focus)foreach(var h in Physics.RaycastAll(origin,direction,Mathf.Min(FocusRange,first.distance+.12f)))
             {var it=h.collider.GetComponent<Interactable>();if(it&&h.distance<=first.distance+.12f){focus=it;break;}}
+            if(!focus)focus=OpeningRay(origin,direction,Mathf.Min(FocusRange,first.distance+.12f));
             return focus;
+        }
+        // fg-integ (r15 critic 8f: 8/8 doorproof closes needed close=direct): a castle leaf swung 155 deg lies flat on the wall and the ray
+        // above no longer meets it. CastleWorld gives every leaf an "opening" door volume, a trigger on layer 2 (Ignore Raycast: sight lines,
+        // the Count's queries, the nav bake and the swing probe never see it) filling that leaf's half of the doorway through the wall.
+        // Only when nothing else is focused, the nearest such volume the ray meets before the first solid hit is the focus, so E on the
+        // opening opens or closes the leaf from either side. Bellwether has no layer-2 interactables: its focus is unchanged.
+        static readonly RaycastHit[] openingHits=new RaycastHit[8];
+        static Interactable OpeningRay(Vector3 origin,Vector3 direction,float range)
+        {
+            int n=Physics.RaycastNonAlloc(origin,direction,openingHits,range,1<<2,QueryTriggerInteraction.Collide);
+            Interactable best=null;float nearest=float.MaxValue;
+            for(int i=0;i<n;i++)
+            {
+                var it=openingHits[i].collider?openingHits[i].collider.GetComponent<Interactable>():null;
+                if(it&&it.Kind==InteractKind.Door&&it.Door&&openingHits[i].distance<nearest){best=it;nearest=openingHits[i].distance;}
+            }
+            return best;
         }
         bool AimAt(Vector3 point,float range,float cone)
         {

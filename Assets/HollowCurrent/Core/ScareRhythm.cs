@@ -182,7 +182,7 @@ namespace HollowCurrent
         public static bool ShowCard(string message)
         {
             if(string.IsNullOrEmpty(message))return false;
-            return message.StartsWith("Dispatch / ",StringComparison.Ordinal)||message.StartsWith("Radio / ",StringComparison.Ordinal)||
+            return message.StartsWith("Dispatch / ",StringComparison.Ordinal)||message.StartsWith("Radio / ",StringComparison.Ordinal)||message.StartsWith("Resonance box / ",StringComparison.Ordinal)||
                 message.StartsWith("Evidence secured / ",StringComparison.Ordinal)||message.StartsWith("Case reconstruction / ",StringComparison.Ordinal)||
                 message.StartsWith("Checkpoint restored / ",StringComparison.Ordinal)||message.StartsWith("The investigation could not continue",StringComparison.Ordinal)||
                 message.StartsWith("The switch is dead",StringComparison.Ordinal);
