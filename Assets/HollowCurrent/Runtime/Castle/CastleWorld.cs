@@ -1156,7 +1156,8 @@ namespace HollowCurrent
 
         void Kitchen()
         {
-            Prop(Art.KitchenHearth, new Vector3(-13.0f, 0, 5.0f), 90);
+            var hearth = Prop(Art.KitchenHearth, CastleLayout.KitchenHearthPos, CastleLayout.KitchenHearthYaw);
+            LogHearth(hearth);
             Prop(Art.ButcherBlock, new Vector3(-9.5f, 0, 5.0f), 0);
             knifeAnchor = new GameObject("KnifeOrbit anchor").transform; knifeAnchor.SetParent(root, false); knifeAnchor.localPosition = new Vector3(-9.5f, 1.4f, 5.0f);
             Prop(Art.Cauldron, new Vector3(-12.4f, 0, 1.6f), 0);
@@ -1164,6 +1165,76 @@ namespace HollowCurrent
             Hide("Kitchen larder", new Vector3(-7.5f, 0, .45f), 180);
             Note("Kitchen tally", new Vector3(-8.5f, .92f, 7.5f), "Kitchen tally",
                 "Tally cut into the table:\n\nMonday, six places set.\nTuesday, six places set.\nWednesday, five.\nThursday, four, and the knives would not stay in the block.\nFriday, one place, and it was not set by us.");
+        }
+
+        // fc-art2 D, prepare-time evidence (HC_HEARTH): the great hearth stood over the kitchen's west lancet (moonlight baked behind a hearth). Its footprint
+        // (the mesh bounds of the placed art, so it is the real width, not the nominal 2.8 m) must not overlap any window or door opening of the layout on
+        // the ground floor: an opening's box runs along its wall for its width and from the wall's outer face to 1.5 m into the room, from sill to head;
+        // the hearth's box is its footprint and height. window_gap is the clear distance along the wall to the nearest such opening. The hearth must also
+        // stand inside the kitchen (within 5 cm of the wall faces). A violation logs an error and fails the prepare.
+        void LogHearth(Transform art)
+        {
+            var pos = CastleLayout.KitchenHearthPos;
+            float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue, minZ = float.MaxValue, maxZ = float.MinValue; bool measured = false;
+            foreach (var f in art.GetComponentsInChildren<MeshFilter>())
+            {
+                if (!f.sharedMesh) continue;
+                var b = f.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = root.InverseTransformPoint(f.transform.TransformPoint(c));
+                    minX = Mathf.Min(minX, p.x); maxX = Mathf.Max(maxX, p.x); minY = Mathf.Min(minY, p.y); maxY = Mathf.Max(maxY, p.y); minZ = Mathf.Min(minZ, p.z); maxZ = Mathf.Max(maxZ, p.z); measured = true;
+                }
+            }
+            if (!measured)
+            {
+                var s = CastleLayout.ArtSize(Art.KitchenHearth); float yaw = CastleLayout.KitchenHearthYaw * Mathf.Deg2Rad, c = Mathf.Abs(Mathf.Cos(yaw)), sn = Mathf.Abs(Mathf.Sin(yaw));
+                float hx = (s.x * sn + s.z * c) * .5f, hz = (s.x * c + s.z * sn) * .5f;      // yaw 90: the 2.8 m width runs along z
+                minX = pos.x - hx; maxX = pos.x + hx; minZ = pos.z - hz; maxZ = pos.z + hz; minY = pos.y; maxY = pos.y + s.y;
+            }
+            const float depth = 1.5f;   // how far into the room an opening's box reaches
+            int checkedN = 0; bool overlap = false; float gap = float.MaxValue; string nearest = "none";
+            void Test(string what, bool alongX, float line, float center, float width, float sill, float head)
+            {
+                float hT0 = alongX ? minX : minZ, hT1 = alongX ? maxX : maxZ;
+                if (head <= minY || sill >= maxY) return;                                              // above or below the hearth
+                checkedN++;
+                float along = Mathf.Max((center - width * .5f) - hT1, hT0 - (center + width * .5f));   // < 0: the spans overlap along the wall
+                if (along < gap) { gap = along; nearest = what + "@" + (alongX ? "z=" : "x=") + line.ToString("F1") + "/" + center.ToString("F1"); }
+                if (along < 0) overlap = true;
+            }
+            foreach (var w in CastleLayout.Windows)
+            {
+                if (Mathf.Abs(w.FloorY - pos.y) > .01f) continue;
+                float half = Mathf.Abs(w.Line) < .01f || Mathf.Abs(w.Line - CastleLayout.Depth) < .01f || Mathf.Abs(Mathf.Abs(w.Line) - CastleLayout.HalfWidth) < .01f ? CastleLayout.ExteriorWallHalf : CastleLayout.SpineWallHalf;
+                // an opening's box spans the wall and reaches `depth` into the room on its inward side only
+                float lo = w.Line - (w.Inward > 0 ? half : half + depth), hi = w.Line + (w.Inward > 0 ? half + depth : half);
+                float hN0 = w.RunsAlongX ? minZ : minX, hN1 = w.RunsAlongX ? maxZ : maxX;
+                if (hN1 <= lo || hN0 >= hi) continue;
+                Test(w.Art, w.RunsAlongX, w.Line, w.Center, w.Width, w.Sill + w.FloorY, w.Top + w.FloorY);
+            }
+            foreach (var d in CastleLayout.Doors)
+            {
+                if (Mathf.Abs(d.FloorY - pos.y) > .01f) continue;
+                float hN0 = d.RunsAlongX ? minZ : minX, hN1 = d.RunsAlongX ? maxZ : maxX;
+                if (hN1 <= d.Line - depth || hN0 >= d.Line + depth) continue;
+                Test("door " + d.Name, d.RunsAlongX, d.Line, d.Center, d.Width, d.FloorY, d.FloorY + d.Height);
+            }
+            var room = CastleLayout.Room(CastleRoom.Kitchen);
+            float wx0 = room.X0 + CastleLayout.ExteriorWallHalf, wx1 = room.X1 - CastleLayout.SpineWallHalf, wz0 = room.Z0 + CastleLayout.ExteriorWallHalf, wz1 = room.Z1 - CastleLayout.SpineWallHalf;
+            float roomGap = Mathf.Min(Mathf.Min(minX - wx0, wx1 - maxX), Mathf.Min(minZ - wz0, wz1 - maxZ));
+            bool inside = roomGap >= -.05f;
+            bool ok = !overlap && gap >= CastleLayout.HearthWindowMinGap && inside;
+            string line = "HC_HEARTH window_overlap=" + overlap + " pos=" + pos.ToString("F2") + " yaw=" + CastleLayout.KitchenHearthYaw.ToString("F0") + " footprint=[x " + minX.ToString("F2") + ".." + maxX.ToString("F2") + " z "
+                + minZ.ToString("F2") + ".." + maxZ.ToString("F2") + " h " + (maxY - minY).ToString("F2") + "] openings_checked=" + checkedN + " nearest=" + nearest + " window_gap=" + (gap == float.MaxValue ? "none" : gap.ToString("F2"))
+                + " (min " + CastleLayout.HearthWindowMinGap.ToString("F1") + ") room_gap=" + roomGap.ToString("F2") + " bounds=" + (measured ? "mesh" : "art-size") + " " + (ok ? "PASS" : "FAIL");
+            if (ok) Debug.Log(line);
+            else
+            {
+                Debug.LogError(line);
+                if (!Application.isPlaying) throw new System.Exception(line);
+            }
         }
 
         void Chapel()
@@ -1539,8 +1610,87 @@ namespace HollowCurrent
 
         void Observatory()
         {
-            Prop(Art.Orrery, new Vector3(9.0f, 6.4f, 24.0f), 0);
-            Prop(Art.Telescope, new Vector3(11.4f, 6.4f, 27.0f), 180);
+            Prop(Art.Orrery, CastleLayout.OrreryPos, 0);
+            // fc-art2 C: the telescope looks out of the north window (it pointed back into the room before; see CastleLayout.TelescopePos). Collision covers
+            // the tripod and the eyepiece end only: the tube is overhead (1.7 m and more above the floor beyond the pivot).
+            var scope = Prop(Art.Telescope, CastleLayout.TelescopePos, CastleLayout.TelescopeYaw, false);
+            Proxy("Telescope collision", CastleLayout.TelescopePos + Quaternion.Euler(0, CastleLayout.TelescopeYaw, 0) * new Vector3(0, 1.1f, .1f), new Vector3(.92f, 2.2f, 1.3f), CastleLayout.TelescopeYaw);
+            LogTelescope(scope);
+        }
+
+        // fc-art2 C, prepare-time evidence (HC_TELESCOPE): the telescope's footprint (the mesh bounds of the placed art, rotated by its yaw) must stand
+        // clear of the observatory's wall faces, the stair opening with its rail, and the orrery, and its tube must look out through a window of the
+        // tower floor: the sight line from the pivot along the tube (horizontal heading from the art's own forward axis, elevation
+        // CastleLayout.TelescopeTiltDeg) must cross the wall's inner and outer faces inside the opening, clear of its posts, sill and head.
+        // clear=False logs an error and fails the prepare (as HC_CANDLES does). The elevation is the generator's constant, not measured at runtime.
+        void LogTelescope(Transform art)
+        {
+            var pos = CastleLayout.TelescopePos;
+            float x0 = float.MaxValue, x1 = float.MinValue, z0 = float.MaxValue, z1 = float.MinValue; bool measured = false;
+            foreach (var f in art.GetComponentsInChildren<MeshFilter>())
+            {
+                if (!f.sharedMesh) continue;
+                var b = f.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = art.InverseTransformPoint(f.transform.TransformPoint(c));
+                    x0 = Mathf.Min(x0, p.x); x1 = Mathf.Max(x1, p.x); z0 = Mathf.Min(z0, p.z); z1 = Mathf.Max(z1, p.z); measured = true;
+                }
+            }
+            if (!measured) { var k = CastleKitAxis.Kit["Telescope"]; x0 = k.X0; x1 = k.X1; z0 = k.Z0; z1 = k.Z1; }
+            // footprint corners and tube heading in castle-local coordinates
+            float minX = float.MaxValue, maxX = float.MinValue, minZ = float.MaxValue, maxZ = float.MinValue;
+            foreach (float a in new[] { x0, x1 })
+                foreach (float bz in new[] { z0, z1 })
+                {
+                    var c = root.InverseTransformPoint(art.TransformPoint(new Vector3(a, 0, bz)));
+                    minX = Mathf.Min(minX, c.x); maxX = Mathf.Max(maxX, c.x); minZ = Mathf.Min(minZ, c.z); maxZ = Mathf.Max(maxZ, c.z);
+                }
+            var dir = root.InverseTransformDirection(art.TransformDirection(Vector3.forward * (z1 > -z0 ? 1f : -1f))); dir.y = 0; dir.Normalize();
+            // clearances: wall faces (interior of the observatory), stair opening plus rail, orrery footprint
+            var room = CastleLayout.Room(CastleRoom.Observatory);
+            float ix0 = room.X0 + CastleLayout.SpineWallHalf, ix1 = room.X1 - CastleLayout.ExteriorWallHalf, iz0 = room.Z0 + CastleLayout.SpineWallHalf, iz1 = room.Z1 - CastleLayout.ExteriorWallHalf;
+            float wallGap = Mathf.Min(Mathf.Min(minX - ix0, ix1 - maxX), Mathf.Min(minZ - iz0, iz1 - maxZ));
+            float Gap(float bx0, float bx1, float bz0, float bz1) => Mathf.Max(Mathf.Max(bx0 - maxX, minX - bx1), Mathf.Max(bz0 - maxZ, minZ - bz1));
+            float stairGap = Gap(hole2.X0, hole2.X1, hole2.Z0, hole2.Z1 + .75f);
+            var os = CastleLayout.ArtSize(Art.Orrery); var op = CastleLayout.OrreryPos;
+            float orreryGap = Gap(op.x - os.x * .5f, op.x + os.x * .5f, op.z - os.z * .5f, op.z + os.z * .5f);
+            // the window the tube looks out of: the nearest tower-floor window whose opening the sight line crosses (inner face, outer face)
+            float tan = Mathf.Tan(CastleLayout.TelescopeTiltDeg * Mathf.Deg2Rad), m = CastleLayout.TelescopeAimMargin;
+            string window = "none"; string aim = "";
+            float best = float.MaxValue;
+            foreach (var w in CastleLayout.Windows)
+            {
+                if (Mathf.Abs(w.FloorY - pos.y) > .01f) continue;
+                float dirN = w.RunsAlongX ? dir.z : dir.x, dirT = w.RunsAlongX ? dir.x : dir.z;
+                float pN = w.RunsAlongX ? pos.z : pos.x, pT = w.RunsAlongX ? pos.x : pos.z;
+                if (dirN * -w.Inward <= .05f) continue;                                  // the tube must head toward this wall
+                float inner = w.Line + w.Inward * CastleLayout.ExteriorWallHalf, outer = w.Line - w.Inward * CastleLayout.ExteriorWallHalf;
+                float ti = (inner - pN) / dirN, to = (outer - pN) / dirN;
+                if (ti <= 0) continue;
+                float ai = pT + dirT * ti, ao = pT + dirT * to;
+                float hi = pos.y + CastleLayout.TelescopePivotHeight + tan * ti, ho = pos.y + CastleLayout.TelescopePivotHeight + tan * to;
+                float lo = w.Center - w.Width * .5f + m, hiA = w.Center + w.Width * .5f - m;
+                bool inside = ai >= lo && ai <= hiA && ao >= lo && ao <= hiA && Mathf.Min(hi, ho) >= pos.y + w.Sill + m && Mathf.Max(hi, ho) <= pos.y + w.Top - m;
+                if (inside && ti < best)
+                {
+                    best = ti;
+                    window = w.Art + "@" + (w.RunsAlongX ? "z=" : "x=") + w.Line.ToString("F1") + "/" + w.Center.ToString("F1");
+                    aim = " aim_inner=(" + ai.ToString("F2") + "," + (hi - pos.y).ToString("F2") + ") aim_outer=(" + ao.ToString("F2") + "," + (ho - pos.y).ToString("F2") + ")";
+                }
+            }
+            bool elevOk = CastleLayout.TelescopeTiltDeg >= 20f && CastleLayout.TelescopeTiltDeg <= 35f;
+            bool clear = wallGap >= CastleLayout.TelescopeWallGap && stairGap >= CastleLayout.TelescopeFixtureGap && orreryGap >= CastleLayout.TelescopeFixtureGap && window != "none" && elevOk;
+            string line = "HC_TELESCOPE aim=" + (window != "none" ? "window" : "none") + " clear=" + clear + " pos=" + pos.ToString("F2") + " yaw=" + CastleLayout.TelescopeYaw.ToString("F0") + " heading=(" + dir.x.ToString("F2") + "," + dir.z.ToString("F2")
+                + ") elev=" + CastleLayout.TelescopeTiltDeg.ToString("F1") + " window=" + window + aim + " wall_gap=" + wallGap.ToString("F2") + " stair_gap=" + stairGap.ToString("F2") + " orrery_gap=" + orreryGap.ToString("F2")
+                + " footprint=[x " + minX.ToString("F2") + ".." + maxX.ToString("F2") + " z " + minZ.ToString("F2") + ".." + maxZ.ToString("F2") + "] bounds=" + (measured ? "mesh" : "kit-table");
+            if (clear) Debug.Log(line);
+            else
+            {
+                Debug.LogError(line);
+                if (!Application.isPlaying) throw new System.Exception(line);
+            }
         }
 
         void Crypt()

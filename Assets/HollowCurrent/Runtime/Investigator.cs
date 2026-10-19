@@ -119,13 +119,6 @@ namespace HollowCurrent
                 if(period){instrumentModels[i]=CastleInstrumentArt.Create(i,heldTool,out var made);if(made!=null)compassParts=made;}
                 else instrumentModels[i]=FieldKitArt.Create(heldTool,FieldKitArt.Names[i],lengths[i],Vector3.zero,Quaternion.identity);
             }
-            if(period)
-            {
-                int vc=CastleInstrumentArt.Vertices(instrumentModels[0]),vl=CastleInstrumentArt.Vertices(instrumentModels[1]),vt=CastleInstrumentArt.Vertices(instrumentModels[2]);
-                bool inBudget=vc>0&&vl>0&&vt>0&&vc<=CastleInstrumentArt.MaxVertices&&vl<=CastleInstrumentArt.MaxVertices&&vt<=CastleInstrumentArt.MaxVertices;
-                string line="HC_INSTRUMENTS map=castle compass="+vc+" trumpet="+vt+" period="+inBudget+" lantern="+vl+" (max "+CastleInstrumentArt.MaxVertices+")";
-                if(inBudget)Debug.Log(line);else Debug.LogError(line);
-            }
             var readout=new GameObject("Live induction LCD");readout.transform.SetParent(instrumentModels[0],false);readout.transform.localPosition=new Vector3(0,.044f,-.041f);readout.layer=30;
             inductionReadout=readout.AddComponent<TextMesh>();inductionReadout.text="0.0";inductionReadout.fontSize=32;inductionReadout.characterSize=.0048f;inductionReadout.anchor=TextAnchor.MiddleCenter;inductionReadout.alignment=TextAlignment.Center;inductionReadout.color=new Color(.35f,.9f,.48f);
             readout.GetComponent<Renderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -142,7 +135,17 @@ namespace HollowCurrent
             // fc-light2: in the castle the left hand carries the brass hand lantern (the castle's light source) instead of the modern flashlight mesh; Bellwether keeps the flashlight.
             if(period){torchModel=CastleInstrumentArt.CreateHandLantern(camera);torchModel.localPosition=new Vector3(-.215f,-.19f,.45f);torchModel.localRotation=Quaternion.Euler(4,0,6);torchModel.localScale=Vector3.one*.95f;}
             else torchModel=FieldKitArt.Create(camera,"Flashlight",.22f,new Vector3(-.20f,-.24f,.44f),Quaternion.Euler(0,90,0));
-            radioModel=FieldKitArt.Create(camera,"FieldRadio",.20f,new Vector3(.28f,-.16f,.42f),Quaternion.Euler(8,-8,0));
+            // fc-art2: the castle's field radio (R key: hints / static) is a period brass-and-walnut resonance box; Bellwether keeps the FieldRadio mesh
+            // (NativeVerification: HeldAssetName "FieldRadio", more than 1000 vertices; HeldAssetName reports the same role key in both maps).
+            if(period){radioModel=CastleInstrumentArt.CreateRadio(camera);radioModel.localPosition=new Vector3(.28f,-.16f,.42f);radioModel.localRotation=Quaternion.Euler(8,-8,0);}
+            else radioModel=FieldKitArt.Create(camera,"FieldRadio",.20f,new Vector3(.28f,-.16f,.42f),Quaternion.Euler(8,-8,0));
+            if(period)
+            {
+                int vc=CastleInstrumentArt.Vertices(instrumentModels[0]),vl=CastleInstrumentArt.Vertices(instrumentModels[1]),vt=CastleInstrumentArt.Vertices(instrumentModels[2]),vr=CastleInstrumentArt.Vertices(radioModel);
+                bool inBudget=vc>0&&vl>0&&vt>0&&vr>0&&vc<=CastleInstrumentArt.MaxVertices&&vl<=CastleInstrumentArt.MaxVertices&&vt<=CastleInstrumentArt.MaxVertices&&vr<=CastleInstrumentArt.MaxVertices;
+                string line="HC_INSTRUMENTS map=castle compass="+vc+" trumpet="+vt+" period="+inBudget+" lantern="+vl+" radio="+vr+" (max "+CastleInstrumentArt.MaxVertices+")";
+                if(inBudget)Debug.Log(line);else Debug.LogError(line);
+            }
             radioHand=FirstPersonHands.Attach(radioModel,new Vector3(.052f,-.049f,-.003f),new Vector3(4,-15,82));
             leftHand=FirstPersonHands.Attach(camera,new Vector3(-.19f,-.265f,.385f),new Vector3(-12,15,-78),true);
             var fill=new GameObject("Soft field-kit bounce");fill.transform.SetParent(camera,false);fill.transform.localPosition=new Vector3(.03f,.05f,-.08f);
@@ -312,11 +315,14 @@ namespace HollowCurrent
         // Capture hook (-hc-capture-art instruments): CaptureMode disables the player's Update, so pose the held instrument by hand.
         public void CaptureHeld(int tool,int level)
         {
-            Tool=tool;priorTool=tool;equipPose=1;radioPose=0;
+            bool radio=tool==4;   // fc-art2: tool 4 raises the field radio (the R-key pose) instead of an instrument
+            if(!radio){Tool=tool;priorTool=tool;}
+            equipPose=1;radioPose=radio?1:0;
             if(sword)sword.gameObject.SetActive(false);
             heldTool.localPosition=new Vector3(.28f,-.16f,.42f);heldTool.localRotation=Quaternion.Euler(8,-8,0);
-            heldTool.gameObject.SetActive(true);radioModel.gameObject.SetActive(false);torchModel.gameObject.SetActive(true);leftHand.gameObject.SetActive(true);
-            for(int i=0;i<instrumentModels.Length;i++)instrumentModels[i].gameObject.SetActive(i==tool-1);
+            radioModel.localPosition=new Vector3(.28f,-.16f,.42f);
+            heldTool.gameObject.SetActive(!radio);radioModel.gameObject.SetActive(radio);torchModel.gameObject.SetActive(true);leftHand.gameObject.SetActive(true);
+            for(int i=0;i<instrumentModels.Length;i++)instrumentModels[i].gameObject.SetActive(!radio&&i==tool-1);
             if(compassParts!=null){compassParts.SetLevel(level);if(needle)needle.localRotation=Quaternion.Euler(0,0,100);}
             Debug.Log("HC_CAPTURE_HELD tool="+tool+" asset="+HeldAssetName+" verts="+HeldVertexCount+" level="+level);
         }

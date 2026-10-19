@@ -426,6 +426,34 @@ namespace HollowCurrent
         public const float BrazierHalf = .38f;        // widest part of the brazier: the bowl, 0.72 m across, plus a little for the interact box (0.7 m)
         public const float ChapelPropMinGap = .3f;    // minimum clear floor between the bell footprint and the brazier (m)
 
+        // ---- fc-art2 C: the observatory telescope ---------------------------------------------------------------------------------
+        // The tower telescope (tools/castle_furniture.py telescope()) is a brass tube on a tripod: eyepiece low at the front (imported -Z), objective
+        // rising away from the player at TelescopeTiltDeg from a pivot TelescopePivotHeight above the floor; AsImported, so at yaw 0 the tube runs
+        // toward +Z with the eyepiece 0.62 m behind the origin and the objective rim 1.96 m ahead of it (CastleKitAxis.Kit bounds). fb-layout/fc-fbx
+        // left it at (11.4, 27.0) yaw 180, i.e. tube pointing back into the room, because yaw 0 there drove the tube through the north wall.
+        // It now stands in the strip between the orrery (x <= 10.5) and the stair opening (x >= 12.1), 3.2 m short of the north wall, turned 8 degrees
+        // toward the window at x 12 (opening x 11.3..12.7, sill .9, head 3.6 above the tower floor): the tube's line reaches the wall's inner face at
+        // x 11.64, 2.75 m above the floor, and its outer face at 3.28 m, so it looks out through the opening at 30 degrees. CastleWorld.LogTelescope
+        // checks all of this at prepare time (HC_TELESCOPE) and fails the prepare when clear=False.
+        public static readonly Vector3 TelescopePos = new Vector3(11.25f, CastleLayout.FloorTower, 24.8f);
+        public const float TelescopeYaw = 8f;
+        public const float TelescopeTiltDeg = 30f;          // objective elevation: Rx(60) of the tube in tools/castle_furniture.py (20..35 wanted)
+        public const float TelescopePivotHeight = 1.15f;    // the tube's pivot above the floor, same file
+        public const float TelescopeWallGap = .12f;         // minimum clear floor between the footprint and a wall face
+        public const float TelescopeFixtureGap = .08f;      // ... and the stair opening / orrery footprints
+        public const float TelescopeAimMargin = .15f;       // the sight line must clear the window's side posts, sill and head by this much
+        public static readonly Vector3 OrreryPos = new Vector3(9.0f, CastleLayout.FloorTower, 24.0f);
+        public const float ExteriorWallHalf = .45f, SpineWallHalf = .30f;   // CastleWorld.Walls: exterior walls are .9 thick, spine walls and partitions .6
+
+        // ---- fc-art2 D: the kitchen hearth ------------------------------------------------------------------------------------------
+        // The great hearth (footprint 2.8 x 1.0 x 2.4) stood at (-13.0, 5.0) yaw 90 against the west wall, 2.8 m wide along z (3.6..6.4), exactly
+        // over the west lancet at z 5.0 (opening z 4.4..5.6, sill 1.0, head 2.6): moonlight baked behind a hearth. The wall's solid stretches are
+        // z 0.3..4.4 (the cauldron stands at z 1.6) and z 5.6..9.7; the hearth moves to z 7.5 (6.1..8.9): 0.5 m clear of the window, 0.8 m from the
+        // partition face at z 9.7. Its fire light (CastleLayout.Candles) and the candle stand beside it follow.
+        public static readonly Vector3 KitchenHearthPos = new Vector3(-13.0f, 0, 7.5f);
+        public const float KitchenHearthYaw = 90f;
+        public const float HearthWindowMinGap = .3f;        // minimum gap along the wall between the hearth footprint and any window or door opening
+
         // Crypt: coffin niches cut into the walls. Inward is the room side along the wall normal.
         public const float NicheWidth = 1.1f, NicheSill = .35f, NicheTop = 1.15f;
         public readonly struct CastleNicheDef
@@ -475,7 +503,7 @@ namespace HollowCurrent
             // dining hall
             new CastleCandleDef(new Vector3(-10f, .79f, 14.0f), .9f), new CastleCandleDef(new Vector3(-10f, .79f, 18.0f), .9f),   // round 13: stand on the table (top .792), not 11 cm above it
             // kitchen
-            new CastleCandleDef(new Vector3(-12.4f, 0, 8.6f), .8f), new CastleCandleDef(new Vector3(-12.2f, .2f, 5.0f), 1.1f, 5.5f, false, false, 1.0f),
+            new CastleCandleDef(new Vector3(-12.0f, 0, 9.3f), .8f), new CastleCandleDef(new Vector3(-12.2f, .2f, 7.5f), 1.1f, 5.5f, false, false, 1.0f),   // fc-art2 D: the hearth moved from z 5.0 to z 7.5 (its fire light and the candle beside it with it)
             // chapel
             new CastleCandleDef(new Vector3(12.7f, .32f, 4.8f), .9f, 6.5f), new CastleCandleDef(new Vector3(12.7f, .32f, 8.2f), .9f, 6.5f),
             new CastleCandleDef(new Vector3(8.0f, 0, 1.2f), .6f),
