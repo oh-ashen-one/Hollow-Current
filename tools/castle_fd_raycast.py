@@ -30,6 +30,14 @@ VIEWS = [  # name, eye, target or (pitch) , vertical fov, size (the capture size
     ("art_exterior_bridge_keep", (0, 1.7, -6.1), (0, 16.0, 19.5), 72, (2416, 1292)),
     ("S4_old_eye", (0, 2.5, -14.0), ("pitch", 27.0), 95, (2416, 1292)),
 ]
+# wave FF (hc/ff-art): the r14 capture set at the critic's 1920x1080 (S4 search eye, art_exterior views at the player's 72 deg FOV), incl. bridge_left
+VIEWS_FF = [
+    ("S4_exterior_sky", (0, 1.64, -22.0), ("pitch", 28.5), 90, (1920, 1080)),
+    ("art_exterior_battlement_out", (3.6, 9.0, -0.4), (0.0, 3.0, -30), 72, (1920, 1080)),
+    ("art_exterior_bridge_left", (-1.2, 1.7, -3.5), (-14, 4.5, 3), 72, (1920, 1080)),
+    ("art_exterior_gate_out_S6", (0.3, 1.64, 1.4), (0.2, 2.2, -20), 72, (1920, 1080)),
+]
+if "--ff" in ARGV: VIEWS = VIEWS_FF
 
 def build():
     bpy.ops.wm.read_factory_settings(use_empty=True)
