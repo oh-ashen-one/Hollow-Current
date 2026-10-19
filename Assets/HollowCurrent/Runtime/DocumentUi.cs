@@ -426,13 +426,16 @@ namespace HollowCurrent
         // ---- journal list ----------------------------------------------------------------------------------
 
         // One recovered-document row in the field journal, in the document faces. Design-space rect; the caller owns hit testing.
-        public void JournalRow(Rect r, string title, bool filed, bool lit, bool castle)
+        // Dark ink for the castle journal card (fd-journal): the card's paper is darker than the vellum sheets, so the journal rows and
+        // kicker use a near-black oxblood / ink that hold >= 7:1 on it. `onCard` is false everywhere else (Bellwether keeps its faces).
+        static readonly Color JournalRed = new Color32(32, 4, 4, 255), JournalInk = new Color32(20, 13, 12, 255);
+        public void JournalRow(Rect r, string title, bool filed, bool lit, bool castle, bool onCard = false)
         {
             if (!loaded) return;
             var m = GUI.matrix; GUI.matrix = Matrix4x4.identity;
             s = Mathf.Min(Screen.width / 1600f, Screen.height / 900f);
             ox = (Screen.width - 1600 * s) * .5f; oy = (Screen.height - 900 * s) * .5f;
-            Color ink = castle ? VellumInk : FieldInk, red = castle ? VellumRed : FieldRed;
+            Color ink = castle ? (onCard ? JournalInk : VellumInk) : FieldInk, red = castle ? (onCard ? JournalRed : VellumRed) : FieldRed;
             if (filed) Fill(R(r.x, r.y + 3, 2.5f, r.height - 6), red);
             if (lit && filed) Fill(R(r.x, r.y, r.width, r.height), new Color(red.r, red.g, red.b, .10f));
             var st = Style(castle ? fellItalic : courierBold, castle ? 24 : 18);
@@ -445,13 +448,13 @@ namespace HollowCurrent
             GUI.matrix = m;
         }
 
-        public void JournalKicker(float x, float y, string text, bool castle)
+        public void JournalKicker(float x, float y, string text, bool castle, bool onCard = false)
         {
             if (!loaded) return;
             var m = GUI.matrix; GUI.matrix = Matrix4x4.identity;
             s = Mathf.Min(Screen.width / 1600f, Screen.height / 900f);
             ox = (Screen.width - 1600 * s) * .5f; oy = (Screen.height - 900 * s) * .5f;
-            Tracked(x, y, text, castle ? fell : courier, castle ? 16 : 13, castle ? VellumKicker : FieldKicker, castle ? 3.2f : 2f);
+            Tracked(x, y, text, castle ? fell : courier, castle ? 16 : 13, castle ? (onCard ? JournalRed : VellumKicker) : FieldKicker, castle ? 3.2f : 2f);
             GUI.matrix = m;
         }
     }
