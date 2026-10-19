@@ -1539,8 +1539,87 @@ namespace HollowCurrent
 
         void Observatory()
         {
-            Prop(Art.Orrery, new Vector3(9.0f, 6.4f, 24.0f), 0);
-            Prop(Art.Telescope, new Vector3(11.4f, 6.4f, 27.0f), 180);
+            Prop(Art.Orrery, CastleLayout.OrreryPos, 0);
+            // fc-art2 C: the telescope looks out of the north window (it pointed back into the room before; see CastleLayout.TelescopePos). Collision covers
+            // the tripod and the eyepiece end only: the tube is overhead (1.7 m and more above the floor beyond the pivot).
+            var scope = Prop(Art.Telescope, CastleLayout.TelescopePos, CastleLayout.TelescopeYaw, false);
+            Proxy("Telescope collision", CastleLayout.TelescopePos + Quaternion.Euler(0, CastleLayout.TelescopeYaw, 0) * new Vector3(0, 1.1f, .1f), new Vector3(.92f, 2.2f, 1.3f), CastleLayout.TelescopeYaw);
+            LogTelescope(scope);
+        }
+
+        // fc-art2 C, prepare-time evidence (HC_TELESCOPE): the telescope's footprint (the mesh bounds of the placed art, rotated by its yaw) must stand
+        // clear of the observatory's wall faces, the stair opening with its rail, and the orrery, and its tube must look out through a window of the
+        // tower floor: the sight line from the pivot along the tube (horizontal heading from the art's own forward axis, elevation
+        // CastleLayout.TelescopeTiltDeg) must cross the wall's inner and outer faces inside the opening, clear of its posts, sill and head.
+        // clear=False logs an error and fails the prepare (as HC_CANDLES does). The elevation is the generator's constant, not measured at runtime.
+        void LogTelescope(Transform art)
+        {
+            var pos = CastleLayout.TelescopePos;
+            float x0 = float.MaxValue, x1 = float.MinValue, z0 = float.MaxValue, z1 = float.MinValue; bool measured = false;
+            foreach (var f in art.GetComponentsInChildren<MeshFilter>())
+            {
+                if (!f.sharedMesh) continue;
+                var b = f.sharedMesh.bounds;
+                for (int i = 0; i < 8; i++)
+                {
+                    var c = b.center + Vector3.Scale(b.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                    var p = art.InverseTransformPoint(f.transform.TransformPoint(c));
+                    x0 = Mathf.Min(x0, p.x); x1 = Mathf.Max(x1, p.x); z0 = Mathf.Min(z0, p.z); z1 = Mathf.Max(z1, p.z); measured = true;
+                }
+            }
+            if (!measured) { var k = CastleKitAxis.Kit["Telescope"]; x0 = k.X0; x1 = k.X1; z0 = k.Z0; z1 = k.Z1; }
+            // footprint corners and tube heading in castle-local coordinates
+            float minX = float.MaxValue, maxX = float.MinValue, minZ = float.MaxValue, maxZ = float.MinValue;
+            foreach (float a in new[] { x0, x1 })
+                foreach (float bz in new[] { z0, z1 })
+                {
+                    var c = root.InverseTransformPoint(art.TransformPoint(new Vector3(a, 0, bz)));
+                    minX = Mathf.Min(minX, c.x); maxX = Mathf.Max(maxX, c.x); minZ = Mathf.Min(minZ, c.z); maxZ = Mathf.Max(maxZ, c.z);
+                }
+            var dir = root.InverseTransformDirection(art.TransformDirection(Vector3.forward * (z1 > -z0 ? 1f : -1f))); dir.y = 0; dir.Normalize();
+            // clearances: wall faces (interior of the observatory), stair opening plus rail, orrery footprint
+            var room = CastleLayout.Room(CastleRoom.Observatory);
+            float ix0 = room.X0 + CastleLayout.SpineWallHalf, ix1 = room.X1 - CastleLayout.ExteriorWallHalf, iz0 = room.Z0 + CastleLayout.SpineWallHalf, iz1 = room.Z1 - CastleLayout.ExteriorWallHalf;
+            float wallGap = Mathf.Min(Mathf.Min(minX - ix0, ix1 - maxX), Mathf.Min(minZ - iz0, iz1 - maxZ));
+            float Gap(float bx0, float bx1, float bz0, float bz1) => Mathf.Max(Mathf.Max(bx0 - maxX, minX - bx1), Mathf.Max(bz0 - maxZ, minZ - bz1));
+            float stairGap = Gap(hole2.X0, hole2.X1, hole2.Z0, hole2.Z1 + .75f);
+            var os = CastleLayout.ArtSize(Art.Orrery); var op = CastleLayout.OrreryPos;
+            float orreryGap = Gap(op.x - os.x * .5f, op.x + os.x * .5f, op.z - os.z * .5f, op.z + os.z * .5f);
+            // the window the tube looks out of: the nearest tower-floor window whose opening the sight line crosses (inner face, outer face)
+            float tan = Mathf.Tan(CastleLayout.TelescopeTiltDeg * Mathf.Deg2Rad), m = CastleLayout.TelescopeAimMargin;
+            string window = "none"; string aim = "";
+            float best = float.MaxValue;
+            foreach (var w in CastleLayout.Windows)
+            {
+                if (Mathf.Abs(w.FloorY - pos.y) > .01f) continue;
+                float dirN = w.RunsAlongX ? dir.z : dir.x, dirT = w.RunsAlongX ? dir.x : dir.z;
+                float pN = w.RunsAlongX ? pos.z : pos.x, pT = w.RunsAlongX ? pos.x : pos.z;
+                if (dirN * -w.Inward <= .05f) continue;                                  // the tube must head toward this wall
+                float inner = w.Line + w.Inward * CastleLayout.ExteriorWallHalf, outer = w.Line - w.Inward * CastleLayout.ExteriorWallHalf;
+                float ti = (inner - pN) / dirN, to = (outer - pN) / dirN;
+                if (ti <= 0) continue;
+                float ai = pT + dirT * ti, ao = pT + dirT * to;
+                float hi = pos.y + CastleLayout.TelescopePivotHeight + tan * ti, ho = pos.y + CastleLayout.TelescopePivotHeight + tan * to;
+                float lo = w.Center - w.Width * .5f + m, hiA = w.Center + w.Width * .5f - m;
+                bool inside = ai >= lo && ai <= hiA && ao >= lo && ao <= hiA && Mathf.Min(hi, ho) >= pos.y + w.Sill + m && Mathf.Max(hi, ho) <= pos.y + w.Top - m;
+                if (inside && ti < best)
+                {
+                    best = ti;
+                    window = w.Art + "@" + (w.RunsAlongX ? "z=" : "x=") + w.Line.ToString("F1") + "/" + w.Center.ToString("F1");
+                    aim = " aim_inner=(" + ai.ToString("F2") + "," + (hi - pos.y).ToString("F2") + ") aim_outer=(" + ao.ToString("F2") + "," + (ho - pos.y).ToString("F2") + ")";
+                }
+            }
+            bool elevOk = CastleLayout.TelescopeTiltDeg >= 20f && CastleLayout.TelescopeTiltDeg <= 35f;
+            bool clear = wallGap >= CastleLayout.TelescopeWallGap && stairGap >= CastleLayout.TelescopeFixtureGap && orreryGap >= CastleLayout.TelescopeFixtureGap && window != "none" && elevOk;
+            string line = "HC_TELESCOPE aim=" + (window != "none" ? "window" : "none") + " clear=" + clear + " pos=" + pos.ToString("F2") + " yaw=" + CastleLayout.TelescopeYaw.ToString("F0") + " heading=(" + dir.x.ToString("F2") + "," + dir.z.ToString("F2")
+                + ") elev=" + CastleLayout.TelescopeTiltDeg.ToString("F1") + " window=" + window + aim + " wall_gap=" + wallGap.ToString("F2") + " stair_gap=" + stairGap.ToString("F2") + " orrery_gap=" + orreryGap.ToString("F2")
+                + " footprint=[x " + minX.ToString("F2") + ".." + maxX.ToString("F2") + " z " + minZ.ToString("F2") + ".." + maxZ.ToString("F2") + "] bounds=" + (measured ? "mesh" : "kit-table");
+            if (clear) Debug.Log(line);
+            else
+            {
+                Debug.LogError(line);
+                if (!Application.isPlaying) throw new System.Exception(line);
+            }
         }
 
         void Crypt()

@@ -426,6 +426,25 @@ namespace HollowCurrent
         public const float BrazierHalf = .38f;        // widest part of the brazier: the bowl, 0.72 m across, plus a little for the interact box (0.7 m)
         public const float ChapelPropMinGap = .3f;    // minimum clear floor between the bell footprint and the brazier (m)
 
+        // ---- fc-art2 C: the observatory telescope ---------------------------------------------------------------------------------
+        // The tower telescope (tools/castle_furniture.py telescope()) is a brass tube on a tripod: eyepiece low at the front (imported -Z), objective
+        // rising away from the player at TelescopeTiltDeg from a pivot TelescopePivotHeight above the floor; AsImported, so at yaw 0 the tube runs
+        // toward +Z with the eyepiece 0.62 m behind the origin and the objective rim 1.96 m ahead of it (CastleKitAxis.Kit bounds). fb-layout/fc-fbx
+        // left it at (11.4, 27.0) yaw 180, i.e. tube pointing back into the room, because yaw 0 there drove the tube through the north wall.
+        // It now stands in the strip between the orrery (x <= 10.5) and the stair opening (x >= 12.1), 3.2 m short of the north wall, turned 8 degrees
+        // toward the window at x 12 (opening x 11.3..12.7, sill .9, head 3.6 above the tower floor): the tube's line reaches the wall's inner face at
+        // x 11.64, 2.75 m above the floor, and its outer face at 3.28 m, so it looks out through the opening at 30 degrees. CastleWorld.LogTelescope
+        // checks all of this at prepare time (HC_TELESCOPE) and fails the prepare when clear=False.
+        public static readonly Vector3 TelescopePos = new Vector3(11.25f, CastleLayout.FloorTower, 24.8f);
+        public const float TelescopeYaw = 8f;
+        public const float TelescopeTiltDeg = 30f;          // objective elevation: Rx(60) of the tube in tools/castle_furniture.py (20..35 wanted)
+        public const float TelescopePivotHeight = 1.15f;    // the tube's pivot above the floor, same file
+        public const float TelescopeWallGap = .12f;         // minimum clear floor between the footprint and a wall face
+        public const float TelescopeFixtureGap = .08f;      // ... and the stair opening / orrery footprints
+        public const float TelescopeAimMargin = .15f;       // the sight line must clear the window's side posts, sill and head by this much
+        public static readonly Vector3 OrreryPos = new Vector3(9.0f, CastleLayout.FloorTower, 24.0f);
+        public const float ExteriorWallHalf = .45f, SpineWallHalf = .30f;   // CastleWorld.Walls: exterior walls are .9 thick, spine walls and partitions .6
+
         // Crypt: coffin niches cut into the walls. Inward is the room side along the wall normal.
         public const float NicheWidth = 1.1f, NicheSill = .35f, NicheTop = 1.15f;
         public readonly struct CastleNicheDef
