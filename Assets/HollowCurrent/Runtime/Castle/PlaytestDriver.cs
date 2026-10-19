@@ -359,6 +359,7 @@ namespace HollowCurrent
             if(Mode=="huntcam"){yield return HuntCam();yield break;}
             if(Mode=="cold"){yield return Cold();yield break;}
             if(Mode=="doorproof"){yield return DoorProof();yield break;}
+            if(Mode=="settings"){yield return SettingsPages();yield break;}
             // Field kit from the lantern cart.
             yield return Use(Find(InteractKind.Kit),"field kit");
             if(!game.Case.Equipped)Blocker("kit not equipped");
@@ -1005,6 +1006,20 @@ namespace HollowCurrent
         }
         // ---- cold: a first-time player (fb-onboard) ------------------------------------------------------------------------------
         static readonly string[] ColdHides={"Hall armoire","Dining armoire","Kitchen larder","Confessional","Vestibule press"};
+        // fe-integ: the castle pause settings card on all three pages (fe-ui; HC_DOC_LAYOUT screen=settings). Paused castle play is the only place
+        // the castle card is drawn (the -hc-ui-only route runs in Bellwether). Frames NN_settings_p0..p2; no input, no gameplay claim.
+        IEnumerator SettingsPages()
+        {
+            var ui=game.GetComponent<Interface>();
+            for(int p=0;p<3;p++)
+            {
+                if(ui)ui.ShowSettingsPage(p);else{game.Paused=true;game.ApplyFocus();}
+                yield return Wait(1.2f);yield return Step("settings_p"+p);
+            }
+            game.Resume();yield return Wait(.5f);
+            Debug.Log("HC_PLAY_RESULT mode="+Mode+" won=False slain=False blockedDeaths=0 blockers="+(ui?0:1)+(ui?"":" [no Interface]"));
+            yield return Wait(1);Application.Quit();
+        }
         IEnumerator Cold()
         {
             var c=game.Case;float realStart=Time.realtimeSinceStartup;bool briefing=false;

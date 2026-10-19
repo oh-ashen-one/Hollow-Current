@@ -36,6 +36,7 @@ namespace HollowCurrent
         float nextNavigation;
         public string ControllerFocus=>focusedId;
         public void ShowDisplayPreferences(){settingsPage=1;Game.Paused=true;Game.ApplyFocus();}
+        public void ShowSettingsPage(int page){settingsPage=page;Game.Paused=true;Game.ApplyFocus();}   // fe-integ: castle driver mode "settings"
         bool ConsumeControllerAction(string id,bool enabled,bool layout)
         {
             if(!layout||pendingConfirm!=id)return false;
