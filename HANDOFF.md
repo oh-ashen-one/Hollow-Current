@@ -1,3 +1,49 @@
+# HANDOFF: fe2-count (wave FE2: grab variety, siege hidden survival, apparition floor). Read this section first.
+
+Branch `haunted-castle` = `hc/fe2-count`, pushed. Builder: Opus 5.5 (piece fe2-count), main clone, 2026-10-19. Nothing left running; GPU slot released (0/2 holders).
+- **Final build:** `Builds/macOS/Hollow Current.app` (both maps), Assembly-CSharp.dll 2026-10-19 08:31, built right after bake commit `b783b1c` (r3; code `181057e`). Three bake+build rounds (the budget): r1 `a3b5e69`, r2 `d263f15`, r3 `b783b1c`. Both maps re-baked every round (Presence/ScareDirector/Core changed).
+- PlayerPrefs restored: `unity.Bellwether Field Office.Hollow Current` `hc.castle.runs` = `L,E,L`; `com.bellwether.hollowcurrent` = `E,M,B`; `hc.castle.grabdeck` deleted. The grab deck carried across r1-r3 runs and was reset once before r3 natural4 (fresh-player deck). Backups: session scratchpad `fe2/{u,c}.backup.plist`.
+- `CODEX_HANDOFF.md` still uncommitted and untouched; `rounds/r13/critic/` untracked. Evidence (local, gitignored): logs `.playtest-fe2-<round>-<run>.log`, frames `docs/haunted-castle/rounds/r13/captures/fe2/<round>/<run>/`. Analysis script: scratchpad `fe2/an.py`.
+
+**What changed** (`ab1eab6`, `dfc21c0`, `181057e`)
+- Grab variety (`Presence.cs`, `CountClaudeProfile.cs`): drop-spin start searched over bearings 80/100/60/120/140/160 (the 3 m drawbridge only has points behind her); side-snatch frame may turn 0/20/-15/35 deg toward his side; an approach may bend (NavMesh route <= 4 legs and <= 1.7x straight + 1 m, or within 9 m of him any route <= 14 m whose last sample sees her eye); a dive senses her within 3 m whatever his facing (fear's "outside the sight cone" hover over her head); a planned drop-spin with him already above her (>= 1.8 m, within stand-off + 0.2) commits from there; after 2 abandoned variant plans in a hunt the next dive forces the simplest feasible variant; floor step 0.4 m (her transform on a 0.27 m altar step read "no floor at her level" everywhere); the drop-spin view follows his skull at 0.55 of the half FOV (r1 fear left the frame at t 0.16-0.30); a released grab ends its plan; deck targets drop .45 / side .22 / spin .15. Every n/a reason is now per side (`L ...; R ...`).
+- Siege (`NearMissDice.cs`, `Presence.cs`): base open roll 0.24 -> 0.28; at Dread >= 50, after 2 failed 0.33 first-visit attempts he checks her hide (`reason=pity`). Model (`WaveFE2Tests`, 20k sets): mean hidden survival 72.6 %, pooled <= 85 % in 89 % of 3-siege sets, quick re-open 82 %.
+- Apparitions (`ScareRhythm.cs`, `ScareDirector.cs`): a due apparition with no visible point retries every 2.5-4 s (was 12-25 s) with a wider fan when the floor is behind (`VisiblePointWide`); while the floor is behind, the grace's last-20 s margin no longer blocks (the 11.5 s hunt gate still holds); a due time lost in a block with the count 2 behind comes 4-10 s after the lift. Model: >= 4 in 480 s 0.969 -> 0.998, 3-run CV >= 0.5 share 0.92 (bar 0.9), hunts <= 10 s after an apparition 0.
+- Driver (`PlaytestDriver.cs`): natural stops stand on the NavMesh floor under the stop (the rune-ring stop put her on a 1.88 m top, the print stop on the floor above); forced dice wait out the apparition gate; a failed recording is retried once after interference (r2 fear lost 5 steps to these two).
+- `CaptureMode.cs`: `FRAMETIME_HITCH` lists every frame > 14 ms with GC / alloc / log / texture-streaming counts.
+
+**Diagnosis, band 2:** dice, not a regression. The FE gate/floor did not reduce visits per hunt; FE siege1 rolled six 0.33 first-visit attempts in a row (never came), siege3 three, so visits were 0/5/3 (FD 5/3/5) and 1 open in 8 visits. The pre-change model gives 78.8 % expected survival with only 72 % of 3-siege sets passing.
+
+| Band | FE (5d4ab3b) | r1 | r2 | **r3 final** | Verdict |
+|---|---|---|---|---|---|
+| m10 / m11 / m12 commits | 0 / 0 / 0 of 29 | 2 / 0 / 2 | 3 / 1 / 0 | **0 / 3 / 3** (9 naturals + fear + huntcam) | m10 **FAIL** on the final build (5 on r1+r2) |
+| Open grabs; drops with headroom | 18; 6/15 = 40 % | 9; 4/7 | 11; 3/9 = 33 % | **24; 11/15 = 73 %** | PASS |
+| Dives unresolved | 0 | 0 | 0 | **0** (38 dives, 32 commits, 13 misses) | PASS |
+| Continuity / HUD / first frame / cam | pass | 16/16, 0 px, all visible, 0.65 | 18/18 | **39/39 `pass=True`, HUD 0 px, 39/39 visible, cam min 0.65** | PASS |
+| Hidden survival, siege_held x3 | 17/18 = 94 % | 15/18 = 83 % | 12/18 = 67 % | **12/18 = 67 %**; visits 4/6/6, opens 1/2/3; re-open within 2 visits in siege2 and siege3 | PASS (r1-r3 pooled 39/54 = 72 %) |
+| Visible apparitions < 480 s | 7/9 runs >= 4 | 5/4/3 | 5/4/5 | **9/9 runs >= 4** (5 4 5 / 4 5 5 / 5 5 4) | PASS |
+| Apparition CV, 3-run sets | 0.64-0.72 | 0.56 | 0.63 | **0.55 / 0.43 / 0.69** (9-run pool 0.57) | PASS on the test set (natural1-3); one extra set 0.43 |
+| Hunts <= 10 s after an apparition | 0 | 0/28 | 0/27 | **0/44** | PASS |
+| Hunt share / longest gap (naturals) | 15-30 % | | | 0.164-0.262 / 131-227 s | PASS |
+| S4 p99 rooms_off / rooms_on | 17.97 / 15.83 | 14.59 / 11.48 | | **11.57 / 11.40** | PASS |
+| fear / huntcam / Bellwether `-hc-verify` | | WON / commit m8 | fear FAIL (driver) | **fear WON 0 blockers; huntcam commit m8; `HC_NATIVE_ROUTE_PASS`, 64 PASS, 0 FAIL** (`HC_PERF pass=False engine_cost_over_16ms=121`, known) | PASS |
+| Exceptions | 0 | 0 | 0 | 0 | PASS |
+
+Grab histogram, final build (HC_GRAB_COMMIT, all r3 runs incl. sieges): m8 16, m9 17 (6 of them siege hide grabs), m10 0, m11 3, m12 3.
+
+**Looked at (frames):** side snatch `r1/natural3/10-16` (m10, gallery): he lunges in from her left edge, skull at x 0.32 at +0.30 s, centred by 0.60, no pop (seat 0.25 m). `r3/natural6` m11 (frame turned 35 deg): skull in the central 60 % at every sample, continuity pass, but seat gap 0.83 m (variant seats are not reseated). Drop-spin `r3/natural2/10-16`: he is in frame at every sample and falls continuously, skull x 0.68 at +0.30 s, but at +0.30 s her own torch hand covers his head; r1's drawbridge spin (`r1/fear/32-39`, before the view tracking) left the frame at 0.16-0.30, fixed in r2.
+
+**S4:** the hitches are isolated 15-19 ms frames (2-3 per 3 s window) with no GC collection, no log line, no texture streaming in them (`FRAMETIME_HITCH`); not reproducible as a cause, so no fix. p99 passed in every r1/r3 capture.
+
+**Open items (new first)**
+1. m10 (left side snatch) 0 on the final build: the deck carried 5 left commits from r1/r2, so left plans were rare; the two that came (`r3/natural9`) were dropped "at the start point, came in low (1.5 m)" (PredictGrab's bearing / SideClear check at commit fails) and by a 8-leg detour. Next step: log the bearing and SideClear frame at that drop and let a planned side commit when the bearing is within 25-115 deg.
+2. Variant seat gaps 0.6-1.0 m (m11 0.83/1.01, m12 0.60-0.61; r2 m10 2.91) slide over 0.35-0.9 s: the FE reseat rule exempts side/spin. Frames show no pop, but a critic may see the slide.
+3. One extra 3-run set had apparition CV 0.43 (floor regularises the gaps); the model keeps 92 % of sets >= 0.5.
+4. 13 of 38 dives end as misses (moving away from a raised/hall spot, recommit blocks after a driver-blocked kill, "path blocked by Ledger: the painter" at the altar).
+5. Carried from FE: hall lantern-off exposure (4 views 30-32 vs 35), FD items 6/8. Merges to `main` need the owner.
+
+---
+
 # HANDOFF: wave FE integrated, built and proved (fe-integ). Read this section first.
 
 Branch `haunted-castle` = `hc/integ-fe`, pushed. Integrator: Opus 5.5 (piece fe-integ), main clone, 2026-10-19. Nothing left running; GPU slot released (0/2 holders).
