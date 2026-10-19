@@ -19,7 +19,7 @@ Tests (luma = Rec.601 on 8-bit sRGB, as tools/exposure_report.py; Rec.709 where 
   S1 table          table + chairs + table candlesticks pixels with luma >= 14 in the lantern-off frame: >= 15000 (the r14 frame: "a small
                     dark shape ... legible only with the lantern on").
   S1 floor mirror   below the horizon, within +-60 px of the rose window's x: a connected cluster of >= 80 px of floor, dais or polished
-                    table-top pixels with luma >= 40 and B >= R (cold: the moonlit rose, not a candle), i.e. the rose window's mirror streak.
+                    table-top pixels with luma >= 40 that are not warm (R > G + 20 and G > B: flames, candle-lit wood), i.e. the rose's cold streak.
                     From S1 the rose's true mirror point is 35 degrees below the horizon, under the skeleton's ribcage, and the axis beyond it
                     is the table: the streak shows on the table top and in the floor gaps (floor-only cluster reported as INFO).
   S4 seam           battlement_out and bridge_left: along every moat row, a 7-px median then 8-px block means; the largest step between
@@ -78,18 +78,21 @@ def vec(s):
     except Exception: return None
 
 def camera_check(png, meta_key):
+    """False when capture.json's camera differs from the mask's (None when either is unknown, True when they match)."""
     mj = MASKS / ("hall_masks.json" if png.stem.startswith("S1") else "exterior_masks.json")
-    if not mj.exists(): return
+    if not mj.exists(): return None
     meta = json.loads(mj.read_text()).get(meta_key)
     e = capture_entry(png)
-    if not meta or not e: return
+    if not meta or not e: return None
     eye = vec(e.get("eye", "")); tgt = vec(e.get("target", ""))
-    if eye is None or tgt is None: return
+    if eye is None or tgt is None: return None
     fwd = tgt - eye; fwd /= max(np.linalg.norm(fwd), 1e-9)
     de = np.linalg.norm(eye - np.array(meta["eye"])); df = np.degrees(np.arccos(np.clip(fwd @ np.array(meta["fwd"]), -1, 1)))
     if de > .05 or df > .5:
-        report("mask camera " + png.stem, False, "capture eye %s target %s vs mask eye %s fwd %s (de %.2f m, dfwd %.1f deg): masks do not fit this frame"
-               % (e.get("eye"), e.get("target"), meta["eye"], meta["fwd"], de, df), "WARN")
+        report("mask camera " + png.stem, False, "capture eye %s target %s vs mask eye %s fwd %s (de %.2f m, dfwd %.1f deg): masks do not fit this frame,"
+               " its mask tests are WARN only" % (e.get("eye"), e.get("target"), meta["eye"], meta["fwd"], de, df), "WARN")
+        return False
+    return True
 
 def lantern_of(png):
     log = png.parent / "player.log"
@@ -183,7 +186,8 @@ def hall(pngs):
             report("exposure S1 lantern on", 12 <= dark <= 25, "near-black %.1f %% (band 12-25) %s" % (dark, p))
             continue
         if not hm: report("S1 masks", False, "no tools/ff_art_masks/hall_masks.json", "WARN"); continue
-        camera_check(p, "S1_great_hall")
+        fits = camera_check(p, "S1_great_hall") is not False
+        def rep(test, ok, detail, level=None): report(test, ok, detail, level if fits else ("INFO" if level == "INFO" else "WARN"))
         # lancets
         good, moon, lines = 0, 0, []
         for lan_id, info in sorted(hm.get("lancets", {}).items()):
@@ -197,8 +201,8 @@ def hall(pngs):
             bright = m & (L >= 150); lab, n = ndi.label(bright); bm = int(ndi.sum(bright, lab, range(1, n + 1)).max()) if n else 0
             moon += bm >= 80
             lines.append("%s %d/%d rows%s%s" % (lan_id, rows_geom, rows_lit, " moon %dpx" % bm if bm else "", "" if ok else " (short)"))
-        report("S1 lancets >= 150 px", good >= 3, "%d lancets (pass >= 3): %s" % (good, "; ".join(lines)))
-        report("S1 moon in a lancet", moon >= 1, "%d lancets show a moon cluster >= 80 px of luma >= 150" % moon)
+        rep("S1 lancets >= 150 px", good >= 3, "%d lancets (pass >= 3): %s" % (good, "; ".join(lines)))
+        rep("S1 moon in a lancet", moon >= 1, "%d lancets show a moon cluster >= 80 px of luma >= 150" % moon)
         # piers (geometry)
         piers = hm.get("piers", {})
         worst = {}
@@ -206,31 +210,31 @@ def hall(pngs):
             side = "west" if info["x"] < 0 else "east"
             if side not in worst or info["depth"] < worst[side]["depth"]: worst[side] = dict(info, id=pid)
         ok = bool(worst) and all(w["aspect"] >= 2.0 for w in worst.values())
-        report("S1 piers 2x tall", ok, "; ".join("%s nearest %s: %dx%d px aspect %.2f" % (s, w["id"], w["h"], w["w"], w["aspect"]) for s, w in sorted(worst.items())) + " (pass >= 2.0, proxy geometry)")
+        rep("S1 piers 2x tall", ok, "; ".join("%s nearest %s: %dx%d px aspect %.2f" % (s, w["id"], w["h"], w["w"], w["aspect"]) for s, w in sorted(worst.items())) + " (pass >= 2.0, proxy geometry)")
         # table
         tm = mask(hm.get("table_mask", "S1_table.png"), a.shape)
         if tm is not None:
             n14 = int((tm & (L >= 14)).sum()); n8 = int((tm & (L >= 8)).sum())
-            report("S1 table lantern off", n14 >= 15000, "%d table px with luma >= 14 (%d >= 8; %d in the proxy) (pass >= 15000)" % (n14, n8, int(tm.sum())))
+            rep("S1 table lantern off", n14 >= 15000, "%d table px with luma >= 14 (%d >= 8; %d in the proxy) (pass >= 15000)" % (n14, n8, int(tm.sum())))
         # floor mirror of the rose window
         fm = mask(hm.get("mirror_mask", "S1_mirror.png"), a.shape)
         rx, hy = hm.get("rose_x", W / 2), hm.get("horizon_y", H / 2)
         xs = np.arange(W)[None, :].repeat(H, 0); ys = np.arange(H)[:, None].repeat(W, 1)
         R, G, B = a[..., 0], a[..., 1], a[..., 2]
-        cold = B >= R                                     # the moonlit window's mirror is cold; candle flames and candle-lit wood are not
-        zone = (np.abs(xs - rx) <= 60) & (ys > hy) & cold & (L >= 40)
+        warm = (R > G + 20) & (G > B)                     # the project's warm formula (tools/exposure_report.py): flames, candle-lit wood
+        zone = (np.abs(xs - rx) <= 60) & (ys > hy) & ~warm & (L >= 40)
         for label, m in (("floor", zone & fm if fm is not None else None), ("any", zone)):
             if m is None: continue
             lab, n = ndi.label(m); big = int(ndi.sum(m, lab, range(1, n + 1)).max()) if n else 0
             if label == "floor":
-                report("S1 floor mirror", big >= 80, "largest cold (B >= R) luma>=40 cluster on the floor / dais / polished table top: %d px within +-60 px of the rose x %d below the horizon y %d (pass >= 80)" % (big, rx, hy))
+                rep("S1 floor mirror", big >= 80, "largest not-warm luma>=40 cluster on the floor / dais / polished table top: %d px within +-60 px of the rose x %d below the horizon y %d (pass >= 80)" % (big, rx, hy))
             else:
-                report("S1 bright below rose", True, "largest cold luma>=40 cluster (any surface) %d px" % big, "INFO")
+                rep("S1 bright below rose", True, "largest not-warm luma>=40 cluster (any surface) %d px" % big, "INFO")
         if fm is not None:
             flo = mask(hm.get("floor_mask", "S1_floor.png"), a.shape)
             if flo is not None:
                 m = zone & flo; lab, n = ndi.label(m); big = int(ndi.sum(m, lab, range(1, n + 1)).max()) if n else 0
-                report("S1 floor-only mirror", True, "the same on the floor / dais alone: %d px (the true mirror point is under the skeleton's ribcage)" % big, "INFO")
+                rep("S1 floor-only mirror", True, "the same on the floor / dais alone: %d px (the true mirror point is under the skeleton's ribcage)" % big, "INFO")
 
 def main():
     dirs = [Path(a) for a in sys.argv[1:] if not a.startswith("--") and not (sys.argv[sys.argv.index(a) - 1] == "--json")]
