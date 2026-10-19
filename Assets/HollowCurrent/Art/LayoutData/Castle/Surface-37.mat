@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Castle exterior windows
-  m_Shader: {fileID: 4800000, guid: 747a044ba403fe9e25122b810951f5ff, type: 3}
+  m_Name: Castle decal / Castle_SootBase
+  m_Shader: {fileID: 4800000, guid: 26b19b7ec880bc4602be0c39067e7ab5, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -24,12 +24,13 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: f6d0d56b9b7dfbf653f2910d145abbc7, type: 3}
+        m_Texture: {fileID: 2800000, guid: 4bcd61a43586b62d276d3cf3e2764f0d, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Intensity: 1.5
-    m_Colors: []
+    - _Smooth: 0.12
+    m_Colors:
+    - _Color: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

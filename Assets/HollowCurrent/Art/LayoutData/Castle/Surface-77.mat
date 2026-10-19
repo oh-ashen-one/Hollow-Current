@@ -7,14 +7,13 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: HC castle / hall vault stone
-  m_Shader: {fileID: 4800000, guid: 8168a48c3681c8ccc9c921c9bd28a630, type: 3}
+  m_Name: Castle surface / Castle_FlagStone / World
+  m_Shader: {fileID: 4800000, guid: 97422229ed157a2e37c90ce2d5ae94a4, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
-  m_ValidKeywords:
-  - _EMISSION
+  m_ValidKeywords: []
   m_InvalidKeywords: []
-  m_LightmapFlags: 0
+  m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
@@ -25,15 +24,15 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 0984058cfdf455fd0629c19ea9d6ca35, type: 3}
+        m_Texture: {fileID: 2800000, guid: 42a7fd4cad28770d136e9adce2f9243c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 712fde4bfc8fda906823243f82bbba6b, type: 3}
+        m_Texture: {fileID: 2800000, guid: 50d97bb0b659b9cffe8c2fc34cc645eb, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MaskTex:
-        m_Texture: {fileID: 2800000, guid: 253a92b484d8b7adba9c71a50d18b11f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 73d78e646bf5f880df0a33ab10df4e9a, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
@@ -41,10 +40,10 @@ Material:
     - _BumpScale: 1
     - _FillAmount: 1
     - _Sharp: 6
-    - _Tile: 0.667
+    - _Tile: 0.5
     m_Colors:
-    - _Color: {r: 0.8, g: 0.82, b: 0.92, a: 1}
-    - _EmissionColor: {r: 0.03, g: 0.04, b: 0.07, a: 1}
+    - _Color: {r: 0.7627309, g: 0.7548285, b: 0.80692613, a: 1}
+    - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _Flow: {r: 0.02, g: 0.012, b: 1.7, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
