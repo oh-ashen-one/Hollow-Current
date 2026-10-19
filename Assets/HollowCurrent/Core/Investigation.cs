@@ -216,7 +216,7 @@ namespace HollowCurrent
             // The saved event part keeps decaying; the death penalty's Dread above the saved ambient part is event Dread too.
             float savedAmbient=Math.Max(0,saved.Dread-Math.Max(0,saved.DreadEvent));
             DreadEvent=!Rules.UsesDread?0:Math.Max(0,Math.Min(Dread,DeathPenaltyApplied?Dread-savedAmbient:saved.DreadEvent));
-            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();apparitionShadow=0;apparitionAt=float.NegativeInfinity;escalationPending=false;quietShareTime=0;GovernorAtLastGrace=1;firstThreatAt=-1;quietBeforeThreat=false;
+            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();apparitionShadow=0;apparitionAt=float.NegativeInfinity;escalationPending=false;escalationDueAt=-1;sharePullAt=-1;quietShareTime=0;GovernorAtLastGrace=1;firstThreatAt=-1;quietBeforeThreat=false;
             if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
             feltBase=Dread;feltEpisodeKind=0;if(Rules.UsesDread)ScheduleFeltEpisode(Elapsed);firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
@@ -318,6 +318,8 @@ namespace HollowCurrent
                 else TickRecoveryDice(dt);
             }
             else if (Phase == Phase.Survey || Phase == Phase.Containment) { if (!TickFirstHunt(dt)) TickQuietDice(dt); }
+            // Wave FE (castle): an armed escalation's delayed tell, then the share floor (both no-ops without their rules).
+            if (Rules.UsesDread && !Terminal) { TickArmedEscalation(); TickShareFloor(); }
         }
         // First-hunt guarantee (the mystery needs a hunt survived, so it can never stall). Record-keyed (Disturbance, from the
         // FirstHuntEvidence-th record) or, with Rules.FirstHuntFromSpawn, from the run's first Survey second in Survey and
@@ -330,6 +332,7 @@ namespace HollowCurrent
             if (firstHuntAt < 0) firstHuntAt = Plan != null ? Plan.FirstHuntMin + (Plan.FirstHuntMax - Plan.FirstHuntMin) * Roll() : Rules.FirstHuntMax > Rules.FirstHuntMin ? HuntRules.Draw(Rules.FirstHuntMin, Rules.FirstHuntSeconds, Rules.FirstHuntMax, Roll()) : Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
             if (firstHuntClock < firstHuntAt) return false;
             if (ColdHold) return false;   // wave FD: a cold run's first hunt waits for a read page or ColdFirstHuntCap
+            if (HuntGateHolds("first")) return false;   // wave FE: never within ApparitionHuntGap after a visible apparition
             StartThreat(false);
             return true;
         }
@@ -356,6 +359,7 @@ namespace HollowCurrent
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
+            if (HuntGateHolds("dice")) { diceTimer = NextDiceInterval(); return; }
             if (Roll() < Rules.QuietPhaseChance) { StartThreat(true); return; }
             diceTimer = NextDiceInterval();
         }
@@ -386,6 +390,7 @@ namespace HollowCurrent
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
+            if (HuntGateHolds("dice")) { diceTimer = NextDiceInterval(); return; }
             if (Roll() < chance) { StartThreat(true); return; }
             diceTimer = NextDiceInterval();
         }
@@ -415,7 +420,7 @@ namespace HollowCurrent
             // Wave FD: before a cold run's gate opens, only TickFirstHunt may start the first hunt (and it waits for the gate too).
             if (ColdHold) { TickFirstHunt(dt); return; }
             // Timed hunt: Bellwether's 95 s timer, the castle's 240 s floor.
-            if (Rules.TimedHuntSeconds > 0 && dreadful && huntClock >= Rules.TimedHuntSeconds && Evidence.Count >= Rules.TimedHuntEvidence && !DiceHeld) { StartThreat(false); return; }
+            if (Rules.TimedHuntSeconds > 0 && dreadful && huntClock >= Rules.TimedHuntSeconds && Evidence.Count >= Rules.TimedHuntEvidence && !DiceHeld) { if (HuntGateHolds("timed")) return; StartThreat(false); return; }
             // First-hunt guarantee so the mystery cannot stall at low Dread (TickFirstHunt: record-keyed, or from spawn).
             if (TickFirstHunt(dt)) return;
             // Dice-roll hunts: banded at or above the run's boundary, a flat low roll below it after the first hunt.
@@ -425,11 +430,15 @@ namespace HollowCurrent
                 if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
                 diceTimer -= dt;
                 if (diceTimer > 0) return;
-                float chance = dreadful ? Rules.DiceChance(diceDread, Evidence.Count, RunDreadMin) / Math.Max(1, Governor) : Rules.LowDreadChance;
+                if (HuntGateHolds("dice")) { diceTimer = NextDiceInterval(); return; }
+                float chance = dreadful ? Rules.DiceChance(diceDread, Evidence.Count, RunDreadMin) / Math.Max(1, Governor) : LowChanceNow;
                 if (Roll() < chance) { StartThreat(true); return; }
                 diceTimer = NextDiceInterval();
             }
         }
+        // Wave FE: the low-Dread roll, scaled by Rules.LateLowChanceScale in a Late-band run once its long quiet stretch has happened
+        // (the Late band's first hunt comes 160-200 s in, so its later cadence is quicker; still a memoryless roll, so gaps stay irregular).
+        public float LowChanceNow => Rules.LowDreadChance * (Plan != null && Plan.Band == FirstHuntBand.Late && LongQuietDone && Rules.LateLowChanceScale > 0 ? Rules.LateLowChanceScale : 1);
         float NextDiceInterval() => Rules.DiceIntervalMin + (Rules.DiceIntervalMax - Rules.DiceIntervalMin) * Roll();
         float Roll()
         {
@@ -451,6 +460,13 @@ namespace HollowCurrent
         }
         void Warn(float seconds, bool falseAlarm, bool say, bool escalated = false)
         {
+            // Wave FE: a Warning that would hand over to its hunt inside ApparitionHuntGap after a visible apparition is lengthened at its
+            // start (so the strobe and its timer agree). Dice, timed and first-hunt Warnings never start inside the gap; this covers the bell.
+            if (Rules.ApparitionHuntGap > 0 && !falseAlarm)
+            {
+                float minLength = apparitionAt + Rules.ApparitionHuntGap - Elapsed;
+                if (seconds < minLength) { Note("HC_APPARITION_GATE deferred=hunt source=" + (escalated ? "escalation" : "warning") + " reason=apparition_recent since=" + F1(Elapsed - apparitionAt) + " warning=" + F1(seconds) + "->" + F1(minLength) + " t=" + F1(Elapsed)); seconds = minLength; }
+            }
             EscalatedWarning = escalated; escalationPending = escalated;
             BreakerOn = false;
             WarningLength = seconds;
@@ -539,7 +555,15 @@ namespace HollowCurrent
         public bool DiceHeld => DiceHoldRemaining > 0 && DiceDread < Rules.LullDiceDread;
         // The rhythm's lull (ScareDirector: if(rhythm.TakeLullStart())Case.HoldDiceForLull()). Holds only until the run's long quiet
         // stretch has happened.
-        public void HoldDiceForLull() { if (!LongQuietDone) HoldDice(Rules.LullHoldSeconds); }
+        // Wave FE (r13 FD natural2: a lull that began 1 s before the long quiet stretch completed held the dice 119 s past it, so the Late run
+        // had one hunt in 520 s): after the first hunt a lull hold ends when the long quiet stretch does.
+        public void HoldDiceForLull()
+        {
+            if (LongQuietDone) return;
+            float seconds = Rules.LullHoldSeconds;
+            if (Hunts > 0 && Rules.FirstHuntAfterHold > 0) seconds = Math.Min(seconds, Math.Max(0, Rules.FirstHuntAfterHold - quietStretch));
+            HoldDice(seconds);
+        }
         // True once the run has had a threat-free stretch of FirstHuntAfterHold seconds after its first hunt.
         public bool LongQuietDone { get; private set; }
         float quietStretch;
@@ -556,6 +580,7 @@ namespace HollowCurrent
             if (Rules.EscalationLitChance > 0 || Rules.EscalationDarkChance > 0)
             {
                 if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return 0;
+                if (escalationDueAt >= 0) return 0;                                      // wave FE: one is already armed
                 if (Apparitions <= 1) return 0;                                            // never the run's first apparition
                 if (Rules.EscalationNeedsFirstHunt && Hunts == 0) return 0;              // wave L3: the first hunt comes from its band
                 if (DiceHeld) return 0;                                                  // wave L3: a lull or the post-first-hunt hold
@@ -571,6 +596,7 @@ namespace HollowCurrent
             if (Rules.EscalationLitChance > 0 || Rules.EscalationDarkChance > 0)
             {
                 if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return "phase";
+                if (escalationDueAt >= 0) return "armed";
                 if (Apparitions <= 1) return "first_apparition";
                 if (Rules.EscalationNeedsFirstHunt && Hunts == 0) return "before_first_hunt";
                 if (DiceHeld) return "held";
@@ -587,12 +613,120 @@ namespace HollowCurrent
             float chance = EscalationChanceNow(dark);
             if (chance <= 0) return false;
             if (Roll() >= chance) return false;
+            // Wave FE: with an apparition gap the escalation is armed, not started: its short tell begins so that the hunt starts
+            // ApparitionHuntGap..+EscalationArmJitter s after the apparition (Tick fires it; a threat or Containment first cancels it).
+            if (Rules.ApparitionHuntGap > 0)
+            {
+                float tell = Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0 ? 0 : Rules.EscalationWarningSeconds;
+                escalationDueAt = Math.Max(Elapsed, apparitionAt + Rules.ApparitionHuntGap - tell) + EscalationArmJitter * Roll();
+                Note("HC_APPARITION_GATE deferred=escalation reason=apparition_recent since=" + F1(Elapsed - apparitionAt) + " tellIn=" + F1(escalationDueAt - Elapsed) + " huntIn=" + F1(escalationDueAt + tell - Elapsed) + " t=" + F1(Elapsed));
+                return true;
+            }
+            FireEscalation();
+            return true;
+        }
+        // Wave FE: an armed escalation's tell starts at this case time (-1 = none armed).
+        public float EscalationDueAt => escalationDueAt;
+        public const float EscalationArmJitter = 2;
+        float escalationDueAt = -1;
+        void FireEscalation()
+        {
             escalationPending = true;
             ThreatFrom = Phase;
             if (Rules.WarningSeconds <= 0 || Rules.EscalationWarningSeconds <= 0) StartHunt(true);
             else Warn(Rules.EscalationWarningSeconds, false, false, true);
+        }
+        // Wave FE: fires an armed escalation when its time comes, in the phases an escalation may start from (Disturbance, Recovery);
+        // anything else by then (a threat, Containment, the end) cancels it.
+        void TickArmedEscalation()
+        {
+            if (escalationDueAt < 0) return;
+            if (Terminal || Phase != Phase.Disturbance && Phase != Phase.Recovery) { Note("HC_APPARITION_GATE escalation=cancelled phase=" + Phase + " t=" + F1(Elapsed)); escalationDueAt = -1; return; }
+            if (Elapsed < escalationDueAt) return;
+            escalationDueAt = -1;
+            Note("HC_APPARITION_GATE escalation=fired since=" + F1(Elapsed - apparitionAt) + " t=" + F1(Elapsed));
+            FireEscalation();
+        }
+        // ---- Wave FE: the apparition gap and the share floor ------------------------------------------------------------------------------
+        // A hunt may not start now: a visible apparition was noted less than Rules.ApparitionHuntGap s ago. Logs one
+        // HC_APPARITION_GATE deferred=hunt line per apparition and source.
+        public bool ApparitionGateClosed => Rules.ApparitionHuntGap > 0 && Elapsed - apparitionAt < Rules.ApparitionHuntGap;
+        bool HuntGateHolds(string source)
+        {
+            if (!ApparitionGateClosed) return false;
+            if (gateLoggedAt != apparitionAt || gateLoggedSource != source)
+            {
+                gateLoggedAt = apparitionAt; gateLoggedSource = source; GateDeferrals++;
+                Note("HC_APPARITION_GATE deferred=hunt source=" + source + " reason=apparition_recent since=" + F1(Elapsed - apparitionAt) + " opensIn=" + F1(apparitionAt + Rules.ApparitionHuntGap - Elapsed) + " phase=" + Phase + " t=" + F1(Elapsed));
+            }
             return true;
         }
+        float gateLoggedAt = float.NaN; string gateLoggedSource = "";
+        public int GateDeferrals { get; private set; }
+        // Seconds until a threat this rules engine already knows about starts: the first-hunt deadline (after the cold gate), the timed
+        // hunt, an armed share-floor pull or an armed escalation. +Infinity when none is known (dice are never known in advance).
+        // ScareDirector (castle) holds an apparition that would land within ScareRhythm.CastlePlannedHuntWindow s before it.
+        public float PlannedThreatIn
+        {
+            get
+            {
+                float best = float.PositiveInfinity;
+                if (Terminal || Phase == Phase.Briefing || Phase == Phase.Warning || Phase == Phase.Hunt) return best;
+                if (Hunts == 0 && Rules.FirstHuntSeconds > 0 && firstHuntAt >= 0 && (Rules.FirstHuntFromSpawn ? Phase == Phase.Survey || Phase == Phase.Disturbance : Phase == Phase.Disturbance && Evidence.Count >= Rules.FirstHuntEvidence))
+                {
+                    float d = firstHuntAt - firstHuntClock;
+                    if (ColdHold) d = Math.Max(d, Rules.ColdFirstHuntCap - Elapsed);
+                    best = Math.Min(best, d);
+                }
+                if (Phase == Phase.Disturbance && Rules.TimedHuntSeconds > 0 && DiceDread >= RunDreadMin && Evidence.Count >= Rules.TimedHuntEvidence && !DiceHeld)
+                    best = Math.Min(best, Rules.TimedHuntSeconds - huntClock);
+                if (sharePullAt >= 0) best = Math.Min(best, sharePullAt - Elapsed);
+                if (escalationDueAt >= 0) best = Math.Min(best, escalationDueAt - Elapsed);
+                return Math.Max(0, best);
+            }
+        }
+        // The share floor (Rules.ShareFloor): see HuntRules. Logs HC_SHARE_FLOOR armed / pulled / cancelled.
+        float sharePullAt = -1;
+        public int SharePulls { get; private set; }
+        public float SharePullAt => sharePullAt;
+        bool ShareFloorEligible(out string why)
+        {
+            why = "ok";
+            if (Terminal) { why = "terminal"; return false; }
+            if (Hunts == 0) { why = "no_hunt_yet"; return false; }
+            if (Rules.ShareFloorMaxPulls > 0 && SharePulls >= Rules.ShareFloorMaxPulls) { why = "pulls_used"; return false; }
+            if (Elapsed < Rules.ShareFloorAfter) { why = "early"; return false; }
+            if (Phase != Phase.Survey && Phase != Phase.Disturbance && Phase != Phase.Recovery) { why = "phase_" + Phase; return false; }
+            if (GraceRemaining > 0) { why = "grace"; return false; }
+            if (Rules.FirstHuntAfterHold > 0 && !LongQuietDone) { why = "long_quiet_pending"; return false; }
+            if (HuntShare >= Rules.ShareFloor) { why = "share_ok"; return false; }
+            return true;
+        }
+        void TickShareFloor()
+        {
+            if (Rules.ShareFloor <= 0) return;
+            if (!ShareFloorEligible(out string why))
+            {
+                if (sharePullAt >= 0 && (why == "share_ok" || why == "terminal" || why.StartsWith("phase_", StringComparison.Ordinal)))
+                { Note("HC_SHARE_FLOOR cancelled reason=" + why + " share=" + HuntShare.ToString("F3", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed)); sharePullAt = -1; }
+                return;
+            }
+            if (sharePullAt < 0)
+            {
+                sharePullAt = Elapsed + Lerp(Rules.ShareFloorPullMin, Rules.ShareFloorPullMax, Roll());
+                Note("HC_SHARE_FLOOR armed share=" + HuntShare.ToString("F3", System.Globalization.CultureInfo.InvariantCulture) + " floor=" + Rules.ShareFloor.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " pullIn=" + F1(sharePullAt - Elapsed) + " phase=" + Phase + " t=" + F1(Elapsed));
+                return;
+            }
+            if (Elapsed < sharePullAt) return;
+            if (HuntGateHolds("share_floor")) return;
+            SharePulls++; sharePullAt = -1;
+            Note("HC_SHARE_FLOOR pulled=" + SharePulls + " share=" + HuntShare.ToString("F3", System.Globalization.CultureInfo.InvariantCulture) + " phase=" + Phase + " t=" + F1(Elapsed));
+            StartThreat(false);
+        }
+        // Rules diagnostics for the runtime log (Game: Case.Diagnostic += Debug.Log). Castle only; Bellwether never raises it.
+        public event Action<string> Diagnostic;
+        void Note(string line) => Diagnostic?.Invoke(line);
+        static string F1(float v) => v.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
         // Clamped 0-100; ignored when the map has no dread. What it adds is event Dread (it decays);
         // during a hunt the total added is capped at Rules.HuntDreadCap whoever calls it.
         public void AddDread(float amount)

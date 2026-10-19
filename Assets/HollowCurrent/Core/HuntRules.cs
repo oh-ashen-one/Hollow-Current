@@ -103,6 +103,21 @@ namespace HollowCurrent
             if(d<80)return NearMissOpen40+(NearMissOpen80-NearMissOpen40)*(d-40)/40;
             return NearMissOpen80+(NearMissOpen100-NearMissOpen80)*(d-80)/20;
         }
+        // Wave FE (r13 FD proofs: 3 of 6 hunts started within 10 s after a visible apparition). No hunt starts within this many seconds
+        // after a visible apparition (Investigation.NoteApparition): dice, timed and first-hunt starts wait, an escalation's tell is armed
+        // to end at this gap, and a Warning that would end sooner is lengthened. 11.5 s, so two whole-second log stamps still read > 10 s.
+        // The sarcophagus gamble (the player's own choice) and the hostile Return are exempt. 0 = off (Bellwether).
+        public float ApparitionHuntGap;
+        // Wave FE (r13 FD natural2: share 0.089 in the Late band). From ShareFloorAfter s of case time, after the run's first hunt and once
+        // its long quiet stretch (FirstHuntAfterHold) has happened, a HuntShare under ShareFloor arms a pull: ShareFloorPullMin..Max s later
+        // (drawn), if the share is still under the floor and no grace runs, the next threat starts (no false alarm; the usual no-tell roll).
+        // It overrides the lull hold, never the post-hunt grace or the apparition gap. 0 = off. Castle 0.15, 240 s, 20-150 s, one pull per
+        // run: the wide draw and the single pull keep long quiet gaps irregular (wave I gap CV stays >= 0.4 in the session model).
+        public float ShareFloor, ShareFloorAfter, ShareFloorPullMin, ShareFloorPullMax;
+        // Wave FE: in a Late-band run, once its long quiet stretch after the first hunt has happened, the low-Dread roll is LowDreadChance x this. 0 or 1 = off.
+        public float LateLowChanceScale;
+        // At most this many share-floor pulls per run (so the floor cuts one long gap, not every gap). 0 = no limit.
+        public int ShareFloorMaxPulls;
         // Return phase is a hunt until the bridge is crossed (FinishAtVan).
         public bool HostileReturn;
 
@@ -189,6 +204,7 @@ namespace HollowCurrent
             GovernorStart=0,GovernorGain=0,GovernorMax=0,GovernorMinWindow=0,GovernorQuietShare=0,GovernorQuietSeconds=0,GovernorQuietScale=0,
             LieThreshold=0,DoorHeldThreshold=0,DeathPenalty=false,DeathDread=0,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
+            ApparitionHuntGap=0,ShareFloor=0,ShareFloorAfter=0,ShareFloorPullMin=0,ShareFloorPullMax=0,ShareFloorMaxPulls=0,LateLowChanceScale=0,
         };
 
         // The castle (FEAR_PLAN items 1-5, 7).
@@ -211,6 +227,7 @@ namespace HollowCurrent
             GovernorStart=.25f,GovernorGain=12,GovernorMax=3,GovernorMinWindow=300,GovernorQuietShare=.12f,GovernorQuietSeconds=180,GovernorQuietScale=.8f,
             LieThreshold=70,DoorHeldThreshold=60,DeathPenalty=true,DeathDread=60,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
+            ApparitionHuntGap=11.5f,ShareFloor=.15f,ShareFloorAfter=240,ShareFloorPullMin=20,ShareFloorPullMax=150,ShareFloorMaxPulls=1,LateLowChanceScale=3,
         };
 
         // Field Settings "Long Night" dial on the castle (FEAR_PLAN item 6): no Warning

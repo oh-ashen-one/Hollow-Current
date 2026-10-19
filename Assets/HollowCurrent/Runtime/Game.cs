@@ -140,7 +140,7 @@ namespace HollowCurrent
             // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
             // order Presence, CastleRun and Game run in this frame.
             if(Map==MapId.Castle)Case.FrameSource=()=>Time.frameCount;
-            Case.Message+=Say;Case.Changed+=PhaseChanged;
+            Case.Message+=Say;Case.Changed+=PhaseChanged;Case.Diagnostic+=line=>Debug.Log(line); // wave FE: HC_APPARITION_GATE / HC_SHARE_FLOOR
             if(Map==MapId.Castle)Debug.Log("HC_RULES "+Case.Rules.Name+" dread="+Case.Dread.ToString("F0")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             World=new World();World.LoadOrBuild(Map);World.BuildNavigation();
             if(Map==MapId.Castle)CastleArt.ApplySkybox();

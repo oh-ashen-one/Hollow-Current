@@ -344,7 +344,7 @@ namespace HollowCurrent
         internal void CountStagger()
         {
             if(flight==Flight.Dead)return;
-            staggerTimer=Fight.StaggerSeconds;retreatTimer=0;flight=Flight.Stagger;contact=0;chaseClosest=99;route.Clear();actor.Pose(Profile.ModeStagger);
+            CloseDive("sword stagger");staggerTimer=Fight.StaggerSeconds;retreatTimer=0;flight=Flight.Stagger;contact=0;chaseClosest=99;route.Clear();actor.Pose(Profile.ModeStagger);
             // r11 (camera inside his wing on sword hits): recoil away from her, and keep his joints out of the lens for a while.
             committedUntil=-1;grabMode=-1;
             if(grabCam)EndGrabCam("stagger");
@@ -496,6 +496,7 @@ namespace HollowCurrent
         void CountEndHunt()
         {
             if(actor)Debug.Log("HC_COUNT_MODES frames=["+string.Join(",",System.Array.ConvertAll(actor.ModeFrames,f=>f.ToString()))+"] (Animator Mode 0-9 frames so far)");
+            CloseDive("the hunt ended");
             swooping=false;pendingWitnessed=false;CanSeePlayer=false;Memory.Clear();witnessedHide=false;contact=0;tell=0;holdTimer=0;nearMissStage=0;staggerTimer=retreatTimer=0;unobserved=0;
             Debug.Log("HC_COUNT_HUNT_END lastSeen="+(lastSeen.HasValue?lastSeen.Value.ToString():"none")+" "+DiagnosticState);
             if(flight==Flight.Dead)return;
@@ -614,9 +615,11 @@ namespace HollowCurrent
         {
             var feet=Game.Player.transform.position;
             float ceiling=Physics.Raycast(feet+Vector3.up*.2f,Vector3.up,out var hit,12,FlightMask,QueryTriggerInteraction.Ignore)?hit.point.y-feet.y:12;
-            bool room=ceiling>=count.GrabDropClipTop+.1f&&count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
+            // fe-count: PlanVariant only plans a drop or drop-spin where the ring has the clip's headroom (DropRoomRing), so the plan decides.
+            float ringCeiling=ceiling;bool room=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
+            if(room)room=DropRoomRing(feet,count.GrabDropClipTop,out ringCeiling,out _);
             diveHigh=room&&(plannedMode==count.ModeGrabDrop||plannedMode==count.ModeGrabDropSpin);
-            Debug.Log("HC_COUNT_DIVE style="+(diveHigh?"high":"low")+" reason="+(room?"plan "+PlanName(plannedMode):"no headroom (ceiling "+ceiling.ToString("F2")+")")+" ceiling="+ceiling.ToString("F2"));
+            Debug.Log("HC_COUNT_DIVE style="+(diveHigh?"high":"low")+" reason="+(diveHigh?"plan "+PlanName(plannedMode):room?"plan "+PlanName(plannedMode)+" (low)":"no headroom (ceiling "+ceiling.ToString("F2")+", ring "+ringCeiling.ToString("F2")+")")+" ceiling="+ceiling.ToString("F2"));
         }
         // ---- count-l2: the F5 wave L grabs (GrabSideL 10, GrabSideR 11, GrabDropSpin 12) --------------------------------
         // F5 could not confirm left/right under Unity's axis mapping: the first side grab checks where its lead claw is on screen
@@ -665,7 +668,8 @@ namespace HollowCurrent
             var chest=Vector3.up*1.2f;
             return !Physics.Linecast(eye,origin+chest,FlightMask,QueryTriggerInteraction.Ignore)&&!Physics.Linecast(origin+chest,start+chest,FlightMask,QueryTriggerInteraction.Ignore);
         }
-        void BeginChase(){if(huntClock<missCooldownUntil)return;hideGrabLocked=false;PlanVariant();PickDiveStyle();chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;nearNoGrab=0;pathHoldLogged=false;groundLogged=false;ringAge=99;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
+        float eyeHoldSince=-1;
+        void BeginChase(){if(huntClock<missCooldownUntil)return;CloseDive("a new dive began");diveOpen=true;diveResolved=false;chaseExit="";eyeHoldSince=-1;hideGrabLocked=false;PlanVariant();PickDiveStyle();chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;nearNoGrab=0;pathHoldLogged=false;groundLogged=false;ringAge=99;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
 
         // ---- fd-grab: grab variety, ring points, path clearance, the readable miss ----------------------------------------
         // A deck across runs (PlayerPrefs hc.castle.grabdeck, counts of committed open-floor grabs by mode): each dive plans the eligible
@@ -694,39 +698,117 @@ namespace HollowCurrent
             plannedMode=-1;planSide=0;planLocked=false;
             if(witnessedHide||count==null)return;
             var p=Game.Player;var feet=p.transform.position;float ceiling=CeilingOver(feet,feet.y);var d=Deck();
-            bool dropOk=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")&&ceiling>=count.GrabDropClipTop+.1f;
-            bool spinOk=dropOk&&count.ModeGrabDropSpin>=0&&HasModeState(count.ModeGrabDropSpin,"GrabDropSpin")&&ceiling>=count.GrabDropSpinClipTop+.1f;
+            // fe-count (r13 FD: openHeadroom=0 in every run, drops 0 of 6 open-floor grabs): the drop clips fall at his stand-off ring, not
+            // over her head. Under the hall gallery her own ceiling is 2.92 m while the ring a step away is open to the vault, so the old
+            // test (her feet) ruled the drop and the drop-spin out of most hall dives. Headroom is now judged on the ring (DropRoomRing).
+            bool dropStates=count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop");
+            float ringCeiling=ceiling;string roomAt="no clip";
+            bool dropRoom=dropStates&&DropRoomRing(feet,count.GrabDropClipTop,out ringCeiling,out roomAt);
+            // fe-count: every candidate is feasibility-checked before it is planned (an open start point he can fly to directly), so a
+            // plan never leads him on a route detour (r13 FD huntcam: a drop-spin point behind the gallery, 20 waypoints, 12 m away).
+            string dropWhy="",spinWhy="",sideWhy="";
+            // (The drop is the plain dive to a live ring point, as before; only the variants fly to a fixed start point and need DirectTo.)
+            bool dropOk=dropRoom&&OpenRing(feet,count.StandOffFor(count.ModeGrabDrop),count.GrabDropClipTop,out _,out dropWhy);
+            if(dropStates&&!dropRoom)dropWhy="no headroom on the ring (best "+ringCeiling.ToString("F2")+")";
+            // A watched approach cannot end beside or behind her: she turns with him (huntcam, death and kill stare at his head).
+            float bearing0=BearingFromHerView();bool facing=ObservedByPlayer()&&Mathf.Abs(bearing0)<count.SideMinBearing;
+            bool spinStates=count.ModeGrabDropSpin>=0&&HasModeState(count.ModeGrabDropSpin,"GrabDropSpin");
+            int spinSign=0;
+            if(!spinStates)spinWhy="no clip";
+            else if(!dropRoom)spinWhy="no headroom";
+            else if(facing)spinWhy="she faces him";
+            else
+            {
+                int near=bearing0<0?-1:1;
+                foreach(int sg in new[]{near,-near}){if(SpinPlanPoint(sg,out var sp)&&DirectTo(sp,true,out spinWhy)){spinSign=sg;break;}if(spinWhy=="")spinWhy="no open start point";}
+            }
+            bool spinOk=spinSign!=0;
             bool sideStates=count.ModeGrabSideL>=0&&count.ModeGrabSideR>=0&&HasModeState(count.ModeGrabSideL,"GrabSideL")&&HasModeState(count.ModeGrabSideR,"GrabSideR");
             int sideSign=0;
-            if(sideStates&&!p.Crouched&&ceiling>=count.CrawlCeiling&&!MustCrawl(feet))
+            if(!sideStates)sideWhy="no clip";
+            else if(p.Crouched||ceiling<count.CrawlCeiling||MustCrawl(feet))sideWhy="low ceiling or crouched";
+            else if(facing)sideWhy="she faces him";
+            else
             {
-                // The side used less often first (left = her left), if its flank is open.
+                // The side used less often first (left = her left), if its flank is open and he can fly to its start point directly.
                 int first=d[LeftSideMode]<=d[RightSideMode]?-1:1;
-                if(SidePlanPoint(first,out _))sideSign=first;else if(SidePlanPoint(-first,out _))sideSign=-first;
+                foreach(int sg in new[]{first,-first}){if(SidePlanPoint(sg,out var pt)&&DirectTo(pt,false,out sideWhy)){sideSign=sg;break;}if(sideWhy=="")sideWhy="flank closed";}
             }
             bool sideOk=sideSign!=0;
             float n=1;foreach(int m in new[]{8,9,10,11,12})n+=d[m];
             float dropT=count.DropTargetShare,spinT=count.SpinTargetShare,sideT=count.SideTargetShare,crawlT=Mathf.Max(.15f,1-dropT-spinT-sideT);
             float best=float.MinValue;string scores="";
-            void Consider(int mode,bool ok,float target,int have,string name)
+            void Consider(int mode,bool ok,float target,int have,string name,string why)
             {
-                if(!ok){scores+=name+"=n/a ";return;}
+                if(!ok){scores+=name+"=n/a("+why+") ";return;}
                 float score=target*n-have+Random.value*count.PlanJitter;scores+=name+"="+score.ToString("F2")+" ";
                 if(score>best){best=score;plannedMode=mode;}
             }
-            Consider(count.ModeGrabDrop,dropOk,dropT,d[8],"drop");
-            Consider(count.ModeGrabDropSpin,spinOk,spinT,d[12],"spin");
-            Consider(sideSign<0?LeftSideMode:RightSideMode,sideOk,sideT,d[10]+d[11],"side");
-            Consider(count.ModeGrabCrawl,count.ModeGrabCrawl>=0,crawlT,d[9],"crawl");
+            Consider(count.ModeGrabDrop,dropOk,dropT,d[8],"drop",dropWhy);
+            Consider(count.ModeGrabDropSpin,spinOk,spinT,d[12],"spin",spinWhy);
+            Consider(sideSign<0?LeftSideMode:RightSideMode,sideOk,sideT,d[10]+d[11],"side",sideWhy);
+            Consider(count.ModeGrabCrawl,count.ModeGrabCrawl>=0,crawlT,d[9],"crawl","no clip");
             if(IsSide(plannedMode))planSide=sideSign;
-            if(plannedMode==count.ModeGrabDropSpin)planSide=BearingFromHerView()<0?-1:1;
-            Debug.Log("HC_GRAB_VARIANT plan="+PlanName(plannedMode)+" mode="+plannedMode+" scores=["+scores.Trim()+"] ceiling="+ceiling.ToString("F2")+" deck="+DeckText());
+            if(plannedMode==count.ModeGrabDropSpin)planSide=spinSign;
+            Debug.Log("HC_GRAB_VARIANT plan="+PlanName(plannedMode)+" mode="+plannedMode+" scores=["+scores.Trim()+"] ceiling="+ceiling.ToString("F2")+" ring="+ringCeiling.ToString("F2")+" roomAt="+roomAt+" bearing="+bearing0.ToString("F0")+" facing="+facing+" deck="+DeckText());
         }
+        // fe-count: is there headroom for a drop clip (top over her floor) where it would fall: over her, or at a floored stand-off point
+        // on the ring around her (his bearing first). best = the highest ceiling seen; at = where (her / ring <deg> / none).
+        bool DropRoomRing(Vector3 feet,float top,out float best,out string at)
+        {
+            best=CeilingOver(feet,feet.y);at="her";
+            if(best>=top+.1f)return true;
+            var away=transform.position-feet;away.y=0;
+            if(away.sqrMagnitude<1e-4f){away=-Game.Player.View.transform.forward;away.y=0;}
+            if(away.sqrMagnitude<1e-4f)away=Vector3.forward;away.Normalize();
+            float so=count.StandOffFor(count.ModeGrabDrop);
+            for(int i=0;i<=count.RingSteps*2;i++)
+            {
+                int k=(i+1)/2*(i%2==1?1:-1);var spot=feet+Quaternion.Euler(0,k*count.RingStepDegrees,0)*away*so;
+                if(!FloorAt(spot,feet.y))continue;
+                float c=CeilingOver(spot,feet.y);if(c>best)best=c;
+                if(c>=top+.1f){at="ring "+(k*count.RingStepDegrees).ToString("F0");return true;}
+            }
+            at="none";return false;
+        }
+        // fe-count: the open ring bearing nearest his own (SpotOpen at standOff with the clip's top), as a direction from her; false if none.
+        bool OpenRing(Vector3 feet,float standOff,float top,out Vector3 dir,out string why)
+        {
+            var away=transform.position-feet;away.y=0;
+            if(away.sqrMagnitude<1e-4f){away=-Game.Player.View.transform.forward;away.y=0;}
+            if(away.sqrMagnitude<1e-4f)away=Vector3.forward;away.Normalize();
+            why="";
+            for(int i=0;i<=count.RingSteps*2;i++)
+            {
+                int k=(i+1)/2*(i%2==1?1:-1);dir=Quaternion.Euler(0,k*count.RingStepDegrees,0)*away;
+                if(SpotOpen(feet,feet+dir*standOff,top,out var b)){why="";return true;}
+                if(i==0)why=b;
+            }
+            dir=away;why="no open ring bearing ("+why+")";return false;
+        }
+        // fe-count: can he fly from where he is straight to a point over this ground spot (high = the high dive's hover), directly or after
+        // lifting off his ledge (PlanRoute's first two tries)? A plan that needs the NavMesh detour is not feasible.
+        bool DirectTo(Vector3 ground,bool high,out string why)
+        {
+            float ceiling=CeilingOver(ground,ground.y);
+            float hover=high?Mathf.Clamp(ceiling-count.BodyClearance,0,count.HighDiveHover):Mathf.Min(count.HoverNearPlayer,Mathf.Max(0,ceiling-count.BodyClearance));
+            var start=transform.position;var end=ground+Vector3.up*hover;var launch=start+transform.forward*.6f+Vector3.up*.5f;
+            if(Clear(start,end)||Clear(start,launch)&&Clear(launch,end)){why="";return true;}
+            why="no direct flight to its start point";return false;
+        }
+        // fe-count: a variant whose geometry fails mid-dive falls to the next feasible grab for this dive's style, never to nothing: the other
+        // side's snatch (if its flank is open and he can fly there directly), else the drop for a high dive with ring headroom, else the
+        // plain grab (PredictGrab: the crawl). Logged with next=.
         void DropPlan(string why)
         {
             if(plannedMode<0||!(IsSide(plannedMode)||plannedMode==count.ModeGrabDropSpin))return;
-            Debug.Log("HC_GRAB_VARIANT dropped="+PlanName(plannedMode)+" reason="+why+" t="+(huntClock-chaseT0).ToString("F1"));
-            plannedMode=diveHigh?count.ModeGrabDrop:-1;planLocked=false;
+            string from=PlanName(plannedMode);int next=-1;
+            var feet=Game.Player.transform.position;
+            if(IsSide(plannedMode)&&!why.StartsWith("not committed",System.StringComparison.Ordinal)&&!why.StartsWith("detour",System.StringComparison.Ordinal)&&SidePlanPoint(-planSide,out var other)&&DirectTo(other,false,out _))
+            {planSide=-planSide;next=planSide<0?LeftSideMode:RightSideMode;planLocked=false;}
+            else if(diveHigh&&count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")&&DropRoomRing(feet,count.GrabDropClipTop,out _,out _))next=count.ModeGrabDrop;
+            plannedMode=next;if(!IsSide(next))planLocked=false;
+            Debug.Log("HC_GRAB_VARIANT dropped="+from+" reason="+why+" next="+(next<0?"plain":PlanName(next))+" t="+(huntClock-chaseT0).ToString("F1"));
         }
         bool VariantPlanned=>plannedMode>=0&&(IsSide(plannedMode)||plannedMode==count.ModeGrabDropSpin);
         // The side clip's start: its origin at the stand-off straight ahead of her view, he starts SideStartLateral to that side.
@@ -800,10 +882,22 @@ namespace HollowCurrent
         void DiveMiss(string why,float distance,float vertical)
         {
             Debug.Log("HC_COUNT_DIVE miss=True reason="+why+" distance="+distance.ToString("F2")+" vertical="+vertical.ToString("F2")+" plan="+PlanName(plannedMode)+" "+DiagnosticState);
-            nearNoGrab=0;pathHoldSince=-1;plannedMode=-1;missCooldownUntil=huntClock+2.5f;   // he is seen leaving before any new dive
+            nearNoGrab=0;pathHoldSince=-1;plannedMode=-1;missCooldownUntil=huntClock+2.5f;diveResolved=true;   // he is seen leaving before any new dive
             searchedAt=Game.Player.transform.position;tell=0;
             GoToPerch(Mathf.Max(0,NearestPerch(transform.position)),false);
         }
+        // fe-count: every dive ends in a commit, a readable miss (DiveMiss) or this line: a dive that ended any other way (lost sight, no
+        // route, the hunt ended, a sword stagger, the run quit mid-dive) logs HC_COUNT_DIVE miss=True reason=abandoned: <why>.
+        bool diveOpen,diveResolved;string chaseExit="";
+        void CloseDive(string why)
+        {
+            if(!diveOpen)return;diveOpen=false;if(diveResolved)return;diveResolved=true;
+            var p=Game&&Game.Player?Game.Player.transform.position:transform.position;var flat=p-transform.position;float vertical=Mathf.Abs(flat.y);flat.y=0;
+            Debug.Log("HC_COUNT_DIVE miss=True reason=abandoned: "+why+(chaseExit.Length>0?" ("+chaseExit+")":"")+" distance="+flat.magnitude.ToString("F2")+" vertical="+vertical.ToString("F2")+" plan="+PlanName(plannedMode)+" t="+(huntClock-chaseT0).ToString("F1")+" "+DiagnosticState);
+        }
+        void OnApplicationQuit(){if(count!=null)CloseDive("the run quit mid-dive");}
+        /// <summary>Playtest driver: close a dive still open when the run ends (logs its miss=True line before the grab summary).</summary>
+        public void CloseOpenDive(string why){if(count!=null)CloseDive(why);}
         void BeginLand(){flight=Flight.Land;landTimer=count.SearchLandSeconds;route.Clear();scanClock=0;}
 
         // Returns true when the Count handled the frame (the shared non-hunt code still runs presentations).
@@ -979,6 +1073,7 @@ namespace HollowCurrent
                 default:   // Away (hunt began while he was unplaced): land where he is and prowl
                     BeginLand();break;
             }
+            if(diveOpen&&flight!=Flight.Chase)CloseDive("the dive ended, now "+flight);
             // At least one attack attempt per hunt: until he has dived, every GuaranteeSeconds he hears you again and searches.
             guaranteeClock+=dt;
             if(!retreating&&!swooping&&!attackAttempted&&guaranteeClock>=guaranteeNext&&flight!=Flight.Chase&&flight!=Flight.NearMiss)
@@ -1091,13 +1186,13 @@ namespace HollowCurrent
             }
             // Reached a remembered spot without seeing you: land there and prowl (Mode 2), then take a perch.
             var toGoal=goal-transform.position;toGoal.y=0;
-            if(!CanSeePlayer&&!witnessedHide&&toGoal.magnitude<1){searchedAt=goal;BeginLand();return;}
+            if(!CanSeePlayer&&!witnessedHide&&toGoal.magnitude<1){chaseExit="lost sight, reached her last known spot";searchedAt=goal;BeginLand();return;}
             // Critic capture: dive to the hold distance, hover there in the Dive pose, then feint back to a perch.
             if(CaptureMode.Requested&&distance<=count.CaptureHoldDistance)
             {
                 if(flat.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(flat),count.TurnDegreesPerSecond*dt);
                 speedNow=0;actor.Pose(Profile.ModeReach);holdTimer+=dt;
-                if(holdTimer>=count.CaptureHoldSeconds){holdTimer=0;tell=0;Memory.Clear();searchedAt=player.transform.position;GoToPerch(Mathf.Max(0,NearestPerch(transform.position)),false);Debug.Log("HC_COUNT_FEINT "+DiagnosticState);}
+                if(holdTimer>=count.CaptureHoldSeconds){holdTimer=0;tell=0;Memory.Clear();searchedAt=player.transform.position;chaseExit="capture feint";GoToPerch(Mathf.Max(0,NearestPerch(transform.position)),false);Debug.Log("HC_COUNT_FEINT "+DiagnosticState);}
                 return;
             }
             replan-=dt;
@@ -1105,8 +1200,13 @@ namespace HollowCurrent
             {
                 replan=Profile.ThinkInterval;lastChaseGoal=goal;
                 // A dive with no route at all (three plans in a row, about 1 s) lands and prowls instead of hovering in place.
-                if(PlanRoute(goal,false))chaseRouteFails=0;
-                else if(++chaseRouteFails>=3){chaseRouteFails=0;Debug.Log("HC_COUNT_ROUTE abort=dive reason=no route to "+goal+" "+DiagnosticState);searchedAt=goal;BeginLand();return;}
+                if(PlanRoute(goal,false))
+                {
+                    chaseRouteFails=0;
+                    // fe-count (r13 FD huntcam): a variant's start point that needs a NavMesh detour is dropped for the next feasible grab.
+                    if(VariantPlanned&&!witnessedHide&&route.Count>2){DropPlan("detour: "+route.Count+" waypoints to the start point");replan=0;}
+                }
+                else if(++chaseRouteFails>=3){chaseRouteFails=0;Debug.Log("HC_COUNT_ROUTE abort=dive reason=no route to "+goal+" "+DiagnosticState);chaseExit="no route to "+goal;searchedAt=goal;BeginLand();return;}
             }
             // A cupboard can be searched from its clear entrance only (same rule as Split Grin).
             bool knowsThisHide=player.Hidden&&((witnessedHide&&Vector3.Distance(knownHide,player.transform.position)<.35f)||
@@ -1139,6 +1239,20 @@ namespace HollowCurrent
                 clearReach=false;gateWhy="path blocked by "+pathBlocker;
             }
             else if(clearReach)pathHoldSince=-1;
+            // fe-count (r13 FD natural2 Return drop: first frame visible=False lineClear=False): an open-floor commit also waits, up to
+            // EyeHoldSeconds, while her eye line to his skull is blocked, so the commit frame shows him (the seat keeps the skull where it is).
+            if(clearReach&&!committed&&grabMode<0&&actor&&actor.Head)
+            {
+                var eyeNow=player.View.transform.position;
+                bool eyeClear=!Physics.Linecast(eyeNow,actor.Head.position,out var eb,FlightMask,QueryTriggerInteraction.Ignore)||IgnoreHit(eb.collider);
+                if(eyeClear)eyeHoldSince=-1;
+                else
+                {
+                    if(eyeHoldSince<0){eyeHoldSince=Time.time;Debug.Log("HC_GRAB_PATH held=True reason=eye_line blocker="+eb.collider.name+" mode="+wantMode+" "+DiagnosticState);}
+                    if(Time.time-eyeHoldSince<count.EyeHoldSeconds){clearReach=false;gateWhy="eye line to his skull blocked by "+eb.collider.name;}
+                    else Debug.Log("HC_GRAB_PATH held=False reason=eye_line_timeout blocker="+eb.collider.name+" (the first frame relocates the seat)");
+                }
+            }
             bool touching=committed||(clearReach&&(CanSeePlayer||contact>0))||atHideEntrance||hideGrabLocked&&player.Hidden;
             if(!committed&&touching&&grabMode<0)
             {
@@ -1171,6 +1285,7 @@ namespace HollowCurrent
                     Debug.Log("HC_COUNT_GRAB mode="+grabMode+" height="+height.ToString("F2")+" reason="+why+" dropHeight="+dropHeight.ToString("F2")+" hideEntrance="+atHideEntrance+" witnessed="+witnessedHide+" "+DiagnosticState);
                     if(atHideEntrance)OpenHideDoor(player.HideExit);
                     grabMode=CommitGrab(atHideEntrance,grabMode);
+                    if(diveOpen&&!diveResolved){diveResolved=true;Debug.Log("HC_COUNT_DIVE end=commit mode="+grabMode+" planned="+PlanName(plannedMode)+" t="+(huntClock-chaseT0).ToString("F1"));}
                     committedUntil=Time.time+count.ClipSecondsFor(grabMode)-clipStartT+.25f;
                     // count18: a grab at a hide entrance is a hide open even when the dive delivered it (path label for the proof).
                     BeginGrabCam(atHideEntrance?"hideopen":"dive",atHideEntrance);
@@ -1184,6 +1299,10 @@ namespace HollowCurrent
                 return;
             }
             if(grabMode>=0&&!committed&&contact<=0){grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam&&!capturePresentation)EndGrabCam("released");}
+            // fe-count (r13 FD huntcam: planned drop-spin, he flew 12 m away along the gallery, no commit and no miss): a dive that has turned
+            // into a flight away from her (out of her sight, or chasing a variant's start point) ends as a readable miss.
+            if(!witnessedHide&&grabMode<0&&huntClock-chaseT0>1f&&distance>chaseD0+count.DiveAwayMargin&&(!CanSeePlayer||VariantPlanned))
+            {DiveMiss("moving away ("+distance.ToString("F1")+" m from her, dive began at "+chaseD0.ToString("F1")+" m)",distance,vertical);return;}
             // fd-grab: close to her (or at his goal next to her) without a commit for DiveStallSeconds: a miss, never a hover.
             if(!player.Hidden&&!witnessedHide&&grabMode<0&&toGoal.magnitude<.75f&&distance<grabReach+3f)
             {
@@ -1690,7 +1809,7 @@ namespace HollowCurrent
         void BeginGrabCam(string path,bool hide=false)
         {
             if(grabCam)return;
-            doorClampLogged=false;grabCamSnap=false;spinLogged=false;spinEndLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
+            doorClampLogged=false;grabCamSnap=false;firstCutWhy="";spinLogged=false;spinEndLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
             // fd-grab: per-grab presentation state (seat offset, first frame, distance and view-line records).
             presentT=0;seatSet=false;seat0=seatApplied=Vector3.zero;camInit=false;sideCheckLogged=false;camDistLogged=false;minEyeSkull=float.MaxValue;minEyeSkullT=0;
             lineClear=lineSamples=0;lineBlockers.Clear();skullPushes=0;presentFrames=0;
@@ -1758,11 +1877,14 @@ namespace HollowCurrent
         void NoteCommit(string path,bool hide)
         {
             int m=grabMode;var feet=Game.Player.transform.position;
-            bool ret=Game.Case.Phase==Phase.Return;bool headroom=CeilingOver(feet,feet.y)>=count.GrabDropClipTop+.1f;
+            // fe-count (r13 FD: openHeadroom=0 in every run): "headroom" means a drop could have fallen here: over her, or at a floored
+            // stand-off on the ring around her (his own bearing first). It used to read the ceiling over her head only, which under the hall
+            // gallery is 2.92 m while the vault a step away is open, so no open-floor grab ever counted.
+            bool ret=Game.Case.Phase==Phase.Return;bool headroom=DropRoomRing(feet,count.GrabDropClipTop,out float roomCeiling,out string roomAt);
             runGrabs++;if(m>=0&&m<runModes.Length)runModes[m]++;if(hide)runHide++;if(ret)runReturn++;
             if(!hide&&!ret&&headroom){runOpenHeadroom++;if(m==count.ModeGrabDrop||m==count.ModeGrabDropSpin)runOpenHeadroomDrops++;}
             if(!hide&&m>=0&&m<Deck().Length){Deck()[m]++;SaveDeck();}
-            Debug.Log("HC_GRAB_COMMIT mode="+m+" path="+path+" hide="+hide+" return="+ret+" headroom="+headroom+" planned="+PlanName(plannedMode)+" clip_start_t="+clipStartT.ToString("F2")+" deck="+DeckText());
+            Debug.Log("HC_GRAB_COMMIT mode="+m+" path="+path+" hide="+hide+" return="+ret+" headroom="+headroom+" headroomAt="+roomAt.Replace(' ','_')+" ceilingMax="+roomCeiling.ToString("F2")+" planned="+PlanName(plannedMode)+" clip_start_t="+clipStartT.ToString("F2")+" deck="+DeckText());
             var b=new System.Text.StringBuilder();for(int i=6;i<runModes.Length;i++)b.Append(" m").Append(i).Append('=').Append(runModes[i]);
             Debug.Log("HC_GRAB_MODE_HIST grabs="+runGrabs+b+" hide="+runHide+" return="+runReturn+" openHeadroom="+runOpenHeadroom+" openHeadroomDrops="+runOpenHeadroomDrops+
                 " dropShareHeadroom="+(runOpenHeadroom>0?(100f*runOpenHeadroomDrops/runOpenHeadroom).ToString("F0")+"%":"n/a")+" deck="+DeckText());
@@ -2022,6 +2144,24 @@ namespace HollowCurrent
                         if(rootBlend&&rootFromY+seat0.y>=rootToY){rootFromY+=seat0.y;var at=transform.position;at.y+=seat0.y;transform.position=at;note="lowered the root "+(-seat0.y).ToString("F2");seat0.y=0;}
                         else note="small rise "+(-seat0.y).ToString("F2");
                     }
+                    // fe-count (r13 FD: seat gaps up to 0.90 m, natural1's Return grab slid ~1 m over t 0.01-0.16): an open-floor drop or
+                    // crawl keeps the horizontal part of the gap beyond SeatMaxGap in its root (he plays the clip up to that much nearer where
+                    // his skull already was) instead of sliding it over the seat time. Side, spin and hide grabs keep their placement.
+                    bool variantSeat=IsSide(grabMode)||grabMode==count.ModeGrabDropSpin&&grabMode>=0;
+                    var flatGap=new Vector3(seat0.x,0,seat0.z);
+                    if(!grabHide&&!variantSeat&&flatGap.magnitude>count.SeatMaxGap)
+                    {
+                        var move=flatGap*(1-count.SeatMaxGap/flatGap.magnitude);transform.position+=move;seat0-=move;
+                        note=(note=="none"?"":note+"; ")+"reseated "+move.magnitude.ToString("F2")+" (raw gap "+(seat0+move).magnitude.ToString("F2")+")";
+                    }
+                    // fe-count: frame 0 must show him. If her eye line to the carried skull is blocked, the seat starts part (or all) of the
+                    // way toward his clip pose, at the first fraction whose line is clear.
+                    var eyeS=Game.Player.View.transform.position;
+                    if(seat0.sqrMagnitude>1e-4f&&Blocked(eyeS,lastSkull))
+                    {
+                        foreach(float f in new[]{.25f,.5f,.75f,1f})
+                            if(!Blocked(eyeS,lastSkull-seat0*f)){note=(note=="none"?"":note+"; ")+"relocated "+(seat0.magnitude*f).ToString("F2")+" to a clear line";seat0*=1-f;break;}
+                    }
                     seatSeconds=Mathf.Clamp(seat0.magnitude/Mathf.Max(.5f,count.SeatMaxSpeed)*1.5f,count.SeatSeconds,count.SeatMaxSeconds);
                 }
                 else note="no previous frame";
@@ -2052,6 +2192,10 @@ namespace HollowCurrent
                     float dy=Mathf.DeltaAngle(hy,camYaw0),ly=hHalf*count.FirstFrameMargin;if(Mathf.Abs(dy)>ly)camYaw0=hy+Mathf.Sign(dy)*ly;
                     float dp=camPitch0-hp,lp=vHalf*count.FirstFrameMargin;if(Mathf.Abs(dp)>lp)camPitch0=Mathf.Clamp(hp+Mathf.Sign(dp)*lp,-85,85);
                     firstSnapDeg=Quaternion.Angle(Quaternion.Euler(p0,y0,0),Quaternion.Euler(camPitch0,camYaw0,0));
+                    // fe-count (r13 FD: snapDeg up to 138 on Return drops from behind): a first frame that has to turn more than
+                    // FirstFrameCutDegrees is a hard cut on frame 0 straight to the grab framing (logged cut=True), not a jump to the edge
+                    // of the frame followed by a turn.
+                    if(firstSnapDeg>count.FirstFrameCutDegrees){grabCamSnap=true;firstCutWhy="turn "+firstSnapDeg.ToString("F0")+" > "+count.FirstFrameCutDegrees.ToString("F0");}
                 }
                 float k=Mathf.SmoothStep(0,1,presentT/Mathf.Max(.01f,IsSide(grabMode)?count.SideTurnSeconds:count.GrabCamTurnSeconds));
                 // Drop-spin: her view holds near him while he falls, then spins to his face over the spin window (clip time; the clip may
@@ -2066,10 +2210,10 @@ namespace HollowCurrent
                 {
                     // Proof: the skull must be inside the frame now; if the clamp could not do it (steep pitch), cut to him.
                     var v=cam.WorldToViewportPoint(head);bool inFrame=v.z>cam.nearClipPlane&&v.x>=0&&v.x<=1&&v.y>=0&&v.y<=1;
-                    if(!inFrame){grabCamSnap=true;cam.transform.rotation=Quaternion.Euler(pitch,yaw,0);v=cam.WorldToViewportPoint(head);inFrame=v.z>cam.nearClipPlane&&v.x>=0&&v.x<=1&&v.y>=0&&v.y<=1;Debug.Log("HC_COUNT_GRABCAM snap=True reason=skull outside the clamped first frame");}
+                    if(!inFrame){grabCamSnap=true;firstCutWhy="skull outside the clamped first frame";cam.transform.rotation=Quaternion.Euler(pitch,yaw,0);v=cam.WorldToViewportPoint(head);inFrame=v.z>cam.nearClipPlane&&v.x>=0&&v.x<=1&&v.y>=0&&v.y<=1;Debug.Log("HC_COUNT_GRABCAM snap=True reason=skull outside the clamped first frame");}
                     bool clear=!Physics.Linecast(eye,head,out var hb,FlightMask,QueryTriggerInteraction.Ignore)||IgnoreHit(hb.collider);
                     Debug.Log("HC_GRAB_FIRSTFRAME skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") visible="+(inFrame&&clear)+" inFrame="+inFrame+" lineClear="+clear+
-                        " snapDeg="+firstSnapDeg.ToString("F0")+(grabCamSnap?" cut=True":"")+" eyeToSkull="+Vector3.Distance(eye,head).ToString("F2")+" seatGap="+seat0.magnitude.ToString("F2")+" mode="+grabMode+" path="+grabCamKind);
+                        " snapDeg="+firstSnapDeg.ToString("F0")+(grabCamSnap?" cut=True cutWhy=\""+firstCutWhy+"\"":" cut=False")+" eyeToSkull="+Vector3.Distance(eye,head).ToString("F2")+" seatGap="+seat0.magnitude.ToString("F2")+" mode="+grabMode+" path="+grabCamKind);
                 }
             }
             // Per-frame records: closest lens-to-skull distance and the eye-to-skull line.
@@ -2084,7 +2228,8 @@ namespace HollowCurrent
             // count-l3: then every 0.15 s to 1.0 s, so the per-sample eyeToSkull step resolves the motion (no 0.3 -> 1.0 gap).
             if(grabCamLog<GrabCamSchedule.Length&&(grabCamLog==0||grabCamT>=(grabCamLog==1?count.GrabCamTurnSeconds:GrabCamSchedule[grabCamLog]))){grabCamLog++;LogGrabCam(cam,head);}
         }
-        float firstSnapDeg;
+        float firstSnapDeg;string firstCutWhy="";
+        bool Blocked(Vector3 from,Vector3 to)=>Physics.Linecast(from,to,out var h,FlightMask,QueryTriggerInteraction.Ignore)&&!IgnoreHit(h.collider);
         // Kill presentation: ease him so the nearer claw sits GrabCamClawDistance from the lens; no joint inside CameraClearance.
         bool spinLogged,spinEndLogged;
         static readonly float[] GrabCamSchedule={0,.15f,.3f,.45f,.6f,.75f,.9f,1f};

@@ -56,6 +56,10 @@ namespace HollowCurrent
             // fd-grab: HC_GRAB_COMMIT carries the mode actually played (after 8->9 or headroom switches); the run's grab records.
             if(message.StartsWith("HC_GRAB_COMMIT mode=",StringComparison.Ordinal)){var mm=message.Substring(20);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm)){lastGrabMode=gm;commits.Add((gm,message.Contains(" hide=True"),message.Contains(" return=True"),message.Contains(" headroom=True")));}}
             if(message.StartsWith("HC_GRAB_FIRSTFRAME",StringComparison.Ordinal)){firstFrames++;if(message.Contains(" visible=True"))firstVisible++;}
+            // fe-count: every dive must end in a commit or a readable miss (HC_COUNT_DIVE end=commit / miss=True).
+            if(message.StartsWith("HC_COUNT_DIVE position=",StringComparison.Ordinal))diveStarts++;
+            if(message.StartsWith("HC_COUNT_DIVE end=commit",StringComparison.Ordinal))diveCommits++;
+            if(message.StartsWith("HC_COUNT_DIVE miss=True",StringComparison.Ordinal))diveMisses++;
             if(message.StartsWith("HC_GRAB_CAMDIST min=",StringComparison.Ordinal)){camDists++;var v=message.Substring(20);int sp=v.IndexOf(' ');if(float.TryParse(sp>0?v.Substring(0,sp):v,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out float d)){camDistMin=Mathf.Min(camDistMin,d);if(d>=.6f)camDistOk++;}
                 int lc=message.IndexOf(" lineClear=",StringComparison.Ordinal);if(lc>=0){var parts=message.Substring(lc+11).Split(' ')[0].Split('/');if(parts.Length==2&&parts[0]==parts[1])lineAllClear++;}}
             if(message.StartsWith("HC_GRAB_HUD pixels=",StringComparison.Ordinal)){hudRecords++;if(message.StartsWith("HC_GRAB_HUD pixels=0 ",StringComparison.Ordinal))hudZero++;}
@@ -123,6 +127,7 @@ namespace HollowCurrent
         void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));GrabContinuity();}
         // fd-grab: the run's grab records, printed by Finish and on quit (death and huntcam quit without Finish).
         readonly List<(int mode,bool hide,bool ret,bool headroom)> commits=new List<(int,bool,bool,bool)>();
+        int diveStarts,diveCommits,diveMisses;
         int firstFrames,firstVisible,camDists,camDistOk,lineAllClear,hudRecords,hudZero,continuity20,continuityPass20;float camDistMin=99;bool grabSummaryPrinted;
         string GrabSummary()
         {
@@ -135,10 +140,12 @@ namespace HollowCurrent
         void PrintGrabSummary()
         {
             if(grabSummaryPrinted||game==null||game.Map!=MapId.Castle)return;grabSummaryPrinted=true;
+            if(game.Creature)game.Creature.CloseOpenDive("the run ended mid-dive (driver summary)");   // fe-count: counted below
             Debug.Log("HC_GRAB_MODE_HIST final "+GrabSummary());
             Debug.Log("HC_GRAB_SUMMARY grabs="+commits.Count+" continuity="+continuityPass+"/"+continuityGrabs+" continuity20="+continuityPass20+"/"+continuity20+
                 " firstFrameVisible="+firstVisible+"/"+firstFrames+" camDistOk="+camDistOk+"/"+camDists+" camDistMin="+(camDists>0?camDistMin.ToString("F2"):"n/a")+
-                " lineAllClear="+lineAllClear+"/"+camDists+" hudZero="+hudZero+"/"+hudRecords+" teleportsDuringGrab="+grabTeleports);
+                " lineAllClear="+lineAllClear+"/"+camDists+" hudZero="+hudZero+"/"+hudRecords+" teleportsDuringGrab="+grabTeleports+
+                " dives="+diveStarts+" diveCommits="+diveCommits+" diveMisses="+diveMisses+" diveUnresolved="+Mathf.Max(0,diveStarts-diveCommits-diveMisses));
         }
         void OnApplicationQuit(){PrintGrabSummary();}
         // Wave L3 continuity measure (critic r13 kill pass), per grab, from the skull's world position every frame (after animation):
