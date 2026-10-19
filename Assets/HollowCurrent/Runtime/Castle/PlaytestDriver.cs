@@ -21,6 +21,9 @@ namespace HollowCurrent
     // of pathing. Logs every phase as HC_PLAY and saves a screenshot per phase into <outdir>.
     // Driver-only safety: Case.Invulnerable counts a grab instead of ending the run; whether
     // it was needed is logged (blockedDeaths). Started from Bellwether, it switches to Castle.
+    // fd-grab: runs after every other script each frame, so its grab measures read the skull and camera as they are rendered
+    // (Presence seats and frames the grab in its LateUpdate).
+    [DefaultExecutionOrder(10000)]
     public sealed class PlaytestDriver : MonoBehaviour
     {
         public static string OutDir {get;private set;}
@@ -50,6 +53,12 @@ namespace HollowCurrent
         {
             foreach(var t in Tags)if(message.StartsWith(t,StringComparison.Ordinal)){tags.TryGetValue(t,out int n);tags[t]=n+1;}
             if(message.StartsWith("HC_COUNT_GRAB mode=",StringComparison.Ordinal)){var mm=message.Substring(19);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm))lastGrabMode=gm;}
+            // fd-grab: HC_GRAB_COMMIT carries the mode actually played (after 8->9 or headroom switches); the run's grab records.
+            if(message.StartsWith("HC_GRAB_COMMIT mode=",StringComparison.Ordinal)){var mm=message.Substring(20);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm)){lastGrabMode=gm;commits.Add((gm,message.Contains(" hide=True"),message.Contains(" return=True"),message.Contains(" headroom=True")));}}
+            if(message.StartsWith("HC_GRAB_FIRSTFRAME",StringComparison.Ordinal)){firstFrames++;if(message.Contains(" visible=True"))firstVisible++;}
+            if(message.StartsWith("HC_GRAB_CAMDIST min=",StringComparison.Ordinal)){camDists++;var v=message.Substring(20);int sp=v.IndexOf(' ');if(float.TryParse(sp>0?v.Substring(0,sp):v,System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out float d)){camDistMin=Mathf.Min(camDistMin,d);if(d>=.6f)camDistOk++;}
+                int lc=message.IndexOf(" lineClear=",StringComparison.Ordinal);if(lc>=0){var parts=message.Substring(lc+11).Split(' ')[0].Split('/');if(parts.Length==2&&parts[0]==parts[1])lineAllClear++;}}
+            if(message.StartsWith("HC_GRAB_HUD pixels=",StringComparison.Ordinal)){hudRecords++;if(message.StartsWith("HC_GRAB_HUD pixels=0 ",StringComparison.Ordinal))hudZero++;}
             if(game&&game.Case!=null)
             {
                 if(message.StartsWith("HC_SCARE visible=",StringComparison.Ordinal))scareTimes.Add(game.Case.Elapsed);
@@ -107,50 +116,95 @@ namespace HollowCurrent
             return "huntsNonReturn="+nonReturn+" withinScare10s="+afterScare+" pctWithinScare10s="+(nonReturn>0?(100f*afterScare/nonReturn).ToString("F0"):"n/a")
                 +" apparitions="+scareTimes.Count+" apparitionCV="+cv+" apparitionTimes=["+arrivals.ToString().TrimEnd(',')+"]"
                 +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
-                +" grabContinuity="+continuityPass+"/"+continuityGrabs+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0")
+                +" grabContinuity="+continuityPass+"/"+continuityGrabs+" grabContinuity20="+continuityPass20+"/"+continuity20+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0")
                 +(game.Onboarding?" onboard: "+game.Onboarding.SummaryFields():"");
         }
         readonly Queue<(string name,string measures)> pendingGrabShots=new Queue<(string,string)>();
         void LateUpdate(){if(pendingGrabShots.Count>0&&!grabShotBusy)StartCoroutine(GrabShot(pendingGrabShots.Dequeue()));GrabContinuity();}
+        // fd-grab: the run's grab records, printed by Finish and on quit (death and huntcam quit without Finish).
+        readonly List<(int mode,bool hide,bool ret,bool headroom)> commits=new List<(int,bool,bool,bool)>();
+        int firstFrames,firstVisible,camDists,camDistOk,lineAllClear,hudRecords,hudZero,continuity20,continuityPass20;float camDistMin=99;bool grabSummaryPrinted;
+        string GrabSummary()
+        {
+            var hist=new int[16];int open=0,openHeadroom=0,openHeadroomDrops=0,hide=0,ret=0;
+            foreach(var g in commits){if(g.mode>=0&&g.mode<hist.Length)hist[g.mode]++;if(g.hide)hide++;if(g.ret)ret++;if(!g.hide&&!g.ret){open++;if(g.headroom){openHeadroom++;if(g.mode==8||g.mode==12)openHeadroomDrops++;}}}
+            var b=new System.Text.StringBuilder();for(int m=6;m<=12;m++)b.Append(" m").Append(m).Append('=').Append(hist[m]);
+            return "grabs="+commits.Count+b+" hide="+hide+" return="+ret+" open="+open+" openHeadroom="+openHeadroom+" openHeadroomDrops="+openHeadroomDrops+
+                " dropShareHeadroom="+(openHeadroom>0?(100f*openHeadroomDrops/openHeadroom).ToString("F0")+"%":"n/a");
+        }
+        void PrintGrabSummary()
+        {
+            if(grabSummaryPrinted||game==null||game.Map!=MapId.Castle)return;grabSummaryPrinted=true;
+            Debug.Log("HC_GRAB_MODE_HIST final "+GrabSummary());
+            Debug.Log("HC_GRAB_SUMMARY grabs="+commits.Count+" continuity="+continuityPass+"/"+continuityGrabs+" continuity20="+continuityPass20+"/"+continuity20+
+                " firstFrameVisible="+firstVisible+"/"+firstFrames+" camDistOk="+camDistOk+"/"+camDists+" camDistMin="+(camDists>0?camDistMin.ToString("F2"):"n/a")+
+                " lineAllClear="+lineAllClear+"/"+camDists+" hudZero="+hudZero+"/"+hudRecords+" teleportsDuringGrab="+grabTeleports);
+        }
+        void OnApplicationQuit(){PrintGrabSummary();}
         // Wave L3 continuity measure (critic r13 kill pass), per grab, from the skull's world position every frame (after animation):
-        //   commit: the skull at the first grab-camera frame is within 0.5 m of the last dive frame's skull;
+        //   commit: the skull at the first grab-camera frame is within 0.5 m of the last frame's skull before it;
         //   fall (drop modes 8 and 12): no frame before the skull's lowest point rises more than 0.05 m (moving against the fall);
-        //   step: no frame step exceeds the clip's own skull speed x dt + 0.3 m, the clip speed taken as the median step of the
-        //   neighbouring frames (+-5) so a one-frame pop stands out from fast clip motion.
-        // HC_PLAY_GRAB_CONTINUITY per grab with the offending frame; totals in HC_PLAY_STATS.
-        int lastGrabMode=-1,continuityGrabs,continuityPass;Vector3 lastDiveSkull;bool haveDiveSkull;float grabT0;int grabModeAtCommit;
-        readonly List<(float t,Vector3 p)> grabSkull=new List<(float,Vector3)>();
+        //   step: no frame step exceeds the clip's own skull speed x dt + 0.3 m. fd-grab: the clip speed is the median speed (step / dt)
+        //   of the neighbouring frames (+-5) and dt is the frame's presentation step (Presence.GrabFrameDt), so a slow screenshot frame
+        //   is judged against the motion it really carried (r13: steps of 0.44-0.87 m were clip speed x 0.1-0.2 s frames, judged against
+        //   a 60 fps neighbour step). The r13 measure (raw neighbour steps) is kept as legacy_pass.
+        //   crawl (mode 9): no step over 0.5 m. Also per grab: the closest eye-to-skull distance and frames with a blocked eye line.
+        // HC_PLAY_GRAB_CONTINUITY per grab with the offending frame; totals in HC_PLAY_STATS and HC_GRAB_SUMMARY.
+        int lastGrabMode=-1,continuityGrabs,continuityPass;Vector3 lastPreSkull;int lastPreFrame=-9;int grabModeAtCommit;float grabClock;
+        readonly List<(float t,Vector3 p,float dt,float eye,bool line)> grabSkull=new List<(float,Vector3,float,float,bool)>();
+        Vector3 commitPreSkull;bool commitHasPre;
         void GrabContinuity()
         {
             if(!game||!game.Creature||game.Map!=MapId.Castle)return;
             var cr=game.Creature;bool cam=cr.GrabCamActive;var skull=cr.HeadPosition;
-            if(!inGrab&&!cam&&cr.Diving){lastDiveSkull=skull;haveDiveSkull=true;}
-            if(cam&&!inGrab){inGrab=true;grabEvaluated=false;grabSkull.Clear();grabT0=Time.unscaledTime;grabModeAtCommit=lastGrabMode;}
+            if(cam&&!inGrab)
+            {
+                inGrab=true;grabEvaluated=false;grabSkull.Clear();grabClock=0;grabModeAtCommit=lastGrabMode;
+                commitHasPre=lastPreFrame==Time.frameCount-1;commitPreSkull=lastPreSkull;
+            }
             if(inGrab&&!grabEvaluated)
             {
-                if(cam&&Time.unscaledTime-grabT0<=1.2f)grabSkull.Add((Time.unscaledTime-grabT0,skull));
-                if((!cam||Time.unscaledTime-grabT0>1.2f)&&grabSkull.Count>0){EvaluateGrab();grabEvaluated=true;}
+                float dt=cr.GrabFrameDt>0?cr.GrabFrameDt:Time.unscaledDeltaTime;
+                if(cam&&grabClock<=1.2f)
+                {
+                    grabClock+=grabSkull.Count==0?0:dt;
+                    var eye=game.Player.View.transform.position;
+                    bool line=!Physics.Linecast(eye,skull,out var hit,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)||hit.collider.transform.IsChildOf(cr.transform)||(cr.Actor&&hit.collider.transform.IsChildOf(cr.Actor.transform));
+                    grabSkull.Add((grabClock,skull,dt,Vector3.Distance(eye,skull),line));
+                }
+                if((!cam||grabClock>1.2f)&&grabSkull.Count>0){EvaluateGrab();grabEvaluated=true;}
             }
-            if(!cam&&inGrab){inGrab=false;haveDiveSkull=false;}
+            if(!cam&&inGrab)inGrab=false;
+            if(!cam&&cr.Actor&&cr.Actor.gameObject.activeInHierarchy){lastPreSkull=skull;lastPreFrame=Time.frameCount;}
         }
         bool inGrab,grabEvaluated;
+        static float Median(List<float> v){if(v.Count==0)return 0;v.Sort();return v[v.Count/2];}
         void EvaluateGrab()
         {
-            continuityGrabs++;var g=grabSkull;int mode=grabModeAtCommit;bool drop=mode==8||mode==12;
-            float commitGap=haveDiveSkull?Vector3.Distance(lastDiveSkull,g[0].p):-1;bool commitOk=commitGap<0||commitGap<=.5f;
+            continuityGrabs++;var g=grabSkull;int mode=grabModeAtCommit;bool drop=mode==8||mode==12,crawl=mode==9;
+            float commitGap=commitHasPre?Vector3.Distance(commitPreSkull,g[0].p):-1;bool commitOk=commitGap<0||commitGap<=.5f;
             int low=0;for(int i=1;i<g.Count;i++)if(g[i].p.y<g[low].p.y)low=i;
             string against="none";bool fallOk=true;
             if(drop)for(int i=1;i<=low;i++)if(g[i].p.y-g[i-1].p.y>.05f){fallOk=false;against="t="+g[i].t.ToString("F2")+" rise="+(g[i].p.y-g[i-1].p.y).ToString("F2");break;}
-            var steps=new List<float>();for(int i=1;i<g.Count;i++)steps.Add(Vector3.Distance(g[i].p,g[i-1].p));
-            string pop="none";bool stepOk=true;float maxStep=0;
+            var steps=new List<float>();var speeds=new List<float>();
+            for(int i=1;i<g.Count;i++){float st=Vector3.Distance(g[i].p,g[i-1].p);steps.Add(st);speeds.Add(st/Mathf.Max(1e-4f,g[i].dt));}
+            string pop="none",legacyPop="none";bool stepOk=true,legacyOk=true,crawlOk=true;float maxStep=0,maxDt=0;
             for(int i=0;i<steps.Count;i++)
             {
-                var near=new List<float>();for(int j=Mathf.Max(0,i-5);j<=Mathf.Min(steps.Count-1,i+5);j++)if(j!=i)near.Add(steps[j]);
-                near.Sort();float clip=near.Count>0?near[near.Count/2]:0;maxStep=Mathf.Max(maxStep,steps[i]);
-                if(steps[i]>clip+.3f&&stepOk){stepOk=false;pop="t="+g[i+1].t.ToString("F2")+" step="+steps[i].ToString("F2")+" limit="+(clip+.3f).ToString("F2");}
+                var nearSteps=new List<float>();var nearSpeeds=new List<float>();
+                for(int j=Mathf.Max(0,i-5);j<=Mathf.Min(steps.Count-1,i+5);j++)if(j!=i){nearSteps.Add(steps[j]);nearSpeeds.Add(speeds[j]);}
+                float dt=g[i+1].dt;maxStep=Mathf.Max(maxStep,steps[i]);maxDt=Mathf.Max(maxDt,dt);
+                float limit=Median(nearSpeeds)*dt+.3f;
+                if(steps[i]>limit&&stepOk){stepOk=false;pop="t="+g[i+1].t.ToString("F2")+" step="+steps[i].ToString("F2")+" dt="+dt.ToString("F3")+" limit="+limit.ToString("F2");}
+                if(crawl&&steps[i]>.5f&&crawlOk){crawlOk=false;if(pop=="none")pop="t="+g[i+1].t.ToString("F2")+" crawl step="+steps[i].ToString("F2");}
+                if(steps[i]>Median(nearSteps)+.3f&&legacyOk){legacyOk=false;legacyPop="t="+g[i+1].t.ToString("F2")+" step="+steps[i].ToString("F2");}
             }
-            bool pass=commitOk&&fallOk&&stepOk;if(pass)continuityPass++;
-            Debug.Log("HC_PLAY_GRAB_CONTINUITY n="+continuityGrabs+" mode="+mode+" frames="+g.Count+" commit_gap="+(commitGap<0?"n/a":commitGap.ToString("F2"))+" commit_ok="+commitOk+" fall_ok="+(drop?fallOk.ToString():"n/a")+" against="+against+" step_ok="+stepOk+" max_step="+maxStep.ToString("F2")+" pop="+pop+" pass="+pass);
+            float minEye=99;int blocked=0;foreach(var s in g){minEye=Mathf.Min(minEye,s.eye);if(!s.line)blocked++;}
+            bool pass=commitOk&&fallOk&&stepOk&&crawlOk;if(pass)continuityPass++;
+            if(g.Count>=20){continuity20++;if(pass)continuityPass20++;}
+            Debug.Log("HC_PLAY_GRAB_CONTINUITY n="+continuityGrabs+" mode="+mode+" frames="+g.Count+" commit_gap="+(commitGap<0?"n/a":commitGap.ToString("F2"))+" commit_ok="+commitOk+" fall_ok="+(drop?fallOk.ToString():"n/a")+" against="+against+
+                " step_ok="+stepOk+" crawl_ok="+(crawl?crawlOk.ToString():"n/a")+" max_step="+maxStep.ToString("F2")+" max_dt="+maxDt.ToString("F3")+" pop="+pop+" min_eye_skull="+minEye.ToString("F2")+" line_blocked="+blocked+"/"+g.Count+
+                " pass="+pass+" legacy_pass="+(commitOk&&fallOk&&legacyOk)+" legacy_pop="+legacyPop);
         }
         bool grabShotBusy;
         IEnumerator GrabShot((string name,string measures) g)
@@ -206,7 +260,7 @@ namespace HollowCurrent
                 float s=Mathf.Abs(Vector3.Distance(hit.position,new Vector3(target.x,floorY,target.z))-distance)+(clear?0:10);
                 if(s<score){score=s;best=hit.position;found=true;}
             }
-            if(found){game.Player.Teleport(best+Vector3.up*.05f);input.Look=target;}
+            if(found){TeleportPlayer(best+Vector3.up*.05f);input.Look=target;}
             return found;
         }
         static float Floor(float y)=>World.FloorBelow(y);
@@ -304,7 +358,7 @@ namespace HollowCurrent
             // Arrival letter (gatehouse).
             yield return Use(Find(InteractKind.Note,game.Book.ArrivalNoteTitle),"arrival letter");
             // Enter the castle proper (Survey).
-            game.Player.Teleport(new Vector3(0,.1f,10));yield return Frames(4);
+            TeleportPlayer(new Vector3(0,.1f,10));yield return Frames(4);
             yield return Step("entered",game.Case.Phase.ToString());
             yield return Record(Evidence.Induction,game.World.Induction,1,"compass");
             yield return Record(Evidence.Handprint,game.World.Print,2,"grave-ash lantern");
@@ -335,14 +389,14 @@ namespace HollowCurrent
             {float until=Time.realtimeSinceStartup+12;yield return Wait(1);while(bridge&&bridge.Moving&&Time.realtimeSinceStartup<until)yield return null;}
             yield return Step("drawbridge_lowered","lowered="+(bridge&&bridge.Lowered)+" moving="+(bridge&&bridge.Moving));
             // Walk out over the bridge to the far bank.
-            game.Player.Teleport(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);yield return Frames(3);
+            TeleportPlayer(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);yield return Frames(3);
             input.Move=new Vector2(0,1);float walk=Time.realtimeSinceStartup+12;
             while(Time.realtimeSinceStartup<walk&&game.Case.Phase!=Phase.Won)yield return null;
             Reset();
             if(game.Case.Phase!=Phase.Won)
             {
                 Blocker("walking over the bridge did not reach the far-bank trigger (stopped at "+game.Player.transform.position+")");
-                game.Player.Teleport(game.World.Castle.DrawbridgeTrigger.center-Vector3.up*1.0f);yield return Frames(5);
+                TeleportPlayer(game.World.Castle.DrawbridgeTrigger.center-Vector3.up*1.0f);yield return Frames(5);
             }
             yield return Finish();
         }
@@ -374,13 +428,13 @@ namespace HollowCurrent
             c.Dice=()=>dice.Count>0?dice.Dequeue():.99f;
             yield return Use(Find(InteractKind.Kit),"field kit");
             yield return Use(Find(InteractKind.Note,game.Book.ArrivalNoteTitle),"arrival letter");
-            game.Player.Teleport(new Vector3(0,.1f,10));yield return Frames(4);
+            TeleportPlayer(new Vector3(0,.1f,10));yield return Frames(4);
             yield return Step("entered",game.Case.Phase.ToString());
             yield return Record(Evidence.Induction,game.World.Induction,1,"compass");
             // 1. Dread moves on its own: 8 s inside.
             float d0=c.Dread;yield return Wait(8);yield return Step("dread_natural","from="+d0.ToString("F2")+" to="+c.Dread.ToString("F2")+" lit="+(c.Dread-d0<.8f));
             // 2. Great hall frame time (standing at the rune ring, looking down the hall at the table).
-            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,0.05f,hall.z-3.5f));input.Look=new Vector3(hall.x,1.2f,hall.z+4);yield return Wait(1);
+            var hall=game.World.Castle.RuneRingCenter;TeleportPlayer(new Vector3(hall.x,0.05f,hall.z-3.5f));input.Look=new Vector3(hall.x,1.2f,hall.z+4);yield return Wait(1);
             var times=new List<float>();float end=Time.realtimeSinceStartup+10;while(Time.realtimeSinceStartup<end){yield return null;times.Add(Time.unscaledDeltaTime*1000);}
             times.Sort();float sum=0;foreach(var t in times)sum+=t;
             Debug.Log("HC_PLAY_FRAMES great_hall frames="+times.Count+" mean_ms="+(sum/times.Count).ToString("F2")+" p50_ms="+times[times.Count/2].ToString("F2")+" p95_ms="+times[(int)(times.Count*.95f)].ToString("F2")+" p99_ms="+times[(int)(times.Count*.99f)].ToString("F2")+" worst_ms="+times[times.Count-1].ToString("F2")+" over_16.7="+times.FindAll(t=>t>16.7f).Count+" screen="+Screen.width+"x"+Screen.height);
@@ -443,13 +497,13 @@ namespace HollowCurrent
             // 7b. Lies and active silence: Dread above the Lies threshold (70), then the director's real dread beats.
             yield return WaitFor(()=>c.Phase==Phase.Disturbance,50);
             if(game.Player.Hidden)yield return Press(i=>i.Use=true);
-            var hall2=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall2.x,.05f,hall2.z-3.5f));yield return SelectTool(1);
+            var hall2=game.World.Castle.RuneRingCenter;TeleportPlayer(new Vector3(hall2.x,.05f,hall2.z-3.5f));yield return SelectTool(1);
             ForceDread(78,"Lies threshold for the lie beats");
             for(int i=0;i<8&&c.Phase==Phase.Disturbance;i++){game.Scares.Dread();yield return Wait(3f);if(c.Dread<72)ForceDread(78,"keep Lies");}
             yield return Step("lies","HC_LIE="+Tag("HC_LIE")+" silence="+Tag("HC_SCARE_CASTLE silence")+" duck="+Tag("HC_DUCK"));
             // 8. Battlement visibility from the courtyard, then the gatehouse visit (40 s inside after a survived hunt).
             Battlement();
-            game.Player.Teleport(game.World.Spawn);input.Look=game.World.Castle.GatehouseBattlement+Vector3.up*1.2f;yield return Frames(4);
+            TeleportPlayer(game.World.Spawn);input.Look=game.World.Castle.GatehouseBattlement+Vector3.up*1.2f;yield return Frames(4);
             yield return Step("gatehouse_wait","inVan="+game.Player.InVan+" survived="+c.Survived);
             yield return WaitFor(()=>Tag("HC_COUNT_GATEHOUSE landed")>0,60);
             input.Look=game.Creature.HeadPosition;yield return Wait(1.5f);
@@ -499,7 +553,7 @@ namespace HollowCurrent
         {
             yield return Use(Find(InteractKind.Kit),"field kit");
             yield return Use(Find(InteractKind.Note,game.Book.ArrivalNoteTitle),"arrival letter");
-            game.Player.Teleport(new Vector3(0,.1f,10));yield return Frames(4);
+            TeleportPlayer(new Vector3(0,.1f,10));yield return Frames(4);
             yield return Record(Evidence.Induction,game.World.Induction,1,"compass");
             if(second)yield return Record(Evidence.Handprint,game.World.Print,2,"grave-ash lantern");
             yield return Step("opened","runDreadMin="+game.Case.RunDreadMin.ToString("F1"));
@@ -572,7 +626,7 @@ namespace HollowCurrent
             yield return Use(Find(InteractKind.Anchor),"chapel bell");
             yield return SurviveHunt();
             yield return WaitFor(()=>c.Phase==Phase.Disturbance,60);
-            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-4));
+            var hall=game.World.Castle.RuneRingCenter;TeleportPlayer(new Vector3(hall.x,.05f,hall.z-4));
             float start=Time.realtimeSinceStartup,end=start+600;int hunts=c.Hunts;bool low=false;
             while(Time.realtimeSinceStartup<end)
             {
@@ -583,6 +637,15 @@ namespace HollowCurrent
             yield return Step("lowdread_done","lowHunt="+low+" waited="+(Time.realtimeSinceStartup-start).ToString("F0")+"s");
             if(c.Phase==Phase.Hunt||c.Phase==Phase.Warning)yield return WaitFor(()=>c.Phase!=Phase.Hunt&&c.Phase!=Phase.Warning,70);
             yield return Finish();
+        }
+        bool GrabBusy=>game&&game.Creature&&(game.Creature.GrabCamActive||game.Creature.GrabInProgress);
+        // fd-grab: every driver teleport goes through here; one made during a grab presentation is logged (it contaminates the grab's
+        // continuity measure; the natural loop waits for the grab instead).
+        int grabTeleports;
+        void TeleportPlayer(Vector3 to)
+        {
+            if(GrabBusy){grabTeleports++;Debug.Log("HC_PLAY_TELEPORT during_grab=True n="+grabTeleports+" to="+to+" mode="+Mode);}
+            game.Player.Teleport(to);
         }
         // natural: no dice or Dread forcing. The escape route with an 8 minute walk through the rooms (torch on, never hidden)
         // before the bell, so the castle's own rhythm, beats, throws and hunts show up as they would for a player.
@@ -596,9 +659,17 @@ namespace HollowCurrent
             while(Time.realtimeSinceStartup<end)
             {
                 var p=spots[k++%spots.Length];
-                if(NavMesh.SamplePosition(p,out var hit,3,NavMesh.AllAreas))game.Player.Teleport(hit.position+Vector3.up*.05f);
+                // fd-grab (r13 natural1 #2: the 20 s teleport moved her mid-grab): never while a grab is presented; the stay clock
+                // pauses through a grab too.
+                if(GrabBusy)Debug.Log("HC_PLAY natural teleport_wait reason=grab under way");
+                while(GrabBusy)yield return null;
+                if(NavMesh.SamplePosition(p,out var hit,3,NavMesh.AllAreas))TeleportPlayer(hit.position+Vector3.up*.05f);
                 float stay=Time.realtimeSinceStartup+20;
-                while(Time.realtimeSinceStartup<stay){input.Look=game.Player.View.transform.position+Quaternion.Euler(0,Time.realtimeSinceStartup*12,0)*Vector3.forward;yield return null;}
+                while(Time.realtimeSinceStartup<stay||GrabBusy)
+                {
+                    if(GrabBusy){stay+=Time.unscaledDeltaTime;yield return null;continue;}
+                    input.Look=game.Player.View.transform.position+Quaternion.Euler(0,Time.realtimeSinceStartup*12,0)*Vector3.forward;yield return null;
+                }
             }
             yield return Step("natural_walk_done","hunts="+c.Hunts+" survived="+c.Survived+" apparitions="+game.Scares.Events+" thrown="+game.Scares.ThrownProps);
             while(c.Phase==Phase.Hunt||c.Phase==Phase.Warning||c.Phase==Phase.Recovery)yield return null;
@@ -627,7 +698,7 @@ namespace HollowCurrent
             yield return Opening(true);
             yield return Wait(1.5f); // let the checkpoint be saved after the second record
             yield return Use(Find(InteractKind.Anchor),"chapel bell");
-            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-3));yield return Torch(true);
+            var hall=game.World.Castle.RuneRingCenter;TeleportPlayer(new Vector3(hall.x,.05f,hall.z-3));yield return Torch(true);
             float end=Time.realtimeSinceStartup+240;
             while(c.Phase!=Phase.Dead&&Time.realtimeSinceStartup<end)
             {
@@ -647,7 +718,7 @@ namespace HollowCurrent
         {
             var c=game.Case;c.Invulnerable=false;
             yield return Opening(true);
-            var hall=game.World.Castle.RuneRingCenter;game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-3));yield return Torch(true);
+            var hall=game.World.Castle.RuneRingCenter;TeleportPlayer(new Vector3(hall.x,.05f,hall.z-3));yield return Torch(true);
             float end=Time.realtimeSinceStartup+420;
             while(!game.Creature.Diving&&c.Phase!=Phase.Dead&&Time.realtimeSinceStartup<end)
             {
@@ -690,14 +761,14 @@ namespace HollowCurrent
         }
         IEnumerator Witnessed()
         {
-            var c=game.Case;game.Player.Teleport(game.World.Spawn+Vector3.zero);
+            var c=game.Case;TeleportPlayer(game.World.Spawn+Vector3.zero);
             // Stand in the open on the hall floor with the torch on, wait until he sees her, then hide in the nearest cupboard.
             // Stand at the exit of the hall-floor hide nearest the rune ring with the torch on, wait until he sees her,
             // then switch the torch OFF and hide while he watches (critic r10 #16: the open must not depend on the torch).
             var hall=game.World.Castle.RuneRingCenter;
             Interactable near=null;float best=99;
             foreach(var h in game.World.HidingPlaces){if(!h||!h.gameObject.activeInHierarchy||Mathf.Abs(h.HidePoint.y)>1)continue;float d=Vector3.Distance(h.HidePoint,hall);if(d<best){best=d;near=h;}}
-            if(near)game.Player.Teleport(near.ExitPoint);else game.Player.Teleport(new Vector3(hall.x,.05f,hall.z-4));
+            if(near)TeleportPlayer(near.ExitPoint);else TeleportPlayer(new Vector3(hall.x,.05f,hall.z-4));
             yield return Torch(true);
             float end=Time.realtimeSinceStartup+30;
             while(c.Phase==Phase.Hunt&&!game.Creature.CanSeePlayer&&Time.realtimeSinceStartup<end){input.Look=game.Creature.HeadPosition;yield return null;}
@@ -727,7 +798,7 @@ namespace HollowCurrent
             int colliders=bridge?bridge.GetComponentsInChildren<Collider>().Length:0;
             // Wait at the inner gate (as a player must) while the bridge comes down and he hunts; walk when it is down
             // and either he is within 8 m or 20 s have passed.
-            game.Player.Teleport(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);
+            TeleportPlayer(new Vector3(0,.1f,1.2f));input.Look=new Vector3(0,1.6f,-20);
             float waitStart=Time.realtimeSinceStartup,waitClosest=99,nextWaitLog=0;
             while(Time.realtimeSinceStartup-waitStart<20&&c.Phase==Phase.Return)
             {
@@ -750,8 +821,10 @@ namespace HollowCurrent
                 if(c.BlockedDeaths>blocked&&!returnKill)
                 {
                     returnKill=true;
+                    // fd-grab (r13 natural3 #2: 4 frames, not judged): the grab presentation plays 1.3 s before the driver lets go.
+                    float held=Time.realtimeSinceStartup;while(game.Creature.GrabCamActive&&Time.realtimeSinceStartup-held<1.3f)yield return null;
                     Debug.Log("HC_RETURN_KILL would_die=true phase="+c.Phase+" huntActive="+c.HuntActive+" player="+game.Player.transform.position+" count="+at+" dist="+Vector3.Distance(at,game.Player.transform.position).ToString("F2"));
-                    game.Creature.ReleaseGrab("driver return kill");Reset();game.Player.Teleport(mid-Vector3.up*1.0f);yield return Frames(5);continue;
+                    game.Creature.ReleaseGrab("driver return kill");Reset();TeleportPlayer(mid-Vector3.up*1.0f);yield return Frames(5);continue;
                 }
                 if(Time.realtimeSinceStartup>nextLog){nextLog=Time.realtimeSinceStartup+.5f;Debug.Log("HC_PLAY_BRIDGE player="+game.Player.transform.position+" count="+at+" huntActive="+c.HuntActive+" dist="+Vector3.Distance(at,game.Player.transform.position).ToString("F1"));}
                 yield return null;
@@ -759,7 +832,7 @@ namespace HollowCurrent
             Reset();
             yield return Step("bridge_crossed","won="+(c.Phase==Phase.Won)+" closest="+closest.ToString("F2")+" grabsOnBridge="+(c.BlockedDeaths-blocked)+" far="+mid);
             if(returnKill)Debug.Log("HC_PLAY_RETURN_KILL won="+(c.Phase==Phase.Won)+" (a mortal player died on the bridge)");
-            if(c.Phase!=Phase.Won){Blocker("bridge walk did not reach the far bank (at "+game.Player.transform.position+")");game.Player.Teleport(mid-Vector3.up*1.0f);yield return Frames(5);}
+            if(c.Phase!=Phase.Won){Blocker("bridge walk did not reach the far bank (at "+game.Player.transform.position+")");TeleportPlayer(mid-Vector3.up*1.0f);yield return Frames(5);}
         }
         IEnumerator Relics()
         {
@@ -822,7 +895,7 @@ namespace HollowCurrent
                     nextApproach=Time.realtimeSinceStartup+1.5f;
                     var dir=Vector3.ProjectOnPlane(game.Player.transform.position-him,Vector3.up);if(dir.sqrMagnitude<.01f)dir=Vector3.back;
                     var stand=near.position+dir.normalized*1.4f;if(NavMesh.SamplePosition(stand,out var s2,1.5f,NavMesh.AllAreas))stand=s2.position;
-                    game.Player.Teleport(stand+Vector3.up*.05f);
+                    TeleportPlayer(stand+Vector3.up*.05f);
                 }
                 yield return null;
             }
@@ -870,7 +943,7 @@ namespace HollowCurrent
                             {
                                 // A closed door in the way: press E on it like a player would, then (if still stuck) step past.
                                 if(game.Player.Focus&&game.Player.Focus.Kind==InteractKind.Door){input.Move=Vector2.zero;yield return Press(i=>i.Use=true);Debug.Log("HC_PLAY cold_door_opened "+game.Player.Focus.name);}
-                                else{unstick++;game.Player.Teleport(corner+Vector3.up*.05f);Debug.Log("HC_PLAY cold_unstick n="+unstick+" at="+p.ToString("F1")+" to="+corner.ToString("F1"));}
+                                else{unstick++;TeleportPlayer(corner+Vector3.up*.05f);Debug.Log("HC_PLAY cold_unstick n="+unstick+" at="+p.ToString("F1")+" to="+corner.ToString("F1"));}
                             }
                             stuckClock=0;last=game.Player.transform.position;
                         }
@@ -916,6 +989,7 @@ namespace HollowCurrent
             yield return Step(c.Phase==Phase.Won?(c.HunterSlain?"won_kill":"won_escape"):"not_won","goal="+c.Goal);
             if(Mode!="escape"&&Mode!="kill"){var sb=new System.Text.StringBuilder();foreach(var t in Tags)sb.Append(t.Trim().Replace(' ','_')).Append('=').Append(Tag(t)).Append(' ');Debug.Log("HC_PLAY_SUMMARY "+sb+"dread="+c.Dread.ToString("F1")+" hunts="+c.Hunts);}
             Debug.Log("HC_PLAY_STATS mode="+Mode+" "+Stats());
+            PrintGrabSummary();
             Debug.Log("HC_PLAY_RESULT mode="+Mode+" won="+(c.Phase==Phase.Won)+" slain="+c.HunterSlain+" blockedDeaths="+c.BlockedDeaths+" blockers="+blockers.Count+(blockers.Count>0?" ["+string.Join(" | ",blockers)+"]":""));
             yield return Wait(1);Application.Quit();
         }

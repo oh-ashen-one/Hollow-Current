@@ -131,10 +131,18 @@ namespace HollowCurrent
             GUI.matrix=Matrix4x4.TRS(new Vector3((Screen.width-1600*scale)*.5f,(Screen.height-900*scale)*.5f,0),Quaternion.identity,new Vector3(scale,scale,1));
             if(Game.Loading){Loading();return;}
             if(!Game.Started){if(Game.Paused)Settings(true);else Title();return;}
+            // fd-grab: the grab's HUD record (HC_GRAB_HUD) covers the kill presentation too.
+            bool grabNow=Game.Map==MapId.Castle&&Game.Creature&&(Game.Creature.GrabCamActive||Game.Creature.GrabInProgress);
             if(Game.Case.Terminal)
             {
                 if(Game.Case.Phase==Phase.Dead&&Game.Creature.PresentationRemaining>0)
-                {float fade=1-Game.Creature.PresentationRemaining/Game.Creature.Profile.CapturePresentationSeconds;Panel(new Rect(0,0,1600,900),new Color(.005f,.008f,.01f,Mathf.Pow(fade,3)));return;}
+                {
+                    float fade=1-Game.Creature.PresentationRemaining/Game.Creature.Profile.CapturePresentationSeconds;
+                    if(grabNow)GrabHudFrame(true,Mathf.Pow(fade,3)>.004f);
+                    // The presentation's own fade to black (not HUD): nothing else is drawn over the kill.
+                    Panel(new Rect(0,0,1600,900),new Color(.005f,.008f,.01f,Mathf.Pow(fade,3)));return;
+                }
+                GrabHudEnd("presentation over");
                 Ending();return;
             }
             if(Game.NoteBody!=null){Note();return;}
@@ -142,17 +150,37 @@ namespace HollowCurrent
             if(Game.Paused){Settings(false);return;}
             // Castle only (r12 critic): during a grab or kill presentation no prompt, hint, objective or instrument line is drawn;
             // only captions stay. Bellwether never takes this path.
-            bool grabHidden=Game.Map==MapId.Castle&&Game.Creature&&(Game.Creature.GrabCamActive||Game.Creature.GrabInProgress);
+            // fd-grab (r13 natural2: the dispatch card "He is out. He is over the courtyard..." stayed on every Return grab frame): from the
+            // commit frame nothing is drawn at all, captions and dispatch cards included; they resume (if still timed) after the grab.
+            bool grabHidden=grabNow;
             if(grabHidden!=hudGrabHidden){hudGrabHidden=grabHidden;Debug.Log("HC_UI grab_hidden="+(grabHidden?"true":"false"));}
-            if(grabHidden){if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))SubtitleCard();return;}
+            if(grabHidden){GrabHudFrame(false,false);return;}
+            GrabHudEnd("grab over");
             HUD();
         }
         bool hudGrabHidden;
-        void Panel(Rect r,Color c){var old=GUI.color;GUI.color=c.linear;GUI.DrawTexture(r,Texture2D.whiteTexture);GUI.color=old;}
+        // HC_GRAB_HUD per grab: repaint frames under the grab, HUD draws in them (Panel/Label/Track/Artwork/TextureFrame count while
+        // grabHud is set; must stay 0), captions held back, and frames with the kill's fade to black (presentation, not HUD).
+        bool grabHud;int grabHudFrames,grabHudDraws,grabHudCaptions,grabHudFade;
+        void GrabHudFrame(bool presenting,bool fading)
+        {
+            if(Event.current.type!=EventType.Repaint)return;
+            if(!grabHud){grabHud=true;grabHudFrames=grabHudDraws=grabHudCaptions=grabHudFade=0;}
+            grabHudFrames++;if(fading)grabHudFade++;
+            if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))grabHudCaptions++;
+        }
+        void GrabHudEnd(string why)
+        {
+            if(!grabHud)return;grabHud=false;
+            Debug.Log("HC_GRAB_HUD pixels="+(grabHudDraws==0?"0":"unknown")+" draws="+grabHudDraws+" frames="+grabHudFrames+" captionsHeld="+grabHudCaptions+" fadeFrames="+grabHudFade+" end="+why);
+        }
+        void CountHudDraw(){if(grabHud)grabHudDraws++;}
+        void Panel(Rect r,Color c){if(grabHud&&!(Game.Case!=null&&Game.Case.Terminal))CountHudDraw();var old=GUI.color;GUI.color=c.linear;GUI.DrawTexture(r,Texture2D.whiteTexture);GUI.color=old;}
         void Border(Rect r,Color c){Panel(new Rect(r.x,r.y,r.width,1),c);Panel(new Rect(r.x,r.yMax-1,r.width,1),c);Panel(new Rect(r.x,r.y,1,r.height),c);Panel(new Rect(r.xMax-1,r.y,1,r.height),c);}
         bool OnPaper(Vector2 point){foreach(var r in paperRegions)if(r.Contains(point))return true;return false;}
         void Label(float x,float y,float w,float h,string text,GUIStyle style=null)
         {
+            CountHudDraw();
             style=style??body;
             if(OnPaper(new Vector2(x+5,y+5)))
             {
@@ -164,6 +192,7 @@ namespace HollowCurrent
         void Rule(float x,float y,float w)=>Panel(new Rect(x,y,w,1),line);
         void Track(float x,float y,string text,Color? color=null)
         {
+            CountHudDraw();
             var old=kicker.normal.textColor;kicker.normal.textColor=OnPaper(new Vector2(x,y))?oxblood:color??copper;
             foreach(char c in text){string s=c<128?glyphs[c]:c.ToString();GUI.Label(new Rect(x,y,24,24),s,kicker);x+=c<128?glyphWidths[c]:kicker.CalcSize(new GUIContent(s)).x+2.4f;}
             kicker.normal.textColor=old;
@@ -185,6 +214,7 @@ namespace HollowCurrent
         }
         void Artwork(Rect rect,Texture texture,bool crop=false,Color? tint=null)
         {
+            CountHudDraw();
             if(Event.current.type!=EventType.Repaint)return;
             float factor=crop?Mathf.Max(rect.width/texture.width,rect.height/texture.height):Mathf.Min(rect.width/texture.width,rect.height/texture.height);
             var draw=new Rect(rect.center.x-texture.width*factor*.5f,rect.center.y-texture.height*factor*.5f,texture.width*factor,texture.height*factor);
@@ -202,6 +232,7 @@ namespace HollowCurrent
         }
         void TextureFrame(Rect rect,Texture texture,Color tint)
         {
+            CountHudDraw();
             if(Event.current.type!=EventType.Repaint)return;
             var matrix=GUI.matrix;var position=matrix.MultiplyPoint3x4(new Vector3(rect.x,rect.y,0));var size=matrix.MultiplyVector(new Vector3(rect.width,rect.height,0));GUI.matrix=Matrix4x4.identity;
             artworkMaterial.SetColor("_Tint",tint.linear);Graphics.DrawTexture(new Rect(position.x,position.y,size.x,size.y),texture,new Rect(0,0,1,1),0,0,0,0,Color.white,artworkMaterial);GUI.matrix=matrix;

@@ -27,6 +27,7 @@ namespace HollowCurrent
         // SpinMinBearing and SpinMaxYaw) with probability SpinShare, else GrabDrop, so GrabDrop stays >= 30 % of eligible grabs.
         // A low dive whose bearing from her view is SideMinBearing-SideMaxBearing and whose flank is clear ends in a side snatch with
         // probability SideShare (GrabSideL from her left, GrabSideR from her right), committed within SideCommitDistance of her.
+        // fd-grab: SpinShare, SideShare and DropDiveShare are retired (the dive plans its grab from the variety deck, PlanVariant).
         public float SpinMinBearing=50f, SpinShare=.45f, SideMinBearing=35f, SideMaxBearing=110f, SideShare=.6f, SideCommitDistance=3.8f, SideStartLateral=3.4f, SideSkullHeight=1.55f;
         // GrabDrop when he was at least this far above the player (height decays at GrabDropHeightDecay m/s, so it means
         // "he came down on you", not "he once flew past high up"). Reaches from F5's receipt (grab_drop_reach_m /
@@ -86,6 +87,26 @@ namespace HollowCurrent
         public float BagDread=50f; public int BagSize=3;
         public float RingTolerance=.25f, FlareDistance=1.2f, RecommitBlock=2f, GrabDropPeakSkullDefault=4.2f;
         public float ClipSecondsFor(int mode)=>mode==ModeGrabDropId?1.6f:mode==ModeGrabCrawlId?1.4f:mode==ModeGrabSideLId||mode==ModeGrabSideRId?1.2f:mode==ModeGrabDropSpinId?1.9f:.9f;
+        // ---- fd-grab (r13 blind critic, top change 1: the kill presentation) -----------------------------------------------
+        // Presentation clock: while the grab camera runs, the clip, the root easing and the camera advance at most GrabMaxFrameStep per
+        // rendered frame (a slow frame, e.g. a screenshot, plays slower instead of jumping), so every frame continues the last.
+        // Seat: at the commit the root is offset so his skull starts exactly where the last rendered dive frame left it, and the offset
+        // decays over SeatSeconds (longer for a big offset, at most SeatMaxSpeed m/s, never past SeatMaxSeconds).
+        // MinSkullDistance: the lens never comes closer than this to his skull (the critic's floor is 0.6 m).
+        // FirstFrameMargin: in the commit frame his skull sits within this share of the half field of view (the view turns there).
+        // ViewLine*: small props (candelabra, floating books) within ViewLineRadius of the eye-to-skull/claw line are hidden for the grab.
+        public float GrabMaxFrameStep=1f/30, SeatSeconds=.35f, SeatMaxSpeed=3f, SeatMaxSeconds=.9f, MinSkullDistance=.65f, FirstFrameMargin=.7f;
+        public float ViewLineRadius=.22f, ViewPropMaxSize=2.6f, SideTurnSeconds=.25f;
+        // Ring: the stand-off point of a grab is searched in RingStepDegrees steps either side of his bearing (RingSteps each way) for open
+        // floor at her level with nothing between it and her (the giant skeleton's collision boxes, pews, columns): the clip's body sweep
+        // and her eye line. Within reach on a blocked bearing the commit waits; DiveStallSeconds near her without a commit ends the dive
+        // as a readable miss (he pulls up and leaves), never a hover.
+        public float RingStepDegrees=25f; public int RingSteps=7; public float DiveStallSeconds=1.5f;
+        // Variety (r13: side snatch and drop-spin 0 of 12): each open-floor dive plans its grab from a deck kept across runs
+        // (PlayerPrefs hc.castle.grabdeck); the eligible variant furthest below its target share is chosen. Side and spin approaches go
+        // to their own start points (her flank / beside-behind her) and fall back to the plain grab if not committed in time.
+        public float DropTargetShare=.40f, SpinTargetShare=.15f, SideTargetShare=.25f, PlanJitter=.35f;
+        public float SpinPlanBearing=80f, PlanLockDistance=6f, VariantCommitTolerance=.7f, VariantGiveUpSeconds=3.5f;
         // A known hide is approached to the stand-off point of its grab; within this of it he commits.
         public float HideStandTolerance=.5f;
         // After the slats, an opening visit rears back to the grab's stand-off at this speed before the grab commits.
@@ -93,7 +114,8 @@ namespace HollowCurrent
         // Readability in the dive (Hunt only, Chase only): the shoulder rim brightens to DiveRimScale between DiveRimNear and
         // DiveRimFar metres from her (silhouette against the window light); otherwise RimLightScale as everywhere.
         public float DiveRimScale=1.1f, DiveRimNear=2.5f, DiveRimFar=9f;
-        // During the grab presentation the Count moves to this layer and the grave-ash (ultraviolet) lantern stops lighting it.
+        // The Count lives on this layer (fd-grab: from his first frame, no switch at the commit) and the grave-ash (ultraviolet)
+        // lantern never lights it, so it never recolours him purple, in the grab or in the fight.
         public int GrabLightLayer=29;
         // Sword hits: he recoils SwordRecoilDistance away from her over SwordRecoilSeconds, and until SwordClearSeconds after the
         // stagger no joint (wing markers included) comes within SwordClearRadius (+0.15 m skin) of the camera.
