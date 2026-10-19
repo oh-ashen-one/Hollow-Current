@@ -103,6 +103,12 @@ namespace HollowCurrent
         // and her eye line. Within reach on a blocked bearing the commit waits; DiveStallSeconds near her without a commit ends the dive
         // as a readable miss (he pulls up and leaves), never a hover.
         public float RingStepDegrees=25f; public int RingSteps=7; public float DiveStallSeconds=1.5f;
+        // fe-count: a dive whose horizontal distance to her grows this far past its start (out of her sight, or chasing a variant's start
+        // point) is ended as a readable miss (r13 FD huntcam flew 12 m away along the gallery).
+        public float DiveAwayMargin=3f;
+        // fe-count (r13 FD first frames): an open-floor commit waits up to EyeHoldSeconds while her eye line to his skull is blocked; a seat
+        // gap's horizontal part beyond SeatMaxGap stays in the root (no slide); a first frame turning more than FirstFrameCutDegrees is a cut.
+        public float EyeHoldSeconds=.4f, SeatMaxGap=.45f, FirstFrameCutDegrees=90f;
         // Variety (r13: side snatch and drop-spin 0 of 12): each open-floor dive plans its grab from a deck kept across runs
         // (PlayerPrefs hc.castle.grabdeck); the eligible variant furthest below its target share is chosen. Side and spin approaches go
         // to their own start points (her flank / beside-behind her) and fall back to the plain grab if not committed in time.

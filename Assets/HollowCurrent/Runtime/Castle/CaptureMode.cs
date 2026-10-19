@@ -502,16 +502,28 @@ namespace HollowCurrent
             float interference=Time.realtimeSinceStartup;while(game.Scares&&game.Scares.Interference)yield return null;
             Log("hunt interference waited "+(Time.realtimeSinceStartup-interference).ToString("F1")+" s");
             bool choreo=game.Creature.BeginCaptureChoreography(1);Log("choreography begin="+choreo);
-            var samples=new List<float>();
+            // fe-count (FD: hunt_dive p99 110 ms / max 122 ms against fc3's 17.7 ms max): the ten H shots are synchronous screenshots
+            // (WaitForEndOfFrame, CaptureScreenshotAsTexture, EncodeToPNG, WriteAllBytes, about 100 ms each), and the frame after each shot
+            // carried that stall into the sample. fc3 ran with -hc-capture-shots S1,S2,S3, so it took none. The choreography clock steps
+            // at most 1/30 s per frame, so the dive itself is unaffected. hunt_dive now leaves out the frames touched by a screenshot (the
+            // shot frame and the next one; logged as capture_frames_excluded=) and hunt_dive_raw keeps every frame.
+            var samples=new List<float>();var raw=new List<float>();int shotFrame=-10,excluded=0;
             for(int i=0;i<10;i++)
             {
-                while(game.Creature.CaptureClock<i+1){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
+                while(game.Creature.CaptureClock<i+1)
+                {
+                    yield return null;float ms=Time.unscaledDeltaTime*1000;raw.Add(ms);
+                    if(Time.frameCount<=shotFrame+2)excluded++;else samples.Add(ms);
+                }
                 var view=game.Player.View.transform;
-                yield return Shot("H"+(i+1).ToString("00")+"_hunt_dive","(hunt sequence)",view.position,view.position+view.forward*5,"clock="+game.Creature.CaptureClock.ToString("F2")+" phase="+game.Case.Phase+" "+game.Creature.CaptureNote);
+                string shotId="H"+(i+1).ToString("00")+"_hunt_dive";bool shooting=Wanted(shotId);
+                yield return Shot(shotId,"(hunt sequence)",view.position,view.position+view.forward*5,"clock="+game.Creature.CaptureClock.ToString("F2")+" phase="+game.Case.Phase+" "+game.Creature.CaptureNote);
+                if(shooting)shotFrame=Time.frameCount;
                 if(i==4)CandleFlame.LogLeanReport("H05");if(i==7)CandleFlame.LogLeanReport("H08");
             }
             game.Creature.EndCaptureChoreography();
-            Record("hunt_dive",samples);
+            Record("hunt_dive",samples);Record("hunt_dive_raw",raw);
+            Log("FRAMETIME hunt_dive capture_frames_excluded="+excluded+" of "+raw.Count+" (the screenshot frame and the frame after it, for each of the H shots taken)");
             File.WriteAllText(Path.Combine(Directory,"capture.json"),"{\"unity\":\""+Application.unityVersion+"\",\"screen\":\""+Screen.width+"x"+Screen.height+"\",\"quality\":\""+QualitySettings.names[QualitySettings.GetQualityLevel()]+"\",\"antiAliasing\":"+QualitySettings.antiAliasing+",\"shadowResolution\":\""+QualitySettings.shadowResolution+"\",\"shadowDistance\":"+QualitySettings.shadowDistance+",\"targetFrameRate\":"+Application.targetFrameRate+",\"vSync\":"+QualitySettings.vSyncCount+",\"fov\":"+game.Player.View.fieldOfView+",\"entries\":[\n"+string.Join(",\n",entries)+"\n]}\n");
             Log("DONE "+entries.Count+" entries");
             Game.RestoreOwnerWindow();yield return null;yield return null;
