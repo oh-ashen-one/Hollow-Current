@@ -15,6 +15,8 @@ namespace HollowCurrent
         readonly Color paperInk=new Color(.105f,.074f,.065f),oxblood=new Color(.38f,.12f,.13f);
         // Castle journal / end card (fd-journal): all text on the paper is held to >= 7:1 against the darkest 5 % of the paper, so near-black ink and oxblood replace the lighter ones there.
         readonly Color castleKicker=new Color32(32,4,4,255),castleInk=new Color32(20,13,12,255);bool castleCards;
+        // fe-ui: label / rule colour of a disabled control on the castle card (dark umber; contrast measured by tools/docui_journal_mock.py).
+        readonly Color castleDisabled=new Color32(60,32,24,255);
         string cachedSubtitle,dialogueSpeaker,dialogueBody;
         // Field Settings pages: 0 controls & audio, 1 dialogue display, 2 castle night (castle only).
         int settingsPage;
@@ -285,7 +287,11 @@ namespace HollowCurrent
             Register(id,rect);
             bool padFocus=PadInput.Active&&focusedId==id;
             bool focus=(!PadInput.Active&&GUI.GetNameOfFocusedControl()==id)||padFocus,hover=!PadInput.Active&&rect.Contains(Event.current.mousePosition)&&GUI.enabled;
-            if(!plain||hover||focus)
+            // fe-ui: a disabled button on the castle's vellum card is not the dimmed dark art (grey on beige, unreadable): it is an outlined
+            // slip in umber (castleDisabled, >= 4.5:1 on the paper), so the label stays legible and the control still reads as unavailable.
+            bool slip=!GUI.enabled&&castleCards&&!plain;
+            if(slip){Panel(rect,new Color(castleDisabled.r,castleDisabled.g,castleDisabled.b,.07f));Border(rect,castleDisabled);}
+            else if(!plain||hover||focus)
             {
                 TextureFrame(rect,warningCard,!GUI.enabled?new Color(.65f,.65f,.65f,.55f):selected||hover||focus?new Color(1.3f,1.15f,1.05f,1):Color.white);
                 if(GUI.enabled&&(primary||selected||hover||focus))Panel(new Rect(x+w*.16f,y+h-7,w*.66f,1),copper);
@@ -296,9 +302,9 @@ namespace HollowCurrent
             if(PadInput.Active)clicked=false;
             if(ConsumeControllerAction(id,GUI.enabled,Event.current.type==EventType.Layout))clicked=true;
             if(PadInput.Active)key=padFocus?PadInput.Prompt("ENTER"):"";
-            var old=button.normal.textColor;button.normal.textColor=GUI.enabled?(plain&&!hover&&!focus&&OnPaper(rect.center)?(castleCards?castleInk:paperInk):ink):new Color(.47f,.43f,.38f);
+            var old=button.normal.textColor;button.normal.textColor=GUI.enabled?(plain&&!hover&&!focus&&OnPaper(rect.center)?(castleCards?castleInk:paperInk):ink):slip?castleDisabled:new Color(.47f,.43f,.38f);
             button.padding.left=Mathf.Clamp(Mathf.RoundToInt(w*.14f),22,68);button.padding.right=key.Length>0?80:22;GUI.Label(rect,text,button);button.normal.textColor=old;
-            if(key.Length>0){var keyRect=new Rect(x+w-66,y+(h-24)/2,48,24);Border(keyRect,GUI.enabled?line:new Color(.16f,.18f,.17f));var oldKey=keyStyle.normal.textColor;keyStyle.normal.textColor=plain&&!hover&&!focus&&OnPaper(rect.center)?(castleCards?castleInk:paperInk):ink;GUI.Label(keyRect,key,keyStyle);keyStyle.normal.textColor=oldKey;}
+            if(key.Length>0){var keyRect=new Rect(x+w-66,y+(h-24)/2,48,24);Border(keyRect,slip?castleDisabled:GUI.enabled?line:new Color(.16f,.18f,.17f));var oldKey=keyStyle.normal.textColor;keyStyle.normal.textColor=slip?castleDisabled:plain&&!hover&&!focus&&OnPaper(rect.center)?(castleCards?castleInk:paperInk):ink;GUI.Label(keyRect,key,keyStyle);keyStyle.normal.textColor=oldKey;}
             if(clicked)Game.Sound.UI();
             return clicked;
         }
@@ -340,25 +346,28 @@ namespace HollowCurrent
         }
         void Metric(float x,float y,string value,string label)
         {Label(x,y,180,55,value,number);Track(x,y+65,label,muted);}
-        // Castle won / killed card on the fixed-scale panel (layout from DocLayout.Ending()). The lost card keeps its dark card and layout.
-        DocLayout.EndingSpec endingSpec;
-        void EndingCastle()
+        // Castle won / killed / lost card on the fixed-scale panel (layout from DocLayout.Ending(lost)). fe-ui: the lost card moved here from
+        // the stretched dark card, so its text column, buttons and ornaments follow the same safe-rect rule.
+        DocLayout.EndingSpec endingSpec,lostSpec;
+        void EndingCastle(bool won)
         {
-            var e=endingSpec??(endingSpec=DocLayout.Ending());LogLayout(e.Layout,"x="+e.X);castleCards=true;
-            Backdrop(false,0);Brand();CastleCard(e.Frame,new Rect(e.Content.X,e.Content.Y,e.Content.W,e.Content.H));Track(e.Kicker.X,e.Kicker.Y,Book.CaseTag+" / CLOSED");
-            bool slain=Game.Case.HunterSlain;
-            Label(e.Hero.X,e.Hero.Y,e.Hero.W,e.Hero.H,slain?Book.KillHero:Book.WonHero,hero);
-            Label(e.Body.X,e.Body.Y,e.Body.W,e.Body.H,slain?Book.KillBody:Book.WonBody);
+            var e=won?(endingSpec??(endingSpec=DocLayout.Ending())):(lostSpec??(lostSpec=DocLayout.Ending(true)));LogLayout(e.Layout,"x="+e.X);castleCards=true;
+            Backdrop(!won,won?0:.14f);Brand();CastleCard(e.Frame,new Rect(e.Content.X,e.Content.Y,e.Content.W,e.Content.H));Track(e.Kicker.X,e.Kicker.Y,won?Book.CaseTag+" / CLOSED":"LAST TRANSMISSION / LOST");
+            bool slain=won&&Game.Case.HunterSlain;
+            Label(e.Hero.X,e.Hero.Y,e.Hero.W,e.Hero.H,won?(slain?Book.KillHero:Book.WonHero):"Signal\nlost.",hero);
+            Label(e.Body.X,e.Body.Y,e.Body.W,e.Body.H,won?(slain?Book.KillBody:Book.WonBody):Book.LostBody);
             Metric(e.MetricX[0],e.MetricY,Game.Case.Evidence.Count+" / 3","EVIDENCE");Metric(e.MetricX[1],e.MetricY,(Game.Case.Survived?Game.Case.Hunts:0).ToString(),"HUNTS SURVIVED");Metric(e.MetricX[2],e.MetricY,TimeSpan.FromSeconds(Game.Case.Elapsed).ToString(@"mm\:ss"),"FIELD TIME");
             Panel(new Rect(e.Separator[0],e.MetricY+9,1,76),line);Panel(new Rect(e.Separator[1],e.MetricY+9,1,76),line);
-            if(Action(e.New.X,e.New.Y,e.New.W,e.New.H,"NEW INVESTIGATION","N",true))Game.Retry();
+            if(!won&&Game.HasCheckpoint&&Action(e.Retry.X,e.Retry.Y,e.Retry.W,e.Retry.H,"RETRY CHECKPOINT","",true))Game.RetryCheckpoint();
+            var nb=!won&&!Game.HasCheckpoint?e.NewSolo:e.New;
+            if(Action(nb.X,nb.Y,nb.W,nb.H,"NEW INVESTIGATION","N",won))Game.Retry();
             if(Action(e.Exit.X,e.Exit.Y,e.Exit.W,e.Exit.H,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
-            castleCards=false;Footer(slain?Book.KillFooter:Book.WonFooter);
+            castleCards=false;Footer(won?(slain?Book.KillFooter:Book.WonFooter):Book.LostFooter);
         }
         void Ending()
         {
             bool won=Game.Case.Phase==Phase.Won;
-            if(won&&CastlePanel){EndingCastle();return;}Backdrop(!won,won?0:.14f);Brand();if(won)Card(new Rect(45,145,850,685));else DarkCard(new Rect(45,145,850,685));Track(80,175,won?Book.CaseTag+" / CLOSED":"LAST TRANSMISSION / LOST");
+            if(CastlePanel){EndingCastle(won);return;}Backdrop(!won,won?0:.14f);Brand();if(won)Card(new Rect(45,145,850,685));else DarkCard(new Rect(45,145,850,685));Track(80,175,won?Book.CaseTag+" / CLOSED":"LAST TRANSMISSION / LOST");
             bool slain=won&&Game.Case.HunterSlain;
             Label(76,214,635,188,won?(slain?Book.KillHero:Book.WonHero):"Signal\nlost.",hero);
             Label(82,428,530,125,won?(slain?Book.KillBody:Book.WonBody):Book.LostBody);
@@ -397,45 +406,51 @@ namespace HollowCurrent
             string nextPage=settingsPage==0?"DIALOGUE DISPLAY":settingsPage==1&&CastleScreen?"CASTLE NIGHT":"CONTROLS & AUDIO";
             // Bellwether keeps its label-derived controller ids (critic r10 #24); only the castle's three-page cycle uses a fixed id.
             if(Action(80,544,340,42,nextPage,"",false,false,settingsPage!=0,CastleScreen?"settings-page":null))settingsPage=settingsPage==0?1:settingsPage==1&&CastleScreen?2:0;
-            Card(new Rect(520,173,1000,635));
-            if(settingsPage==2){CastleSettings();return;}
+            // fe-ui: on the castle the card is the fixed-scale nine-slice and every control sits where DocLayout.Settings() puts it
+            // (logged as HC_DOC_LAYOUT screen=settings); Bellwether keeps the stretched Card and its old positions.
+            bool cc=CastlePanel;DocLayout.SettingsSpec sp=null;
+            if(cc){sp=settingsSpec??(settingsSpec=DocLayout.Settings());LogLayout(sp.Layout,"x0="+sp.X0+" lowY="+sp.LowY+" lowW="+sp.LowW);CastleCard(sp.Frame,new Rect(sp.Content.X,sp.Content.Y,sp.Content.W,sp.Content.H));castleCards=true;}
+            else Card(new Rect(520,173,1000,635));
+            float sx=cc?sp.X0:558,sw=924;
+            if(settingsPage==2){CastleSettings(sx,sw,sp);castleCards=false;return;}
             if(settingsPage==1)
             {
-                Track(558,202,Book.CardStyle+" / DIALOGUE DISPLAY");
-                Game.SubtitleScale=SliderRow(558,256,924,"Subtitle size",Game.SubtitleScale,.85f,1.3f,Mathf.RoundToInt(Game.SubtitleScale*100)+"%","Larger type for living-room play");
-                Game.CardOpacity=SliderRow(558,372,924,"Card opacity",Game.CardOpacity,.55f,1,Mathf.RoundToInt(Game.CardOpacity*100)+"%","Message text stays fully readable");
-                Game.Subtitles=ToggleRow(558,487,924,"Subtitles",Game.Subtitles);
+                Track(sx,202,Book.CardStyle+" / DIALOGUE DISPLAY");
+                Game.SubtitleScale=SliderRow(sx,256,sw,"Subtitle size",Game.SubtitleScale,.85f,1.3f,Mathf.RoundToInt(Game.SubtitleScale*100)+"%","Larger type for living-room play");
+                Game.CardOpacity=SliderRow(sx,372,sw,"Card opacity",Game.CardOpacity,.55f,1,Mathf.RoundToInt(Game.CardOpacity*100)+"%","Message text stays fully readable");
+                Game.Subtitles=ToggleRow(sx,487,cc?sp.ToggleW(487):sw,"Subtitles",Game.Subtitles);
                 Dialogue(new Rect(650,555,740,220),"DISPATCH / CHANNEL 04","The signal is changing. Keep your light steady.",false,1);
-                Footer("Preview your dialogue cards. Preferences are saved when you return.");return;
+                castleCards=false;Footer("Preview your dialogue cards. Preferences are saved when you return.");return;
             }
-            Track(558,202,"CONTROLS & FIELD EQUIPMENT");
-            Game.Player.Sensitivity=SliderRow(558,244,924,"Look sensitivity",Game.Player.Sensitivity,.3f,4,Game.Player.Sensitivity.ToString("F2"),"[1 / 2] Adjust mouse / right-stick sensitivity");
-            Game.Player.Brightness=SliderRow(558,356,924,"Flashlight level",Game.Player.Brightness,.7f,1.8f,Mathf.RoundToInt(Game.Player.Brightness*100)+"%","[3 / 4] Adjust light output");
-            Game.Volume=SliderRow(558,468,924,"Master volume",Game.Volume,0,1,Mathf.RoundToInt(Game.Volume*100)+"%","[5 / 6] Adjust volume");
-            Rule(558,579,924);Game.Player.InvertY=ToggleRow(558,597,924,"Invert look Y",Game.Player.InvertY,"[I]");
-            Game.Subtitles=ToggleRow(558,650,924,"Subtitles",Game.Subtitles,"[T]");
-            Game.HelpHints=ToggleRow(558,703,924,"Detailed field help",Game.HelpHints,"[H]");
-            Footer("ESC return   ·   Shift sprint   ·   Ctrl crouch   ·   E interact   ·   F flashlight   ·   R radio");
+            Track(sx,202,"CONTROLS & FIELD EQUIPMENT");
+            Game.Player.Sensitivity=SliderRow(sx,244,sw,"Look sensitivity",Game.Player.Sensitivity,.3f,4,Game.Player.Sensitivity.ToString("F2"),"[1 / 2] Adjust mouse / right-stick sensitivity");
+            Game.Player.Brightness=SliderRow(sx,356,sw,"Flashlight level",Game.Player.Brightness,.7f,1.8f,Mathf.RoundToInt(Game.Player.Brightness*100)+"%","[3 / 4] Adjust light output");
+            Game.Volume=SliderRow(sx,468,sw,"Master volume",Game.Volume,0,1,Mathf.RoundToInt(Game.Volume*100)+"%","[5 / 6] Adjust volume");
+            Rule(sx,579,sw);Game.Player.InvertY=ToggleRow(sx,597,cc?sp.ToggleW(597):sw,"Invert look Y",Game.Player.InvertY,"[I]");
+            Game.Subtitles=ToggleRow(sx,650,cc?sp.ToggleW(650):sw,"Subtitles",Game.Subtitles,"[T]");
+            Game.HelpHints=ToggleRow(sx,703,cc?sp.ToggleW(703):sw,"Detailed field help",Game.HelpHints,"[H]");
+            castleCards=false;Footer("ESC return   ·   Shift sprint   ·   Ctrl crouch   ·   E interact   ·   F flashlight   ·   R radio");
         }
+        DocLayout.SettingsSpec settingsSpec;
         // FEAR_PLAN items 6 and 19: the Long Night dial and the opt-in microphone (castle only).
-        void CastleSettings()
+        void CastleSettings(float sx,float sw,DocLayout.SettingsSpec sp)
         {
-            Track(558,202,"THE COUNT'S NIGHT / FIELD RULES");
-            bool longNight=ToggleRow(558,244,924,"Long night",Game.LongNight);
-            Label(558,288,820,60,"No warning before a hunt, a darker start, longer hunts, a restless perch, and two hiding places nailed shut. "+(Game.Started&&Game.Map==MapId.Castle?"Takes effect on the next castle case.":"Takes effect when the castle case begins."),small);
+            Track(sx,202,"THE COUNT'S NIGHT / FIELD RULES");
+            bool longNight=ToggleRow(sx,244,sp!=null?sp.ToggleW(244):sw,"Long night",Game.LongNight);
+            Label(sx,288,820,60,"No warning before a hunt, a darker start, longer hunts, a restless perch, and two hiding places nailed shut. "+(Game.Started&&Game.Map==MapId.Castle?"Takes effect on the next castle case.":"Takes effect when the castle case begins."),small);
             if(longNight!=Game.LongNight){Game.LongNight=longNight;Game.SavePreferences();}
-            Rule(558,360,924);
-            bool mic=ToggleRow(558,380,924,"Microphone",Game.MicEnabled);
-            Label(558,424,820,60,"During a hunt he hears your voice through the microphone. macOS asks for microphone access the first time. Off by default.",small);
+            Rule(sx,360,sw);
+            bool mic=ToggleRow(sx,380,sp!=null?sp.ToggleW(380):sw,"Microphone",Game.MicEnabled);
+            Label(sx,424,820,60,"During a hunt he hears your voice through the microphone. macOS asks for microphone access the first time. Off by default.",small);
             if(mic!=Game.MicEnabled){Game.MicEnabled=mic;Game.SavePreferences();}
             GUI.enabled=Game.MicEnabled;
-            float threshold=SliderRow(558,500,924,"Microphone threshold",Game.MicThreshold,.005f,.08f,Game.MicThreshold<.015f?"WHISPER":Game.MicThreshold<.035f?"SPEECH":"SHOUT","How loud you must be before he hears you");
+            float threshold=SliderRow(sx,500,sw,"Microphone threshold",Game.MicThreshold,.005f,.08f,Game.MicThreshold<.015f?"WHISPER":Game.MicThreshold<.035f?"SPEECH":"SHOUT","How loud you must be before he hears you");
             GUI.enabled=true;
             if(!Mathf.Approximately(threshold,Game.MicThreshold))Game.MicThreshold=threshold;
             if(Game.Player.MicLive)
             {
                 // Live input level against the threshold (scaled so the threshold range fills the bar).
-                Track(558,612,"INPUT",muted);var bar=new Rect(640,620,842,4);Panel(bar,line);
+                Track(sx,612,"INPUT",muted);var bar=new Rect(sx+82,620,sw-82,4);Panel(bar,line);
                 Panel(new Rect(bar.x,bar.y,bar.width*Mathf.Clamp01(Game.Player.MicLevel/.1f),4),Game.Player.MicLevel>Game.MicThreshold?oxblood:copper);
                 Panel(new Rect(bar.x+bar.width*Mathf.Clamp01(Game.MicThreshold/.1f),bar.y-6,2,16),paperInk);
             }
