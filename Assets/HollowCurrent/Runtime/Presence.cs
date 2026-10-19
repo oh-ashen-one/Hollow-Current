@@ -1939,23 +1939,40 @@ namespace HollowCurrent
         // Nothing here ever speaks without a location (Soundscape drops such lines).
         int huntLines;float lastOffHuntLine=-999;
         void Voice(string id)=>CountSpeak(id);
-        public bool CountSpeak(string id)
+        // fd-voice (r13 critic 5, owner rule: nothing is a speaker throughout the house): CountSpeak is the ONLY way a human-voice clip
+        // plays in the castle, and it plays from his head (HeadPosition, from="head"). Not the ear-trumpet, not the evidence spot, not behind
+        // the player. `asked` is for a line the player explicitly requested (the ear-trumpet reply, the sarcophagus reading): it waives the
+        // off-hunt 180 s gap and the first-8-s hold, never the presence, distance, per-hunt or hunt-line-range rules.
+        public string CountSpeakBlocker(string id,bool asked=false)
         {
             float now=Time.time;
-            string why=null;
             var view=Game.Player.View.transform.position;var head=HeadPosition;float dist=Vector3.Distance(view,head);
             bool close=id=="cc_hunt_found"||id=="cc_hunt_smell"||id=="cc_hunt_run"||id=="cc_stay";
-            if(!silhouette||!silhouette.gameObject.activeInHierarchy)why="not in the world";
-            else if(dist>count.VoiceMaxDistance)why="beyond "+count.VoiceMaxDistance.ToString("F0")+" m ("+dist.ToString("F1")+")";
-            else if(close&&dist>count.VoiceCloseDistance)why="beyond "+count.VoiceCloseDistance.ToString("F0")+" m for a hunt line ("+dist.ToString("F1")+")";
-            else if(huntOn&&huntLines>=1)why="one line per hunt";
-            else if(!huntOn&&now-lastOffHuntLine<count.VoiceOffHuntGap)why="off-hunt gap "+(count.VoiceOffHuntGap-(now-lastOffHuntLine)).ToString("F0")+" s left";
-            else if(huntOn&&huntClock<8&&!CanSeePlayer&&id!="cc_hunt_found"&&id!="cc_hunt_smell")why="first 8 s of a hunt, not seen";
+            if(!silhouette||!silhouette.gameObject.activeInHierarchy)return "not in the world";
+            if(dist>count.VoiceMaxDistance)return "beyond "+count.VoiceMaxDistance.ToString("F0")+" m ("+dist.ToString("F1")+")";
+            if(close&&dist>count.VoiceCloseDistance)return "beyond "+count.VoiceCloseDistance.ToString("F0")+" m for a hunt line ("+dist.ToString("F1")+")";
+            if(huntOn&&huntLines>=1)return "one line per hunt";
+            if(!asked&&!huntOn&&now-lastOffHuntLine<count.VoiceOffHuntGap)return "off-hunt gap "+(count.VoiceOffHuntGap-(now-lastOffHuntLine)).ToString("F0")+" s left";
+            if(!asked&&huntOn&&huntClock<8&&!CanSeePlayer&&id!="cc_hunt_found"&&id!="cc_hunt_smell")return "first 8 s of a hunt, not seen";
+            return null;
+        }
+        public bool CountSpeak(string id,bool asked=false)
+        {
+            string why=CountSpeakBlocker(id,asked);
             if(why!=null){Debug.Log("HC_VOICE_GATE held id="+id+" reason="+why+" t="+huntClock.ToString("F1"));return false;}
-            if(!Game.Sound.Speak(id,head))return false;
-            if(huntOn)huntLines++;else lastOffHuntLine=now;
-            Debug.Log("HC_VOICE_GATE spoke id="+id+" huntLines="+huntLines+" t="+huntClock.ToString("F1")+" "+DiagnosticState);
+            if(!Game.Sound.Speak(id,HeadPosition,"head"))return false;
+            if(huntOn)huntLines++;else lastOffHuntLine=Time.time;
+            Debug.Log("HC_VOICE_GATE spoke id="+id+" from=head asked="+asked+" huntLines="+huntLines+" t="+huntClock.ToString("F1")+" "+DiagnosticState);
             return true;
+        }
+        bool bargainSpoken;
+        /// <summary>The ear-trumpet reply (fd-voice): at most once per run, and only if he is in range of her ears; otherwise the trumpet's non-verbal texture is all there is.</summary>
+        public bool CountBargain()
+        {
+            if(bargainSpoken)return false;
+            if(CountSpeakBlocker("cc_bargain",true)!=null)return false;
+            if(!CountSpeak("cc_bargain",true))return false;
+            bargainSpoken=true;return true;
         }
 
         // ---- Item 17: grab variants -----------------------------------------------------------------------------------

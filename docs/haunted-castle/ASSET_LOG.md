@@ -210,7 +210,8 @@ Requested by F3 after the r12 critic. CPU-only synthesis (damped modal impacts, 
 | `castle_hide_breath_1.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 3.50 | -28.0 | -12.8 | not yet |
 | `castle_hide_clawstep.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 1.68 | -28.0 | -8.9 | not yet |
 | `castle_hide_handle.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 1.00 | -29.1 | -5.0 | not yet |
-| `castle_hide_whisper.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds), then `tools/audio_castle_fix.py` tail trim | Project CC BY 4.0 (own script, no third-party samples) | 2.90 | -28.0 | -13.7 | not yet |
+| `castle_hide_whisper.wav` | `tools/audio_castle_sfx.py` (numpy/scipy synthesis, deterministic seeds; regenerated 2026-10-18 by fd-voice as wordless sibilance, replacing the formant babble) | Project CC BY 4.0 (own script, no third-party samples) | 2.90 | -28.0 | -12.3 | not yet |
+| `castle_evp_static.wav` | `tools/audio_castle_sfx.py` `castle_evp_static` (numpy/scipy synthesis, seed 131/132; fd-voice 2026-10-18: ear-trumpet recording texture, non-verbal) | Project CC BY 4.0 (own script, no third-party samples) | 3.30 | -28.0 | -14.3 | not yet |
 
 ## Owner feedback FB: castle footsteps and the Count's voice (`hc/fb-audio`, 2026-10-15): cost 0
 

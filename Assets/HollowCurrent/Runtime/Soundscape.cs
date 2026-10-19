@@ -123,6 +123,12 @@ namespace HollowCurrent
         public int SpeechRequests {get;private set;}
         public int SpeechSpatial {get;private set;}
         public int SpeechDropped {get;private set;}
+        // fd-voice: every human-voice clip in the castle comes from the Count's head. SpeechFromHead counts the lines played with from=head;
+        // SpeechFromOther counts lines played from anywhere else and must always be 0 (a non-head request is refused before it can play).
+        public int SpeechFromHead {get;private set;}
+        public int SpeechFromOther {get;private set;}
+        public int SpeechRefusedOther {get;private set;}
+        public int EvpTextures {get;private set;}
         readonly HashSet<string> droppedLogged=new HashSet<string>();
         bool Drop(string id,string reason)
         {
@@ -130,27 +136,29 @@ namespace HollowCurrent
             if(droppedLogged.Add(id))Debug.Log("HC_VOICE_DROPPED id="+id+" reason="+reason);
             return false;
         }
-        public void LogVoiceSummary()=>Debug.Log("HC_VOICE_SUMMARY lines="+SpeechRequests+" spatial="+SpeechSpatial+" dropped="+SpeechDropped);
+        public void LogVoiceSummary()=>Debug.Log("HC_VOICE_SUMMARY lines="+SpeechRequests+" spatial="+SpeechSpatial+" dropped="+SpeechDropped+" from_head="+SpeechFromHead+" from_other="+SpeechFromOther+" refused_other="+SpeechRefusedOther+" evp_textures="+EvpTextures);
         void OnApplicationQuit(){if(castle&&SpeechRequests>0)LogVoiceSummary();}
-        /// <summary>Plays a line; true when it was actually played (the castle drops 2D, over-distance and unmapped lines).</summary>
-        public bool Speak(string id,Vector3? location=null)
+        /// <summary>Plays a line; true when it was actually played (the castle drops 2D, over-distance and unmapped lines).
+        /// Castle: <paramref name="from"/> must be "head" (only Presence.CountSpeak passes it, with HeadPosition); any other source is refused.</summary>
+        public bool Speak(string id,Vector3? location=null,string from=null)
         {
             // Castle speech uses its own cc_ lines only (voice_cc_*); never the house's voices.
             AudioClip clip;
             if(castle)
             {
                 SpeechRequests++;
-                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:id=="evp"?"cc_bargain":id=="whisper"?"cc_listen":null;
+                if(from!="head"){SpeechRefusedOther++;return Drop(id,"voice not from the Count's head (from="+(from??"none")+")");}
+                string key=id.StartsWith("cc_",StringComparison.Ordinal)?id:null;
                 if(key==null)return Drop(id,"not a castle line");
                 if(!location.HasValue)return Drop(id,"no location (2D castle speech is forbidden)");
                 float dist=game.Player?Vector3.Distance(game.Player.View.transform.position,location.Value):0;
                 if(dist>SpeechMaxDistance)return Drop(id,"too far "+dist.ToString("F1")+" m");
                 if(!clips.TryGetValue("voice_"+key,out clip)){MissingArt.Report("speech","voice_"+key);return Drop(id,"missing clip");}
                 bool occluded=game.Player&&Physics.Linecast(game.Player.View.transform.position,location.Value,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
-                PlayedSpeech++;SpeechSpatial++;
+                PlayedSpeech++;SpeechSpatial++;SpeechFromHead++;
                 int castleSlot=Play(clip,location.Value,.70f,1,true);speechUntil[castleSlot]=Time.unscaledTime+clip.length;
                 filters[castleSlot].cutoffFrequency=occluded?SpeechOccludedCutoff:22000;
-                Debug.Log("HC_COUNT_VOICE id="+key+" dist="+dist.ToString("F1")+" occluded="+occluded);
+                Debug.Log("HC_COUNT_VOICE id="+key+" from=head dist="+dist.ToString("F1")+" occluded="+occluded);
                 return true;
             }
             if(!clips.TryGetValue("voice_"+id,out clip))throw new InvalidOperationException("Missing speech "+id);
@@ -159,6 +167,15 @@ namespace HollowCurrent
             dispatch.Stop();dispatch.clip=clip;dispatch.Play();
             return true;
         }
+        /// <summary>fd-voice: the ear-trumpet "records". A NON-VERBAL texture (filtered static, breath and a sub rumble, castle_evp_static) at the
+        /// trumpet in the player's hand (source "trumpet"; the sarcophagus passes "crypt"). Never a voice: any words come only from the Count's head (Presence.CountSpeak).</summary>
+        public void Evp(Vector3 at,string source,string answeredBy)
+        {
+            string clip=clips.ContainsKey("castle_evp_static")?"castle_evp_static":"breath_presence";
+            EvpTextures++;
+            Debug.Log("HC_EVP from="+source+" verbal=False clip="+clip+" head_line="+answeredBy);
+            if(clips.TryGetValue(clip,out var c))Play(c,at,.5f,1);else MissingArt.Report("audio",clip);
+        }
         public void Cue(string id,Vector3 position,float volume=.55f)
         {
             if(id=="step")
@@ -166,7 +183,9 @@ namespace HollowCurrent
                 string material=game.World.StepSurface(position);
                 id="step_"+material+"_"+(foot++%4);
             }
-            if(id=="voice"){Speak("evp",position);return;}
+            // fd-voice: the castle has no voice but the Count's head (Presence.CountSpeak). A voiced clip can never be played as a cue.
+            if(castle&&(id=="voice"||id.StartsWith("voice_",StringComparison.Ordinal))){SpeechRequests++;SpeechRefusedOther++;Drop(id,"voice cue not from the Count's head");return;}
+            if(id=="voice"){var evp=clips["voice_evp"];PlayedSpeech++;int evpSlot=Play(evp,position,.70f,1);speechUntil[evpSlot]=Time.unscaledTime+evp.length;return;}   // Bellwether only (castle returned above)
             if(id=="breath")id="breath_presence";
             if(!clips.TryGetValue(id,out var clip)){if(castle){MissingArt.Report("audio",id);return;}throw new InvalidOperationException("Missing sound "+id);}
             if(generated.Contains(id))GeneratedCues++;
@@ -210,22 +229,21 @@ namespace HollowCurrent
             RareLine(hunting);
             ClawSteps(hunting);
         }
-        // cc_listen at most once per run, in one run of three, at a quiet moment after the first hunt,
-        // 2 m behind and 1.5 m above the player's head (below the ceiling).
+        // cc_listen at most once per run, in one run of three, at a quiet moment after the first hunt. fd-voice (owner rule, r13 critic 5): the
+        // line is no longer placed behind her head; it is the Count's, so it plays only through Presence.CountSpeak from his real head, when he
+        // is in the world and within range of her ears. If he is not, nothing plays and the check repeats (no voiced fallback, no breath stand-in).
         void RareLine(bool hunting)
         {
             if(!rareLine||rareDone||game.Case.Hunts<1||game.Modal)return;
-            // One cc_listen per run across both paths (this rare line and hc/scares2's phantom-listen lie).
-            if(game.CastleDread&&game.CastleDread.ListenPlayed){rareDone=true;return;}
             if(hunting){rareAt=-1;return;}
             if(rareAt<0){rareAt=Time.time+UnityEngine.Random.Range(20f,90f);return;}
             if(Time.time<rareAt)return;
             bool speaking=dispatch.isPlaying;for(int i=0;i<voices.Count;i++)if(voices[i].isPlaying&&speechUntil[i]>Time.unscaledTime)speaking=true;
             if(speaking||game.Player.InVan||game.Player.Hidden||game.Case.Phase==Phase.Warning){rareAt=Time.time+5;return;}
-            var view=game.Player.View.transform;var back=Vector3.ProjectOnPlane(view.forward,Vector3.up);if(back.sqrMagnitude<.01f)back=game.Player.transform.forward;back.Normalize();
-            var at=view.position-back*2+Vector3.up*1.5f;
-            if(Physics.Raycast(view.position,Vector3.up,out var ceiling,1.6f,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))at.y=Mathf.Min(at.y,ceiling.point.y-.2f);
-            rareDone=true;if(game.CastleDread)game.CastleDread.MarkListenPlayed();Speak("cc_listen",at);Debug.Log("HC_RARE_LINE cc_listen at="+at+" t="+game.Case.Elapsed.ToString("F1"));
+            var count=game.Creature;
+            if(!count||count.CountSpeakBlocker("cc_listen")!=null){rareAt=Time.time+8;return;}
+            if(!count.CountSpeak("cc_listen")){rareAt=Time.time+8;return;}
+            rareDone=true;Debug.Log("HC_RARE_LINE cc_listen from=head t="+game.Case.Elapsed.ToString("F1"));
         }
         // Claw steps from the Count's ground movement: every 0.5 m he travels on a floor (not gliding),
         // 5 % volume outside hunts, full in hunts.

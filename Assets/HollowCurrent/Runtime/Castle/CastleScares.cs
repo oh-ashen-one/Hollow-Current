@@ -400,7 +400,9 @@ namespace HollowCurrent
             if(listenFirst)return PhantomListen()||FootstepsBehind();
             return FootstepsBehind()||PhantomListen();
         }
-        // The ear-trumpet's whisper without the ear-trumpet: cc_listen from behind and above the player, once per run.
+        // The ear-trumpet's breath without the ear-trumpet: a NON-VERBAL breath behind and above the player, once per run. fd-voice (owner rule,
+        // r13 critic 5): this used to play voice_cc_listen 2 m behind her ear while the Count was elsewhere. A lie has no speaker; it is a
+        // breath/cloth cue only (HC_LIE ... from=lie verbal=False). The Count's cc_listen is Soundscape.RareLine, through his head only.
         public bool PhantomListen()
         {
             if(!LieAllowed||ListenPlayed||!game.Case.Lies||!Can("phantom_listen"))return false;
@@ -408,9 +410,10 @@ namespace HollowCurrent
             var at=view.position-back*2f+Vector3.up*1.5f;
             if(Physics.Raycast(view.position,Vector3.up,out var ceiling,1.6f,OcclusionMask,QueryTriggerInteraction.Ignore))at.y=Mathf.Min(at.y,ceiling.point.y-.2f);
             ListenPlayed=true;
-            game.Sound.Speak("cc_listen",at);
+            string clip=game.Sound.Has("castle_hide_breath_1")?"castle_hide_breath_1":"breath_presence";
+            game.Sound.Cue(clip,at,.4f);
             float since=SinceLast("phantom_listen");Spend("phantom_listen");
-            Debug.Log("HC_LIE kind=phantom_listen at="+at.ToString("F1")+" dread="+game.Case.Dread.ToString("F0")+" "+BudgetText("phantom_listen",since));
+            Debug.Log("HC_LIE kind=phantom_listen from=lie verbal=False clip="+clip+" at="+at.ToString("F1")+" dread="+game.Case.Dread.ToString("F0")+" "+BudgetText("phantom_listen",since));
             return true;
         }
         // Four or five claw steps (they always finish: nothing stops them on a phase change) 3-5 m behind the player, each farther away than the last, then nothing there.

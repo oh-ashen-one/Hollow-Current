@@ -173,7 +173,11 @@ namespace HollowCurrent
             if(page<0){Game.Say("Dispatch / The sarcophagus is cold. Read a ledger page first; then read it aloud here, if you dare.");Debug.Log("HC_COUNT_GAMBLE no unread-aloud page");return false;}
             readAloud[page]=true;
             string id=LedgerHints.EntryFor((Relic)page);
-            Game.Sound.Speak(id,at+Vector3.up*1.2f);
+            // fd-voice: nothing speaks from the sarcophagus. If the Count is in the world and in range, the answer is his, from his own head;
+            // otherwise the crypt answers with a non-verbal texture only (HC_COUNT_GAMBLE speech=head|texture).
+            bool headSpoke=Game.Creature&&Game.Creature.CountSpeak(id,true);
+            if(!headSpoke)Game.Sound.Evp(at+Vector3.up*1.2f,"crypt","none");
+            Debug.Log("HC_COUNT_GAMBLE speech="+(headSpoke?"head":"texture")+" id="+id);
             Game.Say("Dispatch / You read the page aloud over the sarcophagus. Something below answers: the "+Game.Book.RelicNames[page].ToLowerInvariant()+" is in "+RelicRooms[page]+".");
             float before=c.Dread;c.AddDread(GambleDread);
             var phase=c.Phase;bool canHunt=phase==Phase.Survey||phase==Phase.Disturbance||phase==Phase.Recovery;
