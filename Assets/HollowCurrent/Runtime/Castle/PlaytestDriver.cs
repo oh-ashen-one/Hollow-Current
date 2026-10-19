@@ -935,9 +935,23 @@ namespace HollowCurrent
                 var floor=new Vector3(centre.x,door.transform.position.y,centre.z);
                 string tag=door.name.Replace(' ','_').Replace('(','_').Replace(')','_').Replace('/','_')+"_"+(side<0?"m":"p")+"z";   // fd-integ: door names hold a '/' ("Great door / ..."): it made a sub-path and the shot threw
                 // Stand 3.2 m out on this side (NavMesh), then walk up to the door on foot.
-                var far=floor+normal*side*3.2f;
-                if(!NavMesh.SamplePosition(far,out var fh,1.2f,NavMesh.AllAreas)||Mathf.Sign(door.SideOf(fh.position))!=side){Blocker("doorproof "+door.name+" side "+side+": no walkable stand point");continue;}
+                // fd-integ: the hall piers stand beside the dining and vestibule doors, so the stand point straight out could put a pier between
+                // her and the leaf (focus=none). Take the first of straight out / 0.8 m / 1.4 m either side whose eye line to the leaf is clear.
+                var across=Vector3.Cross(Vector3.up,normal);NavMeshHit fh=default;bool stand=false;
+                foreach(float lateral in new[]{0f,.8f,-.8f,1.4f,-1.4f})
+                {
+                    var far=floor+normal*side*3.2f+across*lateral;
+                    if(!NavMesh.SamplePosition(far,out var h,1.2f,NavMesh.AllAreas)||Mathf.Sign(door.SideOf(h.position))!=side)continue;
+                    var eye=h.position+Vector3.up*1.6f;var hits=Physics.RaycastAll(eye,centre-eye,Vector3.Distance(eye,centre)-.15f,~0,QueryTriggerInteraction.Ignore);
+                    bool clear=true;foreach(var hit in hits)if(!hit.collider.transform.IsChildOf(door.transform)&&!hit.collider.GetComponentInParent<Investigator>()){clear=false;break;}
+                    if(!stand||clear){fh=h;stand=true;}
+                    if(clear){if(lateral!=0)Debug.Log("HC_DOORPROOF stand name=\""+door.name+"\" lateral="+lateral.ToString("F1")+" (straight-out line blocked)");break;}
+                }
+                if(!stand){Blocker("doorproof "+door.name+" side "+side+": no walkable stand point");continue;}
                 game.Player.Teleport(fh.position+Vector3.up*.05f);input.Look=centre;yield return Frames(4);
+                // fd-integ: a leaf can re-open behind the driver's back between the sides (by=auto while she still stood on the other side), so
+                // close it again here, on this side, before she walks up; an auto-open from now on is hers.
+                if(door.Open){door.Toggle();Debug.Log("HC_DOORPROOF reclose name=\""+door.name+"\" before side "+(side<0?"-z":"+z"));yield return Wait(1.2f);}
                 float walkEnd=Time.realtimeSinceStartup+5;
                 while(Time.realtimeSinceStartup<walkEnd)
                 {
@@ -955,7 +969,7 @@ namespace HollowCurrent
                 if(!focused)
                 {
                     // Aim again: this leaf's half a little lower, then the collider point nearest the eye, then a hand-width either side of it.
-                    var eye=game.Player.View.transform.position;var near=col?col.ClosestPoint(eye):centre;var across=Vector3.Cross(Vector3.up,normal);
+                    var eye=game.Player.View.transform.position;var near=col?col.ClosestPoint(eye):centre;
                     foreach(var aim in new[]{centre+Vector3.down*.4f,near,near+across*.3f,near-across*.3f,near+Vector3.down*.3f})
                     {input.Look=aim;yield return Frames(6);if(game.Player.Focus==panel){focused=true;break;}}
                 }
