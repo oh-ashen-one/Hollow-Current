@@ -187,8 +187,124 @@ static class RulesTests
         WaveFDTests();
         WaveFETests();
         WaveFE2Tests();
+        Fe3GrabTests();
         OnboardTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
+    }
+    // fe3-grab: the grab deck never shuts a mode out, and the side snatch is mirror-symmetric (Core/GrabPlanRules.cs).
+    static bool SegHitsCircle(float ax,float az,float bx,float bz,float cx,float cz,float r)
+    {
+        float dx=bx-ax,dz=bz-az,l2=dx*dx+dz*dz;float t=l2<1e-8f?0:Math.Max(0,Math.Min(1,((cx-ax)*dx+(cz-az)*dz)/l2));
+        float px=ax+dx*t-cx,pz=az+dz*t-cz;return px*px+pz*pz<r*r;
+    }
+    static void Fe3GrabTests()
+    {
+        // Deck: the legacy format parses; streaks persist; a starved side is rebalanced below its pair and goes first.
+        var legacy=GrabDeck.Parse("0,0,0,0,0,0,0,0,7,4,5,0,2",13);
+        Assert(legacy.Commits[10]==5&&legacy.Commits[11]==0&&legacy.Streak[10]==0,"FE3 deck: the FD/FE deck format parses");
+        int[][] pairs={new[]{10,11}};int[][] groups={new[]{8},new[]{12},new[]{10,11},new[]{9}};float[] targets={.45f,.15f,.22f,.18f};
+        legacy.Normalize(pairs,groups,targets);
+        Assert(Math.Abs(legacy.Commits[10]-legacy.Commits[11])<=1,"FE3 deck: a saved side never leads its pair by more than one (FE2 carried L 5 / R 0 into r3)");
+        var round=GrabDeck.Parse(legacy.Serialize(),13);
+        for(int i=0;i<13;i++)Assert(round.Commits[i]==legacy.Commits[i]&&round.Streak[i]==legacy.Streak[i],"FE3 deck: serialise round trip "+i);
+        var starve=new GrabDeck(13);starve.Commits[10]=3;starve.Commits[11]=1;
+        Assert(SideGrabRules.FirstSide(starve.Commits[10],starve.Commits[11],60,0)==1,"FE3 deck: the less-committed side (right) is tried first");
+        Assert(starve.PlannedNotCommitted(10,11)==null&&starve.Streak[10]==1,"FE3 deck: one uncommitted plan only counts");
+        Assert(starve.PlannedNotCommitted(10,11)!=null&&starve.Commits[10]==0&&starve.Streak[10]==0,"FE3 deck: the second uncommitted left plan rebalances left below right");
+        Assert(SideGrabRules.FirstSide(starve.Commits[10],starve.Commits[11],60,0)==-1,"FE3 deck: after the rebalance the starved left side goes first even with him on her right");
+        starve.Streak[12]=1;starve.Commits[12]=4;starve.PlannedNotCommitted(12,-1);Assert(starve.Commits[12]==3,"FE3 deck: a starved drop-spin loses one count");
+        starve.Streak[11]=1;starve.Committed(11);Assert(starve.Streak[11]==0&&starve.Commits[11]==2,"FE3 deck: a commit clears its streak");
+        var rng=new Random(31);bool leadOk=true,surplusOk=true;
+        for(int k=0;k<2000;k++)
+        {
+            var d=new GrabDeck(13);foreach(int m in new[]{8,9,10,11,12})d.Commits[m]=rng.Next(0,40);
+            d.Normalize(pairs,groups,targets);
+            float n=1;int[] gm={8,9,10,11,12};foreach(int m in gm)n+=d.Commits[m];
+            if(Math.Abs(d.Commits[10]-d.Commits[11])>1)leadOk=false;
+            for(int g=0;g<groups.Length;g++){int have=0;foreach(int m in groups[g])have+=d.Commits[m];if(targets[g]*n-have<-d.MaxSurplus-.001f)surplusOk=false;}
+        }
+        Assert(leadOk,"FE3 deck: 2,000 random saved decks, normalised side lead <= 1");
+        Assert(surplusOk,"FE3 deck: 2,000 random saved decks, no group more than MaxSurplus over its share (none shut out)");
+        // Commit gate and first side are mirror-symmetric.
+        bool gateMirror=true,firstMirror=true;
+        for(int b=-180;b<=180;b++)
+        {
+            if(SideGrabRules.CommitOk(-1,-b,35,110,out _)!=SideGrabRules.CommitOk(1,b,35,110,out _))gateMirror=false;
+            if(Math.Abs(b)>=1&&SideGrabRules.FirstSide(2,2,b,0)!=-SideGrabRules.FirstSide(2,2,-b,0))firstMirror=false;
+        }
+        Assert(gateMirror,"FE3 commit gate mirrored for every bearing");Assert(firstMirror,"FE3 first side mirrored for every bearing");
+        // r3 natural9 (the left plan dropped "at the start point, came in low (1.5 m)"): him at view bearing +86, 2.21 m; the left frame turned
+        // -15 (away from his side, the only open yaw); he flies across her front and reaches the 0.7 m commit radius. FE2's gate (view
+        // bearing 35-110 on his bearing's side) refuses it at about 34 deg; the frame gate passes it at about 49 deg.
+        {
+            float hx=2.21f*(float)Math.Sin(86*Math.PI/180),hz=2.21f*(float)Math.Cos(86*Math.PI/180);
+            SideGrabRules.Frame(0,1,-1,-15,out float fx,out float fz);SideGrabRules.Start(fx,fz,-1,2.2f,2.88f,.11f,out float sx,out float sz);
+            float dx=sx-hx,dz=sz-hz,dl=(float)Math.Sqrt(dx*dx+dz*dz),px=sx-dx/dl*.7f,pz=sz-dz/dl*.7f;
+            float view=SideGrabRules.Bearing(0,1,px,pz),frame=SideGrabRules.Bearing(fx,fz,px,pz),startView=SideGrabRules.Bearing(0,1,sx,sz);
+            Assert(startView<-36&&startView>-42,"FE3 natural9: the -15 frame's start sits at 39 deg of view bearing: "+startView);
+            Assert(Math.Abs(view)<35,"FE3 natural9: FE2's view-bearing gate refused the left commit: "+view);
+            Assert(SideGrabRules.CommitOk(-1,frame,35,110,out _),"FE3 natural9: the planned-frame gate passes it: "+frame);
+            SideGrabRules.Frame(0,1,1,-15,out float mfx,out float mfz);SideGrabRules.Start(mfx,mfz,1,2.2f,2.88f,.11f,out float msx,out float msz);
+            Assert(Math.Abs(msx+sx)<1e-3f&&Math.Abs(msz-sz)<1e-3f,"FE3 natural9: the right frame's start is the mirror of the left");
+        }
+        Assert(!SideGrabRules.CommitOk(-1,40,35,110,out var gw)&&gw.Contains("right"),"FE3 commit gate: a left plan with him on the frame's right is refused");
+        float sb=SideGrabRules.StartFrameBearing(2.2f,2.88f,.11f);Assert(sb>50&&sb<58,"FE3 the side start sits at 54 deg in its own frame on both sides: "+sb);
+        Assert(SideGrabRules.SeatDecision(.40f,0,.45f,.3f)==SideGrabRules.Seat.Commit,"FE3 seat: 0.40 m commits");
+        Assert(SideGrabRules.SeatDecision(.83f,0,.45f,.3f)==SideGrabRules.Seat.Hold,"FE3 seat: 0.83 m holds the commit");
+        Assert(SideGrabRules.SeatDecision(.83f,.3f,.45f,.3f)==SideGrabRules.Seat.Cut,"FE3 seat: 0.83 m after the hold is a frame-0 cut, never a slide");
+        // 100 side plans from 50 random rooms and their mirror images (x -> -x): her at the origin looking +z, the Count 3-9 m away at a
+        // bearing of 10-170 deg either side, 0-4 round obstacles. The model uses Presence's rules: each side tries the frame yaws
+        // {0, 20, -15, 35} toward that side; a frame is open when her eye -> clip origin and origin -> flank start are clear, the start has
+        // room for his body and he can fly straight to it. He then flies to the start and commits at the 0.7 m radius; the commit gate is
+        // judged in the planned frame.
+        float so=2.2f,lat=2.88f,back=.11f,tol=.7f;float[] yaws={0,20,-15,35};
+        var deck=new GrabDeck(13);int sel10=0,sel11=0,feas10=0,feas11=0,commitFail=0,oldGateFail10=0,oldGateFail11=0,noSide=0;
+        var geo=new Random(1703);
+        for(int scene=0;scene<50;scene++)
+        {
+            int nObs=geo.Next(0,5);var ox=new float[nObs];var oz=new float[nObs];var orad=new float[nObs];
+            for(int i=0;i<nObs;i++){do{ox[i]=(float)(geo.NextDouble()*12-6);oz[i]=(float)(geo.NextDouble()*12-6);orad[i]=(float)(.25+geo.NextDouble()*.75);}while(ox[i]*ox[i]+oz[i]*oz[i]<Math.Pow(orad[i]+.8,2));}
+            float hb=(float)((10+geo.NextDouble()*160)*(geo.Next(2)==0?-1:1)),hd=(float)(3+geo.NextDouble()*6);
+            SideGrabRules.Rotate(0,hd,hb,out float hx0,out float hz0);
+            bool[] okSide=new bool[4];
+            for(int mirror=0;mirror<2;mirror++)
+            {
+                float ms=mirror==0?1:-1;float hx=hx0*ms,hz=hz0;
+                string Feasible(int sg,float y)
+                {
+                    SideGrabRules.Frame(0,1,sg,y,out float fx,out float fz);
+                    SideGrabRules.Start(fx,fz,sg,so,lat,back,out float sx,out float sz);
+                    float cxo=fx*so,czo=fz*so;
+                    for(int i=0;i<nObs;i++)
+                    {
+                        float cx=ox[i]*ms,cz=oz[i];
+                        if(SegHitsCircle(0,0,cxo,czo,cx,cz,orad[i])||SegHitsCircle(cxo,czo,sx,sz,cx,cz,orad[i]))return "flank line blocked";
+                        if((sx-cx)*(sx-cx)+(sz-cz)*(sz-cz)<Math.Pow(orad[i]+.3,2))return "no room at the flank start";
+                        if(SegHitsCircle(hx,hz,sx,sz,cx,cz,orad[i]+.15f))return "no direct flight to its start point";
+                    }
+                    return null;
+                }
+                float bearing=SideGrabRules.Bearing(0,1,hx,hz);
+                int first=SideGrabRules.FirstSide(deck.Commits[10],deck.Commits[11],bearing,deck.Commits[10]+deck.Commits[11]);
+                var plan=SideGrabRules.Choose(Feasible,yaws,first);
+                okSide[mirror*2]=plan.LeftOk;okSide[mirror*2+1]=plan.RightOk;
+                if(plan.LeftOk)feas10++;if(plan.RightOk)feas11++;
+                if(plan.Sign==0){noSide++;continue;}
+                int mode=plan.Sign<0?10:11;if(mode==10)sel10++;else sel11++;
+                SideGrabRules.Frame(0,1,plan.Sign,plan.Yaw,out float pfx,out float pfz);
+                SideGrabRules.Start(pfx,pfz,plan.Sign,so,lat,back,out float tx,out float tz);
+                float dx=tx-hx,dz=tz-hz,dl=(float)Math.Sqrt(dx*dx+dz*dz);float px=dl>tol?tx-dx/dl*tol:hx,pz=dl>tol?tz-dz/dl*tol:hz;
+                if(!SideGrabRules.CommitOk(plan.Sign,SideGrabRules.Bearing(pfx,pfz,px,pz),35,110,out _)){commitFail++;deck.PlannedNotCommitted(mode,mode==10?11:10);continue;}
+                float vb=SideGrabRules.Bearing(0,1,px,pz);
+                if(!(Math.Abs(vb)>=35&&Math.Abs(vb)<=110&&Math.Sign(vb)==plan.Sign)){if(mode==10)oldGateFail10++;else oldGateFail11++;}
+                deck.Committed(mode);
+            }
+            Assert(okSide[0]==okSide[3]&&okSide[1]==okSide[2],"FE3 mirrored room "+scene+": left feasibility equals the mirror's right");
+        }
+        Assert(feas10==feas11,"FE3 mirrored rooms: left and right are feasible equally often ("+feas10+"/"+feas11+")");
+        Assert(sel10>0&&sel11>0&&Math.Abs(sel10-sel11)<=2,"FE3 mirrored rooms: m10 and m11 are selected equally often ("+sel10+"/"+sel11+")");
+        Assert(commitFail==0,"FE3 mirrored rooms: every selected side passes its commit gate in the planned frame ("+commitFail+" failed)");
+        Console.WriteLine("FE3_GRAB mirrored side plans="+(sel10+sel11)+" of 100 m10="+sel10+" m11="+sel11+" feasible L/R="+feas10+"/"+feas11+" no side="+noSide+" commit fails (frame gate)="+commitFail+" | FE2 view-bearing gate would refuse m10 "+oldGateFail10+" / m11 "+oldGateFail11+" of these commits");
     }
     // Map catalog (piece 0): one source for scene names, receipts and display names.
     static void MapTests()

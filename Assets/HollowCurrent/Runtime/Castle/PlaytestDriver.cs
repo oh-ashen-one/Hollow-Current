@@ -148,7 +148,8 @@ namespace HollowCurrent
             Debug.Log("HC_GRAB_SUMMARY grabs="+commits.Count+" continuity="+continuityPass+"/"+continuityGrabs+" continuity20="+continuityPass20+"/"+continuity20+
                 " firstFrameVisible="+firstVisible+"/"+firstFrames+" camDistOk="+camDistOk+"/"+camDists+" camDistMin="+(camDists>0?camDistMin.ToString("F2"):"n/a")+
                 " lineAllClear="+lineAllClear+"/"+camDists+" hudZero="+hudZero+"/"+hudRecords+" teleportsDuringGrab="+grabTeleports+
-                " dives="+diveStarts+" diveCommits="+diveCommits+" diveMisses="+diveMisses+" diveUnresolved="+Mathf.Max(0,diveStarts-diveCommits-diveMisses));
+                " dives="+diveStarts+" diveCommits="+diveCommits+" diveMisses="+diveMisses+" diveUnresolved="+Mathf.Max(0,diveStarts-diveCommits-diveMisses)+
+                " variantContinuity="+variantPass+"/"+variantGrabs+" variantCuts="+variantCuts+" variantCentral03="+variantCentral+"/"+variantCentralN);
         }
         void OnApplicationQuit(){PrintGrabSummary();}
         // Wave L3 continuity measure (critic r13 kill pass), per grab, from the skull's world position every frame (after animation):
@@ -162,7 +163,7 @@ namespace HollowCurrent
         // HC_PLAY_GRAB_CONTINUITY per grab with the offending frame; totals in HC_PLAY_STATS and HC_GRAB_SUMMARY.
         int lastGrabMode=-1,continuityGrabs,continuityPass;Vector3 lastPreSkull;int lastPreFrame=-9;int grabModeAtCommit;float grabClock;
         readonly List<(float t,Vector3 p,float dt,float eye,bool line)> grabSkull=new List<(float,Vector3,float,float,bool)>();
-        Vector3 commitPreSkull;bool commitHasPre;
+        Vector3 commitPreSkull;bool commitHasPre,commitCut;bool? central03;float x03,y03;int variantGrabs,variantPass,variantCuts,variantCentral,variantCentralN;
         void GrabContinuity()
         {
             if(!game||!game.Creature||game.Map!=MapId.Castle)return;
@@ -170,7 +171,14 @@ namespace HollowCurrent
             if(cam&&!inGrab)
             {
                 inGrab=true;grabEvaluated=false;grabSkull.Clear();grabClock=0;grabModeAtCommit=lastGrabMode;
-                commitHasPre=lastPreFrame==Time.frameCount-1;commitPreSkull=lastPreSkull;
+                commitHasPre=lastPreFrame==Time.frameCount-1;commitPreSkull=lastPreSkull;commitCut=false;central03=null;
+            }
+            // fe3-grab: a frame-0 seat cut (Presence HC_GRAB_CUT) is logged per grab; the skull's place on screen at +0.3 s.
+            if(cam&&inGrab&&cr.GrabSeatCut)commitCut=true;
+            if(cam&&inGrab&&!grabEvaluated&&central03==null&&grabClock>=.3f)
+            {
+                var v=game.Player.View.WorldToViewportPoint(skull);
+                central03=v.z>0&&v.x>=.2f&&v.x<=.8f&&v.y>=.2f&&v.y<=.8f;x03=v.x;y03=v.y;
             }
             if(inGrab&&!grabEvaluated)
             {
@@ -192,7 +200,8 @@ namespace HollowCurrent
         void EvaluateGrab()
         {
             continuityGrabs++;var g=grabSkull;int mode=grabModeAtCommit;bool drop=mode==8||mode==12,crawl=mode==9;
-            float commitGap=commitHasPre?Vector3.Distance(commitPreSkull,g[0].p):-1;bool commitOk=commitGap<0||commitGap<=.5f;
+            // fe3-grab: a commit gap over 0.5 m passes only as a logged frame-0 cut (Presence HC_GRAB_CUT), never as a slide.
+            float commitGap=commitHasPre?Vector3.Distance(commitPreSkull,g[0].p):-1;bool commitOk=commitGap<0||commitGap<=.5f||commitCut;
             int low=0;for(int i=1;i<g.Count;i++)if(g[i].p.y<g[low].p.y)low=i;
             string against="none";bool fallOk=true;
             if(drop)for(int i=1;i<=low;i++)if(g[i].p.y-g[i-1].p.y>.05f){fallOk=false;against="t="+g[i].t.ToString("F2")+" rise="+(g[i].p.y-g[i-1].p.y).ToString("F2");break;}
@@ -212,9 +221,12 @@ namespace HollowCurrent
             float minEye=99;int blocked=0;foreach(var s in g){minEye=Mathf.Min(minEye,s.eye);if(!s.line)blocked++;}
             bool pass=commitOk&&fallOk&&stepOk&&crawlOk;if(pass)continuityPass++;
             if(g.Count>=20){continuity20++;if(pass)continuityPass20++;}
+            bool variant=mode==10||mode==11||mode==12;
+            if(variant){variantGrabs++;if(pass)variantPass++;if(commitCut)variantCuts++;if(central03.HasValue){variantCentralN++;if(central03.Value)variantCentral++;}}
             Debug.Log("HC_PLAY_GRAB_CONTINUITY n="+continuityGrabs+" mode="+mode+" frames="+g.Count+" commit_gap="+(commitGap<0?"n/a":commitGap.ToString("F2"))+" commit_ok="+commitOk+" fall_ok="+(drop?fallOk.ToString():"n/a")+" against="+against+
                 " step_ok="+stepOk+" crawl_ok="+(crawl?crawlOk.ToString():"n/a")+" max_step="+maxStep.ToString("F2")+" max_dt="+maxDt.ToString("F3")+" pop="+pop+" min_eye_skull="+minEye.ToString("F2")+" line_blocked="+blocked+"/"+g.Count+
-                " pass="+pass+" legacy_pass="+(commitOk&&fallOk&&legacyOk)+" legacy_pop="+legacyPop);
+                " pass="+pass+" legacy_pass="+(commitOk&&fallOk&&legacyOk)+" legacy_pop="+legacyPop+
+                " seat_cut="+commitCut+" central03="+(central03.HasValue?central03.Value+" x03="+x03.ToString("F2")+" y03="+y03.ToString("F2"):"n/a")+" variant="+variant);
         }
         bool grabShotBusy;
         IEnumerator GrabShot((string name,string measures) g)
