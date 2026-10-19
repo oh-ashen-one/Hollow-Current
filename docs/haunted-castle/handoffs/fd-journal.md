@@ -1,0 +1,43 @@
+# fd-journal: castle journal + end card layout, Bellwether title thumbnail (wave FD, r13 critic section 4)
+
+Branch `hc/fd-journal` (from haunted-castle 0c2796e). Renderer/layout only: **no scene, prefab or gameplay change, no bake**. The integrator needs a normal player build.
+
+## Root cause
+The corner filigree, feather, wax seal and blood blots are baked into `Resources/UI/BloodLedger/Panel.png` (1448x1086). `Card(r)` stretched that one texture onto cards of different sizes, so the ornaments landed wherever the stretch put them (under "INSTRUMENT RECORDS", "ANCHOR", "PULSE", the "read again" tag, the ENTER button, the "Compare..." line, the EVIDENCE label). Fixing positions one by one would break again at the next size, so the rule is now geometric.
+
+## What changed
+| File | Change |
+|---|---|
+| `Assets/HollowCurrent/Core/DocLayout.cs` (new, engine independent) | `DocPanel`: the card is a **nine-slice at one fixed scale (0.28)**, so the four corner ornaments always sit in the four corners at a fixed size. It holds the ornament bounds (texture px), the worst-case torn-edge band, `Pad = 8`, `Paper()`, `Safe()` (paper minus pad), and derived columns (`TextLeft`, `TextRight`, `LowerRight`). `DocLayout.Verify()` is the assertion: every text/control rect that touches a frame's paper must lie inside `Safe` and keep `Pad` clear of every ornament. `DocLayout.Journal()` and `DocLayout.Ending()` build the two layouts from it (every position the screens use). |
+| `Runtime/Interface.cs` | Castle only (`CastlePanel`): `JournalCastle()` and `EndingCastle()` (won/killed card) draw `CastleCard` (nine-slice of `PanelCard.png`) and place everything from `DocLayout`. `LogLayout` prints once per screen: `HC_DOC_LAYOUT screen=journal overlaps=0 frames=2 texts=N scale=0.28 pad=8 colL=152 lowerR=567 x0=800` (and `screen=ending`), plus `Debug.LogError("HC_DOC_LAYOUT violation ...")` per violation. `HC_DOC_PANEL card=1448x1426` logs once. Bellwether, the settings card and the lost card (dark card) keep their old stretched `Card`/`DarkCard` and old positions byte for byte (the old branches are untouched; `Choice` only gained optional grid parameters). Title: `TitleCard` uses `UI/BellwetherCard` for the Bellwether map card. |
+| `Runtime/DocumentUi.cs` | `JournalRow` / `JournalKicker` take `onCard` (default false) and use a near-black oxblood/ink on the castle card only. |
+| `Resources/UI/BloodLedger/PanelCard.png` (+meta) | `tools/docui_panel_card.py`: `Panel.png` with its plain middle row tripled (normal, mirrored, normal), so the nine-slice stretch of a tall card stays about 1x instead of 3x (a first attempt that re-sampled the centre from another window left a visible seam; this one is seamless by construction). `Panel.png` is unchanged. |
+| `Resources/UI/BellwetherCard.jpg` (+meta) | `tools/docui_bellwether_card.py`: crop around the house of the existing `MenuBackdrop.png`, gamma 0.60 lift, 660x371. Logged in `ASSET_LOG.md` (derived, cost 0). |
+| `Tests/RulesTests.cs` | `DocLayoutTests`: journal and ending layouts verify with 0 violations; the r13 positions (kicker under the filigree, pulse strip in the seal corner, submit button under the seal, end-card kicker) are each flagged (the assertion has teeth); ornament size does not depend on card size; pulse strip inside the page. |
+| `tools/docui_journal_mock.py`, `tools/DocLayoutDump.cs` | The offline layout test + mock (below). |
+
+## Defect mapping (critic section 4)
+1. Filigree on "INSTRUMENT RECORDS" / "ANCHOR" / "PULSE": the TL ornament rect + 8 is a keep-out; text columns start at `TextLeft` (152 left card, 800 right card, 117 end card) and the choice label rows are at y 264 / 391 / 518 (below the TR corner on the right edge too).
+2. Wax seal on "read again" / ENTER: the seal lives in the BR corner rect; the left card's doc rows and PULSE strip stop at `LowerRight` (567), the right card's compare line and FILE RECONSTRUCTION button stop at 1397; the end card's EXIT button moved below NEW INVESTIGATION (x 117) so nothing sits beside the seal.
+3. PULSE strip off the page: it is now (224, 712, 343 x 54), bottom 766 < safe bottom 785; the paper bottom (frame bottom minus the torn band) is a first-class bound in `Verify`. The end card's buttons were also straddling its torn bottom edge in r13; the card is 25 units shorter and both buttons end at 782 (safe bottom 791).
+4. Blots over "Compare..." and EVIDENCE: blots are part of the corner ornament rects, so no text can be under one. Text colour on the castle cards is near-black (`castleInk` 20,13,12; `castleKicker` 32,4,4; journal rows `JournalRed/JournalInk`): measured on the mock, median paper contrast 7.4:1 and darkest-5 % contrast 6.8 to 7.0:1 for every enabled text (the old kicker colour was 4.6:1). "not yet found" rows are inactive and exempt.
+5. Title: Bellwether card thumbnail mean luma was 5.8 in the r13 capture (castle card 21.5). `BellwetherCard.jpg` is mean 59.8, so about 21 chosen / 13 unchosen after the card's shade and brightness steps (the card steps are unchanged).
+
+## Verification done (no engine launched)
+- `INPUT_SYSTEM_REFERENCE=/Users/midir/hollow-current-haunted-castle/Library/ScriptAssemblies/Unity.InputSystem.dll python3 tools/check_source.py` PASS (1220 assertions including `DocLayoutTests`; player + editor compile; only the known CS0649/CS0162 warnings).
+- `python3 tools/docui_journal_mock.py` prints `HC_DOC_LAYOUT overlaps=0` for the journal (longest evidence strings per slot, longest note title, both card sides) and the kill end card, and fails otherwise. It (a) builds `Core/DocLayout.cs` with the Unity csc and runs the C# verifier with the Unity mono, (b) draws the screens from that JSON on the real `PanelCard.png`, `CastleBackdrop.png`, `Warning.png` button art, Georgia and the IM Fell italic, (c) checks every measured text box (real font, word wrapped) fits its declared rect, clears every ornament + pad and lies inside the safe rect, (d) prints contrast. Output: `docs/haunted-castle/rounds/r13/docui_mock_journal_fd.png` and `docui_mock_ending_fd.png`. I read both: every heading's first letter is visible (INSTRUMENT RECORDS, BLOOD LEDGER, PULSE, ANCHOR / PATTERN / CLOSURE labels, LEDGER 015 / CLOSED, EVIDENCE, HUNTS SURVIVED, FIELD TIME), the seals sit in the bottom corners clear of the buttons, and the PULSE strip is on the page.
+- Mock limits: PIL, not the engine (kerning and baselines 1 to 2 px); the pulse trace is a fixed sample; the mock paints the journal in its "reconstruction not ready" state (the longer line).
+
+## What the integrator must run
+1. Normal player build (no bake). Castle escape run with the journal and the kill ending:
+   `~/.cache/gpu-slot/bin/gpu_slot.sh capture --label fd-journal -- "<Hollow Current.app>/Contents/MacOS/Hollow Current" -hc-playtest <outdir> escape -screen-width 1920 -screen-height 1080 -screen-fullscreen 0` and the existing kill route used for `critic/kill/20_won_kill.png`. Windowed, `open -g`, no mouse grab.
+2. Check the log for `HC_DOC_PANEL card=1448x1426`, `HC_DOC_LAYOUT screen=journal overlaps=0 ...` and `HC_DOC_LAYOUT screen=ending overlaps=0 ...` (no `HC_DOC_LAYOUT violation`). If `card=missing` the new texture did not import: re-import, the old card is then drawn.
+3. Compare `escape/16_journal`-equivalent and `20_won_kill`-equivalent frames with the two mocks. Likely small differences: Unity text baseline vs PIL, IMGUI wrap of the evidence lines (width 508, two lines), the Action button art stretch.
+4. `-hc-capture-title` for the title thumbnail (`S7_title_castle_1920x1080.png`); the Bellwether card should read as a lit porch, not black.
+5. `-hc-verify -hc-ui-only` (Bellwether) must still PASS: its journal, ending and note pages use the unchanged old code paths.
+
+## Risks / notes
+- The nine-slice mapping uses `Graphics.DrawTexture(screenRect, tex, sourceRect, 0,0,0,0, ...)` per cell with the same material and UV convention as the existing `Artwork`/`TextureFrame` helpers (source y = 1 - yMax/TexH). Unverified in the engine; a visible 1 px seam between cells is the thing to look for. Mips are on (as `Panel.png`), so edge bleed is at most a texel.
+- The settings screen still uses the stretched `Card` and may have its own ornament overlaps (not in the critic's list, not touched). `DocLayout` could cover it with a third spec if wanted.
+- The lost ("Signal lost") card is a `DarkCard` and is unchanged; it only shares `Metric`.
+- A Codex UI direction (`docs/haunted-castle/ui/variants/`) can replace the art: delete `CastlePanel` use and keep `DocLayout.Verify` as the rule for whatever frame replaces it (only `DocPanel` constants describe this particular texture).

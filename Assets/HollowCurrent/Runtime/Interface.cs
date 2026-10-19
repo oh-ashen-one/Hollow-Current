@@ -13,6 +13,8 @@ namespace HollowCurrent
         readonly List<Rect> paperRegions=new List<Rect>(8);
         readonly Dictionary<GUIStyle,GUIStyle> paperStyles=new Dictionary<GUIStyle,GUIStyle>();
         readonly Color paperInk=new Color(.105f,.074f,.065f),oxblood=new Color(.38f,.12f,.13f);
+        // Castle journal / end card (fd-journal): all text on the paper is held to >= 7:1 against the darkest 5 % of the paper, so near-black ink and oxblood replace the lighter ones there.
+        readonly Color castleKicker=new Color32(32,4,4,255),castleInk=new Color32(20,13,12,255);bool castleCards;
         string cachedSubtitle,dialogueSpeaker,dialogueBody;
         // Field Settings pages: 0 controls & audio, 1 dialogue display, 2 castle night (castle only).
         int settingsPage;
@@ -157,14 +159,14 @@ namespace HollowCurrent
             if(OnPaper(new Vector2(x+5,y+5)))
             {
                 if(!paperStyles.TryGetValue(style,out var dark)){dark=new GUIStyle(style);paperStyles[style]=dark;}
-                dark.fontSize=style.fontSize;dark.normal.textColor=style==kicker?oxblood:paperInk;GUI.Label(new Rect(x,y,w,h),text,dark);
+                dark.fontSize=style.fontSize;dark.normal.textColor=style==kicker?(castleCards?castleKicker:oxblood):castleCards?castleInk:paperInk;GUI.Label(new Rect(x,y,w,h),text,dark);
             }
             else GUI.Label(new Rect(x,y,w,h),text,style);
         }
         void Rule(float x,float y,float w)=>Panel(new Rect(x,y,w,1),line);
         void Track(float x,float y,string text,Color? color=null)
         {
-            var old=kicker.normal.textColor;kicker.normal.textColor=OnPaper(new Vector2(x,y))?oxblood:color??copper;
+            var old=kicker.normal.textColor;kicker.normal.textColor=OnPaper(new Vector2(x,y))?(castleCards?castleKicker:oxblood):color??copper;
             foreach(char c in text){string s=c<128?glyphs[c]:c.ToString();GUI.Label(new Rect(x,y,24,24),s,kicker);x+=c<128?glyphWidths[c]:kicker.CalcSize(new GUIContent(s)).x+2.4f;}
             kicker.normal.textColor=old;
         }
@@ -208,6 +210,41 @@ namespace HollowCurrent
         }
         void Card(Rect r){TextureFrame(new Rect(r.x-18,r.y-42,r.width+36,r.height+72),paperPanel,new Color(1,1,1,.97f));paperRegions.Add(r);}
         void DarkCard(Rect r){TextureFrame(r,warningCard,new Color(1,1,1,.96f));}
+        // Piece fd-journal (r13 critic section 4): the castle's paper card is drawn as a nine-slice at one fixed scale so its corner
+        // ornaments (filigree, feather, wax seal, blots) always sit in the four corners; text is laid out by Core/DocLayout.cs, which keeps
+        // DocPanel.Pad clear of them. Bellwether and the settings screens keep the stretched Card().
+        Texture2D castlePanel;bool castlePanelTried;
+        bool CastlePanel
+        {
+            get
+            {
+                if(Game.Map!=MapId.Castle)return false;
+                if(!castlePanelTried){castlePanelTried=true;castlePanel=Resources.Load<Texture2D>("UI/BloodLedger/PanelCard");Debug.Log("HC_DOC_PANEL card="+(castlePanel?castlePanel.width+"x"+castlePanel.height:"missing"));}
+                return castlePanel!=null&&castlePanel.width==Mathf.RoundToInt(DocPanel.TexW)&&castlePanel.height==Mathf.RoundToInt(DocPanel.TexH);
+            }
+        }
+        void CastleCard(LRect frame,Rect content)
+        {
+            paperRegions.Add(content);
+            if(Event.current.type!=EventType.Repaint)return;
+            float[] cx=DocPanel.CellX(frame),cy=DocPanel.CellY(frame);float[] tx={0,DocPanel.ColL,DocPanel.ColR,DocPanel.TexW},ty={0,DocPanel.RowT,DocPanel.RowB,DocPanel.TexH};
+            var matrix=GUI.matrix;artworkMaterial.SetColor("_Tint",new Color(1,1,1,.97f).linear);
+            for(int j=0;j<3;j++)for(int i=0;i<3;i++)
+            {
+                var a=matrix.MultiplyPoint3x4(new Vector3(cx[i],cy[j],0));var b=matrix.MultiplyPoint3x4(new Vector3(cx[i+1],cy[j+1],0));
+                var src=new Rect(tx[i]/DocPanel.TexW,1-ty[j+1]/DocPanel.TexH,(tx[i+1]-tx[i])/DocPanel.TexW,(ty[j+1]-ty[j])/DocPanel.TexH);
+                GUI.matrix=Matrix4x4.identity;Graphics.DrawTexture(new Rect(a.x,a.y,b.x-a.x,b.y-a.y),castlePanel,src,0,0,0,0,Color.white,artworkMaterial);GUI.matrix=matrix;
+            }
+        }
+        // `HC_DOC_LAYOUT overlaps=N`: the geometric assertion that no text or control of this screen touches an ornament or leaves the paper.
+        readonly HashSet<string> layoutLogged=new HashSet<string>();
+        void LogLayout(DocLayout layout,string extra)
+        {
+            if(!layoutLogged.Add(layout.Screen))return;
+            var bad=layout.Verify();
+            Debug.Log("HC_DOC_LAYOUT screen="+layout.Screen+" overlaps="+bad.Count+" frames="+layout.Frames.Count+" texts="+layout.Texts.Count+" scale="+DocPanel.Scale+" pad="+DocPanel.Pad+" "+extra);
+            foreach(var line in bad)Debug.LogError("HC_DOC_LAYOUT violation "+line);
+        }
         bool Action(float x,float y,float w,float h,string text,string key="",bool primary=false,bool plain=false,bool selected=false,string controlId=null)
         {
             var rect=new Rect(x,y,w,h);string id="hc-ui/"+(controlId??text);
@@ -225,9 +262,9 @@ namespace HollowCurrent
             if(PadInput.Active)clicked=false;
             if(ConsumeControllerAction(id,GUI.enabled,Event.current.type==EventType.Layout))clicked=true;
             if(PadInput.Active)key=padFocus?PadInput.Prompt("ENTER"):"";
-            var old=button.normal.textColor;button.normal.textColor=GUI.enabled?(plain&&!hover&&!focus&&OnPaper(rect.center)?paperInk:ink):new Color(.47f,.43f,.38f);
+            var old=button.normal.textColor;button.normal.textColor=GUI.enabled?(plain&&!hover&&!focus&&OnPaper(rect.center)?(castleCards?castleInk:paperInk):ink):new Color(.47f,.43f,.38f);
             button.padding.left=Mathf.Clamp(Mathf.RoundToInt(w*.14f),22,68);button.padding.right=key.Length>0?80:22;GUI.Label(rect,text,button);button.normal.textColor=old;
-            if(key.Length>0){var keyRect=new Rect(x+w-66,y+(h-24)/2,48,24);Border(keyRect,GUI.enabled?line:new Color(.16f,.18f,.17f));var oldKey=keyStyle.normal.textColor;keyStyle.normal.textColor=plain&&!hover&&!focus&&OnPaper(rect.center)?paperInk:ink;GUI.Label(keyRect,key,keyStyle);keyStyle.normal.textColor=oldKey;}
+            if(key.Length>0){var keyRect=new Rect(x+w-66,y+(h-24)/2,48,24);Border(keyRect,GUI.enabled?line:new Color(.16f,.18f,.17f));var oldKey=keyStyle.normal.textColor;keyStyle.normal.textColor=plain&&!hover&&!focus&&OnPaper(rect.center)?(castleCards?castleInk:paperInk):ink;GUI.Label(keyRect,key,keyStyle);keyStyle.normal.textColor=oldKey;}
             if(clicked)Game.Sound.UI();
             return clicked;
         }
@@ -269,9 +306,25 @@ namespace HollowCurrent
         }
         void Metric(float x,float y,string value,string label)
         {Label(x,y,180,55,value,number);Track(x,y+65,label,muted);}
+        // Castle won / killed card on the fixed-scale panel (layout from DocLayout.Ending()). The lost card keeps its dark card and layout.
+        DocLayout.EndingSpec endingSpec;
+        void EndingCastle()
+        {
+            var e=endingSpec??(endingSpec=DocLayout.Ending());LogLayout(e.Layout,"x="+e.X);castleCards=true;
+            Backdrop(false,0);Brand();CastleCard(e.Frame,new Rect(e.Content.X,e.Content.Y,e.Content.W,e.Content.H));Track(e.Kicker.X,e.Kicker.Y,Book.CaseTag+" / CLOSED");
+            bool slain=Game.Case.HunterSlain;
+            Label(e.Hero.X,e.Hero.Y,e.Hero.W,e.Hero.H,slain?Book.KillHero:Book.WonHero,hero);
+            Label(e.Body.X,e.Body.Y,e.Body.W,e.Body.H,slain?Book.KillBody:Book.WonBody);
+            Metric(e.MetricX[0],e.MetricY,Game.Case.Evidence.Count+" / 3","EVIDENCE");Metric(e.MetricX[1],e.MetricY,(Game.Case.Survived?Game.Case.Hunts:0).ToString(),"HUNTS SURVIVED");Metric(e.MetricX[2],e.MetricY,TimeSpan.FromSeconds(Game.Case.Elapsed).ToString(@"mm\:ss"),"FIELD TIME");
+            Panel(new Rect(e.Separator[0],e.MetricY+9,1,76),line);Panel(new Rect(e.Separator[1],e.MetricY+9,1,76),line);
+            if(Action(e.New.X,e.New.Y,e.New.W,e.New.H,"NEW INVESTIGATION","N",true))Game.Retry();
+            if(Action(e.Exit.X,e.Exit.Y,e.Exit.W,e.Exit.H,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
+            castleCards=false;Footer(slain?Book.KillFooter:Book.WonFooter);
+        }
         void Ending()
         {
-            bool won=Game.Case.Phase==Phase.Won;Backdrop(!won,won?0:.14f);Brand();if(won)Card(new Rect(45,145,850,685));else DarkCard(new Rect(45,145,850,685));Track(80,175,won?Book.CaseTag+" / CLOSED":"LAST TRANSMISSION / LOST");
+            bool won=Game.Case.Phase==Phase.Won;
+            if(won&&CastlePanel){EndingCastle();return;}Backdrop(!won,won?0:.14f);Brand();if(won)Card(new Rect(45,145,850,685));else DarkCard(new Rect(45,145,850,685));Track(80,175,won?Book.CaseTag+" / CLOSED":"LAST TRANSMISSION / LOST");
             bool slain=won&&Game.Case.HunterSlain;
             Label(76,214,635,188,won?(slain?Book.KillHero:Book.WonHero):"Signal\nlost.",hero);
             Label(82,428,530,125,won?(slain?Book.KillBody:Book.WonBody):Book.LostBody);
@@ -460,13 +513,46 @@ namespace HollowCurrent
             if(RealKey(KeyCode.Return)){if(NativeVerification.UIOnly)Debug.Log("HC_UI_KEY_SUBMIT ready="+CanSubmit());if(CanSubmit())Submit();}
         }
         bool CanSubmit()=>Game.Case.MysteryReady&&anchor>=0&&pattern>=0&&closure>=0;
-        void Choice(float y,string label,string[] choices,ref int selected,int key)
+        void Choice(float y,string label,string[] choices,ref int selected,int key,float x0=760,float step=238,float width=226)
         {
-            Track(760,y,label,muted);
-            for(int i=0;i<3;i++)if(Action(760+i*238,y+35,226,66,choices[i],(key+i).ToString(),false,false,selected==i))selected=i;
+            Track(x0,y,label,muted);
+            for(int i=0;i<3;i++)if(Action(x0+i*step,y+35,width,66,choices[i],(key+i).ToString(),false,false,selected==i))selected=i;
+        }
+        // Castle journal on the fixed-scale card: every position comes from DocLayout.Journal(), which is verified clear of the ornaments.
+        DocLayout.JournalSpec journalSpec;
+        void JournalCastle()
+        {
+            var j=journalSpec??(journalSpec=DocLayout.Journal());
+            LogLayout(j.Layout,"colL="+j.ColL+" lowerR="+j.LowerR+" x0="+j.X0);castleCards=true;
+            Backdrop(false,.52f);Brand("FIELD JOURNAL / "+Book.CaseTag);Label(77,147,1100,62,Book.JournalQuestion,heading);
+            CastleCard(j.LeftFrame,new Rect(j.LeftContent.X,j.LeftContent.Y,j.LeftContent.W,j.LeftContent.H));CastleCard(j.RightFrame,new Rect(j.RightContent.X,j.RightContent.Y,j.RightContent.W,j.RightContent.H));
+            Track(j.Kicker.X,j.Kicker.Y,"INSTRUMENT RECORDS");
+            int slot=0;
+            foreach(Evidence e in Enum.GetValues(typeof(Evidence)))
+            {
+                bool yes=Game.Case.Evidence.Contains(e);var bar=j.Bar[slot];Panel(new Rect(bar.X,bar.Y,bar.W,bar.H),yes?copper:line);
+                Track(j.Tag[slot].X,j.Tag[slot].Y,yes?"RECORDED":"NOT RECORDED",yes?copper:muted);var ev=j.Evidence[slot];Label(ev.X,ev.Y,ev.W,ev.H,EvidenceText(e,yes),evidenceStyle);slot++;
+            }
+            Rule(j.Rule.X,j.Rule.Y,j.Rule.W);docs.Load(serif);if(docs.Ready)docs.JournalKicker(j.LedgerKicker.X,j.LedgerKicker.Y,Book.ContextTrack,true,true);else Track(j.LedgerKicker.X,j.LedgerKicker.Y,Book.ContextTrack);
+            Track(j.PulseLabel.X,j.PulseLabel.Y,"PULSE",muted);PulseLine(new Rect(j.Pulse.X,j.Pulse.Y,j.Pulse.W,j.Pulse.H));
+            string[] names=Book.NoteTitles;
+            for(int i=0;i<3;i++)
+            {
+                bool filed=Game.Case.Notes.Contains(names[i]);GUI.enabled=filed;var row=j.Rows[i];
+                if(docs.Ready){if(JournalDocRow(new Rect(row.X,row.Y,row.W,row.H),names[i],filed))OpenFiledNote(names[i]);}
+                else if(Action(row.X,row.Y,row.W,row.H,names[i],filed?"OPEN":"—",false,true))OpenFiledNote(names[i]);GUI.enabled=true;
+            }
+            Choice(j.ChoiceY[0],"ANCHOR / WHAT KEEPS RETURNING?",Book.AnchorChoices,ref anchor,1,j.X0,j.ChoiceStep,j.ChoiceW);
+            Choice(j.ChoiceY[1],"PATTERN / WHAT IS REPEATED?",Book.PatternChoices,ref pattern,4,j.X0,j.ChoiceStep,j.ChoiceW);
+            Choice(j.ChoiceY[2],"CLOSURE / WHAT SHOULD WE DO?",Book.ClosureChoices,ref closure,7,j.X0,j.ChoiceStep,j.ChoiceW);
+            Label(j.Compare.X,j.Compare.Y,j.Compare.W,j.Compare.H,Game.Case.Diagnosed?"Reconstruction filed. Follow the containment procedure.":Game.Case.MysteryReady?Book.JournalReady:Book.JournalNotReady,small);
+            GUI.enabled=CanSubmit();if(Action(j.Submit.X,j.Submit.Y,j.Submit.W,j.Submit.H,"FILE RECONSTRUCTION","ENTER",true))Submit();GUI.enabled=true;
+            if(Action(1240,149,280,48,"CLOSE JOURNAL","J",false,true)){Game.Journal=false;Game.ApplyFocus();}
+            castleCards=false;Footer("1–9 choose a conclusion   ·   ENTER file reconstruction   ·   J or ESC close");
         }
         void Journal()
         {
+            if(CastlePanel){JournalCastle();return;}
             Backdrop(false,.52f);Brand("FIELD JOURNAL / "+Book.CaseTag);Label(77,147,1100,62,Book.JournalQuestion,heading);
             Card(new Rect(80,229,610,568));Card(new Rect(728,229,792,568));Track(111,252,"INSTRUMENT RECORDS");
             float y=293;
@@ -496,7 +582,7 @@ namespace HollowCurrent
         bool JournalDocRow(Rect r,string title,bool filed)
         {
             bool clicked=TitleHit(r,title,out bool hover,out bool focus);
-            docs.JournalRow(r,title,filed,hover||focus,Game.Map==MapId.Castle);
+            docs.JournalRow(r,title,filed,hover||focus,Game.Map==MapId.Castle,castleCards);
             return clicked&&filed;
         }
         void OpenFiledNote(string title)
@@ -642,8 +728,10 @@ namespace HollowCurrent
             bool available=Game.MapAvailable(map.Id),chosen=Game.SelectedMap==map.Id,hover=false,focus=false;
             if(available&&TitleHit(r,"map/"+map.Id,out hover,out focus))Game.SelectMap(map.Id);
             float brightness=!available?.55f:chosen?1f:hover||focus?.8f:.6f;
-            var art=BackdropFor(CaseBook.For(map.Id));
-            if(art)screen.CardArt(artworkMaterial,r,art,TitleScreen.CropFor(map.Id),brightness);
+            var art=BackdropFor(CaseBook.For(map.Id));var crop=TitleScreen.CropFor(map.Id);
+            // r13 critic: the Bellwether thumbnail (a crop of its very dark key art) was almost black; a lifted crop centred on the house replaces it.
+            if(map.Id==MapId.Bellwether){var thumb=Resources.Load<Texture2D>("UI/BellwetherCard");if(thumb){art=thumb;crop=new Rect(0,0,1,1);}}
+            if(art)screen.CardArt(artworkMaterial,r,art,crop,brightness);
             else Panel(r,new Color(.05f,.06f,.07f));
             // A map not in this build: drained of colour (a neutral veil) and labelled.
             if(!available)Panel(r,new Color(.2f,.2f,.2f,.6f));

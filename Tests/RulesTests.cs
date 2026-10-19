@@ -80,9 +80,30 @@ static class RulesTests
         var empty=DocumentText.Parse(true,null,null);Assert(empty.Lines.Count==0,"null note parses to an empty document");
         var same=DocumentText.Parse(false,"Arrival note","ARRIVAL NOTE\n\nText.");Assert(same.Subject=="","a header equal to the title is not repeated");
     }
+    // Piece fd-journal (r13 critic section 4): corner ornaments live in a margin band text never enters (HC_DOC_LAYOUT overlaps=0).
+    static void DocLayoutTests()
+    {
+        var j=DocLayout.Journal();var e=DocLayout.Ending();
+        var bad=j.Layout.Verify();Assert(bad.Count==0,"journal layout clear of ornaments: "+string.Join("; ",bad.ToArray()));
+        bad=e.Layout.Verify();Assert(bad.Count==0,"end card layout clear of ornaments: "+string.Join("; ",bad.ToArray()));
+        Assert(j.Layout.Texts.Count>25&&e.Layout.Texts.Count>8,"layouts declare their texts");
+        // The assertion has teeth: the r13 positions (kicker under the filigree, pulse strip past the page, seal under the button) all fail.
+        var old=new DocLayout("old");var fr=old.Frame(80,229,610,568);old.Text("kicker",111,252,260,24);
+        Assert(old.Verify().Count>=1,"the r13 kicker under the filigree is flagged");
+        old=new DocLayout("old");fr=old.Frame(80,229,610,568);old.Text("pulse",190,728,469,58);Assert(old.Verify().Count>=1,"the r13 pulse strip (seal corner, past the page) is flagged");
+        old=new DocLayout("old");fr=old.Frame(728,229,792,568);old.Text("submit",760,690,718,46);Assert(old.Verify().Count>=1,"the r13 submit button under the seal is flagged");
+        old=new DocLayout("old");fr=old.Frame(45,145,850,685);old.Text("kicker",80,175,320,24);Assert(old.Verify().Count>=1,"the r13 end-card kicker under the filigree is flagged");
+        // Geometry: ornament rects are corner-anchored and scale-fixed, so they do not move when the card grows.
+        var small=DocPanel.OrnamentRect(DocPanel.FrameFor(0,0,500,400),3);var big=DocPanel.OrnamentRect(DocPanel.FrameFor(0,0,900,700),3);
+        Assert(Math.Abs(small.W-big.W)<.01f&&Math.Abs(small.H-big.H)<.01f,"ornament size does not depend on card size");
+        Assert(DocPanel.TextLeft(j.LeftFrame)>=OrnamentLeftEnd(j.LeftFrame)&&j.ColL>=152f,"text column starts right of both left ornaments");
+        Assert(j.Pulse.YMax<=DocPanel.Safe(j.LeftFrame).YMax&&j.Pulse.XMax<=j.LowerR,"pulse strip fits inside the page and beside the seal");
+        Assert(e.Exit.YMax<=DocPanel.Safe(e.Frame).YMax&&e.New.YMax<=e.Exit.Y,"end card buttons sit inside the paper");
+    }
+    static float OrnamentLeftEnd(LRect f){return Math.Max(DocPanel.OrnamentRect(f,0).XMax,DocPanel.OrnamentRect(f,2).XMax)+DocPanel.Pad;}
     static void Main()
     {
-        DocumentTextTests();
+        DocumentTextTests();DocLayoutTests();
         // Every source of a full apparition shares the same cooldown.
         var rhythm=new ScareRhythm();Assert(!rhythm.CanSurprise,"opening is quiet");rhythm.Tick(35);Assert(rhythm.CanSurprise&&!rhythm.AppearanceDue,"basement eligible before ordinary apparition");
         rhythm.RecordAppearance(0);rhythm.Tick(89.9f);Assert(!rhythm.CanSurprise,"scripted basement cannot stack with ordinary scare");rhythm.Tick(.2f);Assert(rhythm.CanSurprise&&!rhythm.AppearanceDue,"ordinary scares have a longer variable interval");rhythm.Tick(15);Assert(rhythm.AppearanceDue,"ordinary apparition eventually becomes due");

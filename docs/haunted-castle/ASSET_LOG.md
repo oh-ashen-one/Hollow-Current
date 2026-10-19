@@ -250,3 +250,14 @@ Owner/critic r12 ("modern props under gothic names"). The castle's three held in
 | tool 2 (was the UV lamp) | Grave-ash Lantern | brass foot, cap and bail ring; six iron cage bars; violet glass chimney (translucent sprite) round a glowing core | 1150 |
 | tool 3 (was the EVP recorder) | Vellum Ear-Trumpet | flared brass horn, vellum wrap (runtime texture), three leather bindings, dark bell interior | 1026 |
 | R-key field radio (was the Tripo `FieldRadio`, castle only; piece `hc/fc-art2`, 2026-10-18) | Resonance Box | walnut box (runtime fibre texture) with two brass straps, inset lid panel, round brass-rimmed grille with five slats, tuning pip, lid knob and a flared brass horn | 1105 (measured offline with the same builder code; printed as `radio=` by `HC_INSTRUMENTS`) |
+
+## Castle journal card + Bellwether title thumbnail (piece `hc/fd-journal`, wave FD, 2026-10-18): cost 0, no generation job
+
+Owner/critic r13 section 4 (journal layout overlaps, almost-black Bellwether card). Both files are deterministic rearrangements/lifts of art already in the repo; no new artwork, no model, no paid job.
+
+| Asset | Origin | Licence |
+|---|---|---|
+| `Resources/UI/BloodLedger/PanelCard.png` (1448x1426) | `python3 tools/docui_panel_card.py`: the shipped `Panel.png` with its plain middle row (y 390..560) tripled (normal, mirrored, normal) so a nine-slice stretch of tall cards does not smear the paper fibres. `Panel.png` itself is unchanged and still used by Settings and Bellwether. | Same as `Panel.png` (project art, CC BY 4.0) |
+| `Resources/UI/BellwetherCard.jpg` (660x371, q90) | `python3 tools/docui_bellwether_card.py`: crop around the house of `Resources/UI/MenuBackdrop.png`, gamma 0.60 lift, downsample. Used only for the Bellwether map card on the title screen; mean luma 5.8 on screen before, about 21 (chosen) / 13 (unchosen) expected after, castle card 21.5. | Same as `MenuBackdrop.png` (project art, CC BY 4.0) |
+
+The static proofs are `docs/haunted-castle/rounds/r13/docui_mock_journal_fd.png` and `docui_mock_ending_fd.png` (`python3 tools/docui_journal_mock.py`; it builds `Core/DocLayout.cs` with the Unity csc/mono and prints `HC_DOC_LAYOUT overlaps=0`).
