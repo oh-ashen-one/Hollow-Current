@@ -1,3 +1,87 @@
+# HANDOFF: wave FF integrated, tuned once, built and proved (ff-integ). Read this section first.
+
+Branch `haunted-castle` = `hc/integ-ff`, pushed. Integrator: Opus 5.5 (piece ff-integ), main clone, 2026-10-19. Nothing of mine left running; my GPU slot released (the one remaining holder is another session's Unreal editor).
+- PlayerPrefs restored: `unity.Bellwether Field Office.Hollow Current` `hc.castle.runs` = `L,E,L` (never changed); `com.bellwether.hollowcurrent` put back from `E,M,L` to `E,M,B`; `hc.castle.grabdeck` deleted (absent at the start, so every run used a fresh-player deck that carried across runs). Backups: session scratchpad `ffinteg/{u,c}.backup.plist`.
+- `CODEX_HANDOFF.md` still uncommitted and untouched; `rounds/r13/critic/` and `rounds/r14/critic/` stay untracked. Worktrees `.wt/fe3-grab`, `.wt/ff-count`, `.wt/ff-art` removed (branches stay on origin; ff-art's offline proof folder inside its worktree went with it).
+
+**Merged on `hc/integ-ff` (from `haunted-castle` `3e84389`), in order:** hc/ff-art `7791610` (`555fbb0`), hc/ff-count `e7d7ce6` incl. hc/fe3-grab `82e9e2a` (`1ed4e4b`). Both clean (Game.cs and ASSET_LOG.md auto-merged; the table-candle 14 m rule and the torch plan sit side by side). Handoffs: `docs/haunted-castle/handoffs/{ff-art,ff-count,fe3-grab}.md`.
+
+**Integrator change: the one tuning pass** (`9269090`; values from capture sweeps on the first FF build `60e4443`, folders `captures/ff/sweep/{m1..m4,t1..t3,x1,x2,x1on}`)
+- Hall (S1 failed table and floor mirror): `CastleLightTuning.TableCandleIntensity` .7 -> 1.2, floor sheen `_Strength` 1 -> 1.6 (`CastleWorld.FloorSheenStrength`), table sheen 4 -> 6.4, `CastleAtmosphere.HallMistBrightness` .30 -> .26 (pays for the extra light: S1 off near-black 30.6 -> 30.2). Table px at luma >= 14: 7.6k -> 10.8k; 1.6 / 2.2 gave only 12.3k / 12.8k, so **15k is out of reach by light** (far half of the table is dark wood edge-on, 14.2k px >= 8). Floor mirror 64 -> 362 px (pass).
+- Moat (S4 failed glitter sd, red moon, both seams): `CastleWater.shader` defaults `_Reflect` 2.2 -> 1.4, `_Ripple` .3 -> .2, `_SkySoft` .06 -> .15, `_RedGlade` 1 -> 4, `_RedGladeWidth` .07 -> .10, `_GladeBody` .25 -> .08, and new `_RockFade` 4 m: the rock outcrop's enter-only reflection fades in with the ray's run to the slab. ff-art's enter-only fix had turned the old seam into a straight bright/dark line along z -6.6 across S4 (R 200 -> 35); it is gone. `tools/ff_moat_twin.py` does not carry these values yet.
+- Both maps re-baked after it (`b8662ce`).
+
+**Build:** `Builds/macOS/Hollow Current.app` (both maps), Assembly-CSharp.dll **2026-10-19 14:03:44**, built right after bake commit `b8662ce` (14:03:31; code `9269090`). All proofs below ran on it (the first build `60e4443` was used only for the sweeps).
+
+**Prepare log** (`.castle-bake-ff2.log`): `HC_KIT_AXIS_SUMMARY problems=0`, `HC_DOOR_LEAF_SUMMARY problems=0` (both stages), `HC_CANDLES floating=0 PASS`, `HC_CHAPEL_PROPS overlap=False`, `HC_TELESCOPE clear=True`, `HC_HEARTH window_overlap=False PASS`, `HC_HIDE_SPOTS_SUMMARY failed=[]`, `HC_SKELETON PASS`, `HC_HALL_AXIS PASS`, `HC_CHAPEL PASS`, `HC_EXTERIOR_AXIS ok`; Castle 8 maps / 197 probes / 17 reflections, Bellwether 4 / 124 / 9. No CastleWater/FloorSheen "unavailable" warning, no `HC_MISSING_ART` except the 7 known portraits.
+
+**Static checks (HEAD):** check_source PASS (1455 assertions incl. rules tests; known CS0649/CS0219/CS0162 warnings), check_castle_scares PASS, check_audio_keys OK (69 uses), check_audio_quality OK (new `voice_cc_hunt_found_b/c`, `smell_b`, `run_b` at -24.2 LUFS, peaks -9.7..-10.9, tails 0.12-0.18 s), check_throwables_scene rc 0, check_castle_doors OK, check_castle_kit OK (log and scene), bellwether_fuzz identical (`ee3b74dc...`).
+
+**Proofs** (logs `.playtest-ff-<run>.log`, frames `docs/haunted-castle/rounds/r14/captures/ff/<run>/`, local, gitignored). Runs: natural x5 (natural4/5 added because natural1-3 gave only 5 apparition leads, ff-count's recipe), cold x2, siege_held x2, fear, huntcam, death, escape, doorproof, settings, Bellwether `-hc-verify` and `-hc-ui-only`; captures rooms off/on, ext, layout off/on, lantern, doors, title.
+
+| Proof | r14 critic (6229407) | FF (this build) | Verdict |
+|---|---|---|---|
+| Hunt share, naturals | 16.1 / 25.1 / 20.3 % | 22.9 / 27.8 / 21.4 (n4 23.3, n5 22.2) | PASS |
+| Longest gap | 162 / 150 / 182 | 165 / 177 / 220 (145, 207) | PASS |
+| Hunts <= 10 s after an apparition | 0/7 | 0/11 naturals, 0 in sieges/fear | PASS |
+| Apparition CV pooled | 0.50 | 0.71 (n1-3, 15 gaps), 0.72 (n1-5) | PASS |
+| First-hunt spread | 105 s | 86 s (92 / 178 / 141) | PASS |
+| Visible apparitions < 480 s | 4-5 | 6 / 4 / 4 / 5 / 5 | PASS |
+| Hidden survival (siege_held x2) | 8/11 = 73 % | 8/12 = 67 % (4/6, 4/6) | PASS |
+| Clock: threats 25-60 s after an apparition | 6/6 | 1/5 (n1-3); **2/8 = 25 %** (n1-5) | PASS (<= 50 %) |
+| Clock: >= 1 threat 10-20 s after one | 0 | 0 (n1-3); **1** (n1-5: natural4 `follow=fired since=15.5`) | PASS only with n4/n5 (see open item 1) |
+| Grab mix, natural x3 + cold x2 + huntcam | m9 59 %; side 0 | 11 commits: m8 4, m9 4 (**36 %**), m10 2, m11 0, m12 1 | m9 PASS, m10 PASS, **m11 0** in this set; natural5 has the only m11 |
+| Grab mix, natural x5 | | 12: m8 4, m9 2 (17 %), m10 2, m11 1, m12 3 | PASS |
+| Grab mix, every run incl. sieges/fear | | 22: m8 7, m9 9 (41 %; 5 of them hide grabs), m10 2, m11 1, m12 3 | hide grabs are crawls by design |
+| Drops: clip_start_t <= 0.1, headAboveEye >= 1.0 at t 0.01 | starts .22-.50 | 0.00-0.07; 2.69-3.22 m (5 drops); rise `result=commit` x4, `timeout` x1 | PASS |
+| Planned drop -> 9 with ceilingMax >= 4 | present | 0 in naturals; 1 in fear (`path=hideopen`, a hide grab) | PASS (note) |
+| Dropped side -> side commit same hunt | 2 drops | no `dropped=side-*` at all; `stage=adapt` x2 | PASS |
+| Hide grabs (grab_luma t 0.16) | 5.0 / 5.0 / 9.6 | siege1 31.1 / 27.4, siege2 30.3 / 27.9, fear 51.4; box > 60: 12-30 % | PASS 5/5 |
+| Pop logging / root slide | blind | samples carry skull/rootReseat/countRect; `rootSlideOk` 21/22; fear m9 hideopen `root_slide=0.91` | note |
+| Variant continuity / cuts | | `variantContinuity` 6/6, `variantCuts=0` | PASS |
+| Grab continuity / HUD / first frame | 17/17 | every grab `pass=True`, HUD 0 px, first frame visible, cam min 0.65 | PASS |
+| Dives resolved | | 25 dives, `diveUnresolved=0` everywhere | PASS |
+| Torch dive share | 7/13 | 4/25 dives = 16 %; failures 26 (dive 4, hunt 22) | PASS |
+| Post-win kill | `would_die=true phase=Won` x2 | 0; Return kills read `phase=Return huntActive=True phaseAfterPresentation=Return` | PASS |
+| Cold x2 | gate on the letter, hunt 105 s | `gate=cap firstDocAt=-1 firstDocKind=none letterAt=4`, first hunt 161 / 163 s, told (lead 11.2 / 12.8), `HC_PLAY_COLD pass=True` x2 | PASS |
+| Voice | found 10/27 | naturals 17 lines, max 24 % (`cc_hunt_found_b/c`, `cc_bargain`); all runs 33 lines, max 18 %; `from_other=0` every log | PASS |
+| S1 lancets >= 150 px, moon | fail | 3 lancets (N +-2.6 192 rows, S-5.6 284), moon 373 px in the west lancet | PASS |
+| S1 piers >= 2:1 | fail | 2.73 (proxy geometry) | PASS |
+| S1 table >= 15k px lantern off | fail | **10,775** | **FAIL** (light-limited) |
+| S1 floor mirror | fail | 362 px | PASS (after tuning) |
+| S4 red moon mirrored | 3 px | 5,834 px | PASS (after tuning) |
+| S4 pale glade / moat R/G | | 188 px / 3.54 | PASS |
+| S4 seam battlement_out / bridge_left | 121.4 / 27.7 | **32.9** / 6.5 | battlement **FAIL**: the step is the warm lamp-glint column beside the bridge pier at x 884, not a material seam |
+| S4 moat sd right / left | 30.7 / 22.4 | **12.6 / 16.3** | **FAIL** (<= 12): no glitter left; the left patch holds the pale moon column's edge and a bright sky band beside the rock |
+| S4 / S1 frame time p99 | 17.56 | S4 11.11 / 11.36, S1 11.11 / 11.54, hunt_dive 11.22 | PASS |
+| Exposure lantern off (35-55) | S1 30.0 | S1 30.2; hall from_doors 35.8, side_east 36.8 (now in band), pier_gap 36.7, tail 37.6, side_west 49.4, skeleton_head 33.0; S2 42.1, S3 36.0 | S1/skeleton_head WARN (director accepts 29-35) |
+| Exposure lantern on (12-25) | | S1 13.2, S2 21.6, S3 16.7, hall 12.2-21.5; chapel confessional 25.4, from_great_doors 27.5, guard_door 35.1 (as FE) | as FE |
+| fear / huntcam / death / escape | | fear WON 0 blockers; huntcam `dead=True`, commit m8; death `deaths=1 penalty=True`; escape WON 0 blockers | PASS |
+| doorproof / doors | | `HC_DOORPROOF toward=0 toggles=8 unfocused=0 leaves=4 PASS`; doors capture both leaves `swing=away` | PASS |
+| UI | | `HC_DOC_LAYOUT overlaps=0` on journal, ending, ending_lost, settings | PASS |
+| Bellwether | `performance_pass=False` | `-hc-verify`: `HC_NATIVE_ROUTE_PASS`, 64 PASS, 0 FAIL, `HC_PERF pass=False engine_cost_over_16ms=88 (max 33.2)` (known); `-hc-ui-only`: `HC_VERIFY PASS Native UI at 1920x1080`, closed by SIGTERM at its timeout (as FD/FE) | as before |
+| Exceptions | 0 | 0 in every log | PASS |
+
+`tools/check_art_views.py captures/ff/{rooms_off,rooms_on,ext}`: `HC_ART_VIEWS pass=False fail=6 warn=1 tests=23` (fails: S1 table; battlement seam; S4 sd right/left on both rooms captures). Before the tuning pass the same build of the merged code gave fail=10.
+
+**Looked at (frames)**
+- S1 vs `refs/great_hall.png`: the north lancets now read as windows, the pale moon in the west one and the blood moon in the east one as in the reference; the blind lancets at the top corners read as leaded windows; the table is lit and reads, but it is small and far, the shrouded ribcage fills the bottom centre, and the hanging candelabra and gallery rail cut across the lancets. Composition still far from the reference (table in front, skeleton behind, three tall lancets dominant).
+- S4 vs `refs/exterior_sky.png`: the moat is now smooth blood with a red column under the red moon and a pale one under the pale moon; no glitter, no z -6.6 line. It still reads as flat bright red (little mirrored castle). Moons are elliptical at FOV 90 (unchanged).
+- S5: both moons sit in the rose behind the Count, large (the distant-moon trick at 3 m), readable.
+- Hide-open grab (`siege1/06-07`): t 0.01 dark, t 0.16 her lantern beam and warm glow light him in the doorway: reads as her lantern swinging up, no flat lift.
+- Side snatch (`natural1/18-21`, m10 left): he enters from her left edge with the torch out, lantern-lit only; at t 0.30-0.46 her hand lantern covers part of his body. Readable, dark.
+- Drop (`natural1/10-13`): he falls from 2.7 m over her eye, continuous, claws spread at t 0.16-0.30. Good.
+- battlement_out: dark water, a warm glint column under the bridge lamp (the remaining step); no grey lobe seam.
+
+**Open items (new first)**
+1. Follow leads are almost always cancelled: 9 follows drawn over 5 naturals, 1 fired, 7 `cancelled reason=grace`, 1 `held`. Apparitions after the first hunt mostly land in the post-hunt grace (30-90 s), so a follow due 12-19.5 s later is still inside it. The 10-20 s band passes only by the one natural4 follow. Fix for the next wave: at the draw, only take a follow if the grace ends before its due time (else draw again between rest/open), or let a follow due in the last part of a grace end the grace; re-check share (naturals now 21-28 %).
+2. S1 table 10.8k px (15k): needs a layout/camera change (table nearer the eye or skeleton/table order as in the reference), not light.
+3. S4 moat sd 12.6 / 16.3 and the battlement lamp-glint step 32.9: the tests count the moon column edge and the lamp column; the water itself has no glitter. A critic may still call the moat flat bright red.
+4. m11 committed once in 5 naturals (none in natural x3 + cold + huntcam); fear's hideopen crawl slid 0.91 m (`root_slide`), one drop rise ended `result=timeout`.
+5. Carried: hall lantern-off S1 30.2 / skeleton_head 33.0 (< 35), chapel confessional / guard_door off and on out of band (as FE), Bellwether `performance_pass`, owner listen of the Kokoro lines (4 new), FD item 6. Merges to `main` need the owner.
+
+---
+
 # HANDOFF: fe2-count (wave FE2: grab variety, siege hidden survival, apparition floor). Read this section first.
 
 Branch `haunted-castle` = `hc/fe2-count`, pushed. Builder: Opus 5.5 (piece fe2-count), main clone, 2026-10-19. Nothing left running; GPU slot released (0/2 holders).
