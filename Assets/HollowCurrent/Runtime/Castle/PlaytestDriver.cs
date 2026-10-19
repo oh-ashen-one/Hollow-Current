@@ -686,6 +686,14 @@ namespace HollowCurrent
                 // pauses through a grab too.
                 if(GrabBusy)Debug.Log("HC_PLAY natural teleport_wait reason=grab under way");
                 while(GrabBusy)yield return null;
+                // fe-integ (natural4/5: two side-snatch dives logged miss=True "moving away" because this walk teleported her to another
+                // room mid-dive): a dive under way is waited out too (at most 12 s), so the dive's own outcome is what gets measured.
+                if(game.Creature&&game.Creature.Diving)
+                {
+                    Debug.Log("HC_PLAY natural teleport_wait reason=dive under way");
+                    float dw=Time.realtimeSinceStartup+12;
+                    while(GrabBusy||(game.Creature.Diving&&Time.realtimeSinceStartup<dw))yield return null;
+                }
                 if(NavMesh.SamplePosition(p,out var hit,3,NavMesh.AllAreas))TeleportPlayer(hit.position+Vector3.up*.05f);
                 float stay=Time.realtimeSinceStartup+20;
                 while(Time.realtimeSinceStartup<stay||GrabBusy)
