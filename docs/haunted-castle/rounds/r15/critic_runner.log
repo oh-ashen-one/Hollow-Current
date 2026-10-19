@@ -1,0 +1,53 @@
+16:04:53 START verify -hc-verify -hc-evidence /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/verify
+16:12:00 END verify elapsed=427s HC_VERIFY PASS Native output contains audio below the -3 dBFS sample-peak ceiling|HC_VERIFY PASS Native controller/tool route, ending, forced death scenario and retry passed. Human input and first-time pacing remain separate.|
+16:12:01 START natural1 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/natural1 natural
+16:21:58 END natural1 elapsed=597s HC_PLAY_RESULT mode=natural won=True slain=False blockedDeaths=2064 blockers=0|HC_APP_QUIT t=594.0 map=Castle started=True paused=False|
+16:21:59 START natural2 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/natural2 natural
+16:31:10 END natural2 elapsed=551s HC_PLAY_RESULT mode=natural won=True slain=False blockedDeaths=610 blockers=0|HC_APP_QUIT t=547.0 map=Castle started=True paused=False|
+16:31:10 START natural3 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/natural3 natural
+16:40:02 END natural3 elapsed=532s HC_PLAY_RESULT mode=natural won=True slain=False blockedDeaths=171 blockers=0|HC_APP_QUIT t=528.7 map=Castle started=True paused=False|
+16:40:02 START siegeheld -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/siegeheld siege -hc-hold-dread 60
+16:54:45 END siegeheld elapsed=883s HC_PLAY_RESULT mode=siege won=False slain=False blockedDeaths=1 blockers=0|HC_APP_QUIT t=878.5 map=Castle started=True paused=False|
+16:54:45 START huntcam -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/huntcam huntcam
+16:57:21 END huntcam elapsed=156s HC_PLAY_RESULT mode=huntcam won=False dead=True hunts=1 blockers=0|HC_APP_QUIT t=151.9 map=Castle started=True paused=False|
+16:57:21 START siege -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/siege siege
+17:01:02 END siege elapsed=221s HC_PLAY_RESULT mode=siege won=False slain=False blockedDeaths=1 blockers=0|HC_APP_QUIT t=219.1 map=Castle started=True paused=False|
+17:01:02 START fear -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/fear fear
+17:06:33 END fear elapsed=331s HC_PLAY_RESULT mode=fear won=True slain=False blockedDeaths=58 blockers=0|HC_APP_QUIT t=327.2 map=Castle started=True paused=False|
+17:06:33 START escape -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/escape escape
+17:08:23 END escape elapsed=110s HC_PLAY_RESULT mode=escape won=True slain=False blockedDeaths=0 blockers=0|HC_APP_QUIT t=104.8 map=Castle started=True paused=False|
+17:08:23 START kill -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/kill kill
+17:10:09 END kill elapsed=106s HC_PLAY_RESULT mode=kill won=True slain=True blockedDeaths=60 blockers=0|HC_APP_QUIT t=99.5 map=Castle started=True paused=False|
+17:10:09 START longnight -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/longnight escape -hc-long-night
+17:11:49 END longnight elapsed=100s HC_PLAY_RESULT mode=escape won=True slain=False blockedDeaths=0 blockers=0|HC_APP_QUIT t=94.5 map=Castle started=True paused=False|
+17:11:49 START death -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/death death
+17:12:34 END death elapsed=45s HC_PLAY_RESULT mode=death won=False deaths=1 penalty=True dread=58.4 movedRelic=0 blockers=0|HC_APP_QUIT t=39.2 map=Castle started=True paused=False|
+17:12:34 START cold -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/cold cold
+17:15:50 END cold elapsed=196s HC_PLAY_RESULT mode=cold won=False slain=False blockedDeaths=1207 blockers=0|HC_APP_QUIT t=188.3 map=Castle started=True paused=False|
+17:15:50 START doorproof -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/doorproof doorproof
+17:17:05 END doorproof elapsed=75s HC_PLAY_RESULT mode=doorproof won=False slain=False blockedDeaths=0 blockers=0|HC_APP_QUIT t=37.0 map=Castle started=True paused=False|
+17:17:05 START settings -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/settings settings
+17:17:51 END settings elapsed=46s HC_PLAY_RESULT mode=settings won=False slain=False blockedDeaths=0 blockers=0|HC_APP_QUIT t=10.6 map=Castle started=True paused=False|
+17:17:51 START cap_rooms -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/cap_rooms -hc-capture-lantern off
+17:20:21 END cap_rooms elapsed=150s HC_CAPTURE DONE 22 entries|HC_APP_QUIT t=51.0 map=Castle started=True paused=False|
+17:20:21 START cap_rooms_lantern -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/cap_rooms_lantern -hc-capture-lantern on
+17:21:47 END cap_rooms_lantern elapsed=86s HC_CAPTURE DONE 22 entries|HC_APP_QUIT t=54.6 map=Castle started=True paused=False|
+17:21:47 START art_exterior -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_exterior -hc-capture-art exterior
+17:22:47 END art_exterior elapsed=60s HC_CAPTURE ART DONE exterior 11 entries|HC_APP_QUIT t=33.6 map=Castle started=True paused=False|
+17:22:47 START art_doors -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_doors -hc-capture-art doors
+17:23:37 END art_doors elapsed=50s HC_CAPTURE ART DONE doors 4 entries|HC_APP_QUIT t=22.7 map=Castle started=True paused=False|
+17:23:37 START art_kit -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_kit -hc-capture-art kit
+17:24:02 END art_kit elapsed=25s HC_CAPTURE ART DONE kit 5 entries|HC_APP_QUIT t=18.6 map=Castle started=True paused=False|
+17:24:02 START art_layout -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_layout -hc-capture-art layout
+17:24:43 END art_layout elapsed=41s HC_CAPTURE ART DONE layout 12 entries|HC_APP_QUIT t=34.1 map=Castle started=True paused=False|
+17:24:43 START art_instruments -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_instruments -hc-capture-art instruments
+17:25:08 END art_instruments elapsed=25s HC_CAPTURE ART DONE instruments 5 entries|HC_APP_QUIT t=18.8 map=Castle started=True paused=False|
+17:25:08 START art_layout_lantern -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_layout_lantern -hc-capture-art layout -hc-capture-lantern on
+17:25:48 END art_layout_lantern elapsed=40s HC_CAPTURE ART DONE layout 12 entries|HC_APP_QUIT t=34.3 map=Castle started=True paused=False|
+17:25:48 START art_instruments_lantern -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_instruments_lantern -hc-capture-art instruments -hc-capture-lantern on
+17:26:13 END art_instruments_lantern elapsed=25s HC_CAPTURE ART DONE instruments 5 entries|HC_APP_QUIT t=18.8 map=Castle started=True paused=False|
+17:26:13 START title -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/title -hc-capture-title -hc-capture-size 1920x1080
+17:26:28 END title elapsed=15s HC_CAPTURE TITLE DONE|HC_APP_QUIT t=9.7 map=Bellwether started=False paused=False|
+17:26:28 QUEUE DONE
+17:27:49 START art_props -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r15/critic/art_props -hc-capture-art props
+17:28:25 END art_props elapsed=36s HC_CAPTURE ART DONE props 5 entries|HC_APP_QUIT t=31.8 map=Castle started=True paused=False|
