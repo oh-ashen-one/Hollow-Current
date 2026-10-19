@@ -263,6 +263,9 @@ namespace HollowCurrent
             for(int j=0;j<3;j++)for(int i=0;i<3;i++)
             {
                 var a=matrix.MultiplyPoint3x4(new Vector3(cx[i],cy[j],0));var b=matrix.MultiplyPoint3x4(new Vector3(cx[i+1],cy[j+1],0));
+                // fd-integ: whole-pixel cell edges. With fractional edges the draw rounded each cell's position and size separately, so a
+                // neighbour could start one pixel after this cell ended: a 1 px dark seam showed at ColR and RowB on both journal cards.
+                a.x=Mathf.Round(a.x);a.y=Mathf.Round(a.y);b.x=Mathf.Round(b.x);b.y=Mathf.Round(b.y);
                 var src=new Rect(tx[i]/DocPanel.TexW,1-ty[j+1]/DocPanel.TexH,(tx[i+1]-tx[i])/DocPanel.TexW,(ty[j+1]-ty[j])/DocPanel.TexH);
                 GUI.matrix=Matrix4x4.identity;Graphics.DrawTexture(new Rect(a.x,a.y,b.x-a.x,b.y-a.y),castlePanel,src,0,0,0,0,Color.white,artworkMaterial);GUI.matrix=matrix;
             }
@@ -492,7 +495,9 @@ namespace HollowCurrent
         void InkSegment(Vector2 a,Vector2 b,Color c)
         {
             var d=b-a;float length=d.magnitude;if(length<.01f)return;
-            var matrix=GUI.matrix;GUIUtility.RotateAroundPivot(Mathf.Atan2(d.y,d.x)*Mathf.Rad2Deg,a);
+            // fd-integ: RotateAroundPivot takes its pivot in screen space (it does not apply the UI scale in GUI.matrix), so at any scale
+            // other than 1 every segment rotated about the wrong point and the trace scattered into loose dashes over the ledger rows.
+            var matrix=GUI.matrix;GUIUtility.RotateAroundPivot(Mathf.Atan2(d.y,d.x)*Mathf.Rad2Deg,matrix.MultiplyPoint3x4(a));
             Panel(new Rect(a.x,a.y-.9f,length+.6f,1.8f),c);GUI.matrix=matrix;
         }
         readonly DocumentUi docs=new DocumentUi();

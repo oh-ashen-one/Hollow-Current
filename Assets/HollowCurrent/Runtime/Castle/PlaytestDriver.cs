@@ -947,12 +947,20 @@ namespace HollowCurrent
                 }
                 input.Move=Vector2.zero;input.Look=centre;yield return Frames(6);
                 var player=game.Player.transform.position;int playerSide=door.SideOf(player)<0?-1:1;
-                bool focused=game.Player.Focus==panel;
-                if(!focused){
-                    // A double door: aim at this leaf's half, a little lower.
-                    input.Look=centre+Vector3.down*.4f;yield return Frames(6);focused=game.Player.Focus==panel;
+                // fd-integ: castle doors also open by themselves when she walks into the leaf (Door logs by=auto with the same swing rule);
+                // the first doorproof run then closed that open leaf with E and reported "E did not open it". An auto-open counts as the
+                // opening (by=auto in the line below), it is not a focus failure.
+                bool autoOpened=door.Open;
+                bool focused=autoOpened||game.Player.Focus==panel;
+                if(!focused)
+                {
+                    // Aim again: this leaf's half a little lower, then the collider point nearest the eye, then a hand-width either side of it.
+                    var eye=game.Player.View.transform.position;var near=col?col.ClosestPoint(eye):centre;var across=Vector3.Cross(Vector3.up,normal);
+                    foreach(var aim in new[]{centre+Vector3.down*.4f,near,near+across*.3f,near-across*.3f,near+Vector3.down*.3f})
+                    {input.Look=aim;yield return Frames(6);if(game.Player.Focus==panel){focused=true;break;}}
                 }
-                if(focused)yield return Press(i=>i.Use=true);
+                if(autoOpened){}
+                else if(focused)yield return Press(i=>i.Use=true);
                 else{unfocused++;Debug.Log("HC_DOORPROOF focus_fail name=\""+door.name+"\" focus="+(game.Player.Focus?game.Player.Focus.name:"none"));door.Toggle();}
                 float pressed=Time.realtimeSinceStartup;
                 if(!door.Open){Blocker("doorproof "+door.name+": E did not open it");continue;}
@@ -961,7 +969,7 @@ namespace HollowCurrent
                 int leafSide=door.LeafSideNow();bool away=leafSide!=0&&leafSide!=playerSide;
                 if(!away)toward++;
                 Debug.Log("HC_DOORPROOF name=\""+door.name+"\" side="+(playerSide<0?"-z":"+z")+" swing="+(away?"away":"toward")+" angle="+door.OpenAngle.ToString("F0")+" chosen="+(door.LastSwingAway?"away":"toward")
-                    +" leafSide="+leafSide+" playerSide="+playerSide+" focus="+focused+" by="+door.LastOpener+" leafRot="+door.transform.localEulerAngles.y.ToString("F0")+" player="+player.ToString("F1")+" t="+c.Elapsed.ToString("F0"));
+                    +" leafSide="+leafSide+" playerSide="+playerSide+" focus="+(autoOpened?"auto":focused.ToString())+" by="+door.LastOpener+" leafRot="+door.transform.localEulerAngles.y.ToString("F0")+" player="+player.ToString("F1")+" t="+c.Elapsed.ToString("F0"));
                 yield return Shot("doorproof_"+tag+"_open05");
                 yield return Wait(1f);
                 // Close it again with E, like a player (the ray may now miss the swung leaf: then Toggle, logged).
