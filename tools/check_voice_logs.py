@@ -31,11 +31,13 @@ for log in logs:
         def kv(k):
             m = re.search(r"\b%s=(\S+)" % k, line)
             return m.group(1) if m else None
-        if "HC_COUNT_VOICE" in line:
+        def tag(t):   # the tag as a log line's own token, not a counter inside HC_PLAY_SUMMARY ("HC_COUNT_VOICE=0")
+            return re.search(r"(^|\s)%s(?=\s|$)" % re.escape(t), line) is not None
+        if tag("HC_COUNT_VOICE"):
             head_lines += 1
             if kv("from") != "head":
                 fails.append("%s HC_COUNT_VOICE from=%s (must be head): %s" % (where, kv("from"), line.strip()))
-        elif "HC_EVP" in line:
+        elif tag("HC_EVP"):
             src, verbal = kv("from"), kv("verbal")
             if src == "trumpet" and verbal == "False":
                 evp_trumpet += 1
@@ -43,12 +45,12 @@ for log in logs:
                 fails.append("%s HC_EVP verbal=True from=%s: %s" % (where, src, line.strip()))
             if src in ("trumpet", "crypt", "lie") and verbal != "False":
                 fails.append("%s HC_EVP from=%s must be verbal=False: %s" % (where, src, line.strip()))
-        elif "HC_LIE kind=phantom_listen" in line or "HC_WATCHED" in line and "ear_whisper" in line:
+        elif "HC_LIE kind=phantom_listen" in line or tag("HC_WATCHED") and "ear_whisper" in line:
             if kv("verbal") != "False" or "voice_cc" in line:
                 fails.append("%s non-head cue must be verbal=False and name no voice clip: %s" % (where, line.strip()))
-        elif "HC_RARE_LINE" in line and kv("from") != "head":
+        elif tag("HC_RARE_LINE") and kv("from") != "head":
             fails.append("%s HC_RARE_LINE not from=head: %s" % (where, line.strip()))
-        elif "HC_VOICE_SUMMARY" in line:
+        elif tag("HC_VOICE_SUMMARY"):
             summaries += 1
             if kv("from_other") != "0":
                 fails.append("%s HC_VOICE_SUMMARY from_other=%s (must be 0): %s" % (where, kv("from_other"), line.strip()))

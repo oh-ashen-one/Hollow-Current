@@ -933,7 +933,7 @@ namespace HollowCurrent
                 var col=panel.GetComponent<Collider>();var centre=col?col.bounds.center:panel.transform.position;
                 var normal=closed*Vector3.forward;normal.y=0;normal.Normalize();
                 var floor=new Vector3(centre.x,door.transform.position.y,centre.z);
-                string tag=door.name.Replace(' ','_').Replace('(','_').Replace(')','_')+"_"+(side<0?"m":"p")+"z";
+                string tag=door.name.Replace(' ','_').Replace('(','_').Replace(')','_').Replace('/','_')+"_"+(side<0?"m":"p")+"z";   // fd-integ: door names hold a '/' ("Great door / ..."): it made a sub-path and the shot threw
                 // Stand 3.2 m out on this side (NavMesh), then walk up to the door on foot.
                 var far=floor+normal*side*3.2f;
                 if(!NavMesh.SamplePosition(far,out var fh,1.2f,NavMesh.AllAreas)||Mathf.Sign(door.SideOf(fh.position))!=side){Blocker("doorproof "+door.name+" side "+side+": no walkable stand point");continue;}
