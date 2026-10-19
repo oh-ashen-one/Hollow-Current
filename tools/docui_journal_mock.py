@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline layout check + mock for the castle journal and end card (piece fd-journal, r13 critic section 4).
+"""Offline layout check + mock for the castle journal, end card, lost card and settings card (pieces fd-journal and fe-ui).
 
 The layout (frames, ornament keep-out rects, safe rects, every text/control rect) is NOT duplicated here: this script builds
 Core/DocLayout.cs with tools/DocLayoutDump.cs using the Unity-bundled csc and runs it with the Unity-bundled mono (same toolchain as
@@ -9,7 +9,9 @@ Core/CaseBook.cs and Georgia / the bundled IM Fell fonts. It then asserts, on th
   2. every drawn text (measured with the real font, word-wrapped to its declared width) fits inside its declared rect,
   3. no measured text box touches an ornament (+ pad) or leaves the safe rect,
   4. text contrast against the paper under it: >= 7:1 on the median paper pixel and >= 6.5:1 on the darkest 5 % (blots no longer sit under text).
-It prints `HC_DOC_LAYOUT overlaps=0` and writes docui_mock_journal_fd.png / docui_mock_ending_fd.png.
+  5. (fe-ui) the disabled FILE RECONSTRUCTION slip (label and key cap) keeps >= 4.5:1 against the paper under it.
+It prints `HC_DOC_LAYOUT overlaps=0` and writes docui_mock_journal_fd.png / docui_mock_ending_fd.png and (fe-ui) docui_mock_lost_fe.png,
+docui_mock_settings_fe.png (page 2, the longest text) and docui_mock_settings_p0_fe.png / docui_mock_settings_p1_fe.png.
 Differences from the engine: PIL kerning/baselines (1-2 px), Georgia is the in-game OS serif, the pulse strip is a fixed sample.
 Run:  python3 tools/docui_journal_mock.py [outdir]
 """
@@ -38,6 +40,8 @@ MUTED = (163, 168, 161)
 PAPER_INK = (20, 13, 12)       # Interface.castleInk (castle cards only)
 OXBLOOD = (32, 4, 4)           # Interface.castleKicker: kickers on the castle cards (near-black oxblood, >= 7:1)
 LINE = (107, 92, 74, 166)
+DISABLED = (60, 32, 24)        # Interface.castleDisabled: disabled control on the castle card (fe-ui)
+SMALL_INK = (20, 13, 12)
 VELLUM_INK, VELLUM_RED, VELLUM_KICK = (20, 13, 12), (32, 4, 4), (32, 4, 4)   # DocumentUi.JournalInk / JournalRed on the card
 TEX_W, TEX_H = 1448.0, 1426.0
 COLS, ROWS = (300.0, 960.0), (390.0, 900.0)
@@ -89,7 +93,7 @@ def castle_book():
         return unesc(re.match(LIT, castle[i + len(name) + 1:]).group(1))
     return dict(rec=arr("EvidenceRecorded"), miss=arr("EvidenceMissing"), notes=arr("NoteTitles"), anchor=arr("AnchorChoices"),
                 pattern=arr("PatternChoices"), closure=arr("ClosureChoices"), question=one("JournalQuestion"),
-                ready=one("JournalReady"), notready=one("JournalNotReady"), kill_hero=one("KillHero"), kill_body=one("KillBody"),
+                lost_body=one("LostBody"), lost_footer=one("LostFooter"), ready=one("JournalReady"), notready=one("JournalNotReady"), kill_hero=one("KillHero"), kill_body=one("KillBody"),
                 won_hero=one("WonHero"), won_body=one("WonBody"), kill_footer=one("KillFooter"), case=one("CaseTag"), place=one("PlaceTag"),
                 context=one("ContextTrack"))
 
@@ -154,6 +158,8 @@ class Screen:
         self.items = []     # (name, measured (x,y,w,h) design, declared (x,y,w,h), color, on_paper)
         self.paper_rects = []
         self.disabled = set()   # inactive controls (WCAG exempt): "not yet found"
+        self.slip = {}          # name -> wash colour: disabled buttons drawn as an outlined slip (fe-ui); measured against the paper, >= 4.5:1
+        self.skip = set()       # items not measured against the paper (light text on button art)
 
     def begin_text(self):
         self.clean = self.im.copy()          # paper + backdrop only, for the contrast measurement
@@ -176,9 +182,10 @@ class Screen:
             lines.append(cur)
         lh = size * line
         for i, l in enumerate(lines):
-            self.d.text((px(x + 3), px(y + i * lh)), l, font=f, fill=color + (255,))
+            lx = px(x + 3) if align != "r" else px(x + w) - f.getlength(l)
+            self.d.text((lx, px(y + i * lh)), l, font=f, fill=color + (255,))
         mw = max(f.getlength(l) for l in lines) / S + 3
-        self.items.append((name, (x, y, mw, len(lines) * lh), rect, color, on_paper))
+        self.items.append((name, (x if align != "r" else x + w - mw, y, mw, len(lines) * lh), rect, color, on_paper))
         return lines
 
     def tracked(self, name, rect, text, size, color, spacing=2.4, font=GEORGIA, on_paper=True):
@@ -212,9 +219,20 @@ def ecg(scr, rect):
     scr.items.append(("pulse", (x, y, w, h), rect, PAPER_INK, True))
 
 
-def button(scr, name, rect, text, key, selected=False, plain=False, color=None, on_paper=True):
+def button(scr, name, rect, text, key, selected=False, plain=False, color=None, on_paper=True, disabled=False):
     x, y, w, h = rect
-    if not plain:
+    if disabled:
+        # Mirror of Interface.Action: !GUI.enabled && castleCards && !plain -> 7 % umber wash, 1 px umber border, umber label and key cap.
+        wash = Image.new("RGBA", (round(px(w)), round(px(h))), DISABLED + (round(255 * .07),))
+        scr.im.alpha_composite(wash, (round(px(x)), round(px(y))))
+        scr.d = ImageDraw.Draw(scr.im)
+        scr.d.rectangle([px(x), px(y), px(x + w) - 1, px(y + h) - 1], outline=DISABLED + (255,))
+        color = DISABLED
+        scr.slip[name + ":label"] = DISABLED
+        scr.slip[name + ":key"] = DISABLED
+        scr.skip.add(name)
+    elif not plain:
+        scr.skip.update((name, name + ":label"))   # light label on the dark button art (measured as light-on-dark by the art, not the paper)
         warn = Image.open(RES / "UI/BloodLedger/Warning.png").convert("RGBA").resize((round(px(w)), round(px(h))), Image.LANCZOS)
         scr.im.alpha_composite(warn, (round(px(x)), round(px(y))))
         scr.d = ImageDraw.Draw(scr.im)
@@ -239,10 +257,13 @@ def button(scr, name, rect, text, key, selected=False, plain=False, color=None, 
         scr.d.text((px(x + pad), px(top + i * lh)), l, font=f, fill=col + (255,))
     if key:
         kx = (x + w - 66, y + (h - 24) / 2, 48, 24)
-        scr.d.rectangle([px(kx[0]), px(kx[1]), px(kx[0] + kx[2]) - 1, px(kx[1] + kx[3]) - 1], outline=LINE)
+        scr.d.rectangle([px(kx[0]), px(kx[1]), px(kx[0] + kx[2]) - 1, px(kx[1] + kx[3]) - 1], outline=(DISABLED + (255,)) if disabled else LINE)
         kf = F(GEORGIA, 12)
         scr.d.text((px(kx[0] + 24), px(kx[1] + 12)), key, font=kf, fill=col + (255,), anchor="mm")
     mw = max(f.getlength(l) for l in lines) / S
+    if key and disabled:
+        kf2 = F(GEORGIA, 12)
+        scr.items.append((name + ":key", (x + w - 66 + 24 - kf2.getlength(key) / 2 / S, y + (h - 24) / 2 + 6, kf2.getlength(key) / S, 12), (x + w - 66, y, 48, h), col, on_paper))
     scr.items.append((name + ":label", (x + pad, top, mw, len(lines) * lh), (x + pad, y, avail, h), col, on_paper))
     scr.items.append((name, (x, y, w, h), rect, col, on_paper))
 
@@ -313,7 +334,7 @@ def journal(L, bk, mode):
         for k in range(3):
             button(scr, "choice%d%d" % (i, k), t["choice%d%d" % (i, k)], ch[k], str(key0 + k), selected=(i == 1 and k == 1))
     scr.label("compare", t["compare"], bk["notready"] if mode == "notready" else bk["ready"], 15, PAPER_INK)
-    button(scr, "submit", t["submit"], "FILE RECONSTRUCTION", "ENTER")
+    button(scr, "submit", t["submit"], "FILE RECONSTRUCTION", "ENTER", disabled=(mode == "notready"))
     return scr, j
 
 
@@ -354,6 +375,7 @@ def check(scr, scrjson, label, pad=8.0):
     safe = [tuple(s) for s in scrjson["safe"]]
     paper = [tuple(p) for p in scrjson["paper"]]
     worst = {}
+    slipc = {}
     for name, meas, decl, col, on_paper in scr.items:
         if not on_paper:
             continue
@@ -368,7 +390,16 @@ def check(scr, scrjson, label, pad=8.0):
                 problems.append("%s: measured %s touches an ornament" % (name, tuple(round(v, 1) for v in meas)))
         # contrast against the darkest 0.5 % of the clean paper under the declared rect
         x, y, w, h = [round(px(v)) for v in meas]
-        if name.startswith(("choice", "submit", "new")) or ":gap" in name:
+        if name in scr.slip:
+            x, y, w, h = [round(px(v)) for v in meas]
+            reg = scr.clean.crop((x, y, max(x + 1, x + w), max(y + 1, y + h))).convert("RGB")
+            data = reg.get_flattened_data() if hasattr(reg, "get_flattened_data") else reg.getdata()
+            wash = [tuple(round(c * .93 + k * .07) for c, k in zip(p, scr.slip[name])) for p in data]   # the 7 % umber wash under the slip
+            px_l = sorted(lum(p) for p in wash)
+            dark = px_l[min(len(px_l) - 1, int(len(px_l) * .05))]
+            slipc[name] = (dark + .05) / (lum(col) + .05)
+            continue
+        if name in scr.skip or name.startswith(("choice", "submit", "new", "retry", "exit-btn", "p-btn")) or ":gap" in name:
             continue   # light text on the dark-red button art: measured separately below
         reg = scr.clean.crop((x, y, max(x + 1, x + w), max(y + 1, y + h))).convert("RGB")
         data = reg.get_flattened_data() if hasattr(reg, "get_flattened_data") else reg.getdata()
@@ -378,7 +409,104 @@ def check(scr, scrjson, label, pad=8.0):
         if name in scr.disabled:
             continue
         worst[name] = ((dark + .05) / (lum(col) + .05), (mid + .05) / (lum(col) + .05))
-    return problems, worst
+    return problems, worst, slipc
+
+
+def settings(L, bk, page):
+    """fe-ui: the castle settings card (page 0 controls, 1 dialogue, 2 castle night) on the nine-slice, from DocLayout.Settings()."""
+    sj = L["settings"]
+    t = sj["texts"]
+    x0, w = sj["x0"], sj["w"]
+    scr = Screen(.35)
+    for f in sj["frames"]:
+        nine_slice(scr.im, f)
+    scr.begin_text()
+    chrome(scr, bk, "FIELD SETTINGS  /  1920 × 1080", "ESC return   ·   Shift sprint   ·   Ctrl crouch   ·   E interact   ·   F flashlight   ·   R radio")
+    scr.tracked("pause-kicker", (80, 191, 300, 24), "INVESTIGATION PAUSED", 13, (160, 130, 90), 2.4, on_paper=False)
+    scr.label("pause-hero", (76, 237, 440, 180), "Take a\nbreath.", 76, INK, on_paper=False)
+    scr.label("pause-body", (82, 439, 345, 110), "Your place in the investigation is held.\nResume when you are ready.", 20, INK, on_paper=False)
+    button(scr, "p-btn-page", (80, 544, 340, 42), ["DIALOGUE DISPLAY", "CASTLE NIGHT", "CONTROLS & AUDIO"][page], "", on_paper=False)
+    button(scr, "p-btn-resume", (80, 607, 340, 58), "RESUME INVESTIGATION", "ESC", on_paper=False)
+    button(scr, "p-btn-restart", (80, 688, 340, 48), "RESTART CASE", "N", on_paper=False)
+    button(scr, "p-btn-exit", (80, 760, 340, 44), "EXIT TO DESKTOP", "Q", plain=True, color=INK, on_paper=False)
+
+    def slider(name, y, label, val, hint, frac, dim=False):
+        col = PAPER_INK
+        scr.label(name + "-label", (x0, y, w - 160, 34), label, 20, col)
+        scr.label(name + "-value", (x0 + w - 160, y, 160, 34), val, 20, col, align="r")
+        ty = y + 48 + 11
+        scr.rect((x0, ty, w, 1.5), (60, 44, 36, 255))
+        scr.rect((x0 + w * frac - 6, ty - 10, 12, 22), (150, 120, 85, 255))
+        scr.label(name + "-hint", (x0, y + 73, w, 24), hint, 15, col)
+
+    def toggle(name, y, label, on, hint=""):
+        ww = sj["lowW"] if y + 37 > sj["lowY"] else w
+        scr.label(name + "-label", (x0, y + 7, ww - 125, 35), label, 20, PAPER_INK)
+        if hint:
+            scr.label(name + "-hint", (x0 + 350, y + 9, 150, 28), hint, 15, PAPER_INK)
+        button(scr, name, (x0 + ww - 96, y, 96, 37), "ON" if on else "OFF", "")
+
+    if page == 0:
+        scr.tracked("p0-track", t["p0-track"], "CONTROLS & FIELD EQUIPMENT", 13, OXBLOOD)
+        slider("p0-slider0", 244, "Look sensitivity", "2.10", "[1 / 2] Adjust mouse / right-stick sensitivity", .48)
+        slider("p0-slider1", 356, "Flashlight level", "100%", "[3 / 4] Adjust light output", .27)
+        slider("p0-slider2", 468, "Master volume", "65%", "[5 / 6] Adjust volume", .60)
+        scr.rect(t["p0-rule"], LINE)
+        toggle("p0-toggle0", 597, "Invert look Y", False, "[I]")
+        toggle("p0-toggle1", 650, "Subtitles", True, "[T]")
+        toggle("p0-toggle2", 703, "Detailed field help", True, "[H]")
+    elif page == 1:
+        scr.tracked("p1-track", t["p1-track"], bk["case"].split(" / ")[0] + " / DIALOGUE DISPLAY", 13, OXBLOOD)
+        slider("p1-slider0", 256, "Subtitle size", "100%", "Larger type for living-room play", .35)
+        slider("p1-slider1", 372, "Card opacity", "85%", "Message text stays fully readable", .66)
+        toggle("p1-toggle", 487, "Subtitles", True)
+        pv = t["p1-preview"]
+        card = Image.open(RES / "UI/BloodLedger/Dialogue.png").convert("RGBA").resize((round(px(pv[2])), round(px(pv[3]))), Image.LANCZOS)
+        scr.im.alpha_composite(card, (round(px(pv[0])), round(px(pv[1]))))
+        scr.d = ImageDraw.Draw(scr.im)
+        left = pv[0] + pv[2] * .17
+        scr.tracked("p1-speaker", (left, pv[1] + pv[3] * .13, pv[2] * .74, 25), "DISPATCH / CHANNEL 04", 13, (27, 19, 17), on_paper=False)
+        scr.label("p1-dialogue", (left, pv[1] + pv[3] * .35, pv[2] * .72, pv[3] * .47), "The signal is changing. Keep your light steady.", 24, (27, 19, 17), on_paper=False)
+    else:
+        scr.tracked("p2-track", t["p2-track"], "THE COUNT'S NIGHT / FIELD RULES", 13, OXBLOOD)
+        toggle("p2-toggle1", 244, "Long night", False)
+        scr.label("p2-note1", t["p2-note1"], "No warning before a hunt, a darker start, longer hunts, a restless perch, and two hiding places nailed shut. Takes effect when the castle case begins.", 15, PAPER_INK)
+        scr.rect(t["p2-rule"], LINE)
+        toggle("p2-toggle2", 380, "Microphone", False)
+        scr.label("p2-note2", t["p2-note2"], "During a hunt he hears your voice through the microphone. macOS asks for microphone access the first time. Off by default.", 15, PAPER_INK)
+        slider("p2-slider", 500, "Microphone threshold", "SPEECH", "How loud you must be before he hears you", .4)
+        scr.tracked("p2-input-label", t["p2-input-label"], "INPUT", 13, OXBLOOD)
+        b = t["p2-bar"]
+        scr.rect((b[0], 620, b[2], 4), LINE)
+        scr.rect((b[0], 620, b[2] * .22, 4), (160, 130, 90, 255))
+        scr.rect((b[0] + b[2] * .35, 614, 2, 16), SMALL_INK + (255,))
+    return scr, sj
+
+
+def lost(L, bk):
+    """fe-ui: the "Signal lost" card (checkpoint available, so both buttons) on the same nine-slice as the won / killed card."""
+    e = L["ending_lost"]
+    t = e["texts"]
+    scr = Screen(.14)
+    for f in e["frames"]:
+        nine_slice(scr.im, f)
+    scr.begin_text()
+    chrome(scr, bk, bk["place"] + "  /  " + bk["case"], bk["lost_footer"])
+    scr.tracked("kicker", t["kicker"], "LAST TRANSMISSION / LOST", 13, OXBLOOD)
+    scr.label("hero", t["hero"], "Signal\nlost.", 76, PAPER_INK)
+    scr.label("body", t["body"], bk["lost_body"], 20, PAPER_INK)
+    for i, (v, lab) in enumerate((("1 / 3", "EVIDENCE"), ("0", "HUNTS SURVIVED"), ("12:40", "FIELD TIME"))):
+        scr.label("metric%d" % i, t["metric%d" % i], v, 40, PAPER_INK, line=1.136)
+        scr.tracked("metric-label%d" % i, t["metric-label%d" % i], lab, 13, OXBLOOD)
+    for sx in e["sep"]:
+        scr.rect((sx, e["metricY"] + 9, 1, 76), LINE)
+    button(scr, "retry", t["retry"], "RETRY CHECKPOINT", "")
+    button(scr, "new", t["new"], "NEW INVESTIGATION", "N")
+    button(scr, "exit", t["exit"], "EXIT TO DESKTOP", "Q", plain=True)
+    # no-checkpoint variant: NEW INVESTIGATION alone at its old column; its label must fit the declared 400 x 52 slot
+    nf = F(GEORGIA, 18)
+    assert nf.getlength("NEW INVESTIGATION") / S <= t["new-solo"][2] - 45 - 80, "solo NEW INVESTIGATION label does not fit"
+    return scr, e
 
 
 def main():
@@ -386,24 +514,34 @@ def main():
     L = layout()
     bk = castle_book()
     ok = True
-    for tag, builder, args in (("journal", journal, (L, bk, "notready")), ("ending", ending, (L, bk))):
+    outnames = {"journal": "docui_mock_journal_fd.png", "ending": "docui_mock_ending_fd.png", "ending_lost": "docui_mock_lost_fe.png",
+                "settings": "docui_mock_settings_fe.png", "settings0": "docui_mock_settings_p0_fe.png", "settings1": "docui_mock_settings_p1_fe.png"}
+    jobs = [("journal", "journal", journal, (L, bk, "notready")), ("ending", "ending", ending, (L, bk)),
+            ("ending_lost", "ending_lost", lost, (L, bk)),
+            ("settings", "settings", settings, (L, bk, 2)), ("settings0", "settings", settings, (L, bk, 0)), ("settings1", "settings", settings, (L, bk, 1))]
+    for tag, key, builder, args in jobs:
         scr, sj = builder(*args)
-        problems, contrast_by = check(scr, sj, tag)
-        csharp = L[tag]["overlaps"]
+        problems, contrast_by, slipc = check(scr, sj, tag)
+        csharp = L[key]["overlaps"]
         lo5 = min(v[0] for v in contrast_by.values())
         lom = min(v[1] for v in contrast_by.values())
         wk = min(contrast_by, key=lambda k: contrast_by[k][0])
-        print("%-8s C# verifier overlaps=%d | measured-text problems=%d | worst text contrast: median paper %.1f:1, darkest 5%% of the paper %.1f:1 (%s)"
+        print("%-11s C# verifier overlaps=%d | measured-text problems=%d | worst text contrast: median paper %.1f:1, darkest 5%% of the paper %.1f:1 (%s)"
               % (tag, csharp, len(problems), lom, lo5, wk))
+        if slipc:
+            print("            disabled slip contrast (darkest 5% of the paper): " + ", ".join("%s %.1f:1" % (k, v) for k, v in sorted(slipc.items())))
+            problems += ["%s: disabled contrast %.2f:1 < 4.5:1" % (k, v) for k, v in slipc.items() if v < 4.5]
         for p in problems:
             print("   ", p)
         ok = ok and csharp == 0 and not problems and lom >= 7.0 and lo5 >= 6.5
-        name = "docui_mock_journal_fd.png" if tag == "journal" else "docui_mock_ending_fd.png"
-        scr.im.convert("RGB").save(OUT / name)
-        print("wrote", OUT / name)
-    total = L["journal"]["overlaps"] + L["ending"]["overlaps"]
-    print("HC_DOC_LAYOUT overlaps=%d  (journal=%d ending=%d; longest record set, longest note title, kill-card body)"
-          % (total, L["journal"]["overlaps"], L["ending"]["overlaps"]))
+        scr.im.convert("RGB").save(OUT / outnames[tag])
+        print("wrote", OUT / outnames[tag])
+    keys = ("journal", "ending", "ending_lost", "settings")
+    total = sum(L[k]["overlaps"] for k in keys)
+    for k in keys:
+        print("HC_DOC_LAYOUT screen=%s overlaps=%d" % (k, L[k]["overlaps"]))
+    print("HC_DOC_LAYOUT overlaps=%d  (%s; longest record set, longest note title, kill-card body, longest settings page, lost card with checkpoint)"
+          % (total, " ".join("%s=%d" % (k, L[k]["overlaps"]) for k in keys)))
     if not ok:
         sys.exit("FAIL: layout check")
 

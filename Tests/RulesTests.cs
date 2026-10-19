@@ -99,6 +99,13 @@ static class RulesTests
         Assert(DocPanel.TextLeft(j.LeftFrame)>=OrnamentLeftEnd(j.LeftFrame)&&j.ColL>=152f,"text column starts right of both left ornaments");
         Assert(j.Pulse.YMax<=DocPanel.Safe(j.LeftFrame).YMax&&j.Pulse.XMax<=j.LowerR,"pulse strip fits inside the page and beside the seal");
         Assert(e.Exit.YMax<=DocPanel.Safe(e.Frame).YMax&&e.New.YMax<=e.Exit.Y,"end card buttons sit inside the paper");
+        // Piece fe-ui: the lost card and the settings card (all three pages) are on the same nine-slice and rule.
+        var lost=DocLayout.Ending(true);bad=lost.Layout.Verify();Assert(bad.Count==0&&lost.Layout.Screen=="ending_lost","lost card layout clear of ornaments: "+string.Join("; ",bad.ToArray()));
+        Assert(lost.Retry.XMax<lost.New.X&&lost.New.XMax<=DocPanel.LowerRight(lost.Frame)&&lost.New.YMax<=lost.Exit.Y,"lost card buttons sit side by side beside the seal corner");
+        var st=DocLayout.Settings();bad=st.Layout.Verify();Assert(bad.Count==0&&st.Layout.Screen=="settings","settings layout clear of ornaments: "+string.Join("; ",bad.ToArray()));
+        Assert(st.Layout.Texts.Count>=20&&st.LowW<st.W&&st.ToggleW(703)==st.LowW&&st.ToggleW(244)==st.W,"settings rows beside the seal corner are narrowed, the rest are full width");
+        old=new DocLayout("old");fr=old.Frame(520,173,1000,635);old.Text("track",558,202,420,24);Assert(old.Verify().Count>=1,"the old settings first row under the filigree is flagged");
+        old=new DocLayout("old");fr=old.Frame(520,173,1000,635);old.Text("toggle",558,703,924,37);Assert(old.Verify().Count>=1,"the old settings last toggle under the seal is flagged");
     }
     static float OrnamentLeftEnd(LRect f){return Math.Max(DocPanel.OrnamentRect(f,0).XMax,DocPanel.OrnamentRect(f,2).XMax)+DocPanel.Pad;}
     static void Main()

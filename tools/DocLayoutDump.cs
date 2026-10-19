@@ -1,4 +1,4 @@
-// Prints the castle journal / end-card layout (Core/DocLayout.cs) as JSON, for tools/docui_journal_mock.py.
+// Prints the castle journal / end-card / lost-card / settings layout (Core/DocLayout.cs) as JSON, for tools/docui_journal_mock.py.
 // Built by that script with the Unity-bundled csc and run with the Unity-bundled mono (same as tools/check_source.py).
 using System;
 using System.Collections.Generic;
@@ -32,6 +32,9 @@ static class DocLayoutDump
         var ci = System.Globalization.CultureInfo.InvariantCulture;
         string je = "\"colL\":" + j.ColL.ToString(ci) + ",\"colR\":" + j.ColR.ToString(ci) + ",\"lowerR\":" + j.LowerR.ToString(ci) + ",\"x0\":" + j.X0.ToString(ci) + ",\"choiceStep\":" + j.ChoiceStep.ToString(ci) + ",\"choiceW\":" + j.ChoiceW.ToString(ci);
         string ee = "\"x\":" + e.X.ToString(ci) + ",\"metricX\":[" + e.MetricX[0].ToString(ci) + "," + e.MetricX[1].ToString(ci) + "," + e.MetricX[2].ToString(ci) + "],\"metricY\":" + e.MetricY.ToString(ci) + ",\"sep\":[" + e.Separator[0].ToString(ci) + "," + e.Separator[1].ToString(ci) + "]";
-        Console.WriteLine("{\"journal\":" + Screen(j.Layout, je) + ",\"ending\":" + Screen(e.Layout, ee) + "}");
+        var lo = DocLayout.Ending(true); var st = DocLayout.Settings();
+        string le = "\"x\":" + lo.X.ToString(ci) + ",\"metricX\":[" + lo.MetricX[0].ToString(ci) + "," + lo.MetricX[1].ToString(ci) + "," + lo.MetricX[2].ToString(ci) + "],\"metricY\":" + lo.MetricY.ToString(ci) + ",\"sep\":[" + lo.Separator[0].ToString(ci) + "," + lo.Separator[1].ToString(ci) + "]";
+        string se = "\"x0\":" + st.X0.ToString(ci) + ",\"w\":" + st.W.ToString(ci) + ",\"lowY\":" + st.LowY.ToString(ci) + ",\"lowW\":" + st.LowW.ToString(ci);
+        Console.WriteLine("{\"journal\":" + Screen(j.Layout, je) + ",\"ending\":" + Screen(e.Layout, ee) + ",\"ending_lost\":" + Screen(lo.Layout, le) + ",\"settings\":" + Screen(st.Layout, se) + "}");
     }
 }

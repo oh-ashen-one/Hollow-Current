@@ -162,15 +162,17 @@ namespace HollowCurrent
             public LRect Frame, Content = new LRect(45, 145, 850, 660);
             public float X;                                          // the text column
             public LRect Kicker, Hero, Body, New, Exit;
+            public LRect Retry, NewSolo;                             // lost card only: RETRY CHECKPOINT beside NEW INVESTIGATION; NewSolo = NEW INVESTIGATION when there is no checkpoint
             public LRect[] Value = new LRect[3], Label = new LRect[3];
             public float[] MetricX = new float[3];
             public float MetricY = 578;
             public float[] Separator = new float[2];
         }
 
-        public static EndingSpec Ending()
+        // lost = the "Signal lost" card (piece fe-ui): the same nine-slice card and text column as the won / killed card, plus the checkpoint button.
+        public static EndingSpec Ending(bool lost = false)
         {
-            var s = new EndingSpec { Layout = new DocLayout("ending") };
+            var s = new EndingSpec { Layout = new DocLayout(lost ? "ending_lost" : "ending") };
             var L = s.Layout;
             s.Frame = L.Frame(s.Content.X, s.Content.Y, s.Content.W, s.Content.H);
             s.X = DocPanel.TextLeft(s.Frame);
@@ -186,8 +188,65 @@ namespace HollowCurrent
                 s.Label[i] = L.Text("metric-label" + i, s.MetricX[i], s.MetricY + 65, 170, 24);
             }
             s.Separator[0] = s.MetricX[1] - 24; s.Separator[1] = s.MetricX[2] - 24;
-            s.New = L.Text("new", s.X, 684, 400, 52);
+            if (lost)
+            {
+                float lowerR = DocPanel.LowerRight(s.Frame), retryW = 280, gap = 12;
+                s.Retry = L.Text("retry", s.X, 684, retryW, 52);
+                s.New = L.Text("new", s.X + retryW + gap, 684, lowerR - (s.X + retryW + gap), 52);
+                s.NewSolo = L.Text("new-solo", s.X, 684, 400, 52);
+            }
+            else s.New = L.Text("new", s.X, 684, 400, 52);
             s.Exit = L.Text("exit", s.X, 742, 310, 40);
+            return s;
+        }
+
+        // ---- the settings card (castle, three pages; piece fe-ui) ---------------------------------------------------------------
+        // Every control of every page is declared, so one verification covers all three pages. Rows that end below the seal corner's top
+        // (LowY) are only LowW wide so their right-hand ON / OFF switch stays left of the seal and blots.
+        public sealed class SettingsSpec
+        {
+            public DocLayout Layout;
+            public LRect Frame, Content = new LRect(500, 173, 1020, 635);
+            public float X0, W = 924, LowY, LowW;
+            public const float TrackY = 202, RowH = 98, ToggleH = 37;
+            public static readonly float[] P0Slider = { 244, 356, 468 };
+            public const float P0Rule = 579;
+            public static readonly float[] P0Toggle = { 597, 650, 703 };
+            public static readonly float[] P1Slider = { 256, 372 };
+            public const float P1Toggle = 487;
+            public static readonly LRect P1Preview = new LRect(650, 555, 740, 220);
+            public const float P2Toggle1 = 244, P2Note1 = 288, P2Rule = 360, P2Toggle2 = 380, P2Note2 = 424, P2Slider = 500, P2Input = 612;
+            public LRect P2Bar;
+            // Width of a toggle row whose top is y: full width above the seal corner, LowW beside it.
+            public float ToggleW(float y) => y + ToggleH > LowY ? LowW : W;
+        }
+
+        public static SettingsSpec Settings()
+        {
+            var s = new SettingsSpec { Layout = new DocLayout("settings") };
+            var L = s.Layout;
+            s.Frame = L.Frame(s.Content.X, s.Content.Y, s.Content.W, s.Content.H);
+            s.X0 = DocPanel.TextLeft(s.Frame);
+            s.LowY = DocPanel.OrnamentRect(s.Frame, 3).Y - DocPanel.Pad;
+            s.LowW = DocPanel.LowerRight(s.Frame) - s.X0;
+            float x = s.X0, w = s.W, h = SettingsSpec.RowH;
+            L.Text("p0-track", x, SettingsSpec.TrackY, 420, 24);
+            for (int i = 0; i < 3; i++) L.Text("p0-slider" + i, x, SettingsSpec.P0Slider[i], w, h);
+            L.Text("p0-rule", x, SettingsSpec.P0Rule, w, 1);
+            for (int i = 0; i < 3; i++) L.Text("p0-toggle" + i, x, SettingsSpec.P0Toggle[i], s.ToggleW(SettingsSpec.P0Toggle[i]), SettingsSpec.ToggleH);
+            L.Text("p1-track", x, SettingsSpec.TrackY, 420, 24);
+            for (int i = 0; i < 2; i++) L.Text("p1-slider" + i, x, SettingsSpec.P1Slider[i], w, h);
+            L.Text("p1-toggle", x, SettingsSpec.P1Toggle, s.ToggleW(SettingsSpec.P1Toggle), SettingsSpec.ToggleH);
+            var pv = SettingsSpec.P1Preview; L.Text("p1-preview", pv.X, pv.Y, pv.W, pv.H);
+            L.Text("p2-track", x, SettingsSpec.TrackY, 420, 24);
+            L.Text("p2-toggle1", x, SettingsSpec.P2Toggle1, s.ToggleW(SettingsSpec.P2Toggle1), SettingsSpec.ToggleH);
+            L.Text("p2-note1", x, SettingsSpec.P2Note1, 820, 60);
+            L.Text("p2-rule", x, SettingsSpec.P2Rule, w, 1);
+            L.Text("p2-toggle2", x, SettingsSpec.P2Toggle2, s.ToggleW(SettingsSpec.P2Toggle2), SettingsSpec.ToggleH);
+            L.Text("p2-note2", x, SettingsSpec.P2Note2, 820, 60);
+            L.Text("p2-slider", x, SettingsSpec.P2Slider, w, h);
+            L.Text("p2-input-label", x, SettingsSpec.P2Input, 70, 24);
+            s.P2Bar = L.Text("p2-bar", x + 82, SettingsSpec.P2Input + 2, w - 82, 20);
             return s;
         }
     }
