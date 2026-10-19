@@ -189,12 +189,15 @@ namespace HollowCurrent
                 outside = local.z < FacadeMaxCameraZ;
             }
             foreach (var l in outsideLights) if (l && l.enabled != outside) l.enabled = outside;
-            bool deep = MaskDeepInteriorOutside && !DeepMaskSuspended && outside && gateDoors.Count > 0 && !(AnyAjar(gateDoors) && AnyAjar(gatehouseDoors));
+            // fe-next: the castle's "Gate" is the drawbridge (no leaves; fe r3 logged gate=0 and the mask never switched on). From outside the
+            // gate arch shows the gatehouse (kept lit, VisibleHalfX/VisibleMaxZ); the deep interior shows only through an open gatehouse exit.
+            bool deep = MaskDeepInteriorOutside && !DeepMaskSuspended && outside && gatehouseDoors.Count > 0 && !AnyAjar(gatehouseDoors);
             if (deep != deepMasked) ApplyDeepMask(deep);
         }
 
         // ---- fe r3: deep-interior mask for the interior lights while the camera is outside and the gate chain is shut ------------------
         readonly List<Door> gateDoors = new List<Door>(), gatehouseDoors = new List<Door>();
+        static readonly string[] GatehouseExits = { "Gatehouse great doors", "Gatehouse kitchen passage", "Gatehouse guard door" };   // CastleLayout.Doors
         readonly Dictionary<Light, int> interiorMasks = new Dictionary<Light, int>();
         bool deepMasked; int deepLogs;
         static bool AnyAjar(List<Door> doors)
@@ -210,9 +213,10 @@ namespace HollowCurrent
             {
                 if (it.Kind != InteractKind.Door || !it.Door) continue;
                 if (it.Label == "Gate") { if (!gateDoors.Contains(it.Door)) gateDoors.Add(it.Door); }
-                else if (it.Label == "Gatehouse great doors" || it.Door.name.Contains("Gatehouse great doors")) { if (!gatehouseDoors.Contains(it.Door)) gatehouseDoors.Add(it.Door); }
+                foreach (var exit in GatehouseExits)
+                    if ((it.Label == exit || it.Door.name.Contains(exit)) && !gatehouseDoors.Contains(it.Door)) gatehouseDoors.Add(it.Door);
             }
-            Debug.Log("HC_DEEP_INTERIOR_DOORS gate=" + gateDoors.Count + " gatehouse=" + gatehouseDoors.Count + (gateDoors.Count == 0 ? " (no gate found: the deep-interior mask stays off)" : ""));
+            Debug.Log("HC_DEEP_INTERIOR_DOORS gate=" + gateDoors.Count + " gatehouse_exits=" + gatehouseDoors.Count + (gatehouseDoors.Count == 0 ? " (no gatehouse exit found: the deep-interior mask stays off)" : ""));
         }
         void ApplyDeepMask(bool on)
         {
