@@ -33,7 +33,7 @@ Material:
     - _Streak: 1
     - _StreakLen: 0.9
     - _StreakWidth: 0.035
-    - _Strength: 4
+    - _Strength: 6.4
     - _Tile: 0.21
     - _WetMin: 0.9
     - _WinHalf: 0.6
