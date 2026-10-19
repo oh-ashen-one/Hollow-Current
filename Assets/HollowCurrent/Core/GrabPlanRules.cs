@@ -143,21 +143,26 @@ namespace HollowCurrent
         {
             public int Sign; public float Yaw;
             public bool LeftOk, RightOk; public float LeftYaw, RightYaw; public string LeftWhy = "", RightWhy = "";
+            // fg-polish: every yaw tried and why it failed (yaw:code, codes line | floor | room | reach | other), for HC_GRAB_FLANK yaws=.
+            public string LeftYaws = "", RightYaws = "";
         }
+        public static string ShortWhy(string why) => why == null ? "open" : why.Contains("line") ? "line" : why.Contains("floor") ? "floor" : why.Contains("room") ? "room"
+            : why.Contains("detour") || why.Contains("route") || why.Contains("direct") ? "reach" : "other";
         public static SidePlan Choose(Func<int, float, string> feasible, float[] yaws, int first)
         {
             var plan = new SidePlan();
             foreach (int sg in new[] { -1, 1 })
             {
-                string firstWhy = null; bool ok = false; float okYaw = 0;
+                string firstWhy = null; bool ok = false; float okYaw = 0; string tried = "";
                 foreach (float y in yaws)
                 {
                     string w = feasible(sg, y);
+                    tried += (tried.Length > 0 ? "," : "") + (y * sg).ToString("F0", System.Globalization.CultureInfo.InvariantCulture) + ":" + ShortWhy(w);
                     if (w == null) { ok = true; okYaw = y; break; }
                     if (firstWhy == null) firstWhy = w;
                 }
-                if (sg < 0) { plan.LeftOk = ok; plan.LeftYaw = okYaw; plan.LeftWhy = ok ? "" : firstWhy ?? "no frame"; }
-                else { plan.RightOk = ok; plan.RightYaw = okYaw; plan.RightWhy = ok ? "" : firstWhy ?? "no frame"; }
+                if (sg < 0) { plan.LeftOk = ok; plan.LeftYaw = okYaw; plan.LeftWhy = ok ? "" : firstWhy ?? "no frame"; plan.LeftYaws = tried; }
+                else { plan.RightOk = ok; plan.RightYaw = okYaw; plan.RightWhy = ok ? "" : firstWhy ?? "no frame"; plan.RightYaws = tried; }
             }
             foreach (int sg in new[] { first, -first })
             {
@@ -260,6 +265,12 @@ namespace HollowCurrent
     }
     // fg-polish (FF fear: a hideopen crawl slid 0.91 m: its 0.92 m seat was exempt from the reseat and the cut, and FrameClaws eased the
     // root another 0.5 m): the 0.45 m slide rule on every grab path. Pure; Presence and RulesTests share it.
+    public static class SideBalanceRules
+    {
+        // fg-polish: the side snatch's two clips share one deck group; the side with fewer commits than its pair scores `bonus` more, so a
+        // feasible starved flank wins a close call against the spin (FF natural3) without raising the side group's target share.
+        public static float Bonus(int haveThis, int havePair, float bonus) => haveThis < havePair ? bonus : 0;
+    }
     public static class GrabSlideRules
     {
         public enum SeatPath { Keep, Reseat, Cut }

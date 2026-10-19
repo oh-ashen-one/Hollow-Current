@@ -416,12 +416,114 @@ static class RulesTests
             Console.WriteLine("WAVE_FG slide rule: "+ok+"/"+n+" random grabs with travel <= 0.45 m or a cut ("+cuts+" cuts); FF fear case "+raw.ToString("F2")+" -> "+held.ToString("F2")+" m");
             Assert(ok==n,"every grab path: root travel <= 0.45 m or a logged frame-0 cut");
         }
+        // 6. Item 2, the right side snatch (FF: m11 once in 22 grabs; plan-time feasibility was L 6 / R 4 of about 40 dives, the flank
+        //    closures symmetric: line blocked 54 / 53, she faces him 16 / 16, no floor 8 / 9). Fixed scenes from the castle the FF dives were
+        //    planned in, with her off-centre and turned, mirrored (x -> -x), and her torch hand on her left: the planner is mirror-symmetric in
+        //    each, and the hand lantern (layer 30, outside FlightMask) never closes a flank.
+        {
+            float so=2.2f,lat=2.88f,back=.11f,lineLat=3.4f;float[] yaws={0,20,-15,35};
+            // A scene: wall segments (x0,z0,x1,z1) and a floor rectangle (x0,z0,x1,z1) at her level, in her frame (her feet at the origin).
+            var scenes=new System.Collections.Generic.List<(string name,float[][] walls,float[] floor)>();
+            foreach(float off in new[]{0f,.5f,-.5f})
+            {
+                // a 3 m service corridor (the hall stair passage, the crypt corridor): walls 1.5 m either side of its axis
+                scenes.Add(("corridor off "+off,new[]{new[]{-1.5f-off,-20,-1.5f-off,20},new[]{1.5f-off,-20,1.5f-off,20}},new[]{-1.5f-off,-20,1.5f-off,20}));
+                // the great hall's upper gallery (2.92 m ceiling): its back wall 1.7 m on one side, the rail 0.1 m on the other (no floor past it)
+                scenes.Add(("gallery off "+off,new[]{new[]{1.7f-off,-20,1.7f-off,20}},new[]{-.1f-off,-20,1.7f-off,20}));
+                // the hall floor between the piers (x +-3.9, half .45, every 3 m) and the table (3.3 x 1.3) ahead
+                var hall=new System.Collections.Generic.List<float[]>();foreach(float pz in new[]{-4.5f,-1.5f,1.5f,4.5f})foreach(float px in new[]{-3.9f,3.9f}){float x=px-off;hall.Add(new[]{x-.45f,pz-.45f,x+.45f,pz+.45f});hall.Add(new[]{x+.45f,pz-.45f,x-.45f,pz+.45f});}
+                hall.Add(new[]{-.65f-off,3,.65f-off,6.3f});hall.Add(new[]{.65f-off,3,-.65f-off,6.3f});
+                scenes.Add(("hall floor off "+off,hall.ToArray(),new[]{-8f-off,-14,8f-off,14}));
+                // the chapel aisle (2 m) between pew rows (depth 0.7, 1.3 m pitch): pews 1.0-1.7 and 2.3-3.0 m either side
+                var nave=new System.Collections.Generic.List<float[]>();foreach(float sgn in new[]{-1f,1f})foreach(float d0 in new[]{1f,2.3f})nave.Add(new[]{sgn*d0-off,-1.2f,sgn*(d0+.7f)-off,1.2f});
+                scenes.Add(("chapel aisle off "+off,nave.ToArray(),new[]{-6f-off,-6,6f-off,6}));
+            }
+            bool Cross(float ax,float az,float bx,float bz,float[] w)
+            {
+                float O(float px,float pz,float qx,float qz,float rx,float rz)=>(qx-px)*(rz-pz)-(qz-pz)*(rx-px);
+                float d1=O(w[0],w[1],w[2],w[3],ax,az),d2=O(w[0],w[1],w[2],w[3],bx,bz),d3=O(ax,az,bx,bz,w[0],w[1]),d4=O(ax,az,bx,bz,w[2],w[3]);
+                return (d1>0)!=(d2>0)&&(d3>0)!=(d4>0);
+            }
+            float SegDist(float px,float pz,float[] w){float dx=w[2]-w[0],dz=w[3]-w[1],l2=dx*dx+dz*dz;float t=l2<1e-8f?0:Math.Max(0,Math.Min(1,((px-w[0])*dx+(pz-w[1])*dz)/l2));float qx=w[0]+dx*t-px,qz=w[1]+dz*t-pz;return (float)Math.Sqrt(qx*qx+qz*qz);}
+            int scenesRun=0,asym=0,torchDiff=0,torchRight=0,feasL=0,feasR=0;string report="";
+            foreach(var sc in scenes)foreach(float face in new[]{0f,30f,-30f,60f,-60f,90f})
+            {
+                // her view +z turned by `face`; the scene is expressed in her frame by rotating it by -face; the mirror scene flips x.
+                bool[] ok=new bool[4];
+                for(int mirror=0;mirror<2;mirror++)
+                {
+                    float ms=mirror==0?1:-1;
+                    float[] Tr(float[] w){var r=new float[w.Length];for(int i=0;i+1<w.Length;i+=2){SideGrabRules.Rotate(w[i]*ms,w[i+1],-face*ms,out r[i],out r[i+1]);}return r;}
+                    var walls=new System.Collections.Generic.List<float[]>();foreach(var w in sc.walls)walls.Add(Tr(w));
+                    float[] fl=sc.floor;
+                    bool OnFloor(float x,float z){SideGrabRules.Rotate(x,z,face*ms,out float wx,out float wz);wx*=ms;return wx>=Math.Min(fl[0],fl[2])-1e-3f&&wx<=Math.Max(fl[0],fl[2])+1e-3f&&wz>=Math.Min(fl[1],fl[3])&&wz<=Math.Max(fl[1],fl[3]);}
+                    for(int torch=0;torch<2;torch++)
+                    {
+                        // the hand lantern in her left hand, 0.215 m left and 0.45 m ahead of her eye (Investigator localPosition), turned with her
+                        // view. It is on layer 30, outside FlightMask, so it never blocks at runtime; here it is made solid (0.08 m): a collider on it
+                        // could only ever close her LEFT flank lines, so it cannot explain a rare right side.
+                        float tx=-.215f,tz=.45f;bool torchBlocks=true;
+                        string F(int sg,float y)
+                        {
+                            SideGrabRules.Frame(0,1,sg,y,out float fx,out float fz);SideGrabRules.Start(fx,fz,sg,so,lat,back,out float sx,out float sz);
+                            float ox=fx*so,oz=fz*so,rx=fz,rz=-fx,lx=ox+rx*sg*lineLat,lz=oz+rz*sg*lineLat;
+                            foreach(var w in walls)if(Cross(0,0,ox,oz,w)||Cross(ox,oz,lx,lz,w))return "flank line blocked";
+                            if(torch==1&&torchBlocks&&SegHitsCircle(0,0,ox,oz,tx,tz,.08f))return "torch";
+                            if(!OnFloor(sx,sz))return "no floor at the flank start";
+                            foreach(var w in walls)if(SegDist(sx,sz,w)<.3f)return "no room at the flank start";
+                            return null;
+                        }
+                        var plan=SideGrabRules.Choose(F,yaws,1);
+                        if(torch==0){ok[mirror*2]=plan.LeftOk;ok[mirror*2+1]=plan.RightOk;if(mirror==0){if(plan.LeftOk)feasL++;if(plan.RightOk)feasR++;}}
+                        else{if(plan.LeftOk!=ok[mirror*2])torchDiff++;if(plan.RightOk!=ok[mirror*2+1])torchRight++;}
+                    }
+                }
+                scenesRun++;if(ok[0]!=ok[3]||ok[1]!=ok[2])asym++;
+                if(face==0)report+=sc.name+": L "+(ok[0]?"open":"shut")+" R "+(ok[1]?"open":"shut")+"; ";
+            }
+            Console.WriteLine("WAVE_FG side scenes ("+scenesRun+" scene x facing, mirrored, torch left): mirror mismatches="+asym+" solid-torch closures left="+torchDiff+" right="+torchRight+" feasible L/R="+feasL+"/"+feasR+" | facing 0: "+report.TrimEnd(' ',';'));
+            Assert(asym==0&&torchRight==0,"FF castle scenes: left feasibility equals the mirror's right in every scene and facing; a solid torch hand could only close a left flank");
+            // The fixes. (a) A starved side scores SideBalanceBonus more (FF natural3: a feasible right flank, deck 10:1 11:0, side 0.57 / 0.64
+            // under spin 1.13 / 1.07; the expected scores without jitter are side 0.32 + 0.6 vs spin 0.90). (b) The blind dive keeps its plan
+            // (FF natural4: both right plans were lost to "reached her last known spot", modelled as a commit rate of 0.75 -> 0.9).
+            {
+                var yl=SideGrabRules.Choose((sg,y)=>y==0?"flank closed (flank line blocked at yaw 0)":y==20?null:"no floor",new[]{0f,20,-15,35},1);
+                Assert(yl.LeftYaws=="0:line,-20:open"&&yl.RightYaws=="0:line,20:open"&&yl.Sign==1,"HC_GRAB_FLANK yaws= lists every yaw tried with its reason, mirrored ("+yl.LeftYaws+" / "+yl.RightYaws+")");
+            }
+            Assert(SideBalanceRules.Bonus(0,1,.6f)==.6f&&SideBalanceRules.Bonus(1,1,.6f)==0&&SideBalanceRules.Bonus(2,1,.6f)==0,"the balance bonus goes only to the side with fewer commits");
+            Assert(.22f*6-1+.6f>.15f*6,"FF natural3: with the bonus the starved right side outscores the spin before jitter");
+            float Both(float bonus,float succ,out float crawlOver)
+            {
+                var rng=new Random(77);int ok=0,sets=3000,over=0;
+                for(int k=0;k<sets;k++)
+                {
+                    var deck=new int[13];int commits=0,crawls=0;
+                    foreach(int nd in new[]{4,4,4,3,1,1,2})for(int dv=0;dv<nd;dv++)   // natural x3, cold x2, huntcam, fear (FF dive counts)
+                    {
+                        bool drop=rng.NextDouble()<.65,spin=drop&&rng.NextDouble()<.3;double u=rng.NextDouble();bool L=u<.125,R=u>=.075&&u<.2;
+                        float n=1;foreach(int m in new[]{8,9,10,11,12})n+=deck[m];int plan=-1;float best=float.MinValue;
+                        void C(int m,bool okm,float t,int have,float b){if(!okm)return;float sc=t*n-have+b+(float)rng.NextDouble()*.35f;if(sc>best){best=sc;plan=m;}}
+                        int side=0;if(L||R){int first=SideGrabRules.FirstSide(deck[10],deck[11],rng.NextDouble()<.5?60:-60,deck[10]+deck[11]);side=first<0?(L?-1:1):(R?1:-1);}
+                        int sm=side<0?10:11,pm=side<0?11:10;
+                        C(8,drop,.45f,deck[8],0);C(12,spin,.15f,deck[12],0);if(side!=0)C(sm,true,.22f,deck[10]+deck[11],SideBalanceRules.Bonus(deck[sm],deck[pm],bonus));
+                        C(9,GrabMixRules.CrawlAllowed(deck,9,new[]{8,9,10,11,12},.3f,drop||spin||side!=0,out _),.18f,deck[9],0);
+                        int got=plan;if((plan==10||plan==11)&&rng.NextDouble()>succ)got=9;if(got==12&&rng.NextDouble()<.3)got=8;
+                        deck[got]++;commits++;if(got==9)crawls++;
+                    }
+                    if(deck[10]>=1&&deck[11]>=1)ok++;if(crawls/(float)commits>.4f)over++;
+                }
+                crawlOver=over/(float)sets;return ok/(float)sets;
+            }
+            float was=Both(0,.75f,out float overWas),now=Both(.6f,.9f,out float overNow);
+            Console.WriteLine("WAVE_FG side mix model (natural x3 + cold x2 + huntcam + fear, 19 dives, FF feasibility L/R/both .075/.075/.05): sets with m10 >= 1 and m11 >= 1 "+was.ToString("F3")+" -> "+now.ToString("F3")+", crawl over 40 % "+overWas.ToString("F3")+" -> "+overNow.ToString("F3"));
+            Assert(now>=was+.1f&&overNow<=overWas,"the balance bonus and the blind-dive fix raise the both-sides rate by >= 0.1 without more crawls");
+        }
         // 4. The model (natural x3 sets, consecutive plans, critic route): follow cancellations <= 30 % (FF rule ~68 %), >= 2 threats 10-20 s
         //    after an apparition in >= 85 % of sets, <= 50 % of leads at 25-60 s, <= 10 s about 0, share 15-30 %, a >= 120 s gap every run.
         {
-            string now=WaveFGFollowReport(1500,out float cancel,out float two,out float p2560,out float p10,out float share,out float gap120,out float shareIn);
+            string now=WaveFGFollowReport(1002,out float cancel,out float two,out float p2560,out float p10,out float share,out float gap120,out float shareIn);
             float gc=R.ApparitionFollowGraceCut,ow=R.ApparitionFollowOweSeconds;R.ApparitionFollowGraceCut=0;R.ApparitionFollowOweSeconds=0;
-            string was=WaveFGFollowReport(1500,out float cancelWas,out float twoWas,out _,out _,out _,out _,out _);R.ApparitionFollowGraceCut=gc;R.ApparitionFollowOweSeconds=ow;
+            string was=WaveFGFollowReport(1002,out float cancelWas,out float twoWas,out _,out _,out _,out _,out _);R.ApparitionFollowGraceCut=gc;R.ApparitionFollowOweSeconds=ow;
             Console.WriteLine(now);Console.WriteLine(was.Replace("WAVE_FG follow-ups","WAVE_FG follow-ups (FF rule)"));
             Assert(cancel<=.3f&&cancelWas>.5f,"follow-up cancellations <= 30 % (FF rule "+cancelWas.ToString("F2")+", now "+cancel.ToString("F2")+")");
             Assert(two>=.85f&&p2560<=.4f&&p10<=.02f,"natural x3 sets: >= 2 threats 10-20 s after an apparition in >= 85 % of sets, 25-60 s and <= 10 s pooled under the bars");

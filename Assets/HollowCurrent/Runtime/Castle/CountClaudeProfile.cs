@@ -119,6 +119,12 @@ namespace HollowCurrent
         // that reaches its start point after she turned is re-framed from where he is (SideAdaptMaxTurn), never dropped there; a dropped side
         // plan is owed: the next dive of that hunt plans a side if one is feasible.
         public float CrawlMaxShare=.3f, DropStartMaxT=.1f, DropRiseSpeed=4.5f, DropRiseMaxSeconds=1.2f, SideAdaptMaxTurn=60f;
+        // fg-polish (FF: m11 committed once in 22 grabs; the side group shares one deck count, so after a left commit a feasible right flank
+        // scored under the spin, natural3 0.57 / 0.64 vs 1.13 / 1.07): a side with fewer commits than its pair scores SideBalanceBonus more
+        // (GrabMixRules.SideScoreBonus). The dive also keeps flying to a planned variant's start point while she is remembered (VariantMemorySeconds
+        // after he last saw her), and senses her there within the start point's reach (FF natural4: both right plans ended "lost sight,
+        // reached her last known spot" right over her head).
+        public float SideBalanceBonus=.6f, VariantSenseSlack=.6f;
         // Wave FF (r14: hide grabs averaged 5/255 luma): at a hide grab (the door torn open) her lantern swings up: her hand lantern's spot is lit
         // for the presentation (even if it was off) with a warm glow at the lantern in her hand (HideLanternGlow intensity, HideLanternRange m).
         public float HideLanternGlow=1.6f, HideLanternRange=5.5f;
