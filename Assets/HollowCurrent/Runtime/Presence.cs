@@ -923,7 +923,9 @@ namespace HollowCurrent
         bool FloorAt(Vector3 spot,float floorY)
         {
             if(!Physics.Raycast(spot+Vector3.up*1.9f,Vector3.down,out var hit,2.4f,FlightMask,QueryTriggerInteraction.Ignore))return false;
-            return Mathf.Abs(hit.point.y-floorY)<.3f;
+            // fe2-count (r13 FE natural1 at the forge altar: she stood 0.27 m up a step, every ring, flank and spin point read "no floor at her
+            // level"): a step of up to FloorStep between her feet and his stand-off counts as her level.
+            return Mathf.Abs(hit.point.y-floorY)<count.FloorStep;
         }
         bool IgnoreHit(Collider c)=>!c||c.transform.IsChildOf(transform)||c.GetComponentInParent<Investigator>();
         bool BodyFits(Vector3 spot)
@@ -2330,6 +2332,16 @@ namespace HollowCurrent
                 bool spin=grabMode>=0&&grabMode==count.ModeGrabDropSpin;
                 float clipT=presentT+clipStartT;
                 if(spin){float s0=Mathf.Max(count.SpinStart,clipStartT),s1=Mathf.Max(count.SpinEnd,s0+.35f);k=Mathf.SmoothStep(0,1,Mathf.InverseLerp(s0,s1,clipT));}
+                // fe2-count (r13 FE2 r1 fear: a drawbridge drop-spin left the frame at t 0.16-0.30, skull_px x -160 / -19, while her view held
+                // still and the clip carried him sideways): through the hold and the spin her view follows his skull at SpinTrackMargin of the
+                // half field of view, so it stays inside the central 60 % (the spin then turns the rest of the way).
+                if(spin&&k<1&&!grabCamSnap)
+                {
+                    var th=head-eye;float hy=Mathf.Atan2(th.x,th.z)*Mathf.Rad2Deg,hp=-Mathf.Atan2(th.y,new Vector2(th.x,th.z).magnitude)*Mathf.Rad2Deg;
+                    float hHalf=Camera.VerticalToHorizontalFieldOfView(cam.fieldOfView,cam.aspect)*.5f,vHalf=cam.fieldOfView*.5f;
+                    float dy=Mathf.DeltaAngle(hy,camYaw0),ly=hHalf*count.SpinTrackMargin;if(Mathf.Abs(dy)>ly)camYaw0=hy+Mathf.Sign(dy)*ly;
+                    float dp=camPitch0-hp,lp=vHalf*count.SpinTrackMargin;if(Mathf.Abs(dp)>lp)camPitch0=Mathf.Clamp(hp+Mathf.Sign(dp)*lp,-85,85);
+                }
                 if(spin&&!spinLogged&&clipT>=count.SpinStart){spinLogged=true;Debug.Log("HC_COUNT_GRABCAM spin=start t="+grabCamT.ToString("F2")+" yawOff="+Mathf.DeltaAngle(camYaw0,yaw).ToString("F0"));}
                 if(grabCamSnap)k=1;
                 cam.transform.rotation=Quaternion.Euler(Mathf.LerpAngle(camPitch0,pitch,k),Mathf.LerpAngle(camYaw0,yaw,k),0);

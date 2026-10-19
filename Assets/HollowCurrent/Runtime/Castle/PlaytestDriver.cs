@@ -670,6 +670,23 @@ namespace HollowCurrent
             if(GrabBusy){grabTeleports++;Debug.Log("HC_PLAY_TELEPORT during_grab=True n="+grabTeleports+" to="+to+" mode="+Mode);}
             game.Player.Teleport(to);
         }
+        // fe2-count (r13 FE natural: the rune-ring stop's nearest NavMesh point was a 1.88 m top in mid-hall and the print stop's was the floor
+        // above it (y 6.48 for a print at 4.65), so every hall dive came at a raised investigator): the walk stands her on the NavMesh floor
+        // under the stop (the nearest point at most 0.3 m above it, searched on 1.2 / 2.4 m rings), else the old nearest point.
+        static bool StandPoint(Vector3 p,out Vector3 at)
+        {
+            at=p;bool found=false;float best=float.MaxValue;
+            foreach(float r in new[]{0f,1.2f,2.4f})for(int k=0;k<(r==0?1:8);k++)
+            {
+                var q=p+Quaternion.Euler(0,k*45,0)*Vector3.forward*r;
+                if(!NavMesh.SamplePosition(q,out var h,1.5f,NavMesh.AllAreas))continue;
+                float below=p.y+.3f-h.position.y;if(below<0)continue;
+                float score=below+.5f*new Vector2(h.position.x-p.x,h.position.z-p.z).magnitude;
+                if(score<best){best=score;at=h.position;found=true;}
+            }
+            if(!found&&NavMesh.SamplePosition(p,out var hit,3,NavMesh.AllAreas)){at=hit.position;found=true;}
+            return found;
+        }
         // natural: no dice or Dread forcing. The escape route with an 8 minute walk through the rooms (torch on, never hidden)
         // before the bell, so the castle's own rhythm, beats, throws and hunts show up as they would for a player.
         IEnumerator Natural()
@@ -694,7 +711,7 @@ namespace HollowCurrent
                     float dw=Time.realtimeSinceStartup+12;
                     while(GrabBusy||(game.Creature.Diving&&Time.realtimeSinceStartup<dw))yield return null;
                 }
-                if(NavMesh.SamplePosition(p,out var hit,3,NavMesh.AllAreas))TeleportPlayer(hit.position+Vector3.up*.05f);
+                if(StandPoint(p,out var stand)){TeleportPlayer(stand+Vector3.up*.05f);Debug.Log("HC_PLAY natural stand stop="+p+" at="+stand);}
                 float stay=Time.realtimeSinceStartup+20;
                 while(Time.realtimeSinceStartup<stay||GrabBusy)
                 {

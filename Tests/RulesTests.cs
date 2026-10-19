@@ -682,7 +682,7 @@ static class RulesTests
                 if(seenLeft>0){seenLeft-=dt;c.AddDread(.3f*dt);if(!seenGiven){seenGiven=true;c.AddDread(c.Rules.DreadSeen);}}
                 if(grabAt>=0&&c.PhaseTime>=grabAt&&!grabGiven){grabGiven=true;c.AddDread(c.Rules.DreadGrabSurvived);}
             }
-            bool blocked=ScareRhythm.CastleBlocked(c.Phase,c.GraceRemaining,false,false,c.PlannedThreatIn)||safe;rhythm.Tick(dt,blocked); // wave FE: + a known threat within 11.5 s
+            bool blocked=ScareRhythm.CastleBlocked(c.Phase,c.GraceRemaining,false,false,c.PlannedThreatIn,rhythm.QuotaBehind)||safe;rhythm.Tick(dt,blocked); // wave FE: + a known threat within 11.5 s
             if(!blocked&&(c.Phase==Phase.Disturbance||c.Phase==Phase.Survey||c.Phase==Phase.Recovery)&&rhythm.AppearanceDue)
             {
                 c.NoteApparition();res.ApparitionTimes.Add(t);rhythm.RecordAppearance(0);if(rhythm.TakeLullStart())c.HoldDiceForLull();apps++;if(apps%2==0)c.AddDread(c.Rules.DreadThrow);
@@ -1090,6 +1090,11 @@ static class RulesTests
         // Not behind: the redraw stays a burst gap (30-50 s, quota-clamped).
         var rq=new ScareRhythm();var uq=new Random(6);rq.UseCastleClock(()=>(float)uq.NextDouble(),true);
         float first=rq.DueIn;for(float t=0;t<first+5;t+=.5f)rq.Tick(.5f,true);rq.Tick(.5f,false);
+        // 3. While the floor is behind, the grace's last 20 s no longer block an apparition (Recovery after its grace, hunts and Warnings still do).
+        float inf=float.PositiveInfinity;
+        Assert(ScareRhythm.CastleBlocked(Phase.Disturbance,10,false,false,inf,false)&&!ScareRhythm.CastleBlocked(Phase.Disturbance,10,false,false,inf,true)
+            &&ScareRhythm.CastleBlocked(Phase.Recovery,0,false,false,inf,true)&&ScareRhythm.CastleBlocked(Phase.Hunt,30,false,false,inf,true)&&ScareRhythm.CastleBlocked(Phase.Disturbance,30,false,false,5,true),
+            "floor behind: the grace margin opens; Recovery without grace, hunts and a known threat within 11.5 s still block");
         Assert(rq.LiftCatchUps==0&&rq.DueIn>=14f,"a block lifted less than 2 behind the floor redraws a burst / catch-up gap ("+rq.DueIn.ToString("F1")+")");
     }
     // Wave FD (r13 blind critic): unbagged hide opens, a told and gated first hunt for a cold player, an apparition floor.

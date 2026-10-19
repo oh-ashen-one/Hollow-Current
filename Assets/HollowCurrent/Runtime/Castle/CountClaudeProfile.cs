@@ -133,7 +133,10 @@ namespace HollowCurrent
         public float[] SpinPlanBearings={80f,100f,60f,120f,140f,160f}, SideFrameYaws={0f,20f,-15f,35f};
         public int VariantRouteMaxWaypoints=4, VariantForceAfterAbandons=2;
         public float VariantRouteMaxRatio=1.7f, VariantNearRadius=9f, VariantNearRouteMax=14f, VariantAwayExtra=3f, VariantCurveSeconds=1.5f;
-        public float SpinConeMinHeight=1.8f, SpinConeSlack=.7f, DiveSenseRadius=3f;
+        public float SpinConeMinHeight=1.8f, SpinConeSlack=.7f, DiveSenseRadius=3f, FloorStep=.4f;
+        // fe2-count: a drop-spin's view follows his skull through the hold and the spin at this share of the half field of view
+        // (0.55 of 45.7 deg horizontal is about 0.53 of the half width: inside the central 60 %).
+        public float SpinTrackMargin=.55f;
         // fe2-count (r13 FE siege_held: 17/18 hidden hunts survived; siege1 rolled six 0.33 first-visit attempts in a row and never came):
         // at Dread >= BagDread, after NearMissAttemptPity failed attempts in a row he checks her hide on the next hunt (castle only).
         public int NearMissAttemptPity=2;

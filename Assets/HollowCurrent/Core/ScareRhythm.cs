@@ -50,6 +50,11 @@ namespace HollowCurrent
         public const float CastlePlannedHuntWindow=11.5f;
         public static bool CastleBlocked(Phase phase,float graceRemaining,bool hidden,bool modal,float plannedThreatIn)=>
             CastleBlocked(phase,graceRemaining,hidden,modal)||plannedThreatIn<=CastlePlannedHuntWindow;
+        // Wave FE2 (r13 FE natural3/4/7: due apparitions expired in the grace's last 20 s again and again and were redrawn after it): while the
+        // floor is behind (QuotaBehind), the grace margin does not block. The FE apparition gate still keeps any hunt 11.5 s after an
+        // apparition, so a dice roll armed when the grace ends cannot start a hunt on top of it.
+        public static bool CastleBlocked(Phase phase,float graceRemaining,bool hidden,bool modal,float plannedThreatIn,bool floorBehind)=>
+            floorBehind?CastleBlocked(phase,graceRemaining>0?CastleGraceMargin:graceRemaining,hidden,modal,plannedThreatIn):CastleBlocked(phase,graceRemaining,hidden,modal,plannedThreatIn);
         bool expiredInBlock,blockedNow;
         public int Rescheduled{get;private set;}
         // Castle (r10 rerun) sets Spacing 60 and AppearanceBase/Spread 60/50; the defaults are Bellwether's 90 and 105-165 s.

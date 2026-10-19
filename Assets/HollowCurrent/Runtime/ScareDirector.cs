@@ -69,7 +69,7 @@ namespace HollowCurrent
             if(IsCastle)
             {
                 float planned=game.Case.PlannedThreatIn;
-                bool baseBlock=ScareRhythm.CastleBlocked(game.Case.Phase,game.Case.GraceRemaining,game.Player.Hidden,game.Modal);
+                bool baseBlock=ScareRhythm.CastleBlocked(game.Case.Phase,game.Case.GraceRemaining,game.Player.Hidden,game.Modal,float.PositiveInfinity,rhythm.QuotaBehind);
                 bool plannedBlock=!baseBlock&&planned<=ScareRhythm.CastlePlannedHuntWindow;
                 if(plannedBlock&&!plannedGateLogged&&rhythm.CanSurprise&&rhythm.DueIn<=0)
                 {plannedGateLogged=true;Debug.Log("HC_APPARITION_GATE deferred=apparition reason=planned_hunt huntIn="+planned.ToString("F1")+" phase="+game.Case.Phase+" t="+game.Case.Elapsed.ToString("F1"));}
