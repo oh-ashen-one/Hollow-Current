@@ -73,7 +73,9 @@ namespace HollowCurrent
         // raise it if hall views go past 55 %.
         // wave FF: .375 -> .30, to pay for the moonlit north sky card, the blind gallery lancets and the table pool it adds to S1 (the r14 S1
         // frame re-projected onto the FF layout: near-black 30.4 % at .375 with the new glass, 32.5 % at .30; tools/ff_hall_reproject.py --mist).
-        public float HallMistBrightness = .30f;
+        // ff-integ (one tuning pass, -hc-hall-mist sweep on the FF build): .30 -> .26 pays for the brighter table pool and sheen below, so the S1
+        // lantern-off near-black share stays at r14's 30.0 % (30.6 at .30 without them).
+        public float HallMistBrightness = .26f;
         public float[] FogAreaHeight = { 1.1f, .40f };           // top layer height above the floor, metres
 
         [Header("Room fog profile (exponential fog while the camera is in the crypt, castle-local y below CryptBelowY)")]

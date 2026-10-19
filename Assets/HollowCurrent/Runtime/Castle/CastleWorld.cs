@@ -1022,6 +1022,8 @@ namespace HollowCurrent
             // stretched streak (CastleFloorSheen header). From the S1 eye the rose's true mirror point is under the skeleton's ribcage and the axis
             // beyond it is the banquet table, so the table top gets its own polished instance (wet everywhere, x4): a cold band of the rose and
             // the lancets along the wood, as on a waxed table at night (tools/ff_sheen_twin.py: about 2k px of luma >= 40 near the rose's x).
+            // ff-integ (one tuning pass, -hc-hall-sheen 1.6): floor x1.6 and table 4 -> 6.4, the rose streak cluster near its x 64 -> 362 px (pass >= 80)
+            m.SetFloat("_Strength", FloorSheenStrength);
             m.SetFloat("_Streak", 1f); m.SetFloat("_StreakLen", .9f); m.SetFloat("_StreakWidth", .035f); m.SetFloat("_WinHalf", .6f);
             var q = GameObject.CreatePrimitive(PrimitiveType.Quad); q.name = "Hall floor sheen"; Release(q.GetComponent<Collider>());
             q.transform.SetParent(root, false); q.transform.localPosition = new Vector3(0, .006f, 20.95f);
@@ -1040,7 +1042,8 @@ namespace HollowCurrent
             tr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; tr.receiveShadows = false;
             tr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off; tr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         }
-        public static float TableSheenStrength = 4f;
+        public static float TableSheenStrength = 6.4f;
+        public static float FloorSheenStrength = 1.6f;
 
         // ---- wave FF (hc/ff-art, r14 critic section 4 / item 1, S1) ------------------------------------------------------------------------
         // Unlit glass / sky (HollowCurrent/CastleWindow: texture x _Intensity, no fog, opaque; it bakes as black like every castle material).

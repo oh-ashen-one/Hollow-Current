@@ -44,31 +44,35 @@
 //   * lamp and brazier glints keep only the soft column (the 400-power point glints were hot single pixels).
 // Cost: one opaque pass, no texture, no render target; the FF version drops the glitter hash and two lobes and adds two dot products.
 // World space = castle-local space (the castle root sits at the origin). Constants are linear values of the castle_sky.py display colours.
-// tools/ff_moat_twin.py is the numpy twin of this file (same constants): keep them in step.
+// ff-integ (2026-10-19, one tuning pass from a -hc-moat sweep on the FF build): _Reflect 2.2 -> 1.4, _Ripple .3 -> .2, _SkySoft .06 -> .15,
+// _RedGlade 1 -> 4 and _RedGladeWidth .07 -> .10 (the blood moon's column read R 85 under the moon, test needs > 120), _GladeBody .25 -> .08
+// (the grey lobe beside the red in battlement_out), and the rock outcrop's reflection fades in over _RockFade m (BoxW).
+// tools/ff_moat_twin.py is the numpy twin of this file (same constants): it does NOT carry the ff-integ values / _RockFade yet.
 Shader "HollowCurrent/CastleWater"
 {
     Properties
     {
         _Deep ("Blood body (linear)", Color) = (0.050, 0.0034, 0.0040, 1)
-        _Reflect ("Reflection strength", Range(0, 4)) = 2.2
-        _Ripple ("Ripple slope scale", Range(0, 2)) = 0.30
+        _Reflect ("Reflection strength", Range(0, 4)) = 1.4
+        _Ripple ("Ripple slope scale", Range(0, 2)) = 0.20
         _CastleTint ("Castle reflection (linear)", Color) = (0.010, 0.012, 0.022, 1)
         _RockTint ("Rock outcrop reflection (linear)", Color) = (0.0035, 0.0040, 0.0065, 1)
         _BoxSoft ("Reflection silhouette softness (m of ray inside a box to full)", Range(0.05, 6)) = 1.5
+        _RockFade ("Rock outcrop reflection fade-in (m of ray before the slab)", Range(0.05, 20)) = 4
         _BloodTint ("Reflection tint (luminance x tint, linear)", Color) = (5.6, 0.45, 0.40, 1)
         _MoonKeep ("Moon disc own colour kept", Range(0, 1)) = 0.35
         _Ridge ("Reflected ridge haze (linear)", Color) = (0.0040, 0.0060, 0.0140, 1)
-        _SkySoft ("Reflected skyline edge half-width (R.y)", Range(0.005, 0.2)) = 0.06
+        _SkySoft ("Reflected skyline edge half-width (R.y)", Range(0.005, 0.2)) = 0.15
         _HorizonGlow ("Reflected night glow above the ridge line (linear luminance)", Range(0, 0.3)) = 0.03
         _Glade ("Pale moon glade / column strength", Range(0, 4)) = 1.8
         _GladeElev ("Glade effective elevation, moon behind the camera (deg)", Range(2, 60)) = 13
         _GladeRough ("Glade roughness, moon behind the camera (slope)", Range(0.02, 0.6)) = 0.26
         _GladeColor ("Pale moon glade colour (linear)", Color) = (0.62, 0.55, 0.55, 1)
-        _RedGlade ("Blood moon glade / column strength", Range(0, 4)) = 1.0
+        _RedGlade ("Blood moon glade / column strength", Range(0, 4)) = 4.0
         _RedGladeColor ("Blood moon glade colour (linear)", Color) = (0.30, 0.0045, 0.004, 1)
-        _GladeBody ("Glade lobe weight, moon behind the camera", Range(0, 2)) = 0.25
+        _GladeBody ("Glade lobe weight, moon behind the camera", Range(0, 2)) = 0.08
         _GladeWidth ("Pale moon column half-width (sine of the lateral angle)", Range(0.005, 0.3)) = 0.075
-        _RedGladeWidth ("Blood moon column half-width", Range(0.005, 0.3)) = 0.07
+        _RedGladeWidth ("Blood moon column half-width", Range(0.005, 0.3)) = 0.10
         _GladeWobble ("Moon column ripple wobble", Range(0, 2)) = 0.6
         _LampColor ("Lamp glint colour (linear)", Color) = (1.0, 0.36, 0.08, 1)
         _Lamp0 ("Lamp 0 (xyz pos, w intensity)", Vector) = (0, 0, 0, 0)
@@ -91,7 +95,7 @@ Shader "HollowCurrent/CastleWater"
 
             float4 _Deep, _CastleTint, _RockTint, _BloodTint, _Ridge, _GladeColor, _LampColor, _Lamp0, _Lamp1, _Lamp2, _Lamp3, _RedGladeColor;
             float _Reflect, _Ripple, _Time2, _MoonKeep, _Glade, _GladeElev, _GladeRough, _FogKeep, _RedGlade, _GladeBody, _BoxSoft, _SkySoft;
-            float _GladeWidth, _RedGladeWidth, _GladeWobble, _HorizonGlow;
+            float _GladeWidth, _RedGladeWidth, _GladeWobble, _HorizonGlow, _RockFade;
             struct appdata { float4 vertex : POSITION; };
             struct v2f { float4 pos : SV_POSITION; float3 wpos : TEXCOORD0; UNITY_FOG_COORDS(1) };
             v2f vert (appdata v)
@@ -145,7 +149,10 @@ Shader "HollowCurrent/CastleWater"
                 float3 tmin = min(t0, t1), tmax = max(t0, t1);
                 float tn = max(max(tmin.x, tmin.y), tmin.z), tf = min(min(tmax.x, tmax.y), tmax.z);
                 if (enterOnly && tn <= 0) return 0;
-                return saturate((tf - max(tn, 0.0)) / _BoxSoft);
+                // ff-integ: an enter-only box (the rock outcrop) fades in with the ray's run to its face, so the water just outside the slab's
+                // footprint does not step from sky to rock (the FF build showed that step as a straight line at z -6.6 across S4: sd 13.5 / 16.5)
+                float fade = enterOnly ? saturate(tn / _RockFade) : 1.0;
+                return saturate((tf - max(tn, 0.0)) / _BoxSoft) * fade;
             }
 
             // warm glint of one lamp: the soft column on the calm surface only (wave FF dropped the hot 400-power points)

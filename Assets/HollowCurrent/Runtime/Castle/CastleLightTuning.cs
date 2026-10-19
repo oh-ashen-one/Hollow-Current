@@ -34,7 +34,9 @@ namespace HollowCurrent
         // lantern off): the two light-only candles on the table (CastleWorld names them "Table candle light", 0.55 m over the top) get a short range
         // and ForcePixel, so they light the table, its candlesticks and chairs instead of losing the object's forward pixel slots to the floor
         // stands (r14: table median luma 8.7 lantern off, 22 lantern on). Range 3.5 keeps the pool on the table, its chairs and the dais.
-        public float TableCandleIntensity = .7f;
+        // ff-integ (one tuning pass, -hc-hall-table sweep): .7 -> 1.2 (S1 table px at luma >= 14: 7.6k -> 10.8k; 1.6 / 2.2 gave 12.3k / 12.8k, so the
+        // 15k bar is out of reach by light alone: the far end of the table is dark wood seen edge-on).
+        public float TableCandleIntensity = 1.2f;
         public float TableCandleRange = 3.5f;
 
         [Header("Moonlight (cold blue; must stay dimmer than the candles)")]
