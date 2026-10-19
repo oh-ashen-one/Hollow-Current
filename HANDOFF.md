@@ -1,3 +1,71 @@
+# HANDOFF: wave FE integrated, built and proved (fe-integ). Read this section first.
+
+Branch `haunted-castle` = `hc/integ-fe`, pushed. Integrator: Opus 5.5 (piece fe-integ), main clone, 2026-10-19. Nothing left running; GPU slot released (0/2 holders).
+- PlayerPrefs: `unity.Bellwether Field Office.Hollow Current` `hc.castle.runs` = `L,E,L` (never changed); `com.bellwether.hollowcurrent` put back from `E,M,L` to `E,M,B`; `hc.castle.grabdeck` deleted (written by the runs). Backups: session scratchpad `feinteg/{u,c}.backup.plist`. These were taken after the hall round, so `c` holds `L,E,L`; the target values above are the ones restored.
+- `CODEX_HANDOFF.md` is still uncommitted and untouched; `rounds/r13/critic/` stays untracked. Worktrees `.wt/fe-count` and `.wt/fe-ui` removed (branches stay on origin).
+
+**Merged on `hc/integ-fe` (from `haunted-castle` `1cd1ac9`), in order:** hc/fe-exterior-next `b99f1ef`, hc/fe-ui `80f7d0c`, hc/fe-count `7a65068`. All merged cleanly (RulesTests.cs and CaptureMode.cs auto-merged). Handoffs: `docs/haunted-castle/handoffs/fe-{exterior,ui,count}.md`.
+
+**Integrator changes**
+- Hall-only lantern-off round (director's one round), **reverted**: `3a441f5` scaled the four standing hall floor candelabras x0.75 and their floor-sheen reflections x0.5 (runtime, castle only, with `-hc-hall-candle`/`-hc-hall-sheen` capture overrides); `5224b8a` reverts it. Measured on the round's build (`92f2ab4`): S1 off 30.2 -> 31.2, from_doors 33.3, skeleton_head 33.8, side_east 31.8 (all < 35), side_west off 54.1 and on 26.5 (out of 12-25). A sweep with both knobs at 0 (stands dark, no stand reflections) gave S1 32.1, from_doors 34.2, skeleton_head 35.1, side_east 33.0: **this lever cannot reach 35 even at zero.** The lit pixels in the lantern-off S1 frame are the pale gallery balustrades, the piers and the vault (baked window light plus the balcony warm fills and the floating-candle flames), not the floor stands. Evidence: `captures/fe/{rooms,layout}_{off,on}` of that build were overwritten by the final build; the sweep is `captures/fe/sweep0_{rooms,layout}_off`, logs `.playtest-fe-sweep0_*.log`.
+- `2ed3b5e` new castle driver mode `settings` (`-hc-playtest <dir> settings`): pauses castle play and frames settings pages 0-2. fe-ui's `-hc-verify -hc-ui-only` recipe runs in Bellwether, where the castle card is never drawn. `Interface.ShowSettingsPage(int)` added for it; Bellwether paths unchanged (fuzz identical).
+- `5b32ead` driver frames of an armed escalation (`HC_PLAY_ESC_SHOT`, frames `NN_esc1_t+X.png`, 0-16.5 s after the apparition). `21ada18` huntcam frames the castle lost card (`NN_lost_card.png`).
+- `e3b4094` the natural driver waits out a dive (<= 12 s) before its 20 s walk teleport. In natural4/5 both side-snatch plans ended `miss=True reason=moving away` because the walk teleported her from the gallery (9.0, 3.3, 16.5) to (12.0, 0.35, 6.5) mid-dive. Only natural7-9 ran with this.
+
+**Builds.** Final: `Builds/macOS/Hollow Current.app` (both maps), binary (Managed/Assembly-CSharp.dll) 2026-10-19 04:54:46, after bake commit `92e6b88` (04:54:34). Every `.cs` change re-baked both maps (5 rounds, Castle 8 maps / 197 probes / 17 reflections, Bellwether 4 / 124 / 9). Proof builds differ only in `PlaytestDriver.cs` (+ the `Interface` settings hook from B1 on): B1 `6baaaee` (02:32:45: all captures, natural1-3, cold, siege1-2, fear, huntcam, death, escape, doorproof, settings, Bellwether verify/ui-only), B2 `96beecf` (04:07:00: huntcam2, natural4-6, siege3), B3 = final (natural7-9).
+
+**Prepare log** (`.castle-bake-fei5.log`, same every round): `HC_KIT_AXIS_SUMMARY problems=0`, `HC_DOOR_LEAF_SUMMARY problems=0` (both stages), `HC_CANDLES floating=0 PASS`, `HC_CHAPEL_PROPS overlap=False`, `HC_TELESCOPE clear=True`, `HC_HEARTH window_overlap=False PASS`, `HC_HIDE_SPOTS_SUMMARY failed=[]`, `HC_SKELETON PASS`, `HC_HALL_AXIS PASS`, `HC_CHAPEL PASS`, `HC_EXTERIOR_APPROACH braziers=2 lamps=4`, `HC_EXTERIOR_AXIS ok`, `HC_EXTERIOR_COST stage=prepare total renderers=2174 draws=2587 rt_lights=45 lit_passes=6726`.
+
+**Static checks (HEAD):** check_source PASS (1301 assertions incl. rules tests; known CS0649/CS0219 warnings), check_castle_scares PASS, check_audio_keys OK, check_audio_quality OK, check_throwables_scene rc 0, check_castle_doors OK, check_castle_kit OK (log and scene), bellwether_fuzz identical (`ee3b74dc...`), `docui_journal_mock.py` overlaps=0 on journal/ending/ending_lost/settings.
+
+**Proofs** (logs `.playtest-fe-<run>.log`, frames `docs/haunted-castle/rounds/r13/captures/fe/<run>/`, local, gitignored)
+
+| Proof | r12 / FD (408f406) | FE (this build) | Verdict |
+|---|---|---|---|
+| Hunts <= 10 s after an apparition (pooled naturals + sieges) | 3/6 = 50 % | **0/37 = 0 %**; every close one logged `HC_APPARITION_GATE` | PASS (<= 35 %) |
+| Hunt share, naturals | 0.174 / 0.089 / 0.244 | 0.173 0.196 0.229 / 0.235 0.195 0.172 / 0.201 0.207 0.175 (Late runs 3, 5, 7: 0.229, 0.195, 0.201) | PASS x9 (15-30 %) |
+| Longest gap | 226 / 298 / 155 | naturals 142-216, sieges 162-219 | PASS (>= 120) |
+| Apparition CV (3-run pools) | 0.57 | 0.64 / 0.69 / 0.72 | PASS (>= 0.5) |
+| First-hunt spread (3-run sets) | 118 s | 68 / 108 / 90 s (hunts 127 98 166, 84 192 145, 189 130 99) | PASS (>= 45) |
+| Hidden survival (siege_held) | 11/18 = 61 % | **17/18 = 94 %** (6/6, 5/6, 6/6) | **FAIL** (<= 85 %): dice. NearMissDice/open roll unchanged since FD; siege1 rolled 6 base attempts all > 0.33, siege3 3 open rolls 0.37/0.40/0.67 vs p 0.24. FD+FE pooled 28/36 = 78 % |
+| Visible apparitions < 480 s | 5 / 5 / 4 | 5 4 5 / 3 5 4 / 3 4 5 | **FAIL in 2 of 9** (>= 4): natural4 [220,251,460,490], natural7 [90,333,478] |
+| Escalation | hunt 1 s after apparition | natural2, 4, 9: `deferred=escalation tellIn=10.9-11.0 huntIn=12.4-12.5` -> `escalation=fired` -> `HC_WARNING escalated=True length=1.5` -> hunt | PASS (see judgement below) |
+| Share floor | n/a | armed 4x; cancelled by a real hunt each time (`reason=phase_Hunt/Warning`), pulled once (natural1, t 379) | works |
+| Grab variety (all runs) | m8 4, m9 many, m11 1, m10 0, m12 0; openHeadroom 0 | commits m8 15, m9 14, **m10 0, m11 0, m12 0**; open 18 (>= 12), openHeadroom 15, openHeadroomDrops 6 (40 %) | **FAIL** (m10/m11/m12 >= 1 each); openHeadroom > 0 and drop share PASS |
+| Dives resolved | 0 misses logged | 40 dives, 25 commits, 16 misses, **diveUnresolved=0 in every run** | PASS |
+| huntcam | no commit, no miss | huntcam: drop-spin planned, fell through to drop, `end=commit mode=8`; huntcam2: `end=commit mode=9` | PASS |
+| First frame | 8/9 visible | 25/25 `visible=True`; snap > 90 only with `cut=True` (96-139 deg); seatGap <= 0.45 except crawls 0.70 / 0.83 / 1.20 (vertical: he climbs to her raised eye, frames show no slide) | PASS with note |
+| Grab continuity / HUD / cam | | every grab `pass=True`, HUD `pixels=0`, cam min 0.65, 0 teleports during a grab | PASS |
+| hunt_dive frame time | p99 110 ms | `hunt_dive` p99 11.74 max 15.42 (18 of 880 capture frames excluded); `hunt_dive_raw` p99 110.5 | PASS |
+| S4 frame time (p99 <= 16.7) | mean 16.7 p99 23.1 (fe r3 22.9) | rooms_off mean 11.23 **p99 17.97** (max 18.6; main thread 17.96, render 7.8); rooms_on mean 11.19 p99 15.83; profile baseline 11.53; `HC_DEEP_INTERIOR_DOORS gatehouse_exits=4`, `MASK on=True lights=57` | mean fixed; p99 PASS on rooms_on, **0.3 ms over on rooms_off**: one-tick main-thread hitches (S1 rooms_off p99 16.50 the same way), not the render thread |
+| gate_out / battlement_out / S1 p99 | 11.9 / 16.5 / 11.1-11.7 | 11.80 / 11.63 / 11.69-16.50 | PASS |
+| Light-mask look (S4, gate_out, battlement, S1 vs fe r3) | | S4 34 px, gate_out 0, bridge views 0, S1 495 px (flames) differ by > 12; battlement_out only moat glitter re-rolls, battlement_in only the Count's pose | no visible change |
+| Moat | bright 273/263/201 | gate_out 868 R/G 2.91, S4 505 R/G 2.60, battlement 2092 R/G 3.01 | PASS |
+| Exposure lantern off (35-55) | S1 30.4; hall 32.6/31.8/30.4 | S1 30.0, from_doors 32.3, skeleton_head 31.7, side_east 30.4 (hall round reverted); S2 42.0, S3 36.2, side_west 52.2, tail 37.1, pier_gap 38.8; chapel altar_approach 26.4, confessional 62.3, guard_door 60.1 out as before | **FAIL** (4 hall views, unchanged) |
+| Exposure lantern on (12-25) | | S1 13.7, S2 21.7, S3 16.7, hall 13.1-20.3, side_west 25.1; chapel confessional 25.4, great_doors 27.3, guard_door 35.2 (as FD) | as FD |
+| UI: HC_DOC_LAYOUT | journal/ending 0 | journal 0 (escape, fear), ending 0 (escape, fear, naturals), ending_lost 0 (death, huntcam, huntcam2), settings 0 (settings run); no `violation` line | PASS |
+| UI frames | | settings p0-p2 (`settings/02-04`): text clear of filigree and seal; lost card (`huntcam2/24_lost_card.png`): paper card, RETRY CHECKPOINT + NEW INVESTIGATION + EXIT, no overlaps, no seams; FILE RECONSTRUCTION slip (`escape/16_journal.png`) readable, ink (61,34,22), about 5.8:1 | PASS |
+| voice | from_other=0 | every log `from_other=0`, 0 `voice not from the Count`; escape `HC_EVP from=trumpet verbal=False clip=castle_evp_static` | PASS |
+| cold x1 | PASS | `HC_PLAY_COLD ... hidesAnswered=5/5 pass=True`, `HC_HUNT_TELL kind=warning lead_s=13.4 first=True cold=True gate=page`, first hunt 107 s | PASS |
+| escape / death / fear / doorproof | | escape WON 0 blockers; death `deaths=1 penalty=True`; fear WON 0 blockers; `HC_DOORPROOF toward=0 toggles=8 unfocused=0 leaves=4 PASS`; doors capture both leaves `swing=away` | PASS |
+| Bellwether | | `-hc-verify`: `HC_NATIVE_ROUTE_PASS`, 0 `HC_VERIFY FAIL`, `HC_PERF pass=False engine_cost_over_16ms=100 (max 32.4)` (known); `-hc-ui-only`: `HC_VERIFY PASS Native UI at 1920x1080`, waits for keys at reconstruction, closed by SIGTERM (as FD) | as FD |
+| Exceptions | | 0 in every castle log | PASS |
+
+**Looked at (frames)**
+- Escalation (`natural4/10-27_esc1_*`, also natural9): t+0 he rushes across the chapel pews close to her, t+1 he is gone in a cold mist puff, t+3..9 normal play (no Count, no UI change), t+11 Warning (`BREAK LINE OF SIGHT`, `SIGNAL COLLAPSING`, lights down), t+13.2 hunt from the rose-window perch, t+16.5 grab. **It reads as a deliberate tell, not a bug**: the vanish is clean and the hunt arrives with the full Warning. The 10 s of quiet loses the causal link a little; a player will more likely read "he left, then came back" than "that apparition escalated".
+- Grabs: no side-snatch or drop-spin commit occurred. Turning first frames (35-79 deg) put him at the frame edge partly behind the lantern/hand, centred by t0.16; hard cuts (96-139 deg) are centred from frame 0. fear's Return grab on the drawbridge: four drop-spin dives in a row abandoned with him 0.2-0.4 m above her ("lost sight, reached her last known spot"), then a plain drop; its t0.01 frame is mostly dark wing.
+
+**Open items (new first)**
+1. Grab variety: 0 side (m10/m11) and 0 drop-spin (m12) commits in 29. Variant plans are mostly n/a (`flank closed`, `no open start point`, `no direct flight to its start point`, `she faces him`). The side plans that did happen (natural4/5/6, all from the gallery spot (9, 3.3, 16.5)) ended as a driver-teleport miss (fixed in the driver, `e3b4094`) or `dropped ... detour: 3 waypoints`. fe-count's feasibility gates are probably too strict for this castle; next step is fe-count's own recipe: log the n/a reasons per room and loosen one gate.
+2. fear Return: repeated drop-spin dives abandoned directly above her (`CountChase` lands when `!CanSeePlayer && toGoal < 1` while a spin plan is still active). Resolved, but it reads as a hover; a plan should drop to the plain grab when he is already over her.
+3. Hall lantern-off: 4 views 30-32 % against 35. The floor stands are not the cause (sweep at 0 gives 32-35). The bright surfaces are the gallery balustrades, piers and vault; next lever is the balcony warm fills (`BalconyFillIntensity` .7) or the baked hall window light, outside the director's one round.
+4. Hidden survival 94 % on 3 sieges (dice; FD+FE 78 %). Run more sieges before tuning `NearMissDice`.
+5. Visible apparitions < 4 in 8 min in 2 of 9 naturals (model 96.9 %; here 78 %).
+6. S4 rooms_off p99 17.97 (main-thread one-tick hitches; mean 11.2, render thread 7.8 ms, fixed by the mask). Same signature as Bellwether's `performance_pass` item.
+7. Carried: FD open items 6 (`showcase landed seen=False`), 8 (Bellwether `performance_pass`, floating hall candelabras, human listen of `castle_evp_static`/`castle_hide_whisper`); chapel views off/on (fc-light2 item 1). Merges to `main` need the owner.
+
+---
+
 # HANDOFF: fe-exterior (wave FE: S4 exterior frame time, moat glints, hall lantern-off knob). Read this section first.
 
 Branch `haunted-castle` = `hc/fe-exterior`, pushed. Builder: Opus 5.5 (piece fe-exterior), main clone, 2026-10-19. Nothing left running; GPU slot released.
