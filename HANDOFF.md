@@ -1,3 +1,30 @@
+# HANDOFF: fe-exterior (wave FE: S4 exterior frame time, moat glints, hall lantern-off knob). Read this section first.
+
+Branch `haunted-castle` = `hc/fe-exterior`, pushed. Builder: Opus 5.5 (piece fe-exterior), main clone, 2026-10-19. Nothing left running; GPU slot released.
+- PlayerPrefs: `unity.Bellwether Field Office.Hollow Current` `hc.castle.runs` = `L,E,L` (never changed); `com.bellwether.hollowcurrent` put back to `E,M,B` after every round (runs wrote `L,E,L` / `M,L,L`); no `hc.castle.grabdeck` key left. Backups: session scratchpad `fe/{u,c}.backup.plist`.
+- `CODEX_HANDOFF.md` still uncommitted and untouched; `rounds/r13/critic/` untracked. Fix branch `hc/fe-exterior-next` is pushed but NOT merged or built (item 1).
+- Details, method and risks: `docs/haunted-castle/handoffs/fe-exterior.md`.
+
+**Build:** `Builds/macOS/Hollow Current.app` (both maps), binary 2026-10-19 02:00:37, built from the tree committed as bake `0a00c11` (02:00:39). Three castle bake+build+capture rounds (the budget): r1 `d3af2bf`, r2 `032f6b1`, r3 `0a00c11`; Bellwether not re-baked (castle-only code). Castle 8 maps / 197 probes / 17 reflections.
+
+| Item | FD (408f406) | fe r3 | Verdict |
+|---|---|---|---|
+| S4 frame time rooms_off / rooms_on | mean 16.7, p99 23.1 | mean 14.3 / 14.6, p99 22.9 / 23.0 | **FAIL** (p99 <= 16.7) |
+| battlement_out / gate_out_S6 | p99 16.5 (max 20.4) / 11.9 | p99 11.8 (max 17.6) / 11.8 | pass |
+| Moat bright px2 gate_out / S4 / battlement | 273 / 263 / 201 | 868 / 511 / 2077 (R/G 2.91 / 2.60 / 3.01) | pass |
+| Hall off S1 / from_doors / skeleton_head / side_east | 30.4 / 32.6 / 31.8 / 30.4 | 30.2 / 32.4 / 31.9 / 30.3 | **FAIL** (35-55); side_west 52.1 |
+| All other exposure (off and on) | | within 0.3 of FD | unchanged |
+
+1. **S4 (still out of band).** Measured with the new `-hc-exterior-profile` (per-piece toggles, FrameTimingManager split, render counters) and `HC_EXTERIOR_COST`: the frame is render-thread bound (11.6 ms, GPU 3 ms, same at 960x540). fd-art's pieces cost < 0.3 ms each; the cost is ~1,950 interior renderers behind the curtain wall drawn with forward-add passes from the 3 ForcePixel outside fills and the interior lights (10,616 batches; interior hidden: 748). Occlusion data had no effect (dropped). Kept: the outside fills skip the deep interior (layer 27, `HC_EXTERIOR_FILL_MASK`), no visual change in any exterior or interior capture. Not working: the deep-interior mask for the interior lights looked for a `Gate` door, but the gate is the drawbridge (`HC_DEEP_INTERIOR_DOORS gate=0`), so it never switched on; the profile variant with those lights culled gives S4 mean 11.17 / p99 11.69 (4,125 batches). `hc/fe-exterior-next` keys it on the three gatehouse exits instead: needs one castle re-bake, build and rooms_off capture.
+2. **Moat (pass).** Blood-moon glade, wider pale glade with a weaker smooth lobe, glitter points on facing chop facets, castle-end lamp glints doubled; values from a `-hc-moat` sweep. Possible critic note: the pale glade's silver glitter covers a wide patch from the battlement.
+3. **Hall lantern-off (one knob, failed, stopped).** Castle bake ambient x0.5 moved every view 0.0-0.2 points (reverted). No uniform knob can work: S1 needs +4.6 with only 3.4 % of pixels at luma 8-9, while side_west would pass 55 first. Needs a hall-local change on the near candelabras / east floor sheen (outside the fallback table): director's call.
+
+**Static checks (HEAD):** check_source PASS (1260), check_castle_scares PASS, check_audio_keys OK, check_throwables_scene rc 0, check_castle_kit OK (`.castle-bake-fe3.log` and scene), check_castle_doors OK; prepare log `HC_KIT_AXIS_SUMMARY problems=0`, `HC_DOOR_LEAF_SUMMARY problems=0`, `HC_CANDLES floating=0 PASS`, `HC_SKELETON/HALL_AXIS/CHAPEL PASS`, `HC_HIDE_SPOTS_SUMMARY failed=[]`. Evidence (local): `docs/haunted-castle/rounds/r13/captures/fe/r3/{rooms_off,rooms_on,ext,layout_off,layout_on}`, logs `.playtest-fe-r3-*.log`.
+
+**Open items (new first):** 1. S4 p99 (above, fix branch ready). 2. Hall lantern-off 4 views (above). 3. hunt_dive capture p99 110 ms unchanged (FD open item 4). 4. FD open items 1, 2, 6, 7, 8 carried. Merges to `main` need the owner.
+
+---
+
 # HANDOFF: wave FD (r13 critic fixes) integrated, built and proved (read this section first)
 
 Branch `haunted-castle` = `hc/integ-fd`, pushed. Integrator: Opus 5.5 (piece fd-integ), main clone, 2026-10-18/19. Nothing left running; GPU slot released (0/2 holders).
