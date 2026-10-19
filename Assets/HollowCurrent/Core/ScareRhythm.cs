@@ -23,12 +23,17 @@ namespace HollowCurrent
             if(castleRandom==null)return;
             blockedNow=blocked;
             if(blocked){if(Age>=nextAppearance)expiredInBlock=true;return;}
-            if(expiredInBlock){expiredInBlock=false;Rescheduled++;LastInterval=CastleBurstGap(Unit(castleRandom()));nextAppearance=Age+LastInterval;quietUntil=Math.Min(quietUntil,nextAppearance);}
+            if(expiredInBlock){expiredInBlock=false;Rescheduled++;LastInterval=QuotaClamp(CastleBurstGap(Unit(castleRandom())));nextAppearance=Age+LastInterval;quietUntil=Math.Min(quietUntil,nextAppearance);}
         }
         // The castle's block (wave L3): no apparition in Warning, Hunt, Recovery or the post-hunt grace, nor while hidden, in a modal,
         // in Briefing, Containment or Return. Pure: the director passes these.
+        // Wave FD (r13 critic: 2-3 visible apparitions per 8.5 min): the post-hunt grace is open to apparitions except its last
+        // CastleGraceMargin seconds (the grace disarms every dice roll and escalation, so an apparition inside it cannot start a hunt,
+        // and the margin equals the dice's 20 s apparition shadow). Recovery stays blocked once its grace has run out (its dice are armed).
         public static bool CastleBlocked(Phase phase,float graceRemaining,bool hidden,bool modal)=>
-            modal||hidden||graceRemaining>0||phase==Phase.Warning||phase==Phase.Hunt||phase==Phase.Recovery||phase==Phase.Briefing||phase==Phase.Containment||phase==Phase.Return;
+            modal||hidden||graceRemaining>0&&graceRemaining<CastleGraceMargin||phase==Phase.Recovery&&graceRemaining<=0||
+            phase==Phase.Warning||phase==Phase.Hunt||phase==Phase.Briefing||phase==Phase.Containment||phase==Phase.Return;
+        public const float CastleGraceMargin=20;
         bool expiredInBlock,blockedNow;
         public int Rescheduled{get;private set;}
         // Castle (r10 rerun) sets Spacing 60 and AppearanceBase/Spread 60/50; the defaults are Bellwether's 90 and 105-165 s.
@@ -38,9 +43,11 @@ namespace HollowCurrent
             quietUntil=Age+Spacing;
             if(castleRandom!=null)
             {
-                expiredInBlock=false;burstLeft--;
-                if(burstLeft>0)LastInterval=CastleBurstGap(Unit(castleRandom()));
-                else{LastInterval=CastleLull(Unit(castleRandom()));burstLeft=CastleBurstSize(Unit(castleRandom()));lullStartPending=true;LastLull=LastInterval;}
+                expiredInBlock=false;burstLeft--;CastleAppearances++;
+                bool lull=burstLeft<=0;
+                if(!lull)LastInterval=CastleBurstGap(Unit(castleRandom()));
+                else{LastInterval=CastleLull(Unit(castleRandom()));burstLeft=CastleBurstSize(Unit(castleRandom()));lullStartPending=true;}
+                LastInterval=QuotaClamp(LastInterval);if(lull)LastLull=LastInterval;
                 nextAppearance=Age+LastInterval;return;
             }
             nextAppearance=Age+AppearanceBase+AppearanceSpread*Math.Max(0,Math.Min(1,randomUnit));
@@ -65,11 +72,28 @@ namespace HollowCurrent
         {
             castleRandom=random??throw new ArgumentNullException(nameof(random));Spacing=CastleBurstMin;StartedWithBurst=startWithBurst;
             burstLeft=CastleBurstSize(Unit(random()));
-            if(startWithBurst)LastInterval=CastleBurstGap(Unit(random()));
-            else{LastInterval=CastleLull(Unit(random()));LastLull=LastInterval;lullStartPending=true;}
+            if(startWithBurst)LastInterval=QuotaClamp(CastleBurstGap(Unit(random())));
+            else{LastInterval=QuotaClamp(CastleLull(Unit(random())));LastLull=LastInterval;lullStartPending=true;}
             nextAppearance=Age+LastInterval;quietUntil=Math.Min(quietUntil,nextAppearance);
         }
-        public const float CastleBurstMin=40,CastleBurstMax=55,CastleLullMin=150,CastleLullMax=280;
+        // Wave FD: bursts are 30-50 s apart (was 40-55); lulls stay 150-280 s.
+        public const float CastleBurstMin=30,CastleBurstMax=50,CastleLullMin=150,CastleLullMax=280;
+        // Wave FD apparition floor (r13 critic: at least 4 visible apparitions per 8 minutes). The n-th castle apparition is due by
+        // n x CastleQuotaSeconds of rhythm age: a drawn gap (burst, lull or a post-block redraw) that would end later is cut to that
+        // deadline, or, when the deadline has already passed (a hunt blocked it), to a catch-up gap of CastleCatchUpMin..Max s (one extra
+        // draw). It never lengthens a gap, so short bursts and the long lulls that fit stay as drawn (pooled CV stays >= 0.5).
+        public const float CastleQuotaSeconds=90,CastleCatchUpMin=15,CastleCatchUpMax=30;
+        public int CastleAppearances{get;private set;}
+        public int QuotaClamps{get;private set;}
+        float QuotaClamp(float gap)
+        {
+            float due=(CastleAppearances+1)*CastleQuotaSeconds;
+            if(Age+gap<=due)return gap;
+            float catchUp=CastleCatchUpMin+(CastleCatchUpMax-CastleCatchUpMin)*Unit(castleRandom());
+            float cut=Math.Max(due-Age,catchUp);
+            if(cut>=gap)return gap;
+            QuotaClamps++;return cut;
+        }
         public static float CastleBurstGap(float u)=>CastleBurstMin+(CastleBurstMax-CastleBurstMin)*Unit(u);
         public static float CastleLull(float u)=>CastleLullMin+(CastleLullMax-CastleLullMin)*Unit(u);
         public static int CastleBurstSize(float u)=>Unit(u)<.5f?2:3;
@@ -92,6 +116,8 @@ namespace HollowCurrent
     public sealed class RunPlan
     {
         public FirstHuntBand Band; public bool BurstStart;
+        // Wave FD: a first run (no history). Investigation.ColdFirstHunt gates and tells its first hunt.
+        public bool Cold;
         // Seconds after the second record: Early 60-100, Mid 110-150, Late 160-200.
         public float FirstHuntMin => Band == FirstHuntBand.Early ? 60 : Band == FirstHuntBand.Mid ? 110 : 160;
         public float FirstHuntMax => FirstHuntMin + 40;
@@ -121,7 +147,7 @@ namespace HollowCurrent
             float a = float.IsNaN(u1) ? .5f : Math.Max(0, Math.Min(.99999f, u1));
             var band = free[Math.Min(free.Count - 1, (int)(a * free.Count))];
             bool burst = LastBurstStart.HasValue ? !LastBurstStart.Value : !(float.IsNaN(u2) || u2 >= .5f);
-            return new RunPlan { Band = band, BurstStart = burst };
+            return new RunPlan { Band = band, BurstStart = burst, Cold = LastBand == null && BandBefore == null };
         }
     }
     public static class FieldMessages

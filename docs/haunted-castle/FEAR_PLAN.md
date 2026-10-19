@@ -254,6 +254,20 @@ lost bridge kill)**:
     unless Dread ≥ 60; a lull (`HoldDiceForLull`) holds them only until that stretch has happened. No escalation before the
     first hunt. Low-Dread roll 1/15.
 
+**Wave FD additions (hc/fd-rules, r13 blind critic: hide-open bag, cold no-tell first hunt, thin apparitions, unseen relocations)**:
+- **Apparition floor.** Castle bursts are 30–50 s apart (was 40–55); lulls stay 150–280 s, but the n-th apparition is due by
+  n × 90 s of rhythm age (`ScareRhythm.CastleQuotaSeconds`): a drawn gap that would end later is cut to that deadline, or to a 15–30 s
+  catch-up when a block already pushed past it (`QuotaClamps`). The post-hunt grace is open to apparitions except its last 20 s
+  (`CastleGraceMargin`, the dice shadow); Recovery stays blocked once its grace is out. Model (critic route, 2,000 runs): ≥ 4 apparitions in
+  the first 480 s in 98.8 % of runs, pooled CV ≥ 0.5 in 97.6 % of 3-run sets, hunts ≤ 10 s after an apparition 10.5 % / 16.4 % (1 in 3 / all
+  close), share 0.182 mean, p10 0.130.
+- **Cold first hunt.** `RunPlan.Cold` (no history). `HuntRules.ColdFirstHuntCap` (castle 150, Bellwether and Long Night 0). Before a cold
+  run's first hunt nothing starts a threat until a document is read (`Read`, `FirstNoteAt`) or 150 s have passed; then the first threat is
+  always a told Warning (5–14 s; no no-tell or false-alarm roll). `LastTellKind` / `LastTellLead` per hunt, `FirstHuntColdGate`
+  (page / cap / off); Game logs `HC_HUNT_TELL kind= lead_s=`.
+- **Near-miss opens.** `NearMissDice` (pure): per-visit 0.24, 0.45 on the visit after an open, +0.25 per closed visit after 4 closed;
+  long-run 0.37, longest closed run 7, never a guaranteed safe visit. Presence uses it in place of the bag of three.
+
 **Presence castle branch (F2)**: reads `Game.Case.HuntActive` instead of `Phase==Hunt` everywhere in the castle branch;
 between hunts the Count is active and visible on a perch outside the view cone, re-perches only when unobserved;
 exposes `public bool Diving` (for the integrator's torch fail), `public event Action<string> Beat` with ids

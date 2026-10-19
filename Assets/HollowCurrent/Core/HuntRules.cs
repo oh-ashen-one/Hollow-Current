@@ -39,6 +39,9 @@ namespace HollowCurrent
         // second), not at the FirstHuntEvidence-th record, and runs in Survey and Disturbance alike; a player who records nothing
         // still meets the Count inside the run plan's band. false = the record-keyed clock (Bellwether never uses it).
         public bool FirstHuntFromSpawn;
+        // Wave FD: a cold run's (RunPlan.Cold) first hunt waits for the first document read or this many seconds of case time, whichever is
+        // first, and always has a told Warning. 0 = off (Bellwether, Long Night).
+        public float ColdFirstHuntCap;
 
         // Dice-roll hunts: every DiceIntervalMin..Max seconds in Disturbance while
         // Dread >= HuntDreadMin, roll; chance by Dread band [HuntDreadMin,60), [60,80), [80,100],
@@ -171,7 +174,7 @@ namespace HollowCurrent
         {
             Name="Bellwether",
             TimedHuntSeconds=95,TimedHuntEvidence=2,HuntDreadMin=0,HuntDreadMinSpread=0,LowDreadChance=0,
-            FirstHuntSeconds=0,FirstHuntJitter=0,FirstHuntEvidence=0,FirstHuntMin=0,FirstHuntMax=0,FirstHuntFromSpawn=false,DreadDecayAllAbove=0,DoorHeldChance=0,
+            FirstHuntSeconds=0,FirstHuntJitter=0,FirstHuntEvidence=0,FirstHuntMin=0,FirstHuntMax=0,FirstHuntFromSpawn=false,ColdFirstHuntCap=0,DreadDecayAllAbove=0,DoorHeldChance=0,
             DiceIntervalMin=0,DiceIntervalMax=0,DiceChanceAt40=0,DiceChanceAt60=0,DiceChanceAt80=0,DiceEvidenceBonus=0,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=0,
             HuntSecondsMin=38,HuntSecondsMax=38,RecoverySecondsMin=32,RecoverySecondsMax=32,RecoveryDiceChance=0,RecoveryDiceDread=0,AnnounceRecovery=true,
@@ -193,7 +196,7 @@ namespace HollowCurrent
         {
             Name="Castle",
             TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/15,
-            FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,FirstHuntMin=60,FirstHuntMax=180,FirstHuntFromSpawn=true,DreadDecayAllAbove=60,DoorHeldChance=1f/6,
+            FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,FirstHuntMin=60,FirstHuntMax=180,FirstHuntFromSpawn=true,ColdFirstHuntCap=150,DreadDecayAllAbove=60,DoorHeldChance=1f/6,
             DiceIntervalMin=2,DiceIntervalMax=6,DiceChanceAt40=1f/12,DiceChanceAt60=1f/6,DiceChanceAt80=1f/4,DiceEvidenceBonus=.5f,
             WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=1.5f,
             HuntSecondsMin=25,HuntSecondsMax=50,RecoverySecondsMin=10,RecoverySecondsMax=40,RecoveryDiceChance=1f/8,RecoveryDiceDread=80,AnnounceRecovery=false,
@@ -217,7 +220,7 @@ namespace HollowCurrent
         {
             var r=Castle.Clone();
             r.Name="Long Night";r.WarningSeconds=0;r.DreadStart=50;r.HuntSeconds=50;r.HuntSecondsMin=40;r.HuntSecondsMax=60;
-            r.PerchMinSeconds=2;r.PerchMaxSeconds=5;r.NailedHides=2;r.FalseWarningChance=0;
+            r.PerchMinSeconds=2;r.PerchMaxSeconds=5;r.NailedHides=2;r.FalseWarningChance=0;r.ColdFirstHuntCap=0;
             return r;
         }
     }

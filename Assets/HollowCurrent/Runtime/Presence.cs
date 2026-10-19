@@ -765,7 +765,7 @@ namespace HollowCurrent
                 bool lostNear=lastSeen.HasValue&&lastSeenSighted&&Game.Case.Elapsed-lastSeenAt<count.NearMissLostSeconds&&Vector3.Distance(lastSeen.Value,Game.Player.transform.position)<count.NearMissLostRadius;
                 float chance=inLearned?1:lostNear?count.NearMissChanceLost:count.NearMissChance;
                 nearMissRolled=true;float roll=Random.value;bool go=roll<chance;
-                Debug.Log("HC_COUNT_NEARMISS attempt roll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" reason="+(inLearned?"learned hide "+learnedHide.name:lostNear?"lost her near the hide "+Vector3.Distance(lastSeen.Value,Game.Player.transform.position).ToString("F1")+" m, "+(Game.Case.Elapsed-lastSeenAt).ToString("F0")+" s ago":"base")+" go="+go+" "+DiagnosticState);
+                Debug.Log("HC_COUNT_NEARMISS attempt roll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" reason="+(inLearned?"learned hide "+learnedHide.name:lostNear?"lost her near the hide "+Vector3.Distance(lastSeen.Value,Game.Player.transform.position).ToString("F1")+" m, "+(Game.Case.Elapsed-lastSeenAt).ToString("F0")+" s ago":"base")+" go="+go+" openP="+openDice.ChanceNow.ToString("F2")+" "+DiagnosticState);
                 if(go)BeginHideVisit(false);
             }
             if(!retreating&&Game.Player.Hidden&&Game.Player.TorchOn)Hear(Game.Player.transform.position,Profile.HiddenTorchHearRadius);
@@ -2027,6 +2027,7 @@ namespace HollowCurrent
                 {
                     transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.Euler(0,perchYaw,0),90*dt);
                     actor.Pose(Profile.ModeIdle);perchTimer-=dt;
+                    if(ShowcaseTick(dt,seen))break;
                     // r10 #11: one perch move in five is a visible flight (even while she watches; nothing can kill), so seeing him
                     // move does not mean "hunt". The rest keep the SCP-173 rule: he moves only while nobody is looking.
                     if(perchTimer<=0&&!reperchRolled)
@@ -2049,7 +2050,11 @@ namespace HollowCurrent
                     Fly(dt,Profile.ModeMove);
                     if(routeAt>=route.Count)
                     {
-                        if(pendingPerch>=0){SetPerch(pendingPerch,BetweenPerchSeconds());Debug.Log("HC_COUNT_PERCH landed perch="+perchIndex+" "+DiagnosticState);}
+                        if(pendingPerch>=0)
+                        {
+                            SetPerch(pendingPerch,BetweenPerchSeconds());Debug.Log("HC_COUNT_PERCH landed perch="+perchIndex+" "+DiagnosticState);
+                            if(showcaseFlying){showcaseFlying=false;Debug.Log("HC_COUNT_PERCH showcase landed perch="+perchIndex+" seen="+ObservedByPlayer()+" done="+showcaseDone);}
+                        }
                         else flight=Flight.Land;
                     }
                     break;
@@ -2062,6 +2067,63 @@ namespace HollowCurrent
                     if(unobserved>=count.UnobservedSeconds)TeleportPerch(-1);
                     break;
             }
+        }
+        // ---- Wave FD: one observed relocation per run (r13 critic: observed=True was 0 in every run) ----------------------------------
+        bool showcaseDone,showcaseFlying;float showcaseWait,showcaseCheck;int showcaseTries;
+        bool ShowcaseArmed
+        {
+            get
+            {
+                var phase=Game.Case.Phase;
+                return !showcaseDone&&(phase==Phase.Survey||phase==Phase.Disturbance||phase==Phase.Recovery)&&Game.Case.Elapsed>=count.ShowcaseAfterSeconds
+                       &&!Game.Player.Hidden&&!Game.Modal&&perchIndex>=0;
+            }
+        }
+        // Called every frame he sits on a perch between hunts. Returns true when it started a flight.
+        bool ShowcaseTick(float dt,bool seen)
+        {
+            if(!ShowcaseArmed)return false;
+            showcaseWait+=dt;showcaseCheck-=dt;
+            bool timeout=showcaseWait>=count.ShowcaseWaitSeconds;
+            if(showcaseCheck>0&&!timeout)return false;
+            showcaseCheck=count.ShowcaseCheckSeconds;
+            string view=null;int to=-1;
+            if(seen){to=ChoosePerch(perchIndex,false);if(to>=0)view="departure";}
+            if(view==null){to=VisibleArrivalPerch(perchIndex);if(to>=0)view="arrival";}
+            if(view==null&&!timeout)return false;
+            if(view==null)to=ChoosePerch(perchIndex,false);
+            int from=perchIndex;showcaseTries++;
+            if(to<0||!GoToPerch(to,false))
+            {
+                Debug.Log("HC_COUNT_PERCH showcase rejected reason="+(to<0?"no perch keeps the distance rules":"no route to perch "+to)+" view="+(view??"none")+" waited="+showcaseWait.ToString("F0"));
+                if(timeout)showcaseWait=0;
+                return false;
+            }
+            bool observed=view!=null;
+            if(observed)showcaseDone=true;
+            showcaseFlying=true;float waited=showcaseWait;showcaseWait=0;
+            Debug.Log("HC_COUNT_PERCH flight observed="+observed+" showcase="+(observed?"True":"timeout")+" view="+(view??"none")+" waited="+waited.ToString("F0")+" tries="+showcaseTries+" from="+from+" to="+pendingPerch+" "+DiagnosticState);
+            return true;
+        }
+        // A perch (not the current one, keeping the distance rules) whose head or chest point is inside the central viewport and in clear
+        // line of sight from the camera: he would land in her view. Random among the visible ones; -1 when none.
+        int VisibleArrivalPerch(int exclude)
+        {
+            var perches=Game.World.PerchPoints;int pick=-1,seenCount=0;
+            for(int i=0;i<perches.Count;i++)
+            {
+                if(i==exclude||!PerchFarEnough(i))continue;
+                var feet=PerchFeet(i);
+                if(!PointInView(feet+Vector3.up*(count.PerchEyeHeight+.35f))&&!PointInView(feet+Vector3.up*.8f))continue;
+                seenCount++;if(Random.Range(0,seenCount)==0)pick=i;
+            }
+            return pick;
+        }
+        bool PointInView(Vector3 p)
+        {
+            var cam=Game.Player.View;var v=cam.WorldToViewportPoint(p);
+            if(v.z<=.5f||v.z>40||v.x<.08f||v.x>.92f||v.y<.08f||v.y>.92f)return false;
+            return !Occluded(cam.transform.position,p);
         }
         // r10b N3: an unseen perch move is a real (audible) flight one time in three (AudibleReperchChance), otherwise the silent
         // move. Either way the destination is out of her sight when it is chosen.
@@ -2254,7 +2316,8 @@ namespace HollowCurrent
         Vector3 nearMissCrawl,nearMissOutward,visitStand;
         bool LongNight=>Game.Case.Rules!=null&&Game.Case.Rules.Name=="Long Night";
         // r12: within-match learning; survives between hunts (a new Game after a death starts fresh).
-        Interactable learnedHide,bagHide;int bagPos,bagOpenAt;
+        // Wave FD (r13 critic): the learned-hide open is NearMissDice (a per-visit roll with a soft pity floor), not a bag of three.
+        Interactable learnedHide,bagHide;readonly NearMissDice openDice=new NearMissDice();
         Interactable HideSpotAt(Vector3 exit)
         {
             Interactable best=null;float d=.6f;
@@ -2333,23 +2396,24 @@ namespace HollowCurrent
             float roll=witnessed?0:Random.value;
             visitOpens=witnessed||roll<chance;
             // count-l4 (siege at Dread 60: 5 learned-hide visits, 0 opens): at Dread >= BagDread the hide he keeps finding her in
-            // runs on a bag: exactly one open in every BagSize visits, at a random position; the bag starts with the first visit to
-            // that hide. Other hides and lower Dread keep the per-visit roll.
-            string bagNote="";
+            // opens on its own dice. Wave FD (r13 critic: the bag of three made the two visits after an open guaranteed rattles): a per-visit
+            // roll, 0.24, 0.45 on the visit right after an open, a soft pity floor only after 4 closed visits (NearMissDice, long-run about
+            // 1 in 3). The dice start fresh when he switches to another hide. Other hides and lower Dread keep the per-visit curve roll.
+            string bagNote="";float p=witnessed?1:chance;
             if(!witnessed&&dread>=count.BagDread&&(learned||learnedHide==null||learnedHide==spot||bagHide==null))
             {
-                if(bagHide!=spot||bagPos>=count.BagSize){bagHide=spot;bagPos=0;bagOpenAt=Random.Range(0,count.BagSize);}
-                visitOpens=bagPos==bagOpenAt;
-                bagNote=" bag="+(bagPos+1)+"/"+count.BagSize+" bagOpenAt="+(bagOpenAt+1);
-                Debug.Log("HC_COUNT_NEARMISS bag="+(bagPos+1)+"/"+count.BagSize+" openAt="+(bagOpenAt+1)+" open="+visitOpens+" hide="+spot.name+" dread="+dread.ToString("F0"));
-                bagPos++;
+                if(bagHide!=spot){bagHide=spot;openDice.Reset();}
+                int streak=openDice.ClosedStreak;bool after=openDice.LastOpened;float u=Random.value;
+                visitOpens=openDice.Roll(u,out p);
+                bagNote=" dice=learned streak="+streak+" afterOpen="+after;
+                Debug.Log("HC_COUNT_NEARMISS openroll p="+p.ToString("F2")+" roll="+u.ToString("F2")+" open="+visitOpens+" streak="+streak+" afterOpen="+after+" visits="+openDice.Visits+" opens="+openDice.Opens+" hide="+spot.name+" dread="+dread.ToString("F0"));
             }
             // He has now found her in or near this hide: it is the one he checks first next time.
             if(learnedHide!=spot)Debug.Log("HC_COUNT_LEARNED hide="+spot.name+" reason="+(witnessed?"watched her go in":"found her in it"));
             learnedHide=spot;
             flight=Flight.NearMiss;nearMissStage=1;pendingPerch=-1;travelToPerch=false;Memory.Clear();attackAttempted=true;visitGrab=0;
             Debug.Log(tag+" begin hide="+spot.name+" door="+NearMissDoor+" crawlTo="+nearMissCrawl+" landing="+landing+
-                (witnessed?" open=True reason=watched (any Dread)":" open="+visitOpens+bagNote+" openRoll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" curve="+curve.ToString("F2")+" learnedHide="+learned+" eligible="+eligible+(eligible?"":" reason=first hunt, below Dread 40")+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
+                (witnessed?" open=True p=1.00 reason=watched (any Dread)":" open="+visitOpens+" p="+p.ToString("F2")+bagNote+" openRoll="+roll.ToString("F2")+" chance="+chance.ToString("F2")+" curve="+curve.ToString("F2")+" learnedHide="+learned+" eligible="+eligible+(eligible?"":" reason=first hunt, below Dread 40")+" dread="+dread.ToString("F0")+" longNight="+LongNight)+" "+DiagnosticState);
         }
         void NearMissTick(float dt)
         {

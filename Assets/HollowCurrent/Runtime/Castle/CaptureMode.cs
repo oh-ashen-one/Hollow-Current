@@ -229,11 +229,14 @@ namespace HollowCurrent
                 if(set=="doors")
                 {
                     Place(v.eye,v.target);yield return null;yield return null;
-                    foreach(var d in game.World.Doors)if(d&&d.name.Contains("Hall great doors")){if(v.id.Contains("_open"))d.Open=true;hallLeaves.Add(d);}
+                    // fd-rules (r13 critic: the capture set Open=true directly, so the swing was chosen from the player's spawn, not the camera, and
+                    // hall_doors_open_inside showed the near leaf swinging toward the hall-side viewer): open with the real swing rule from the camera.
+                    foreach(var d in game.World.Doors)if(d&&d.name.Contains("Hall great doors")){if(v.id.Contains("_open"))d.OpenFrom(v.eye,"capture "+v.id);hallLeaves.Add(d);}
                 }
                 if(set=="instruments")game.Player.CaptureHeld(v.id.StartsWith("held_compass")?1:v.id=="held_lantern"?2:3,v.id.EndsWith("reading5")?5:0);
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0||hallLeaves.Count>0?3f:1.5f);
-                foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer);
+                foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer
+                    +(d.Open?" viewerSide="+(d.SideOf(v.eye)<0?"-z":"+z")+" leafSide="+(d.LeafSideNow()<0?"-z":d.LeafSideNow()>0?"+z":"0")+" swing="+(d.LeafSideNow()!=0&&(d.LeafSideNow()<0)!=(d.SideOf(v.eye)<0)?"away":"toward"):""));
                 if(set=="kit")KitLog(v.id);
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);

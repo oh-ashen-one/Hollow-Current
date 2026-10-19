@@ -16,7 +16,11 @@ and fails when
   * (fc-fbx) the collision panel's thickness differs from the leaf's visible oak slab (DOOR_LEAF_SPECS t in tools/castle_architecture.py times
     the leaf art's Z scale) by more than 5 mm, or the slab is outside a real oak leaf (0.08-0.12 m great doors, 0.05-0.08 m the others).
 
-usage: check_castle_doors.py [Assets/HollowCurrent/Scenes/Castle.unity] [--simulate-fix] [-v]
+usage: check_castle_doors.py [Assets/HollowCurrent/Scenes/Castle.unity] [--simulate-fix] [-v] [--swing]
+  --swing         (fd-rules, informational, never fails) estimate each leaf's clear swing arc on both sides the way Door.ClearArc does (the
+                  FitProbe box swept in 5 degree steps about the hinge), against the "Wall" boxes only (furniture, frames and veneer are not
+                  in this model, so the real arcs can only be smaller). Prints HC_DOOR_SWING name= positive= negative= and, per side, whether
+                  Door.ChooseSwing can open away from a player there (>= 85, castle >= 55 since fd-rules).
   --simulate-fix  apply CastleWorld.BuildDoor's runtime rules (turn a leaf whose meshes sit at -X by 180 degrees about the hinge; fc-fbx: scale the
                   leaf to CastleKitAxis.Leaves' slab and give the panel that thickness) before checking, to show what a re-bake with the fix
                   produces. Without it the file is judged as baked.
@@ -28,6 +32,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 args = [a for a in sys.argv[1:] if not a.startswith('-')]
 SIM = '--simulate-fix' in sys.argv
+SWING = '--swing' in sys.argv
 VERBOSE = '-v' in sys.argv
 SCENE = Path(args[0]) if args else ROOT / 'Assets/HollowCurrent/Scenes/Castle.unity'
 CASTLE_ART = ROOT / 'Assets/HollowCurrent/Resources/Castle'
@@ -202,6 +207,48 @@ for g in sorted(hinges, key=lambda x: name[x]):
     rows.append((name[g], art, cx, frac, in_wall, bool(bad_static), turned, lo, hi))
     if problems: failures.append('%s: %s' % (name[g], '; '.join(problems)))
 
+def obb_hits_aabb(c, ax, ay, ez, box):
+    """2D (XZ) oriented box (centre c, unit axes ax/az, half extents (ex, ez)) vs an axis-aligned box, plus the Y interval."""
+    (cx_, cy_, cz_), (ux, uz), (ex, ey, ez_) = c, ax, ez
+    lo, hi = box
+    if cy_ + ey <= lo[1] or cy_ - ey >= hi[1]: return False
+    bx, bz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2; hx, hz = (hi[0] - lo[0]) / 2, (hi[2] - lo[2]) / 2
+    dx, dz = bx - cx_, bz - cz_
+    vx, vz = ay   # second axis
+    for (px, pz) in ((1, 0), (0, 1), (ux, uz), (vx, vz)):
+        r_obb = ex * abs(ux * px + uz * pz) + ez_ * abs(vx * px + vz * pz)
+        r_box = hx * abs(px) + hz * abs(pz)
+        if abs(dx * px + dz * pz) >= r_obb + r_box - 1e-4: return False
+    return True
+def swing_arcs(ht):
+    hM, hP = world(ht)
+    panel = next((c for c in children.get(ht, []) if not name[go_of[c]].startswith('Castle / ')), None)
+    if panel is None: return None
+    w, h = abs(local[panel][2][0]), abs(local[panel][2][1])
+    pc = ((w + .04) * .5, h * .5, 0.0); pe = ((w - .12) * .5, h * .5 - .08, .055)
+    def clear(angle):
+        a = math.radians(angle); ca, sa = math.cos(a), math.sin(a)
+        # hinge-local Euler(0, a, 0): x' = x cos a + z sin a, z' = -x sin a + z cos a
+        def rot(v): return (v[0] * ca + v[2] * sa, v[1], -v[0] * sa + v[2] * ca)
+        c_local = rot(pc); c_w = [hP[i] + mv(hM, c_local)[i] for i in range(3)]
+        ux = mv(hM, rot((1, 0, 0))); uz = mv(hM, rot((0, 0, 1)))
+        return not any(obb_hits_aabb(c_w, (ux[0], ux[2]), (uz[0], uz[2]), pe, b) for b in wall_boxes)
+    def arc(sign):
+        best = 0
+        for k in range(5, 180, 5):
+            if not clear(sign * k): break
+            best = k
+        return best
+    return arc(1), arc(-1), w
+if SWING:
+    for g in sorted(hinges, key=lambda x: name[x]):
+        r = swing_arcs(tr_of[g])
+        if r is None: continue
+        pos, neg, w = r
+        # Door.ChooseSwing (castle): away when the arc is >= 85, or >= 45 and leaf width x (1 - cos arc) >= 0.62 m (passable); else the widest arc.
+        def verdict(a): return 'full' if a >= 85 else 'partial' if a >= 45 and w * (1 - math.cos(math.radians(a))) >= .62 else 'NO(toward)'
+        # a player on -z gets the negative arc (leaf toward +z), on +z the positive arc
+        print('HC_DOOR_SWING name=%s leafWidth=%.2f positive=%d negative=%d awayFromMinusZ=%s awayFromPlusZ=%s' % (name[g], w, pos, neg, verdict(neg), verdict(pos)))
 for n, art, cx, frac, in_wall, st, turned, lo, hi in rows:
     if VERBOSE or frac > .2 or cx <= 0 or st:
         print('HC_DOOR_LEAF name=%s art=%s hingeX=%.2f inWall=%s wallOverlap=%.2f batchingStatic=%s%s bounds=(%.2f,%.2f,%.2f)-(%.2f,%.2f,%.2f)' %
