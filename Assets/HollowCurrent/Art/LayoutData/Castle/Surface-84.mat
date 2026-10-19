@@ -30,8 +30,13 @@ Material:
     m_Ints: []
     m_Floats:
     - _Rough: 0.045
+    - _Streak: 1
+    - _StreakLen: 0.9
+    - _StreakWidth: 0.035
     - _Strength: 1
     - _Tile: 0.21
+    - _WetMin: 0.15
+    - _WinHalf: 0.6
     m_Colors:
     - _Cold: {r: 0.21999997, g: 0.31999996, b: 0.62, a: 1}
     - _S0: {r: -3.4, g: 1.65, b: 20.1, a: 0.55}
@@ -40,8 +45,8 @@ Material:
     - _S3: {r: 3.4, g: 1.65, b: 16.9, a: 0.5}
     - _S4: {r: 0, g: 3.9, b: 22.9, a: 0.7}
     - _S5: {r: 0, g: 7.1, b: 27.4, a: -0.55}
-    - _S6: {r: -3.7, g: 5.8, b: 27.4, a: -0.35}
-    - _S7: {r: 3.7, g: 5.8, b: 27.4, a: -0.35}
+    - _S6: {r: -2.6, g: 5.4, b: 27.4, a: -0.35}
+    - _S7: {r: 2.6, g: 5.4, b: 27.4, a: -0.35}
     - _Warm: {r: 1, g: 0.52, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
