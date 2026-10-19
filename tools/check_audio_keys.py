@@ -63,7 +63,7 @@ def first_arg(s,start):
     return s[start:]
 def speak_key(i):  # copied from Soundscape.Speak (castle branch)
     if i.startswith('cc_'):return i
-    return {'evp':'cc_bargain','whisper':'cc_listen'}.get(i)   # every other non-cc_ id is dropped in the castle (owner item 13)
+    return None   # fd-voice: every non-cc_ id (incl. the old evp/whisper aliases) is dropped in the castle
 
 CALL=re.compile(r'\b(Speak|BellwetherSpeak|Cue|Loop|CastleLoop|SpatialLoop|UI|Has|ContainsKey)\(')
 files=sorted(p for d in ('Runtime','Core') for p in (ASSETS/d).rglob('*.cs'))
@@ -98,7 +98,7 @@ for f in files:
 # Keys the contracts promise even when no C# references them yet (AUDIO.md, FEAR_PLAN F4, wave G).
 CONTRACT=['heartbeat_loop','wind_battlements_loop','door_rattle','book_drop','knife_stick','claw_steps_0','claw_steps_1','claw_steps_2',
           'claw_steps_3','bat_pass','bell_single',
-          'castle_hide_breath_0','castle_hide_breath_1','castle_hide_clawstep','castle_hide_handle','castle_hide_whisper']
+          'castle_hide_breath_0','castle_hide_breath_1','castle_hide_clawstep','castle_hide_handle','castle_hide_whisper','castle_evp_static']
 VARIANTS={'castle_hide_breath_':2}     # indexed sets that are not four clips long
 # Owner feedback 13 (hc/fb-voice2): these castle lines were spoken 2D / as a PA; nothing may reference them any more, so their
 # clips (voice_<id>.wav) are dead weight to delete. cc_hunt_hungry is gone for good (also from tools/voice-lines.json).

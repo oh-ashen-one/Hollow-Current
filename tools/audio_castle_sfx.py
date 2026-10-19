@@ -318,37 +318,61 @@ def castle_hide_handle():
     y=room(buf,.32,.2,102,5000,tail=1.0)
     return fade_out(y,.12)
 def castle_hide_whisper():
+    """fd-voice (2026-10-18): WORDLESS. The previous version (random vowel formants + consonant bursts, two voices 35 ms apart) was synthetic
+    babble that reads as a person whispering a phrase, which the owner's rule 'nothing is a speaker in the house' forbids. This one has no
+    vowel formants, no voiced pitch and no consonant bursts: two or three slow, ragged sibilant exhales (filtered noise only, an 'sss...hhh'
+    like air through teeth) that cannot be mistaken for words. The file name is kept (castle_hide_whisper) so every caller still resolves."""
     r=R(111);dur=2.7;n=int(dur*SR);buf=np.zeros(n+SR//2)
-    vowels=[(300,870,2240),(400,1900,2500),(620,1200,2400),(730,1090,2440),(450,1000,2300),(350,2200,3000),(570,840,2410)]
-    def syl(layer,seed):
-        rr=R(seed);t=.12;out=np.zeros(n+SR//2)
-        while t<dur-.35:
-            L=int(rr.uniform(.12,.26)*SR)
-            c=rr.integers(0,5);cl=int(rr.uniform(.035,.085)*SR);w=rr.standard_normal(cl)
-            cons={0:bp(w,2600,6200),1:bp(w,5000,9500),2:bp(w,1500,7000)*.5,3:bp(w,600,4500)*.6,4:hp(w,3500)}[int(c)]
-            cons=cons/(np.std(cons)+1e-9)*.55*np.hanning(cl)
-            F=vowels[rr.integers(len(vowels))];F=[f*layer*rr.uniform(.95,1.06) for f in F]
-            v=rr.standard_normal(L)
-            vow=bp(v,F[0]*.85,F[0]*1.15)+.8*bp(v,F[1]*.88,F[1]*1.12)+.35*bp(v,F[2]*.9,F[2]*1.1)
-            vow=vow/(np.std(vow)+1e-9)*np.hanning(L)**1.3*.8
-            seg=np.concatenate([cons,vow]);i=int(t*SR);out[i:i+len(seg)]+=seg[:len(out)-i]
-            t+=len(seg)/SR+rr.uniform(.03,.11)+(rr.uniform(.18,.3) if rr.random()<.18 else 0)
-        return out
-    a=syl(1.0,112);b=syl(.9,113)
-    lag=int(.035*SR);b=np.concatenate([np.zeros(lag),b])[:len(a)]
-    x=a+.55*b
-    x=x*(.45+.55*np.sin(np.linspace(0,np.pi,len(x)))**1.2)                     # phrase swell
-    y=lp(x,7000)
-    y=room(y,.9,.32,114,4200,tail=2.9)
+    def hiss(length,amp,lo,hi,seed,bloom):
+        k=int(length*SR);rr=R(seed);w=rr.standard_normal(k)
+        body=bp(w,lo,hi)*1.0+bp(w,hi*.55,hi*.9,1)*.35
+        air=lp(w,900,1)*.25                                                   # a little air under the hiss, no pitch
+        rasp=np.clip(1+lp(rr.standard_normal(k),9,2)*9,.25,1.9)               # slow ragged amplitude, 5-9 Hz shudder (not syllabic)
+        e=_env(k,int(length*bloom*SR),int(length*(1-bloom)*.9*SR),1.0,1.4)
+        y=(body+air)*rasp*e
+        return y/(np.std(y)+1e-9)*amp
+    add(buf,hiss(1.35,1.0,3200,7800,121,.55),.10)
+    add(buf,hiss(.75,.62,2600,6400,122,.35),1.60)
+    add(buf,hiss(.42,.35,3600,8200,123,.5),2.30)
+    x=buf*(.55+.45*np.sin(np.linspace(0,np.pi,len(buf)))**1.2)
+    y=lp(x,8500)
+    y=room(y,.9,.3,114,4200,tail=2.9)
     y=y[:int(2.9*SR)]
-    return fade_out(y,.12)
+    return fade_out(y,.15)
+def castle_evp_static():
+    """fd-voice (2026-10-18): the ear-trumpet 'recording' texture. NON-VERBAL by construction: band-limited static that slowly detunes
+    between 'stations', sparse crackle, a hollow breath-like swell (noise only), a sub-bass pressure. No voiced pitch, no formants, no
+    speech-rate modulation. Played at the trumpet in the player's hand (Soundscape.Evp); any words come only from the Count's head."""
+    r=R(131);dur=3.2;n=int(dur*SR);t=T(n)
+    w=r.standard_normal(n)
+    # detuning band: two fixed static bands cross-faded by a slow (0.3 Hz) sweep, so the colour drifts between 'stations' with no block
+    # edges and no modulation anywhere near syllable rate (3-8 Hz)
+    lo=bp(w,600,1900,2);hi=bp(w,1600,5200,2)
+    m=.5+.5*np.sin(2*np.pi*.3*t+.8)
+    out=lo*(1-m)+hi*m
+    out/= (np.std(out)+1e-9)
+    am=np.clip(.75+lp(r.standard_normal(n),1.2,2)*5,.3,1.5)
+    out*=am
+    # sparse crackle
+    crack=np.zeros(n)
+    for _ in range(int(dur*14)):
+        i=int(r.uniform(0,n-400));k=int(r.uniform(30,220));amp=r.uniform(.25,1.0)
+        crack[i:i+k]+=hp(r.standard_normal(k),1500,1)*np.exp(-np.arange(k)/(k*.25))*amp
+    # hollow swell: slow breath of filtered noise, rises then falls, no pitch
+    swell=bp(r.standard_normal(n),180,900,2)*np.sin(np.pi*t/dur)**2
+    swell/= (np.std(swell)+1e-9)
+    sub=np.sin(2*np.pi*48*t+.6*np.sin(2*np.pi*.35*t))*(.5+.5*np.sin(np.pi*t/dur))*.55
+    x=out*.9+crack*.45+swell*.8+sub
+    x=fade_in(x,.12)
+    y=room(lp(x,7500),1.1,.28,132,3800,tail=3.3)
+    return fade_out(y[:int(3.3*SR)],.35)
 SPEC={'castle_hide_breath_0':(-28.0,-6.0),'castle_hide_breath_1':(-28.0,-6.0),'castle_hide_clawstep':(-28.0,-6.0),
-      'castle_hide_handle':(-28.0,-5.0),'castle_hide_whisper':(-28.0,-6.0)}   # (LUFS target, peak ceiling dBFS): peaks < 0.6 full scale
+      'castle_hide_handle':(-28.0,-5.0),'castle_hide_whisper':(-28.0,-6.0),'castle_evp_static':(-28.0,-8.0)}   # (LUFS target, peak ceiling dBFS): peaks < 0.6 full scale
 
 CLIPS={'heartbeat_loop':heartbeat,'wind_battlements_loop':wind,'door_rattle':door_rattle,'book_drop':book_drop,
        'knife_stick':knife_stick,'bat_pass':bat_pass,'bell_single':bell_single}
 CLIPS.update({'castle_hide_breath_0':lambda:castle_hide_breath(0),'castle_hide_breath_1':lambda:castle_hide_breath(1),
-  'castle_hide_clawstep':castle_hide_clawstep,'castle_hide_handle':castle_hide_handle,'castle_hide_whisper':castle_hide_whisper})
+  'castle_hide_clawstep':castle_hide_clawstep,'castle_hide_handle':castle_hide_handle,'castle_hide_whisper':castle_hide_whisper,'castle_evp_static':castle_evp_static})
 for _i,_p in enumerate(CLAWS):CLIPS[f'claw_steps_{_i}']=(lambda p=_p:claw_step(p))
 LOOPS={'heartbeat_loop','wind_battlements_loop'}
 # Retired 2026-10-15 (wave FB, fb-voice2; integ-fb 7eb25f9 deleted the files): the castle no longer ships these eSpeak voice clips, so --check must not

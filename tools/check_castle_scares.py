@@ -291,6 +291,10 @@ def first_call_args(src, start):
 
 runtime = ROOT / "Assets/HollowCurrent/Runtime"
 speak_calls = 0
+# fd-voice lint (owner rule: nothing is a speaker throughout the house; r13 critic 5): every human-voice clip (voice_cc_*) originates only at the
+# Count's head through Presence.CountSpeak. Statically: (a) the only file allowed to call Speak( is Presence.cs and the call passes from "head";
+# (b) Cue("voice") is Bellwether-only (an else branch of a Map==Castle test); no Cue of a "voice_*" literal; (c) Soundscape refuses non-head
+# sources and prints from_head / from_other; (d) the non-verbal EVP texture logs verbal=False.
 for path in sorted(runtime.rglob("*.cs")):
     src = strip_comments(path.read_text(errors="replace"))
     rel = path.relative_to(ROOT)
@@ -304,11 +308,36 @@ for path in sorted(runtime.rglob("*.cs")):
             continue
         speak_calls += 1
         args = [a for a in first_call_args(src, m.end()) if a.strip()]
+        if path.name != "Presence.cs":
+            failures.append("%s:%d Speak(%s) outside Presence.CountSpeak: castle voice may only come from the Count's head (fd-voice)" % (rel, line, ", ".join(a.strip() for a in args)))
+        elif len(args) < 3 or args[2].strip() != '"head"':
+            failures.append("%s:%d Speak(...) must pass from \"head\" and HeadPosition (fd-voice)" % (rel, line))
         if len(args) < 2:
             failures.append("%s:%d Speak(%s) has no location: castle speech must be spatial (Soundscape drops 2D lines)" % (rel, line, args[0].strip() if args else ""))
 for path in sorted(runtime.rglob("*.cs")):
     if "cc_hunt_hungry" in path.read_text(errors="replace"):
         failures.append("%s still mentions the retired cc_hunt_hungry" % path.relative_to(ROOT))
+for path in sorted(runtime.rglob("*.cs")):
+    raw = path.read_text(errors="replace")
+    src = strip_comments(raw)
+    rel = path.relative_to(ROOT)
+    for m in re.finditer(r'\.Cue\(\s*"(voice[A-Za-z0-9_]*)"', src):
+        line = src.count("\n", 0, m.start()) + 1
+        before = src[max(0, m.start() - 40):m.start()]
+        if m.group(1) != "voice" or "else" not in before:
+            failures.append("%s:%d Cue(\"%s\") plays a voice outside the Count's head (only Bellwether's else-branch Cue(\"voice\") is allowed)" % (rel, line, m.group(1)))
+sound_src = strip_comments((runtime / "Soundscape.cs").read_text())
+for needle, what in (('from!="head"', "refuse non-head sources"), ("from_head=", "print from_head"), ("from_other=", "print from_other"),
+                     ("verbal=False", "log HC_EVP verbal=False"), ("from=head", "log HC_COUNT_VOICE from=head")):
+    if needle not in sound_src:
+        failures.append("Soundscape.cs must %s (fd-voice)" % what)
+pres_src = strip_comments((runtime / "Presence.cs").read_text())
+if '"head"' not in pres_src or "CountBargain" not in pres_src:
+    failures.append("Presence.CountSpeak/CountBargain missing (fd-voice)")
+scares_src = strip_comments((runtime / "Castle/CastleScares.cs").read_text())
+pl = body(scares_src, "bool PhantomListen")
+if pl is None or "Speak(" in pl or "verbal=False" not in pl or "from=lie" not in pl:
+    failures.append("PhantomListen must be non-verbal (no Speak, HC_LIE ... from=lie verbal=False)")
 sound = strip_comments((runtime / "Soundscape.cs").read_text())
 if "no location" not in sound or "SpeechSpatial" not in sound or "HC_VOICE_SUMMARY" not in sound:
     failures.append("Soundscape.Speak must drop location-less castle speech and log HC_VOICE_SUMMARY")

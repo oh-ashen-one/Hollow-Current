@@ -407,7 +407,18 @@ namespace HollowCurrent
                     {
                         // Castle (critic r10b N5): the ear-trumpet answers in and out of a hunt alike.
                         if(Vector3.Distance(transform.position,Game.World.Voice)<4&&!Moving&&(Game.Map==MapId.Castle||Game.Case.Phase!=Phase.Hunt))
-                        {Game.Case.Record(Evidence.Voice);Game.Say(Game.Book.Reply);Game.Sound.Cue("voice",Game.World.Voice);}
+                        {
+                            Game.Case.Record(Evidence.Voice);Game.Say(Game.Book.Reply);
+                            // fd-voice: no voice at the evidence spot. The trumpet records a non-verbal texture in her hand; if the Count is in range he may say
+                            // cc_bargain from his own head (once per run). Bellwether keeps its ghost-voice cue.
+                            if(Game.Map==MapId.Castle)
+                            {
+                                bool said=Game.Creature&&Game.Creature.CountBargain();
+                                var hand=View.transform;Game.Sound.Evp(hand.position+hand.forward*.4f-hand.up*.2f,"trumpet",said?"spoke":"none");
+                                if(said)Debug.Log("HC_EVP from=head verbal=True id=cc_bargain");
+                            }
+                            else Game.Sound.Cue("voice",Game.World.Voice);
+                        }
                         else Game.Say(Game.Book.NoReply);
                     }
                 }

@@ -219,7 +219,7 @@ namespace HollowCurrent
             var at=view.position-view.forward*.7f+view.right*(.45f*side);
             string clip=game.Sound.Has("castle_hide_whisper")?"castle_hide_whisper":"breath_presence";
             game.Sound.Cue(clip,at,.32f);
-            Fire("ear_whisper","clip="+clip+" side="+(side<0?"left":"right"));
+            Fire("ear_whisper","clip="+clip+" side="+(side<0?"left":"right")+" verbal=False");   // fd-voice: castle_hide_whisper is wordless sibilance now; not the Count speaking
             return true;
         }
 
