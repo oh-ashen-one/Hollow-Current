@@ -28,8 +28,11 @@ Material:
     - _FogKeep: 0.45
     - _Glade: 1
     - _GladeElev: 13
-    - _GladeRough: 0.2
+    - _GladeRough: 0.26
+    - _Glitter: 1.6
+    - _GlitterDensity: 0.16
     - _MoonKeep: 0.35
+    - _RedGlade: 0.9
     - _Reflect: 2.2
     - _Ripple: 0.55
     - _Time2: 0
@@ -40,9 +43,10 @@ Material:
     - _GladeColor: {r: 0.62, g: 0.52, b: 0.5, a: 1}
     - _Lamp0: {r: -3, g: 1.55, b: -23, a: 1.8}
     - _Lamp1: {r: 3, g: 1.55, b: -23, a: 1.8}
-    - _Lamp2: {r: -2.3, g: 2.05, b: -7.4, a: 0.3}
-    - _Lamp3: {r: 2.3, g: 2.05, b: -7.4, a: 0.3}
+    - _Lamp2: {r: -2.3, g: 2.05, b: -7.4, a: 0.6}
+    - _Lamp3: {r: 2.3, g: 2.05, b: -7.4, a: 0.6}
     - _LampColor: {r: 1, g: 0.35999998, b: 0.07999996, a: 1}
+    - _RedGladeColor: {r: 1, g: 0.29999998, b: 0.19999996, a: 1}
     - _Ridge: {r: 0.004, g: 0.006, b: 0.014, a: 1}
     - _RockTint: {r: 0.0035, g: 0.004, b: 0.0065, a: 1}
   m_BuildTextureStacks: []
