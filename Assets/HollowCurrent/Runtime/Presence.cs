@@ -2099,7 +2099,7 @@ namespace HollowCurrent
             if(grabCam)return;
             doorClampLogged=false;grabCamSnap=false;firstCutWhy="";seatCut=false;seatCutGap=0;spinLogged=false;spinEndLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;grabBeginRoot=transform.position;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" root="+transform.position.ToString("F2")+" "+DiagnosticState);
             // fd-grab: per-grab presentation state (seat offset, first frame, distance and view-line records).
-            presentT=0;seatSet=false;seat0=seatApplied=Vector3.zero;camInit=false;sideCheckLogged=false;camDistLogged=false;minEyeSkull=float.MaxValue;minEyeSkullT=0;
+            presentT=0;seatSet=false;leashSet=false;seat0=seatApplied=Vector3.zero;camInit=false;sideCheckLogged=false;camDistLogged=false;minEyeSkull=float.MaxValue;minEyeSkullT=0;
             lineClear=lineSamples=0;lineBlockers.Clear();skullPushes=0;presentFrames=0;
             ShieldFromLantern(true);
             // fd-grab: every grab clip starts at once (no 0.06 s any-state crossfade from the dive or crawl pose), so the seat offset
@@ -2245,6 +2245,8 @@ namespace HollowCurrent
             float b=Vector3.Dot(r,away),c=r.sqrMagnitude-min*min;float push=-b+Mathf.Sqrt(Mathf.Max(0,b*b-c));
             if(push<=0)return;transform.position+=away*push;skullPushes++;
             if(skullPushes==1)Debug.Log("HC_GRAB_CAMDIST push="+push.ToString("F2")+" was="+r.magnitude.ToString("F2")+" min="+min.ToString("F2")+" t="+presentT.ToString("F2")+" mode="+grabMode);
+            // fg-polish: the lens-in-skull push is the one mover allowed past the root leash (logged once per grab).
+            if(leashSet&&!leashPushLogged){var d=transform.position-leashRoot;d.y=0;if(d.magnitude>RootLeashMeters+.005f){leashPushLogged=true;Debug.Log("HC_GRAB_LEASH over=skull_push mode="+grabMode+" path="+grabCamKind+" travel="+d.magnitude.ToString("F2")+" t="+presentT.ToString("F2"));}}
         }
         Vector3 lastSkull;int lastSkullFrame=-9;
         Vector3 seat0,seatApplied;float seatSeconds;bool seatSet,camInit;
@@ -2543,18 +2545,21 @@ namespace HollowCurrent
                     // his skull already was) instead of sliding it over the seat time. Side, spin and hide grabs keep their placement.
                     bool variantSeat=IsSide(grabMode)||grabMode==count.ModeGrabDropSpin&&grabMode>=0;
                     var flatGap=new Vector3(seat0.x,0,seat0.z);
-                    if(!grabHide&&!variantSeat&&flatGap.magnitude>count.SeatMaxGap)
+                    var seatPath=GrabSlideRules.Seat(grabHide,variantSeat,seat0.magnitude,flatGap.magnitude,count.SeatMaxGap);
+                    if(seatPath==GrabSlideRules.SeatPath.Reseat)
                     {
                         var move=flatGap*(1-count.SeatMaxGap/flatGap.magnitude);transform.position+=move;seat0-=move;
                         note=(note=="none"?"":note+"; ")+"reseated "+move.magnitude.ToString("F2")+" (raw gap "+(seat0+move).magnitude.ToString("F2")+")";
                     }
                     // fe3-grab: side and spin grabs take the same rule. A gap still over SeatMaxGap after the commit hold (CountChase) is a
                     // hard cut on frame 0: no seat offset (he is in the clip's first pose at once) and the view cuts to his skull.
-                    if(!grabHide&&variantSeat&&seat0.magnitude>count.SeatMaxGap)
+                    // fg-polish (FF fear: a hideopen crawl seated a 0.92 m gap and slid 0.91 m): hide grabs (nearmiss, hideopen) are placed
+                    // in the torn door and cannot keep the gap in their root, so they take the cut too.
+                    if(seatPath==GrabSlideRules.SeatPath.Cut)
                     {
                         float g=seat0.magnitude;seatCut=true;seatCutGap=g;seat0=Vector3.zero;
                         note=(note=="none"?"":note+"; ")+"cut on frame 0 (gap "+g.ToString("F2")+")";
-                        Debug.Log("HC_GRAB_CUT mode="+grabMode+" gap="+g.ToString("F2")+" held="+seatHoldLast.ToString("F2")+" predicted="+seatPredictGap.ToString("F2")+" reason=seat gap over "+count.SeatMaxGap.ToString("F2")+" (no slide)");
+                        Debug.Log("HC_GRAB_CUT mode="+grabMode+" path="+grabCamKind+" gap="+g.ToString("F2")+" held="+seatHoldLast.ToString("F2")+" predicted="+seatPredictGap.ToString("F2")+" reason=seat gap over "+count.SeatMaxGap.ToString("F2")+" (no slide)");
                     }
                     // fe-count: frame 0 must show him. If her eye line to the carried skull is blocked, the seat starts part (or all) of the
                     // way toward his clip pose, at the first fraction whose line is clear.
@@ -2571,6 +2576,7 @@ namespace HollowCurrent
             }
             float ks=1-Mathf.SmoothStep(0,1,Mathf.Clamp01(presentT/Mathf.Max(.05f,seatSeconds)));
             seatApplied=seat0*ks;transform.position+=seatApplied;
+            RootLeash();
             KeepSkullOut(eye);
             // Turn the view to his skull (biased toward the claws) over GrabCamTurnSeconds, then hold it there.
             var head=actor.Head?actor.Head.position:transform.position+Vector3.up*2.2f;
@@ -2645,6 +2651,22 @@ namespace HollowCurrent
             // count-l3: then every 0.15 s to 1.0 s, so the per-sample eyeToSkull step resolves the motion (no 0.3 -> 1.0 gap).
             if(grabCamLog<GrabCamSchedule.Length&&(grabCamLog==0||grabCamT>=(grabCamLog==1?count.GrabCamTurnSeconds:GrabCamSchedule[grabCamLog]))){grabCamLog++;LogGrabCam(cam,head);}
         }
+        // fg-polish (FF fear: hideopen root_slide 0.91 = the 0.43 m seat decay plus FrameClaws easing him 0.5 m on toward the lens): on
+        // every grab path his rendered root travels at most RootLeashMeters horizontally from where frame 0 drew it (the seat decay, the
+        // claw framing, the door clamp and the reseat all share it); what is left over stays in the seated root. Only KeepSkullOut (the lens
+        // inside his skull) may push past it, and that is logged. HC_GRAB_LEASH logs the first hold of a grab.
+        float RootLeashMeters=>count.SeatMaxGap-.02f;
+        Vector3 leashRoot;bool leashSet,leashLogged,leashPushLogged;float leashHeld;
+        void RootLeash()
+        {
+            if(!leashSet){leashSet=true;leashLogged=false;leashPushLogged=false;leashHeld=0;leashRoot=transform.position;return;}
+            var d=transform.position-leashRoot;float lim=RootLeashMeters,m=new Vector2(d.x,d.z).magnitude;
+            if(GrabSlideRules.Leash(d.x,d.z,lim,out float bx,out float bz)<=0)return;
+            var back=new Vector3(bx,0,bz);transform.position-=back;leashHeld+=back.magnitude;   // the seated root takes it (next frame subtracts seatApplied only)
+            if(!leashLogged){leashLogged=true;Debug.Log("HC_GRAB_LEASH mode="+grabMode+" path="+grabCamKind+" t="+presentT.ToString("F2")+" wanted="+m.ToString("F2")+" held="+back.magnitude.ToString("F2")+" leash="+lim.ToString("F2")+" kill="+grabKill);}
+        }
+        /// <summary>Playtest driver (fg-polish): the root leash's total withheld travel this grab (0 = never reached).</summary>
+        public float GrabLeashHeld=>count!=null?leashHeld:0;
         float firstSnapDeg;string firstCutWhy="";
         // fe3-grab: this grab's frame-0 seat cut (side / spin gap over SeatMaxGap); kept until the next grab (the driver reads it).
         bool seatCut;float seatCutGap;

@@ -385,6 +385,37 @@ static class RulesTests
             for(int t=0;t<400&&f.Hunts==0&&f.Phase!=Phase.Warning;t++){f.Tick(.5f,false);if(f.WantsApparitionNow)open++;}
             Assert(open*.5f>=8,"the first-hunt follow asks for its apparition for >= 8 s ("+(open*.5f)+" s)");
         }
+        // 5. Item 3, the slide rule on every grab path (FF fear: hideopen seat 0.92 m, root_slide 0.91). The seat path, then a presentation
+        //    model: the seat offset decays over SeatSeconds (smoothstep), FrameClaws eases the root toward her at <= 1.2 m/s by up to `pull`,
+        //    KeepSkullOut is off; the leash is SeatMaxGap - 0.02. Every grab ends with travel <= 0.45 m or a frame-0 cut.
+        {
+            Assert(GrabSlideRules.Seat(true,false,.92f,.43f,.45f)==GrabSlideRules.SeatPath.Cut,"FF fear hideopen (0.92 m seat): a frame-0 cut, not a slide");
+            Assert(GrabSlideRules.Seat(true,false,.14f,.14f,.45f)==GrabSlideRules.SeatPath.Keep&&GrabSlideRules.Seat(false,true,.5f,.5f,.45f)==GrabSlideRules.SeatPath.Cut
+                &&GrabSlideRules.Seat(false,false,.6f,.6f,.45f)==GrabSlideRules.SeatPath.Reseat&&GrabSlideRules.Seat(false,false,1.32f,.05f,.45f)==GrabSlideRules.SeatPath.Keep,"seat paths: hide keep, variant cut, open reseat, vertical-only keep");
+            float Travel(float seatFlat,float pull,float seconds,float leash,bool cut)
+            {
+                if(cut)seatFlat=0;float dt=1/60f,root=seatFlat,seated=0,max=0,pulled=0;   // 1-D along her line of sight: + = away from her
+                for(float t=0;t<=1.2f;t+=dt)
+                {
+                    float step=Math.Min(1.2f*dt,pull-pulled);if(step>0){seated-=step;pulled+=step;}
+                    float k=1-(float)(Math.Min(1,t/Math.Max(.05f,seconds)));k=1-k*k*(3-2*k);float offset=seatFlat*(1-k);
+                    float x=seated+offset;float back=GrabSlideRules.Leash(x-root,0,leash,out float bx,out _);if(back>0){seated-=bx;x-=bx;}
+                    max=Math.Max(max,Math.Abs(x-root));
+                }
+                return max;
+            }
+            float raw=Travel(.43f,.5f,.46f,99,false),held=Travel(.43f,.5f,.46f,.43f,false);
+            Assert(raw>.85f&&held<=.45f,"the FF fear case: 0.43 m seat decay + 0.5 m claw ease slides "+raw.ToString("F2")+" m unleashed, "+held.ToString("F2")+" m on the leash");
+            var rng=new Random(4545);int n=0,ok=0,cuts=0;
+            for(int i=0;i<2000;i++)
+            {
+                bool hide=rng.NextDouble()<.3,variant=!hide&&rng.NextDouble()<.4;float gap=(float)rng.NextDouble()*1.4f,flat=gap*(float)rng.NextDouble();
+                var path=GrabSlideRules.Seat(hide,variant,gap,flat,.45f);bool cut=path==GrabSlideRules.SeatPath.Cut;float seatFlat=path==GrabSlideRules.SeatPath.Reseat?.45f:flat;
+                float tr=Travel(seatFlat*(rng.NextDouble()<.5?1:-1),(float)rng.NextDouble()*1.2f,.25f+(float)rng.NextDouble()*.6f,.43f,cut);n++;if(cut)cuts++;if(tr<=.45f||cut)ok++;
+            }
+            Console.WriteLine("WAVE_FG slide rule: "+ok+"/"+n+" random grabs with travel <= 0.45 m or a cut ("+cuts+" cuts); FF fear case "+raw.ToString("F2")+" -> "+held.ToString("F2")+" m");
+            Assert(ok==n,"every grab path: root travel <= 0.45 m or a logged frame-0 cut");
+        }
         // 4. The model (natural x3 sets, consecutive plans, critic route): follow cancellations <= 30 % (FF rule ~68 %), >= 2 threats 10-20 s
         //    after an apparition in >= 85 % of sets, <= 50 % of leads at 25-60 s, <= 10 s about 0, share 15-30 %, a >= 120 s gap every run.
         {

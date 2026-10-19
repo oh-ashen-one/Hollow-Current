@@ -252,8 +252,10 @@ namespace HollowCurrent
                 " step_ok="+stepOk+" crawl_ok="+(crawl?crawlOk.ToString():"n/a")+" max_step="+maxStep.ToString("F2")+" max_dt="+maxDt.ToString("F3")+" pop="+pop+" min_eye_skull="+minEye.ToString("F2")+" line_blocked="+blocked+"/"+g.Count+
                 " pass="+pass+" legacy_pass="+(commitOk&&fallOk&&legacyOk)+" legacy_pop="+legacyPop+
                 " seat_cut="+commitCut+" central03="+(central03.HasValue?central03.Value+" x03="+x03.ToString("F2")+" y03="+y03.ToString("F2"):"n/a")+" variant="+variant+
-                " root_jump="+(commitHasPre?Vector3.Distance(commitPreRoot,grabRoot0).ToString("F2"):"n/a")+" root_slide="+rootSlide.ToString("F2")+" frame_cut="+frameCut+" root_ok="+(rootSlide<=.5f));
-            if(rootSlide<=.5f)rootSlideOk++;
+                " root_jump="+(commitHasPre?Vector3.Distance(commitPreRoot,grabRoot0).ToString("F2"):"n/a")+" root_slide="+rootSlide.ToString("F2")+" frame_cut="+frameCut+" root_ok="+(rootSlide<=.45f||commitCut)
+                +" leash_held="+(game&&game.Creature?game.Creature.GrabLeashHeld:0).ToString("F2"));
+            // fg-polish: the brief's bar, every grab path: root_slide <= 0.45 m, or a logged frame-0 seat cut (HC_GRAB_CUT).
+            if(rootSlide<=.45f||commitCut)rootSlideOk++;
         }
         bool grabShotBusy;
         IEnumerator GrabShot((string name,string measures) g)

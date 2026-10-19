@@ -258,4 +258,24 @@ namespace HollowCurrent
             return tied[Math.Min(tied.Count - 1, (int)(Clamp01(u) * tied.Count))];
         }
     }
+    // fg-polish (FF fear: a hideopen crawl slid 0.91 m: its 0.92 m seat was exempt from the reseat and the cut, and FrameClaws eased the
+    // root another 0.5 m): the 0.45 m slide rule on every grab path. Pure; Presence and RulesTests share it.
+    public static class GrabSlideRules
+    {
+        public enum SeatPath { Keep, Reseat, Cut }
+        // The frame-0 seat: an open-floor drop or crawl keeps the horizontal gap beyond maxGap in its root (Reseat); a side, spin or hide
+        // grab is placed (the clip frame, the torn door) and cannot, so a gap over maxGap is a hard cut on frame 0 (Cut); else Keep.
+        public static SeatPath Seat(bool hide, bool variant, float gap, float flatGap, float maxGap)
+        {
+            if (hide || variant) return gap > maxGap ? SeatPath.Cut : SeatPath.Keep;
+            return flatGap > maxGap ? SeatPath.Reseat : SeatPath.Keep;
+        }
+        // The root leash: his rendered root's horizontal travel from frame 0 (dx, dz) is held to leash; returns the part taken back.
+        public static float Leash(float dx, float dz, float leash, out float bx, out float bz)
+        {
+            float m = (float)Math.Sqrt(dx * dx + dz * dz);bx = bz = 0;
+            if (m <= leash || m <= 0) return 0;
+            float k = 1 - leash / m;bx = dx * k;bz = dz * k;return m - leash;
+        }
+    }
 }
