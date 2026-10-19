@@ -283,19 +283,20 @@
  },
  "GiantSkeleton": {
   "budget": 40000,
-  "bytes": 418956,
+  "bytes": 529996,
   "file": "Assets/HollowCurrent/Resources/Castle/GiantSkeleton.fbx",
   "materials": [
    "Castle_BoneGrime",
-   "Castle_BlackStone"
+   "Castle_BlackStone",
+   "Castle_Oxblood"
   ],
   "max": [
-   1.5433,
-   6.1033,
-   2.8274
+   1.5985,
+   6.1035,
+   2.8694
   ],
   "min": [
-   -1.4689,
+   -1.5985,
    -6.01,
    -0.1557
   ],
@@ -304,7 +305,7 @@
    "GiantSkeleton": {
     "max": [
      1.5433,
-     6.1033,
+     6.1035,
      2.8274
     ],
     "min": [
@@ -314,18 +315,36 @@
     ],
     "size": [
      3.0122,
-     12.1133,
+     12.1135,
      2.9831
     ],
-    "tris": 12404
+    "tris": 13804
+   },
+   "Shroud": {
+    "max": [
+     1.5985,
+     2.02,
+     2.8694
+    ],
+    "min": [
+     -1.5985,
+     -1.15,
+     0.5266
+    ],
+    "size": [
+     3.1969,
+     3.17,
+     2.3429
+    ],
+    "tris": 2260
    }
   },
   "size": [
-   3.0122,
-   12.1133,
-   2.9831
+   3.1969,
+   12.1135,
+   3.0252
   ],
-  "tris": 12404
+  "tris": 16064
  },
  "HandRoot0": {
   "budget": 4000,

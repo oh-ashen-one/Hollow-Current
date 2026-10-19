@@ -667,6 +667,14 @@ namespace HollowCurrent
                 rail.name = "Drawbridge parapet"; rail.transform.SetParent(hinge.transform, false);
                 rail.transform.localPosition = new Vector3(side * 1.5f, .45f, -3f); rail.transform.localScale = new Vector3(.2f, .9f, 6f);
                 rail.GetComponent<Renderer>().sharedMaterial = mats["stone"];
+                // wave FD (r13 critic: gate_out_S6 was "a grey bridge"; the solid 0.9 m parapets hid the moat from the gate): the collision wall
+                // stays, the visible parapet is an open timber railing like the causeway's, so the blood water shows between the posts.
+                rail.GetComponent<Renderer>().enabled = false;
+                var railMat = plank ? plank : mats["wood"];
+                foreach (float pz in new[] { -.25f, -1.2f, -2.2f, -3.2f, -4.25f, -5.3f, -6.2f })   // -1.2 and -5.3 carry the deck candles
+                    RailPart(hinge.transform, "Drawbridge rail post", new Vector3(side * 1.5f, .45f, pz), new Vector3(.13f, .9f, .13f), railMat);
+                RailPart(hinge.transform, "Drawbridge top rail", new Vector3(side * 1.5f, .97f, -3.1f), new Vector3(.1f, .09f, 5.9f), railMat);
+                RailPart(hinge.transform, "Drawbridge mid rail", new Vector3(side * 1.5f, .52f, -3.1f), new Vector3(.07f, .07f, 5.9f), railMat);
             }
             // lit candle posts on the four parapet ends: warm light on the deck so the planks read from the far bank
             foreach (int side in new[] { -1, 1 })
@@ -680,6 +688,13 @@ namespace HollowCurrent
             var deckTag = hinge.gameObject.AddComponent<SetPiece>(); deckTag.label = "plank_deck"; deckTag.shot = "S4"; deckTag.explicitCentre = new Vector3(0, -.1f, -3f); deckTag.explicitSize = new Vector3(3.2f, .3f, 6f);
             bridge = hinge.AddComponent<CastleDrawbridge>(); bridge.Hinge = hinge.transform;
             var vis = hinge.AddComponent<ChainVisibility>(); vis.bridge = bridge; vis.chains = chainGate;
+        }
+
+        void RailPart(Transform parent, string name, Vector3 local, Vector3 size, Material m)
+        {
+            var g = GameObject.CreatePrimitive(PrimitiveType.Cube); g.name = name; Release(g.GetComponent<Collider>());
+            g.transform.SetParent(parent, false); g.transform.localPosition = local; g.transform.localScale = size;
+            g.GetComponent<Renderer>().sharedMaterial = m;
         }
 
         // fb-doors, prepare-time evidence: one HC_DOOR_LEAF line per door hinge with the closed leaf's world bounds, how much of it lies inside a
@@ -810,20 +825,37 @@ namespace HollowCurrent
         // ---- exterior -----------------------------------------------------------------------------------
         void Exterior()
         {
-            // blood moat around the walls, banks beyond, bed below
-            Moat(Box("Blood moat front", new Vector3(0, -.6f, -3.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
-            Moat(Box("Blood moat back", new Vector3(0, -.6f, 31.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
-            Moat(Box("Blood moat west", new Vector3(-16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
-            Moat(Box("Blood moat east", new Vector3(16.975f, -.6f, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
+            // blood moat around the walls, banks beyond, bed below. Wave FD (r13 critic item 3): the front moat is a blood lake out to z -16 (x +-24),
+            // crossed by a causeway from the drawbridge leaf to a far landing (CastleExterior.Approach); the far bank starts at the lake's far edge and
+            // the side banks at the castle's front line, so the castle stands on its rock in open water like refs/exterior_sky.png.
+            var lake = Box("Blood lake", new Vector3(0, CastleExterior.WaterY, (CastleExterior.LakeNear + CastleExterior.LakeFar) * .5f), new Vector3(2 * CastleExterior.LakeHalfWidth, .1f, CastleExterior.LakeNear - CastleExterior.LakeFar), "blood", false);
+            Moat(lake);
+            lake.AddComponent<VaultCeiling>();   // unlit water: keep the 120 x 20 m plane out of the lightmap bake (marker component, see HouseLighting.Movable)
+            Moat(Box("Blood moat back", new Vector3(0, CastleExterior.WaterY, 31.025f), new Vector3(39f, .1f, 5.15f), "blood", false));
+            Moat(Box("Blood moat west", new Vector3(-16.975f, CastleExterior.WaterY, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
+            Moat(Box("Blood moat east", new Vector3(16.975f, CastleExterior.WaterY, 14f), new Vector3(5.05f, .1f, 28.9f), "blood", false));
             // bed ring only outside the footprint, so it never intrudes on the crypt
             Box("Moat bed front", new Vector3(0, -2.5f, -3.025f), new Vector3(39f, 1f, 5.15f), "earth");
             Box("Moat bed back", new Vector3(0, -2.5f, 31.025f), new Vector3(39f, 1f, 5.15f), "earth");
             Box("Moat bed west", new Vector3(-16.975f, -2.5f, 14f), new Vector3(5.05f, 1f, 28.9f), "earth");
             Box("Moat bed east", new Vector3(16.975f, -2.5f, 14f), new Vector3(5.05f, 1f, 28.9f), "earth");
-            Box("Far bank", new Vector3(0, -1f, -33f), new Vector3(120f, 2f, 54.8f), "earth");
-            Box("Bank west", new Vector3(-40f, -1f, 14f), new Vector3(41f, 2f, 39.2f), "earth", false);
-            Box("Bank east", new Vector3(40f, -1f, 14f), new Vector3(41f, 2f, 39.2f), "earth", false);
-            Box("Bank rear", new Vector3(0, -1f, 63f), new Vector3(120f, 2f, 54.8f), "earth", false);
+            float farZ = CastleExterior.LakeFar, nearZ = CastleExterior.LakeNear;
+            var banks = new[]
+            {
+                Box("Far bank", new Vector3(0, -1f, farZ - 27.5f), new Vector3(120f, 2f, 55f), "earth"),
+                Box("Bank west", new Vector3(-40f, -1f, (nearZ + 33.6f) * .5f), new Vector3(41f, 2f, 33.6f - nearZ), "earth", false),
+                Box("Bank east", new Vector3(40f, -1f, (nearZ + 33.6f) * .5f), new Vector3(41f, 2f, 33.6f - nearZ), "earth", false),
+                Box("Bank rear", new Vector3(0, -1f, 63f), new Vector3(120f, 2f, 54.8f), "earth", false),
+                Box("Bank south-west", new Vector3(-(CastleExterior.LakeHalfWidth + 60.5f) * .5f, -1f, (nearZ + farZ) * .5f), new Vector3(60.5f - CastleExterior.LakeHalfWidth, 2f, nearZ - farZ), "earth", false),
+                Box("Bank south-east", new Vector3((CastleExterior.LakeHalfWidth + 60.5f) * .5f, -1f, (nearZ + farZ) * .5f), new Vector3(60.5f - CastleExterior.LakeHalfWidth, 2f, nearZ - farZ), "earth", false),
+            };
+            var ground = CastleExterior.Ground();
+            if (ground) foreach (var b in banks) b.GetComponent<Renderer>().sharedMaterial = ground;
+            // the causeway: walking deck (top y 0, flush with the lowered leaf and the far bank) and rail colliders; CastleExterior dresses it
+            float cz0 = CastleExterior.CausewayStart, cz1 = farZ, ch = CastleExterior.CausewayHalf;
+            Box("Causeway walk", new Vector3(0, -.15f, (cz0 + cz1) * .5f), new Vector3(2 * ch, .3f, cz0 - cz1), "wood", true, false);
+            foreach (int sx in new[] { -1, 1 }) Proxy("Causeway rail collision", new Vector3(sx * (ch - .1f), .55f, (cz0 + cz1) * .5f), new Vector3(.2f, 1.1f, cz0 - cz1));
+            CastleExterior.Approach(root);
         }
 
         void Roofline()
@@ -901,6 +933,8 @@ namespace HollowCurrent
             VaultCeiling();
             var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
             skeleton.localScale = CastleLayout.SkeletonScaleVec;
+            DarkenBone(skeleton);   // wave FD: aged, dark bone under the oxblood shroud (the shroud is part of GiantSkeleton.fbx, tools/castle_props_r12.py)
+            FloorSheen();
             SkeletonCollision();
             CheckHallAxis(skeleton);
             foreach (var b in CastleLayout.HallBanners) ArtAt(CastleArt.Names.TapestryPanel, b.Pos, b.Yaw);
@@ -937,6 +971,53 @@ namespace HollowCurrent
                 f.phase = Mathf.Repeat((i + 1) * .6180339f, 1);
                 f.bobAmplitude = .16f; f.bobHertz = .13f + .02f * (i % 3); f.tiltDegrees = 6; f.yawDegreesPerSecond = 5;
             }
+        }
+
+        // Wave FD (r13 critic: the skeleton read as "a tan museum quadruped"): the hall carcass gets a darker, greyer instance of its grimed bone
+        // (albedo x .55/.51/.47, a little less gloss). Only this skeleton uses Castle_BoneGrime; the instance is persisted with the scene.
+        static Material darkBone;
+        static void DarkenBone(Transform t)
+        {
+            var src = CastleArt.Named("Castle_BoneGrime");
+            if (!src) return;
+            if (!darkBone)
+            {
+                darkBone = new Material(src) { name = "Castle_BoneGrime dark (hall skeleton)" };
+                darkBone.color = new Color(.55f, .51f, .47f);
+                if (darkBone.HasProperty("_Glossiness")) darkBone.SetFloat("_Glossiness", .18f);
+            }
+            foreach (var r in t.GetComponentsInChildren<Renderer>())
+            {
+                var slots = r.sharedMaterials; bool changed = false;
+                for (int i = 0; i < slots.Length; i++)
+                    if (slots[i] && slots[i].name.StartsWith("Castle_BoneGrime", System.StringComparison.Ordinal)) { slots[i] = darkBone; changed = true; }
+                if (changed) r.sharedMaterials = slots;
+            }
+        }
+
+        // Wave FD (r13 critic: "there is no floor sheen and no mist"; it must not break the exposure bands): one additive quad over the hall floor
+        // (HollowCurrent/CastleFloorSheen) that mirrors the candle stands, the chandelier and the north windows in wet patches. It adds light only
+        // along the reflection streaks. Transparent queue, so the bake leaves it out of GI; no collider.
+        void FloorSheen()
+        {
+            var shader = Resources.Load<Shader>("Castle/Shaders/CastleFloorSheen");
+            var noise = Resources.Load<Texture2D>("Castle/Textures/Castle_FogNoise");
+            if (shader == null || !shader.isSupported || noise == null) { Debug.LogWarning("[CastleWorld] CastleFloorSheen unavailable; the hall floor keeps its matte stone"); return; }
+            var m = new Material(shader) { name = "Castle hall floor sheen" };
+            m.SetTexture("_MainTex", noise);
+            var src = new[]
+            {
+                new Vector4(-3.4f, 1.65f, 20.1f, .55f), new Vector4(3.4f, 1.65f, 20.1f, .55f), new Vector4(-3.4f, 1.65f, 16.9f, .5f), new Vector4(3.4f, 1.65f, 16.9f, .5f),
+                new Vector4(0f, 3.9f, 22.9f, .7f),                                                       // the chandelier
+                new Vector4(0f, 7.1f, 27.4f, -.55f), new Vector4(-3.7f, 5.8f, 27.4f, -.35f), new Vector4(3.7f, 5.8f, 27.4f, -.35f),   // rose window, north lancets
+            };
+            for (int i = 0; i < src.Length; i++) m.SetVector("_S" + i, src[i]);
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad); q.name = "Hall floor sheen"; Release(q.GetComponent<Collider>());
+            q.transform.SetParent(root, false); q.transform.localPosition = new Vector3(0, .006f, 20.95f);
+            q.transform.localRotation = Quaternion.Euler(90, 0, 0); q.transform.localScale = new Vector3(11.1f, 12.9f, 1);
+            var r = q.GetComponent<Renderer>(); r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off; r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         }
 
         static readonly string[] BookCovers = { "Castle_BookLeatherA", "Castle_BookLeatherB", "Castle_BookLeatherC" };
@@ -1152,6 +1233,34 @@ namespace HollowCurrent
             Prop(Art.Fireplace, new Vector3(-13.1f, 0, 16f), 90);
             Prop(Art.Sideboard, new Vector3(-11f, 0, 21.4f), 180);
             Hide("Dining armoire", new Vector3(-12.5f, 0, 10.3f), 180);
+            DiningCeiling();
+        }
+
+        // Wave FD (r13 critic: "the dining-hall ceiling beam is a stretched, smeared texture"): the ceiling was the underside of the library's
+        // floor slab in world-space Castle_Oak, whose long grain smeared across the 8 m span. A board liner (Castle_OakPlank, 0.3 m boards) under
+        // the slab and dark oak joists every 1.6 m (headroom 2.71 m; none over the fireplace hood, z 14.8-17.2). Render only, no colliders.
+        void DiningCeiling()
+        {
+            var boards = CastleArt.Surface("Castle_OakPlank", CastleArt.SurfaceKind.World, new Color(.85f, .80f, .74f));
+            var joist = CastleArt.Surface("Castle_Oak", CastleArt.SurfaceKind.World, new Color(.55f, .52f, .50f));
+            GameObject Liner(string n, Vector3 c, Vector3 size, Material m)
+            {
+                var g = GameObject.CreatePrimitive(PrimitiveType.Cube); g.name = n; Release(g.GetComponent<Collider>());
+                g.transform.SetParent(root, false); g.transform.localPosition = c; g.transform.localScale = size;
+                if (m) g.GetComponent<Renderer>().sharedMaterial = m;
+                return g;
+            }
+            var liner = Liner("Dining ceiling boards", new Vector3(-9.925f, 2.98f, 16f), new Vector3(7.25f, .02f, 11.4f), boards);
+            if (boards && liner.GetComponent<Renderer>().sharedMaterial.HasProperty("_Tile"))
+            {
+                var m = new Material(boards) { name = "Castle dining ceiling boards" }; m.SetFloat("_Tile", .83f);
+                liner.GetComponent<Renderer>().sharedMaterial = m;
+            }
+            for (float z = 11.0f; z < 21.6f; z += 1.6f)
+            {
+                if (z > 14.8f && z < 17.2f) continue;
+                Liner("Dining ceiling joist", new Vector3(-9.925f, 2.84f, z), new Vector3(7.25f, .26f, .22f), joist);
+            }
         }
 
         void Kitchen()

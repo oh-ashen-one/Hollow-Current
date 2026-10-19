@@ -244,6 +244,7 @@ namespace HollowCurrent
                 foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer
                     +(d.Open?" viewerSide="+(d.SideOf(v.eye)<0?"-z":"+z")+" leafSide="+(d.LeafSideNow()<0?"-z":d.LeafSideNow()>0?"+z":"0")+" swing="+(d.LeafSideNow()!=0&&(d.LeafSideNow()<0)!=(d.SideOf(v.eye)<0)?"away":"toward"):""));
                 if(set=="kit")KitLog(v.id);
+                if(set=="exterior"&&(v.id=="gate_out_S6"||v.id=="battlement_out"))yield return Measure("art_exterior_"+v.id,3);   // wave FD: frame time looking over the lake
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);
                 foreach(var d in gateLeaves)d.Open=false;
@@ -326,9 +327,9 @@ namespace HollowCurrent
         {
             if(samples.Count==0)return;
             samples.Sort();float sum=0;foreach(var s in samples)sum+=s;
-            float mean=sum/samples.Count,p95=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.95f))],max=samples[samples.Count-1];
-            entries.Add("{\"frametime\":\""+id+"\",\"frames\":"+samples.Count+",\"mean_ms\":"+mean.ToString("F2")+",\"p95_ms\":"+p95.ToString("F2")+",\"max_ms\":"+max.ToString("F2")+"}");
-            Log("FRAMETIME "+id+" frames="+samples.Count+" mean="+mean.ToString("F2")+"ms p95="+p95.ToString("F2")+"ms max="+max.ToString("F2")+"ms");
+            float mean=sum/samples.Count,p95=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.95f))],p99=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.99f))],max=samples[samples.Count-1];
+            entries.Add("{\"frametime\":\""+id+"\",\"frames\":"+samples.Count+",\"mean_ms\":"+mean.ToString("F2")+",\"p95_ms\":"+p95.ToString("F2")+",\"p99_ms\":"+p99.ToString("F2")+",\"max_ms\":"+max.ToString("F2")+"}");
+            Log("FRAMETIME "+id+" frames="+samples.Count+" mean="+mean.ToString("F2")+"ms p95="+p95.ToString("F2")+"ms p99="+p99.ToString("F2")+"ms max="+max.ToString("F2")+"ms");
         }
         IEnumerator Run()
         {
@@ -347,8 +348,10 @@ namespace HollowCurrent
             game.Player.enabled=false;
             Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2")+" range="+game.Player.Torch.range.ToString("F1")+" angle="+game.Player.Torch.spotAngle.ToString("F0")+" mode="+game.Player.Torch.renderMode);
             var spots=game.World.Castle;
-            // S1: great hall from the entrance doors at eye level.
-            var e=new Vector3(0,1.64f,14.7f);var t=new Vector3(0,2.6f,27);Place(e,t);
+            // S1: great hall from the entrance doors. Wave FD (r13 critic item 3: "the banquet table is out of shot"): the eye stands on the threshold
+            // at 2.3 m (was 1.64 at z 14.7) so the table, the chairs and the throne read over the shrouded skeleton's back, and the framing keeps the
+            // vault, the rose window and the four north lancets (CPU proof tools/castle_fd_hall_raycast.py: table ~17k px, lancets 160-176 px tall).
+            var e=new Vector3(0,2.3f,14.55f);var t=new Vector3(0,2.3f,27);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S1_great_hall",3);
             yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");SetPiece.Report(game.Player.View,"S1");
             // S2: chapel altar from the nave.
@@ -371,7 +374,11 @@ namespace HollowCurrent
             // from the gate; the bridge constraint is only "far end of the lowered leaf in frame".
             e=S4Eye;float s4Pitch=S4Pitch,s4Fov=S4Fov;string s4="fallback";
             var moonDirs=new[]{("pale",CastleArt.PaleMoonDirection,.19f),("red",CastleArt.RedMoonDirection,.11f)}; // disc radius + 4% margin (r6: pale moon touched the top edge)
-            foreach(float back in new[]{14f,15f,16f,17f,18f})foreach(float height in new[]{3.5f,3f,2.5f})foreach(float f in new[]{90f,95f})
+            // Wave FD (r13 critic item 3): the front moat is a blood lake now and the search starts 22 m out, behind the far landing's ruined gateway
+            // (its piers at x +-4.5 frame the view like the reference's gate posts), so the causeway, the lake, its reflections and the castle's rock
+            // base fill the lower third instead of the castle foot at 14 m (simulated: back 22, eye height 1.64 (standing on the landing), FOV 90,
+            // pitch 28.5, both moons inset, gate base at viewport y 0.18). The old 14-18 m eyes stay as the fallback order.
+            foreach(float back in new[]{22f,20f,18f,16f,14f,15f,17f})foreach(float height in new[]{1.64f,2.5f,3f,3.5f})foreach(float f in new[]{90f,95f})
             {
                 if(s4!="fallback")break;
                 var eye=new Vector3(0,height,-back);
@@ -399,7 +406,8 @@ namespace HollowCurrent
                 moons+=" "+m.Item1+"_moon inFrame="+inFrame+" occluded="+blocked+" viewport=("+vp.x.ToString("F2")+","+vp.y.ToString("F2")+")";
             }
             Log("S4"+moons);
-            yield return new WaitForSecondsRealtime(1.5f);yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);SetPiece.Report(game.Player.View,"S4");
+            yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S4_exterior_sky",3);   // wave FD: the exterior's frame time (lake, braziers)
+            yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);SetPiece.Report(game.Player.View,"S4");
             game.Player.View.fieldOfView=fov;
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5 (round 5): Count Claude crouched on the rose-window ledge (Presence.StageOnRoseLedge,

@@ -202,7 +202,7 @@ def keep():
     # central drum and the tall spire
     drum(k, cx, cz, 2.0, T + .3, T + 5.2, SW, seg=16)
     corbel_ring(k, cx, cz, 2.0, T + 3.2, SD, seg=16, flare=.4, depth=1.0)
-    spire(k, (cx, T + 5.4, cz), 2.25, 11.5, eave=.4, seg=16, rod=1.6)
+    spire(k, (cx, T + 5.4, cz), 2.25, 14.5, eave=.4, seg=16, rod=1.6)   # wave FD: 11.5 -> 14.5
     # lit windows: courtyard/gate face (-z) and back face (+z), then the sides
     zf, zb = cz - h, cz + h
     xs = h - 1.35
@@ -222,7 +222,7 @@ def keep():
 # =================================================================================================================================
 # PIECE 2: gatehouse approach (drum towers, parapet, hood moulding, raised portcullis, banners)
 # =================================================================================================================================
-DRUM_C = ((-8.6, -2.2), (8.6, -2.2)); DRUM_R = 1.7; DRUM_TOP = 9.4
+DRUM_C = ((-8.6, -2.2), (8.6, -2.2)); DRUM_R = 1.7; DRUM_TOP = 13.6     # wave FD (r13 critic: "squat drums"): 9.4 -> 13.6 and a slate pepperpot roof
 
 def pointed(hw, rise, off, y0, n=10):
     """Left half (spring -> apex) of a two-centre pointed arch; offset > 0 gives a constant-thickness band outside it."""
@@ -236,13 +236,17 @@ def gate():
         drum(k, dx, dz, DRUM_R, -1.3, DRUM_TOP - 1.4, ST, seg=20, plinth=.3)
         corbel_ring(k, dx, dz, DRUM_R, DRUM_TOP - 1.4, SD, seg=20, flare=.4, depth=1.4)
         merlons(k, dx, dz, DRUM_R + .3, DRUM_TOP, 12, .95, 1.0, .5, ST, phase=360 / 24)
-        for yb in (3.0, 7.9):
+        for yb in (3.0, 7.0, 10.6):
             k.lathe((dx, 0, dz), [(0, yb), (DRUM_R + .12, yb), (DRUM_R + .12, yb + .2), (0, yb + .2)], 20, SD)   # string courses
+        # pepperpot roof rising inside the merlons; tip kept under elevation 45 deg from the S4 eye (0, 2.5, -22) so the pale moon stays clear
+        spire(k, (dx, DRUM_TOP - .05, dz), DRUM_R - .2, 6.4, eave=.2, seg=20, rod=.9, concave=1.15)
         apo = DRUM_R * math.cos(math.radians(9))
         for j in (13, 14, 15, 16):                              # facets facing the approach (243..297 deg)
             radial_slit(k, dx, dz, apo, (j + .5) * 18, 4.6 if j % 2 else 5.5, .26, 1.5)
+            radial_slit(k, dx, dz, apo, (j + .5) * 18, 8.4 if j % 2 else 9.1, .26, 1.4)
         for j in (9, 10) if dx < 0 else (0, 19):                # and the outer flank
             radial_slit(k, dx, dz, apo, (j + .5) * 18, 5.1, .26, 1.5)
+            radial_slit(k, dx, dz, apo, (j + .5) * 18, 8.8, .26, 1.4)
     # gate wall: kept flush at the top (r12 polish: any parapet, merlon or corbel there sits in front of the pale/red moon from the bridge)
     k.box((0, WALL_TOP_GATE - .4, GATE_Z - .06), (9.6, .22, .22), SD)                                # flush crown course (top 7.2, 0.1 m proud: no projection above the wall line)
     # pointed hood moulding over the rectangular opening; the raised portcullis hangs inside it against a lit tympanum
@@ -275,27 +279,39 @@ def gate():
 # PIECE 3: corner towers, observatory spire, wing roofs
 # =================================================================================================================================
 CR = 1.8                                                      # corner tower radius
-CORNER = {(-1, -1): (-15.3, -1.35, 12.4, 9.0), (1, -1): (15.3, -1.35, 11.4, 7.6), (-1, 1): (-15.3, 29.35, 13.0, 10.6), (1, 1): (15.3, 29.35, 12.0, 8.0)}
+# Wave FD (r13 critic: "towers read as squat drums with cone caps"): (x, z, shaft top, spire height, turret height). Each tower now has a tall
+# shaft, a machicolated parapet, a narrower turret stage (radius TR) with its own slits and a slender spire on the turret. The front pair stays
+# under the moons from the S4 eye (0, 2.5, -22): front-left tip el < 42.5 deg (pale moon az -34), front-right < 38.5 deg (red moon az 42),
+# checked by the --proof moon ray casts; the back pair, 53 m away and far from both moon azimuths, are the tall ones.
+CORNER = {(-1, -1): (-15.3, -1.35, 15.2, 7.4, 2.4), (1, -1): (15.3, -1.35, 13.8, 6.4, 2.2), (-1, 1): (-15.3, 29.35, 19.5, 13.5, 3.6), (1, 1): (15.3, 29.35, 18.0, 12.0, 3.2)}
+TR = 1.2
 OBS_C, OBS_R = (11.4, 25.4), 2.4
 
 def towers():
     k = K("ExtTowers")
     apo = CR * math.cos(math.radians(9))
-    for (sx, sz), (x, z, top, sh) in CORNER.items():
+    tapo = TR * math.cos(math.radians(11.25))
+    for (sx, sz), (x, z, top, sh, th) in CORNER.items():
         drum(k, x, z, CR, -1.3, top - 1.2, SW, seg=20, plinth=.3)
         corbel_ring(k, x, z, CR, top - 1.2, SD, seg=20, flare=.5, depth=1.2)
-        for yb in (3.2, 6.0, 8.8):
+        for yb in (3.2, 6.0, 8.8, 11.6, 14.4):
             if yb < top - 2.0: k.lathe((x, 0, z), [(0, yb), (CR + .12, yb), (CR + .12, yb + .2), (0, yb + .2)], 20, SD)      # string courses
-        merlons(k, x, z, CR + .3, top, 12, .9, 1.0, .5, SW, phase=360 / 24)                    # crenellated parapet, the cone rises inside it
-        spire(k, (x, top + .02, z), CR - .22, sh, eave=.12, seg=20, rod=1.4)
+        merlons(k, x, z, CR + .3, top, 12, .9, 1.0, .5, SW, phase=360 / 24)                    # crenellated parapet round the turret
+        drum(k, x, z, TR, top - .1, top + th, SW, seg=16)                                       # the turret stage
+        k.lathe((x, 0, z), [(0, top + th - .3), (TR + .14, top + th - .3), (TR + .14, top + th - .1), (0, top + th - .1)], 16, SD)
+        spire(k, (x, top + th, z), TR + .02, sh, eave=.16, seg=16, rod=1.0 if sz < 0 else 1.5)
         face_z = (13, 14, 15, 16) if sz < 0 else (3, 4, 5, 6)      # facets facing -z (front pair) or +z (back pair)
         face_x = (9, 10) if sx < 0 else (0, 19)
-        for n, j in enumerate(face_z): radial_slit(k, x, z, apo, (j + .5) * 18, (4.6, 6.6, 8.2, 5.8)[n], .26, 1.6)
+        for n, j in enumerate(face_z):
+            radial_slit(k, x, z, apo, (j + .5) * 18, (4.6, 6.6, 8.2, 5.8)[n], .26, 1.6)
+            if top > 12.5: radial_slit(k, x, z, apo, (j + .5) * 18, (10.6, 12.2, 11.4, 13.0)[n] if top > 16 else (10.4, 11.2, 10.8, 10.0)[n], .26, 1.5)
         for n, j in enumerate(face_x): radial_slit(k, x, z, apo, (j + .5) * 18, (5.8, 8.0)[n], .26, 1.6)
+        for j in ((11, 12) if sz < 0 else (3, 4)):                 # one lit slit on the turret, toward the bridge (front) or the far side (back)
+            radial_slit(k, x, z, tapo, (j + .5) * 22.5, top + .6, .22, 1.1)
     ox, oz = OBS_C                                                # observatory drum on the east roof block (roof top y 11.6)
     drum(k, ox, oz, OBS_R, 11.4, 16.2, SW, seg=16)
     corbel_ring(k, ox, oz, OBS_R, 15.0, SD, seg=16, flare=.45, depth=1.2)
-    spire(k, (ox, 16.3, oz), 2.3, 11.5, eave=.3, seg=16, rod=1.6)
+    spire(k, (ox, 16.3, oz), 2.3, 14.0, eave=.3, seg=16, rod=1.6)        # wave FD: 11.5 -> 14 (more vertical skyline)
     for j in (11, 12, 13): radial_slit(k, ox, oz, OBS_R * math.cos(math.radians(11.25)), (j + .5) * 22.5, 12.8, .3, 1.7)
     def gable(x0, x1, z0, z1, y0, ridge):                         # steep slate gable inside the existing roof parapets
         xm = (x0 + x1) / 2
@@ -344,38 +360,51 @@ def rect_d(x, z):
 WINDOW_CAPS = [("x", -14.45, 5.0, .6, .9), ("x", -14.45, 13.5, .6, .9), ("x", -14.45, 18.5, .6, .9),
                ("z", -.45, -10.0, .6, .9), ("z", -.45, 8.5, .7, 1.3), ("z", -.45, 11.5, .7, 1.3),
                ("z", -.45, 0.0, 6.3, 3.5),            # the gate wall flank carries banners (lowest tip y 4.1) and slits (y 4.9)
-               ("x", 14.45, 3.5, .7, 1.3), ("x", 14.45, 9.5, .7, 1.3), ("z", 28.45, -4.4, .7, 1.7), ("z", 28.45, 4.4, .7, 1.7)]
+               ("x", 14.45, 3.5, .7, 1.3), ("x", 14.45, 9.5, .7, 1.3), ("z", 28.45, -4.4, .7, 1.7), ("z", 28.45, 4.4, .7, 1.7),
+               # wave FD: the outcrop's plateau reaches 5.5 m, so the chapel sunburst (sill 2.9) and the first-floor lancets (sill 4.2) get caps too
+               ("x", 14.45, 6.5, 1.0, 2.8), ("x", -14.45, 5.0, .6, 4.1), ("x", -14.45, 13.5, .6, 4.1), ("x", -14.45, 18.5, .6, 4.1),
+               ("z", -.45, -10.0, .6, 4.1), ("x", 14.45, 18.0, .6, 4.1)]
 
 def apron_height(x, z):
-    """Wave L: a sculpted basalt outcrop under the walls: a ridged plateau (about 2 to 4 m) that stops at an irregular cliff edge 2.4 to 3.8 m
-    from the wall and drops steeply into the moat, with stratified terraces and rubble. The bridge corridor stays open water."""
+    """Wave FD (r13 critic: "the rock base is a few lumps"): the castle stands on a real basalt outcrop. A ridged upper plateau (3 to 5.5 m) against
+    the walls, a first scarp down to a broken terrace, then the main cliff 3.8 to 6.6 m from the wall that drops into the moat, with strata, rubble
+    and buttress spurs every few metres. Wave L's caps still keep it out of every ground-floor opening, and the bridge corridor stays open water."""
     d = rect_d(x, z)
-    n1 = fbm(x * .27, z * .27, 11)
-    ridge = 1 - abs(2 * fbm(x * .5 + 9, z * .5, 17) - 1)
-    edge = 2.4 + 1.4 * n1                                      # distance of the cliff edge from the wall
-    plateau = 2.5 + 1.3 * ridge + .8 * (n1 - .5)
-    t = smooth01(edge - 1.0, edge + .2, d)
-    h = plateau * (1 - t) + (-1.7) * t
-    h += .28 * (fbm(x * 1.7, z * 1.7, 5) - .5) * (1 - .7 * t)
-    if h > 0: h = h * .62 + (math.floor(h * 2.4) / 2.4) * .38                  # strata
+    n1 = fbm(x * .23, z * .23, 11)
+    ridge = 1 - abs(2 * fbm(x * .45 + 9, z * .45, 17) - 1)
+    # buttress spurs: angular ribs along the perimeter, every ~4.5 m, that push the cliff edge out and stand higher
+    along = (x + z) if abs(x) > 14.45 else x
+    spur = max(0.0, math.cos(along * 1.4 + 3.0 * fbm(x * .1, z * .1, 23))) ** 6
+    edge = 3.8 + 2.0 * n1 + 1.3 * spur                         # distance of the cliff edge from the wall
+    front = smooth01(-.45, -2.5, z) * (1 - smooth01(14.0, 17.5, abs(x)))
+    edge *= 1 - .32 * front                                    # the gate face keeps a narrower shelf so the lake reaches the castle in S4
+    terrace = edge - 1.6 - .8 * fbm(x * .6, z * .6, 29)
+    plateau = 3.1 + 1.7 * ridge + 1.0 * (n1 - .5) + 1.2 * spur
+    t1 = smooth01(terrace - .5, terrace + .15, d)               # upper scarp
+    t2 = smooth01(edge - .7, edge + .2, d)                      # main cliff
+    mid = plateau - 1.3 - .7 * fbm(x * 1.1, z * 1.1, 31)
+    h = plateau * (1 - t1) + mid * t1
+    h = h * (1 - t2) + (-2.7) * t2                               # wave FD: the water is at -1.6 now
+    h += .32 * (fbm(x * 1.7, z * 1.7, 5) - .5) * (1 - .7 * t2)
+    if h > 0: h = h * .55 + (math.floor(h * 2.2) / 2.2) * .45                  # strata
     for (axis, line, centre, half, cap) in WINDOW_CAPS:        # keep the openings clear
-        along = x if axis == "z" else z; dist = abs((z if axis == "z" else x) - line)
-        if dist < 4.2:
-            cap_here = cap + (4.0 - cap) * smooth01(half + .3, half + 3.4, abs(along - centre))
+        al = x if axis == "z" else z; dist = abs((z if axis == "z" else x) - line)
+        if dist < 7.6:                                         # wave FD: the whole apron (it reaches 7.4 m out), not just 4.2 m
+            cap_here = cap + (5.5 - cap) * smooth01(half + .3, half + 3.4, abs(al - centre))
             h = min(h, cap_here)
-    if z < 1.0 and abs(x) < 4.2:                                # the bridge corridor and the gate opening (wall z -0.45..0.45) stay clear
-        h = -1.5 + (h + 1.5) * smooth01(2.3, 4.2, abs(x))
+    if z < 1.0 and abs(x) < 4.6:                                # the bridge corridor and the gate opening (wall z -0.45..0.45) stay clear
+        h = -2.5 + (h + 2.5) * smooth01(2.5, 4.6, abs(x))
     return h
 
 def rock():
     k = K("ExtRock"); b = k.b
-    step = .32
-    xs = [-22.0 + i * step for i in range(int(44 / step) + 1)]
-    zs = [-8.5 + j * step for j in range(int(46 / step) + 1)]
+    step = .36
+    xs = [-22.5 + i * step for i in range(int(45 / step) + 1)]
+    zs = [-8.6 + j * step for j in range(int(46.5 / step) + 1)]
     H = {}
     for i, x in enumerate(xs):
         for j, z in enumerate(zs):
-            H[(i, j)] = apron_height(x, z) if rect_d(x, z) <= 4.4 else None
+            H[(i, j)] = apron_height(x, z) if rect_d(x, z) <= 7.4 else None
     V = {}
     def vert(i, j):
         if (i, j) not in V: V[(i, j)] = b._v(U((xs[i], H[(i, j)], zs[j])))
@@ -385,11 +414,13 @@ def rock():
             cs = [(i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1)]
             if any(H[c] is None for c in cs): continue
             if all(rect_d(xs[c[0]], zs[c[1]]) <= 0 for c in cs): continue
-            if max(H[c] for c in cs) < -1.0: continue
+            if max(H[c] for c in cs) < -2.1: continue
             b._f([vert(*c) for c in cs], BS, False, closed=False)
     for (cx, cz, r, hh, seed) in ((-23.5, 4.0, 3.6, 12.5, 1), (-26.5, 15.0, 4.4, 15.5, 2), (-23.8, 26.5, 3.4, 10.5, 3),
                                   (23.8, 3.0, 3.4, 11.0, 4), (26.8, 14.0, 4.5, 14.5, 5), (24.0, 27.0, 3.6, 12.0, 6),
-                                  (-31.0, 8.0, 3.0, 7.5, 7), (31.0, 20.0, 3.0, 8.0, 8)):
+                                  (-31.0, 8.0, 3.0, 7.5, 7), (31.0, 20.0, 3.0, 8.0, 8),
+                                  # wave FD: crags rising from the lake round the castle's front corners and beside the causeway's gorge
+                                  (-19.8, -5.2, 2.5, 7.5, 9), (19.6, -5.8, 2.2, 6.0, 10), (-21.6, -11.0, 2.0, 4.5, 11), (22.0, -12.5, 1.8, 3.6, 12)):
         crag(k, cx, cz, r, hh, seed)
     return k
 
@@ -397,7 +428,7 @@ def crag(k, cx, cz, r, hgt, seed, seg=15, rings=13):
     b = k.b; grid = []
     for i in range(rings + 1):
         t = i / rings
-        y = -1.6 + (hgt + 1.6) * t ** .85
+        y = -2.6 + (hgt + 2.6) * t ** .85
         base_r = r * (1 - .86 * t ** 1.6)
         row = []
         for j in range(seg):
@@ -426,7 +457,11 @@ BACKDROP = dict(far_low=(.20, .25, .38), far_high=(.085, .105, .19), near_low=(.
 BACKDROP_PROOF = {"far": (.14, .175, .28), "near": (.07, .09, .15)}   # what the visible part of each layer averages to
 if "--old-backdrop" in ARGS: BACKDROP_PROOF = {"far": (.028, .04, .07), "near": (.015, .02, .04)}     # calibration only: the r12 first-pass values
 BACK_C = (0.0, 12.0)
-LAYERS = [(0, 47.0, 46.0, -6.0, .85, 21, 240), (2, 44.0, 43.0, -6.0, 1.00, 0, 120), (1, 39.5, 38.5, -6.0, .45, 33, 240)]
+LAYERS = [(0, 47.0, 46.0, -6.0, .85, 21, 480), (2, 44.0, 43.0, -6.0, 1.00, 0, 120), (1, 39.5, 38.5, -6.0, .45, 33, 480)]
+# Wave FD: the S4 eye moved to (0, 2.5, -22) (CaptureMode, behind the far landing), so the north half of each ring is pulled in to stay inside the
+# 75 m far clip from there (far crest z 52 -> 74 m). The south half keeps its radius: the blood lake (z -0.45..-16, x +-24) and the far landing
+# (to z -20.4) lie inside the near ridge everywhere.
+RZ_NORTH = {0: 40.0, 2: 37.5, 1: 34.0}
 
 def ridge_height(a_deg, scale, seed):
     """Crest height above y = 0 for azimuth a (deg from +z toward +x): lower behind the castle, higher on the flanks."""
@@ -434,7 +469,8 @@ def ridge_height(a_deg, scale, seed):
     flank = smooth01(18, 75, abs(((a_deg + 180) % 360) - 180))
     n = fbm(math.cos(a) * 2.2 + seed, math.sin(a) * 2.2 + seed * .3, seed, 4)
     sharp = abs(2 * fbm(a * 5 + seed, seed * .11, seed + 9, 3) - 1)
-    return (5.0 + 20.0 * n * (.35 + .65 * flank) + 7.0 * sharp * flank) * scale * (.55 + .45 * flank)
+    jag = abs(2 * fbm(a * 14 + seed, seed * .7, seed + 3, 3) - 1) ** 2      # wave FD: broken, jagged crests instead of smooth "low-poly hills"
+    return (5.0 + 20.0 * n * (.35 + .65 * flank) + 7.0 * sharp * flank + 4.5 * jag * (.3 + .7 * flank)) * scale * (.55 + .45 * flank)
 
 def backdrop():
     k = K("ExtBackdrop"); b = k.b
@@ -443,7 +479,8 @@ def backdrop():
         for i in range(cnt + 1):
             a = 360.0 * i / cnt; ar = math.radians(a)
             top = ridge_height(a, scale, seed) if lid != 2 else 11.0 + 3.0 * fbm(a * .08, 4, 7)
-            cols.append((BACK_C[0] + rx * math.sin(ar), BACK_C[1] + rz * math.cos(ar), top))
+            rzz = RZ_NORTH.get(lid, rz) if math.cos(ar) > 0 else rz
+            cols.append((BACK_C[0] + rx * math.sin(ar), BACK_C[1] + rzz * math.cos(ar), top))
         for i in range(cnt):
             (x0, z0, t0), (x1, z1, t1) = cols[i], cols[i + 1]
             pts = [b._v(U((x0, ybase, z0))), b._v(U((x1, ybase, z1))), b._v(U((x1, t1, z1))), b._v(U((x0, t0, z0)))]
@@ -452,7 +489,7 @@ def backdrop():
 
 # =================================================================================================================================
 PIECES = [("ExtKeep", keep, 30000), ("ExtGate", gate, 30000), ("ExtTowers", towers, 40000), ("ExtWalls", walls, 20000),
-          ("ExtRock", rock, 40000), ("ExtBackdrop", backdrop, 6000)]
+          ("ExtRock", rock, 60000), ("ExtBackdrop", backdrop, 6000)]
 
 def check_clear():
     """Fail loudly if a tower cylinder enters an interior room, the standing spot or the bridge corridor."""

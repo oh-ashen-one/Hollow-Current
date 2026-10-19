@@ -44,7 +44,8 @@ def main():
     base, smooth, _, _ = cc.MATERIALS["Castle_GlassInk"]
     cc.write_standard_mat(cc.MATS / "Castle_GlassInk.mat", "Castle_GlassInk", base, smooth, 0.0)
     # unlit HDR stained glass: values chosen so the glass reads in a dark chapel without blooming past the moonlight (the bake cannot touch these)
-    for mat, col in (("Castle_GlassAmber", (1.30, 0.80, 0.22)), ("Castle_GlassBlue", (0.30, 0.52, 1.25)), ("Castle_GlassRed", (1.00, 0.13, 0.08))):
+    for mat, col in (("Castle_GlassAmber", (1.30, 0.80, 0.22)), ("Castle_GlassBlue", (0.30, 0.52, 1.25)), ("Castle_GlassRed", (1.00, 0.13, 0.08)),
+                     ("Castle_GlassGreen", (0.20, 0.72, 0.40)), ("Castle_GlassPale", (0.50, 0.58, 0.78))):   # wave FD: green and pale quarries
         ct.write_shader_mat(mat, "CastleEmissive", colors={"_Color": (*col, 1)})
         print("material", mat)
     print("CASTLE_HALL_TEXTURES_PASS")

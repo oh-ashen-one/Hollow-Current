@@ -45,12 +45,14 @@ def window_builder(name, W, H, lights=2):
     return lambda: gothic_window(name, W, H, lights=lights)
 
 def pointed_arch():
-    """Free-standing moulded arch on two piers, replacing the flat round-2 arch: clear span 3.0, springs at 2.0, 0.45 band, 0.5 deep, chamfered
-    on every edge. Origin: floor, centred. Same footprint as before (hall arcade placements are unchanged)."""
+    """Moulded arcade arch: clear span 3.0, springs at 2.0, 0.45 band, 0.5 deep, chamfered on every edge. Origin: floor, centred. Same
+    placements as before. Wave FD (r13 critic: "clustered columns: the piers are square blocks"): the two square legs from the floor to the
+    springing are gone; the arch now springs from the cluster columns' impost rings at 2.0 (the columns stand at the arch ends), so the
+    colonnade reads as clustered shafts instead of 0.45 x 0.5 square piers."""
     hw, t, spring, R = 1.5, .45, 2.0, 3.0
     mid = t / 2
     arc = arch_curve(hw, spring, R, 14, mid)
-    path = [(-(hw + mid), 0, 0)] + [(x, 0, z) for x, z in arc] + [(hw + mid, 0, 0)]
+    path = [(x, 0, z) for x, z in arc]
     h, dd, c = t / 2, .25, .06
     prof = [(-dd + c, -h, False), (dd - c, -h, False), (dd, -h + c, False), (dd, h - c, False), (dd - c, h, False), (-dd + c, h, False), (-dd, h - c, False), (-dd, -h + c, False)]
     b = Builder("PointedArch")
@@ -421,38 +423,95 @@ def sunburst_window():
             else:
                 mat = GL_BLUE if (ri != 2 or u > .55) else GL_RED
             counts[names[mat]] += 1
-            poly = _annular_sector(0, zc, r0, r1, a0, a1, 3, .006, rnd)
-            if rnd.random() < .16:                                     # cracked and sagging: tilted about its own centre
-                am = (a0 + a1) / 2; rm = (r0 + r1) / 2
-                cx, cz = rm * math.cos(am), zc + rm * math.sin(am)
-                with b.xf(about((cx, gy, cz), Rx(rnd.choice((-14, -9, 9, 14))) @ Ry(rnd.uniform(-8, 8)))):
+            # wave FD: each sector is leaded into 2 x 2 pieces (12 mm cames) instead of one flat shard; ink sectors stay whole
+            splits = [(r0, r1, a0, a1)] if mat == GL_INK else [(ra, rb, aa, ab) for (ra, rb) in ((r0, (r0 + r1) / 2 - .006), ((r0 + r1) / 2 + .006, r1))
+                                                                       for (aa, ab) in ((a0, (a0 + a1) / 2 - .006), ((a0 + a1) / 2 + .006, a1))]
+            tilt = rnd.random() < .16                                   # cracked and sagging: tilted about its own centre
+            for (ra, rb, aa, ab) in splits:
+                poly = _annular_sector(0, zc, ra, rb, aa, ab, 2, .004, rnd)
+                if tilt:
+                    am = (aa + ab) / 2; rm = (ra + rb) / 2
+                    cx, cz = rm * math.cos(am), zc + rm * math.sin(am)
+                    with b.xf(about((cx, gy, cz), Rx(rnd.choice((-14, -9, 9, 14))) @ Ry(rnd.uniform(-8, 8)))):
+                        b.poly(poly, gy - th / 2, gy + th / 2, mat, 'XZ')
+                else:
                     b.poly(poly, gy - th / 2, gy + th / 2, mat, 'XZ')
-                counts["tilted"] += 1
-            else:
-                b.poly(poly, gy - th / 2, gy + th / 2, mat, 'XZ')
-    # lower lights: two rectangular lights, mullion + transom in stone, shards on a 4 x 5 grid each
+            if tilt: counts["tilted"] += 1
+    # lower lights: two lights, mullion + transom in stone. Wave FD (r13 critic: "the stained glass is a coarse pixel mosaic of flat blue, red
+    # and yellow squares"): each pane of the light is now leaded glazing, a border of small alternating red and amber squares round a field
+    # of diamond quarries (0.13 x 0.20 m) with 14 mm lead cames showing between them, the quarries in pale, blue, green and a few amber and
+    # ink-painted ones, about a fifth broken out (the sky shows through), a few cracked and sagging.
     zl0, zl1 = .09, zc - rc - .09                              # light spans from the sill to the foot of the circle
     m = .08
     sweep(b, roll_profile(m, bar_d), [(0, 0, .075), (0, 0, zl1 + .03)], DS, N=(0, 1, 0))
     zt = zl0 + (zl1 - zl0) * .56
     b.box((0, 0, zt), (2 * hwi, bar_d * .8, .06), DS)
     b.box((0, 0, zl1 + .02), (2 * hwi, bar_d * .8, .07), DS)
-    cols, rows = 4, 5
+    GL_GREEN, GL_PALE = "Castle_GlassGreen", "Castle_GlassPale"
+    names.update({GL_GREEN: "green", GL_PALE: "pale"}); counts.update(green=0, pale=0)
+    lead = .007                                                # half the came width
+    def clip(poly, x0, x1, z0, z1):                            # Sutherland-Hodgman against the pane rectangle
+        for (k, lim, keep_ge) in ((0, x0, True), (0, x1, False), (1, z0, True), (1, z1, False)):
+            out = []
+            for i in range(len(poly)):
+                a_, b_ = poly[i], poly[(i + 1) % len(poly)]
+                ina = a_[k] >= lim if keep_ge else a_[k] <= lim
+                inb = b_[k] >= lim if keep_ge else b_[k] <= lim
+                if ina: out.append(a_)
+                if ina != inb:
+                    t = (lim - a_[k]) / (b_[k] - a_[k])
+                    out.append((a_[0] + (b_[0] - a_[0]) * t, a_[1] + (b_[1] - a_[1]) * t))
+            poly = out
+            if len(poly) < 3: return []
+        return poly
+    def shrink(poly, d):
+        cx = sum(p[0] for p in poly) / len(poly); cz = sum(p[1] for p in poly) / len(poly)
+        out = []
+        for (x, z) in poly:
+            vx, vz = x - cx, z - cz; L = math.hypot(vx, vz)
+            out.append((x - vx / L * d, z - vz / L * d) if L > 2 * d else (x, z))
+        return out
+    def pane(poly, mat):
+        if len(poly) < 3: return
+        counts[names[mat]] += 1
+        if rnd.random() < .07:                                  # cracked and sagging
+            cx = sum(p[0] for p in poly) / len(poly); cz = sum(p[1] for p in poly) / len(poly)
+            with b.xf(about((cx, gy, cz), Rx(rnd.choice((-12, -8, 8, 12))))):
+                b.poly(poly, gy - th / 2, gy + th / 2, mat, 'XZ')
+            counts["tilted"] += 1
+        else:
+            b.poly(poly, gy - th / 2, gy + th / 2, mat, 'XZ')
     for side in (-1, 1):
         x0, x1 = (-hwi + .02, -m / 2 - .01) if side < 0 else (m / 2 + .01, hwi - .02)
-        for ci in range(cols):
-            for rj in range(rows):
-                zlo, zhi = (zl0 + .02, zt - .04) if rj < 2 else (zt + .04, zl1 - .03)
-                rr = rj if rj < 2 else rj - 2
-                nr = 2 if rj < 2 else 3
-                za = zlo + (zhi - zlo) * rr / nr + .006; zb = zlo + (zhi - zlo) * (rr + 1) / nr - .006
-                xa = x0 + (x1 - x0) * ci / cols + .006; xb = x0 + (x1 - x0) * (ci + 1) / cols - .006
-                u = rnd.random()
-                if u < .24 + (.10 if rj == 0 else 0):
-                    counts["missing"] += 1; continue
-                mat = GL_BLUE if u > .50 else (GL_INK if u > .40 else (GL_AMBER if u > .33 else GL_RED))
-                poly = [(xa, za), (xb, za + rnd.uniform(-.01, .01)), (xb + rnd.uniform(-.008, .008), zb), (xa, zb + rnd.uniform(-.012, .012))]
-                b.poly(poly, gy - th / 2, gy + th / 2, mat, 'XZ')
+        for (z0, z1) in ((zl0 + .02, zt - .04), (zt + .04, zl1 - .03)):
+            bw = .045                                          # border of small squares
+            nb = max(2, int(round((x1 - x0) / bw)))
+            for i in range(nb):
+                xa, xb = x0 + (x1 - x0) * i / nb, x0 + (x1 - x0) * (i + 1) / nb
+                for (za, zb) in ((z0, z0 + bw), (z1 - bw, z1)):
+                    if rnd.random() < .12: counts["missing"] += 1; continue
+                    pane(shrink([(xa, za), (xb, za), (xb, zb), (xa, zb)], lead), GL_RED if i % 2 else GL_AMBER)
+            nz = max(2, int(round((z1 - z0 - 2 * bw) / bw)))
+            for j in range(nz):
+                za, zb = z0 + bw + (z1 - z0 - 2 * bw) * j / nz, z0 + bw + (z1 - z0 - 2 * bw) * (j + 1) / nz
+                for (xa, xb) in ((x0, x0 + bw), (x1 - bw, x1)):
+                    if rnd.random() < .12: counts["missing"] += 1; continue
+                    pane(shrink([(xa, za), (xb, za), (xb, zb), (xa, zb)], lead), GL_AMBER if j % 2 else GL_RED)
+            fx0, fx1, fz0, fz1 = x0 + bw, x1 - bw, z0 + bw, z1 - bw
+            hx, hz = .065, .10
+            row = 0; zz = fz0 - hz
+            while zz < fz1 + hz:
+                xx = fx0 + (hx if row % 2 else 0) - hx
+                while xx < fx1 + hx:
+                    dia = clip([(xx, zz - hz), (xx + hx, zz), (xx, zz + hz), (xx - hx, zz)], fx0, fx1, fz0, fz1)
+                    if len(dia) >= 3:
+                        u = rnd.random()
+                        if u < .19 + (.08 if zz < fz0 + .25 else 0): counts["missing"] += 1
+                        else:
+                            mat = GL_PALE if u > .60 else (GL_BLUE if u > .38 else (GL_GREEN if u > .30 else (GL_INK if u > .24 else (GL_AMBER if u > .215 else GL_RED))))
+                            pane(shrink(dia, lead), mat)
+                    xx += 2 * hx
+                zz += hz; row += 1
     b.notes.update(shards=counts, circle=[round(zc, 3), rc])
     return b
 
@@ -472,10 +531,12 @@ def spec_for(name):
 BUILDERS = [
     ("LancetWindow", window_builder("LancetWindow", 1.2, 1.6), 4000), ("TallLancetWindow", window_builder("TallLancetWindow", 1.4, 3.5), 4000),
     ("ClerestoryWindow", window_builder("ClerestoryWindow", 1.2, 1.8), 4000), ("ObservatoryWindow", window_builder("ObservatoryWindow", 1.6, 2.7), 4500),
+    # wave FD (r13 critic: "lancet windows: none in the hall"): the north wall's lancets flanking the rose window and at the galleries' ends
+    ("HallLancetWindow", window_builder("HallLancetWindow", 1.0, 2.8), 4000), ("GalleryLancetWindow", window_builder("GalleryLancetWindow", 1.0, 4.4), 4500),
     ("PointedArch", pointed_arch, 2000), ("HallColumn", hall_column, 7000), ("HallCorbel", hall_corbel, 1200),
     ("HallPlinth", plinth, 300), ("HallStringCourse", string_course, 300), ("HallVault", hall_vault, 45000),
     ("Candelabra", candelabra, 6000), ("Candlestick", candlestick_asset, 1500), ("LongTable", trestle_table, 12000),
-    ("Pew", pew, 2500), ("Altar", altar, 6000), ("ChapelSunburst", sunburst_window, 8000),
+    ("Pew", pew, 2500), ("Altar", altar, 6000), ("ChapelSunburst", sunburst_window, 16000),
 ]
 
 def write_fbx_meta(name):

@@ -28,9 +28,13 @@ namespace HollowCurrent
         public Color FogColor = new Color(.04f, .05f, .08f);
         public float FogDensity = .03f;
         public bool ExteriorFogProfile = true;
-        public Color ExteriorFogColor = new Color(.30f, .37f, .52f);
-        public float ExteriorFogDensity = .05f;
-        public float ExteriorBelowZ = .5f;   // castle-local z: the gate wall is at 0
+        // Wave FD (r13 critic item 3: the exterior views were "a fog plane"): at .05 the castle front from the bridge (14-22 m) was 40-70 % mist and
+        // the far bank vanished. .034 keeps 57 % at 22 m and the colour is a darker, less milky night blue, so the keep, the rock and the far shore
+        // read as silhouettes against the sky like refs/exterior_sky.png. The gate passage counts as outside from z 1.6 (the gate_out_S6 eye at
+        // z 1.4 looks out through the arch and used to get the near-black hall fog over the whole view).
+        public Color ExteriorFogColor = new Color(.20f, .24f, .34f);
+        public float ExteriorFogDensity = .034f;
+        public float ExteriorBelowZ = 1.6f;   // castle-local z: the gate wall is at 0, the gate passage inner face at 0.45
 
         [Header("Ambient (trilight; gamma-space colours as in the Lighting window)")]
         // was sky (.16,.20,.30), equator (.095,.12,.185), ground (.04,.04,.06), intensity 1; Bellwether: (.105,.13,.16) / (.055,.06,.07) / (.025,.028,.03)
@@ -59,13 +63,15 @@ namespace HollowCurrent
         public Vector2[] FogAreaSizes = { new Vector2(12f, 14f), new Vector2(12f, 14f) };
         public Color[] FogAreaColors = { new Color(.12f, .15f, .21f), new Color(.30f, .27f, .30f) };   // hall was (.34,.42,.58): a bright floor mist; wave FB darkened it
         public int[] FogAreaLayers = { 8, 3 };
-        public float[] FogAreaAlpha = { .12f, .09f };            // per-layer alpha at the floor (fades x0.35 towards the top layer); fc-light: hall .15 -> .12
+        // wave FD (r13 critic: "no mist"): hall alpha .12 -> .16 with HallMistBrightness .5 -> .375, i.e. the same mean lift (colour x alpha .06) and
+        // the exposure band unchanged, but the wisps have more contrast against the clear gaps so the mist reads.
+        public float[] FogAreaAlpha = { .16f, .09f };            // per-layer alpha at the floor (fades x0.35 towards the top layer); fc-light: hall .15 -> .12
         // fc-light (2026-10-18; docs/haunted-castle/handoffs/fc-light.md): the hall floor mist is unlit and alpha-blended, so it lifts every floor
         // pixel under it to luma 15-25 whatever the lights do; in the fb2 captures it was most of the hall's lantern-off brightness (floor bands
         // 0-6 % near-black while the walls were black). Linear multiplier on FogAreaColors[0] (the hall layers only; the crypt mist is untouched).
         // 1 = wave FB mist, .5 = fc-light. Integrator knob: lower it if the hall is still too bright with the lantern off (S1 < 35 % near-black),
         // raise it if hall views go past 55 %.
-        public float HallMistBrightness = .5f;
+        public float HallMistBrightness = .375f;
         public float[] FogAreaHeight = { 1.1f, .40f };           // top layer height above the floor, metres
 
         [Header("Room fog profile (exponential fog while the camera is in the crypt, castle-local y below CryptBelowY)")]

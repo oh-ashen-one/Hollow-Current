@@ -1,17 +1,41 @@
-// Moat water for the Haunted Castle exterior (wave L, hc/exterior-l): a dark blood-tinted mirror, not a flat red strip.
-// Unlit, opaque. Five analytic ripple waves bend the normal (no texture, so tools/castle_exterior_composite.py reproduces it exactly);
-// Schlick fresnel mixes a deep blood body with a reflection of (a) the SkyCastle night sky rebuilt analytically: horizon gradient, the pale
-// and red moons at their sky directions, the aurora ribbon, and (b) a crude ray-vs-box reflection of the castle itself (dark mass), so
-// the water shows moon columns and a dark castle reflection instead of a flat tint. World space = castle-local space (root at the origin).
-// Fog is applied like every other surface. Constants are linear values of the castle_sky.py display colours (display ^ 2.2).
+// Moat / blood-lake water for the Haunted Castle exterior. Unlit, opaque, one plane per moat strip, no extra camera, no render texture.
+// Wave L (hc/exterior-l): dark blood body, five analytic ripple waves (no texture, so tools/castle_exterior_composite.py reproduces it exactly),
+// Schlick fresnel, a reflection of the SkyCastle night sky rebuilt analytically (horizon gradient, both moons, the aurora) and a ray-vs-box
+// reflection of the castle mass.
+// Wave FD (hc/fd-art, r13 critic item 3: "the moat is a grey fog plane, not red and not reflective"):
+//   * blood mirror: the reflected sky is taken as luminance and re-tinted with _BloodTint, so every reflection reads red (R/G well above 1.6)
+//     instead of the blue horizon the r13 water showed; the moon discs keep a little of their own colour;
+//   * reflected skyline: rays that leave the water below the ridge line (CastleBackdrop's ring, a cheap analytic band) reflect the dark ridge
+//     haze, so the far shore and the mountains show in the water as a darker band under a brighter sky reflection;
+//   * art-directed moon glade: a glitter column at the pale moon's azimuth with an effective elevation of _GladeElev degrees (a mirror image of
+//     the real 55 degree moon would only appear 55 degrees below the horizon, outside every eye-level frame). When the moon is behind the camera
+//     (gate_out_S6 looks south, the moons are in the north sky) the glade is placed 21 degrees off the view axis on the moon's side. Documented cheat;
+//   * lamp glints: up to four warm point sources (_Lamp0.._Lamp3: xyz castle-local position, w intensity; the far-bank braziers and the causeway
+//     lamp posts, set by CastleExterior) give the elongated fire reflections of the reference;
+//   * the scene's exponential fog is applied at _FogKeep strength only, so the water does not dissolve into the grey mist.
+// World space = castle-local space (the castle root sits at the origin). Constants are linear values of the castle_sky.py display colours.
 Shader "HollowCurrent/CastleWater"
 {
     Properties
     {
-        _Deep ("Blood body (linear)", Color) = (0.016, 0.0018, 0.004, 1)
+        _Deep ("Blood body (linear)", Color) = (0.050, 0.0034, 0.0040, 1)
         _Reflect ("Reflection strength", Range(0, 4)) = 2.2
         _Ripple ("Ripple slope scale", Range(0, 2)) = 0.55
-        _CastleTint ("Castle reflection (linear)", Color) = (0.012, 0.016, 0.030, 1)
+        _CastleTint ("Castle reflection (linear)", Color) = (0.010, 0.012, 0.022, 1)
+        _RockTint ("Rock outcrop reflection (linear)", Color) = (0.0035, 0.0040, 0.0065, 1)
+        _BloodTint ("Reflection tint (luminance x tint, linear)", Color) = (5.6, 0.45, 0.40, 1)
+        _MoonKeep ("Moon disc own colour kept", Range(0, 1)) = 0.35
+        _Ridge ("Reflected ridge haze (linear)", Color) = (0.0040, 0.0060, 0.0140, 1)
+        _Glade ("Moon glade strength", Range(0, 4)) = 1.0
+        _GladeElev ("Moon glade effective elevation (deg)", Range(2, 60)) = 13
+        _GladeRough ("Moon glade roughness (slope)", Range(0.02, 0.6)) = 0.20
+        _GladeColor ("Moon glade colour (linear)", Color) = (0.62, 0.52, 0.50, 1)
+        _LampColor ("Lamp glint colour (linear)", Color) = (1.0, 0.36, 0.08, 1)
+        _Lamp0 ("Lamp 0 (xyz pos, w intensity)", Vector) = (0, 0, 0, 0)
+        _Lamp1 ("Lamp 1", Vector) = (0, 0, 0, 0)
+        _Lamp2 ("Lamp 2", Vector) = (0, 0, 0, 0)
+        _Lamp3 ("Lamp 3", Vector) = (0, 0, 0, 0)
+        _FogKeep ("Scene fog applied (fraction)", Range(0, 1)) = 0.45
         _Time2 ("Time offset (proofs)", Float) = 0
     }
     SubShader
@@ -25,7 +49,8 @@ Shader "HollowCurrent/CastleWater"
             #pragma multi_compile_fog
             #include "UnityCG.cginc"
 
-            float4 _Deep, _CastleTint; float _Reflect, _Ripple, _Time2;
+            float4 _Deep, _CastleTint, _RockTint, _BloodTint, _Ridge, _GladeColor, _LampColor, _Lamp0, _Lamp1, _Lamp2, _Lamp3;
+            float _Reflect, _Ripple, _Time2, _MoonKeep, _Glade, _GladeElev, _GladeRough, _FogKeep;
             struct appdata { float4 vertex : POSITION; };
             struct v2f { float4 pos : SV_POSITION; float3 wpos : TEXCOORD0; UNITY_FOG_COORDS(1) };
             v2f vert (appdata v)
@@ -48,18 +73,30 @@ Shader "HollowCurrent/CastleWater"
                 WAVE( 0.60, -0.80,  2.1, 0.7, 0.040)
                 return g;
             }
+            // short choppy waves for the glitter only (not used for the body normal, so the mirror stays calm)
+            float2 Chop (float2 p, float t)
+            {
+                float2 g = 0;
+                WAVE( 0.31,  0.95, 19.0, 3.3, 0.010)
+                WAVE(-0.83,  0.56, 23.0, 3.9, 0.008)
+                WAVE( 0.97, -0.24, 29.0, 4.4, 0.006)
+                WAVE(-0.45, -0.89, 37.0, 5.1, 0.005)
+                return g;
+            }
 
             static const float3 MOON_PALE = float3(-0.3207, 0.8192, 0.4755);   // az -34, el 55
             static const float3 MOON_RED  = float3( 0.4973, 0.6691, 0.5522);   // az +42, el 42
 
-            float3 SkyColor (float3 R)
+            float3 SkyColor (float3 R, out float moon)
             {
                 float el = R.y;
                 float3 hor = float3(0.0033, 0.0063, 0.0203), zen = float3(0.00001, 0.00003, 0.00033);
                 float3 c = lerp(hor, zen, smoothstep(0.0, 0.7, el));
                 float a1 = acos(clamp(dot(R, MOON_PALE), -1, 1)), a2 = acos(clamp(dot(R, MOON_RED), -1, 1));
-                c += float3(0.50, 0.57, 0.70) * smoothstep(0.215, 0.185, a1) * 0.9 + float3(0.05, 0.085, 0.26) * exp(-a1 / 0.16) * 0.9;
-                c += float3(0.42, 0.010, 0.004) * smoothstep(0.085, 0.065, a2) * 0.9 + float3(0.20, 0.008, 0.008) * exp(-a2 / 0.07) * 0.8;
+                float d1 = smoothstep(0.215, 0.185, a1), d2 = smoothstep(0.085, 0.065, a2);
+                c += float3(0.50, 0.57, 0.70) * d1 * 0.9 + float3(0.05, 0.085, 0.26) * exp(-a1 / 0.16) * 0.9;
+                c += float3(0.42, 0.010, 0.004) * d2 * 0.9 + float3(0.20, 0.008, 0.008) * exp(-a2 / 0.07) * 0.8;
+                moon = saturate(d1 + d2);
                 float az = atan2(R.x, R.z);
                 float center = radians(31.0) + radians(9.0) * sin(az * 2.3 + 0.7) + radians(2.5) * sin(az * 7.0);
                 float dz = (el - center) / radians(8.0);
@@ -68,7 +105,7 @@ Shader "HollowCurrent/CastleWater"
                 return c;
             }
 
-            // does the reflected ray from P hit the castle's mass? slab test against three boxes (main body, hall roof block, keep)
+            // does the reflected ray from P hit a box? (slab test)
             bool HitBox (float3 P, float3 R, float3 mn, float3 mx)
             {
                 float3 inv = 1.0 / (R + float3(1e-5, 1e-5, 1e-5));
@@ -78,22 +115,79 @@ Shader "HollowCurrent/CastleWater"
                 return tf > max(tn, 0.0);
             }
 
+            // warm glint of one lamp: a tight specular on the rippled normal plus a soft column on the calm surface
+            float Lamp (float4 L, float3 P, float3 V, float3 Nr)
+            {
+                if (L.w <= 0) return 0;
+                float3 d = L.xyz - P; float dist = length(d); d /= dist;
+                float3 H = normalize(V + d);
+                float c = max(H.y, 1e-3), t2 = (1.0 - c * c) / (c * c);
+                float soft = exp(-t2 / (0.11 * 0.11));
+                float sharp = pow(saturate(dot(Nr, H)), 400.0) * exp(-t2 / (0.30 * 0.30));   // glints only along the reflection column
+                return L.w * (soft * 0.55 + sharp * 3.0) * saturate(30.0 / (dist + 6.0));
+            }
+
             half4 frag (v2f i) : SV_Target
             {
                 float3 P = i.wpos;
                 float3 V = normalize(_WorldSpaceCameraPos - P);
-                float2 g = Ripple(P.xz, _Time.y + _Time2) * _Ripple;
+                float t = _Time.y + _Time2;
+                float2 g = Ripple(P.xz, t) * _Ripple;
                 float3 N = normalize(float3(-g.x, 1.0, -g.y));
+                float2 gc = g + Chop(P.xz, t);
+                float3 Nr = normalize(float3(-gc.x, 1.0, -gc.y));
                 float3 R = reflect(-V, N); R.y = abs(R.y);
                 float ndv = saturate(dot(N, V));
                 float F = 0.03 + 0.97 * pow(1.0 - ndv, 5.0);
-                float3 refl = SkyColor(R);
+
+                float moon;
+                float3 sky = SkyColor(R, moon);
+                // reflected skyline: the backdrop ring (ridges and banks) stands about 6-14 degrees above the water from the moat
+                float az = atan2(R.x, R.z);
+                float skyline = 0.10 + 0.06 * sin(az * 3.1 + 0.4) + 0.035 * sin(az * 7.3 + 1.1) + 0.02 * sin(az * 17.0);
+                float under = 1.0 - smoothstep(skyline - 0.012, skyline + 0.012, R.y);
+                sky = lerp(sky, _Ridge.rgb, under);
                 if (HitBox(P, R, float3(-14.45, -3.2, -0.45), float3(14.45, 7.2, 28.45)) ||
                     HitBox(P, R, float3(-6.0, -3.2, 14.0), float3(6.0, 9.2, 28.45)) ||
                     HitBox(P, R, float3(-0.5, -3.2, 17.6), float3(5.1, 32.0, 23.2)))
-                    refl = _CastleTint.rgb;
-                float3 col = _Deep.rgb * (1.0 - F * 0.6) + refl * float3(1.0, 0.86, 0.82) * F * _Reflect;
-                UNITY_APPLY_FOG(i.fogCoord, col);
+                    sky = _CastleTint.rgb;
+                // the rock outcrop round the castle's foot (tools/castle_exterior.py apron, up to ~7 m out and ~5 m high): a dark band under the walls
+                else if (HitBox(P, R, float3(-21.5, -3.0, -6.6), float3(21.5, 3.6, 35.0))) sky = _RockTint.rgb;
+                // the causeway deck and its rails (CastleExterior.Approach): x +-2.3, deck top 0, rails to 1.0, z -16 .. -6.3
+                if (HitBox(P, R, float3(-2.3, -1.6, -16.0), float3(2.3, 1.0, -6.3))) sky = _CastleTint.rgb * 0.6;
+
+                float lum = dot(sky, float3(0.2126, 0.7152, 0.0722));
+                float3 refl = lum * _BloodTint.rgb + sky * moon * _MoonKeep * 3.0;
+                float3 col = _Deep.rgb * (1.0 - F * 0.6) + refl * F * _Reflect;
+
+                // art-directed moon glade (see the header): azimuth of the pale moon, mirrored to the camera's front when it is behind
+                float3 fwd = -UNITY_MATRIX_V[2].xyz;
+                float2 f2 = normalize(fwd.xz + float2(1e-5, 0));
+                float2 m2 = normalize(MOON_PALE.xz);
+                float side = dot(m2, f2);
+                if (side < 0)   // moon behind the camera: put the glade 21 degrees off the view axis, on the moon's side
+                {
+                    float2 r2 = float2(f2.y, -f2.x);
+                    m2 = normalize(f2 + 0.38 * (dot(m2, r2) >= 0 ? r2 : -r2));
+                }
+                float ce = cos(radians(_GladeElev)), se = sin(radians(_GladeElev));
+                float3 Lg = float3(m2.x * ce, se, m2.y * ce);
+                float3 Hg = normalize(V + Lg);
+                float hc = max(Hg.y, 1e-3), ht2 = (1.0 - hc * hc) / (hc * hc);
+                float lobe = exp(-ht2 / (_GladeRough * _GladeRough));
+                float glint = pow(saturate(dot(Nr, Hg)), 160.0);
+                // break the regular chop pattern: only some 12 cm cells sparkle at a time
+                float2 cell = floor(P.xz * 8.0);
+                float spark = step(0.55, frac(sin(dot(cell, float2(12.9898, 78.233)) + floor(t * 3.0) * 1.7) * 43758.5453));
+                col += _GladeColor.rgb * _Glade * (lobe * 0.8 + glint * lobe * 2.2 * (0.35 + spark) + glint * 0.2 * spark * saturate(lobe * 8.0));
+
+                float3 Nl = Nr;
+                float lamps = Lamp(_Lamp0, P, V, Nl) + Lamp(_Lamp1, P, V, Nl) + Lamp(_Lamp2, P, V, Nl) + Lamp(_Lamp3, P, V, Nl);
+                col += _LampColor.rgb * lamps;
+
+                float3 fogged = col;
+                UNITY_APPLY_FOG(i.fogCoord, fogged);
+                col = lerp(col, fogged, _FogKeep);
                 return half4(col, 1);
             }
             ENDCG

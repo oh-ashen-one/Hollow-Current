@@ -43,6 +43,7 @@ VIEWS = [  # name, eye, target (castle-local Unity coords), vertical fov, size
 MOON_EYES = {  # the three the coordinator named, plus the two neighbours the captures used
     "S4": (0, 2.5, -14.0), "bridge_mid": (0, 1.7, -3.45), "bridge_end": (0, 1.7, -6.1),
     "courtyard_capture": (0, 1.64, 7.0), "courtyard_centre": (0, 1.64, 10.0),
+    "S4_fd": (0, 2.5, -22.0),                                     # wave FD: the S4 search's first eye (behind the far landing)
 }
 # SkyCastle (tools/castle_sky.py): azimuth from +z toward +x; angular radii 11 and 4.2 deg, measured from the texture; +.5 deg margin
 MOONS = {"pale": (-34.0, 55.0, 11.5), "red": (42.0, 42.0, 4.8)}

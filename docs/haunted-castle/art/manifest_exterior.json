@@ -1,7 +1,7 @@
 {
  "ExtBackdrop": {
   "budget": 6000,
-  "bytes": 58876,
+  "bytes": 95084,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtBackdrop.fbx",
   "materials": [
    "Castle_ExtBackdrop"
@@ -9,11 +9,11 @@
   "max": [
    47.0,
    34.0,
-   19.0573
+   19.1826
   ],
   "min": [
    -47.0,
-   -58.0,
+   -52.0,
    -6.0
   ],
   "notes": {},
@@ -22,35 +22,36 @@
     "max": [
      47.0,
      34.0,
-     19.0573
+     19.1826
     ],
     "min": [
      -47.0,
-     -58.0,
+     -52.0,
      -6.0
     ],
     "size": [
      94.0,
-     92.0,
-     25.0573
+     86.0,
+     25.1826
     ],
-    "tris": 1200
+    "tris": 2160
    }
   },
   "size": [
    94.0,
-   92.0,
-   25.0573
+   86.0,
+   25.1826
   ],
-  "tris": 1200
+  "tris": 2160
  },
  "ExtGate": {
   "budget": 30000,
-  "bytes": 66124,
+  "bytes": 104220,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtGate.fbx",
   "materials": [
    "Castle_Stone",
    "Castle_StoneDark",
+   "Castle_BlackStone",
    "Castle_ExtWindow",
    "Castle_Iron",
    "Castle_Oxblood"
@@ -58,7 +59,7 @@
   "max": [
    10.8963,
    4.4963,
-   10.4
+   21.15
   ],
   "min": [
    -10.8963,
@@ -71,7 +72,7 @@
     "max": [
      10.8963,
      4.4963,
-     10.4
+     21.15
     ],
     "min": [
      -10.8963,
@@ -81,21 +82,21 @@
     "size": [
      21.7925,
      4.5925,
-     11.7
+     22.45
     ],
-    "tris": 1891
+    "tris": 3207
    }
   },
   "size": [
    21.7925,
    4.5925,
-   11.7
+   22.45
   ],
-  "tris": 1891
+  "tris": 3207
  },
  "ExtKeep": {
   "budget": 30000,
-  "bytes": 122300,
+  "bytes": 122188,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtKeep.fbx",
   "materials": [
    "Castle_StoneWeathered",
@@ -106,7 +107,7 @@
   "max": [
    2.13,
    -15.97,
-   50.8
+   53.8
   ],
   "min": [
    -6.73,
@@ -119,7 +120,7 @@
     "max": [
      2.13,
      -15.97,
-     50.8
+     53.8
     ],
     "min": [
      -6.73,
@@ -129,7 +130,7 @@
     "size": [
      8.86,
      8.86,
-     41.8
+     44.8
     ],
     "tris": 4020
    }
@@ -137,58 +138,58 @@
   "size": [
    8.86,
    8.86,
-   41.8
+   44.8
   ],
   "tris": 4020
  },
  "ExtRock": {
-  "budget": 40000,
-  "bytes": 390156,
+  "budget": 60000,
+  "bytes": 539180,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtRock.fbx",
   "materials": [
    "Castle_Basalt"
   ],
   "max": [
    34.0258,
-   3.7,
+   14.5137,
    15.85
   ],
   "min": [
    -34.0451,
-   -32.14,
-   -1.7241
+   -35.32,
+   -2.7354
   ],
   "notes": {},
   "parts": {
    "ExtRock": {
     "max": [
      34.0258,
-     3.7,
+     14.5137,
      15.85
     ],
     "min": [
      -34.0451,
-     -32.14,
-     -1.7241
+     -35.32,
+     -2.7354
     ],
     "size": [
      68.0709,
-     35.84,
-     17.5741
+     49.8337,
+     18.5854
     ],
-    "tris": 11250
+    "tris": 15052
    }
   },
   "size": [
    68.0709,
-   35.84,
-   17.5741
+   49.8337,
+   18.5854
   ],
-  "tris": 11250
+  "tris": 15052
  },
  "ExtTowers": {
   "budget": 40000,
-  "bytes": 178300,
+  "bytes": 187532,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtTowers.fbx",
   "materials": [
    "Castle_StoneWeathered",
@@ -199,7 +200,7 @@
   "max": [
    17.6864,
    3.7364,
-   29.7
+   38.4
   ],
   "min": [
    -17.6864,
@@ -212,7 +213,7 @@
     "max": [
      17.6864,
      3.7364,
-     29.7
+     38.4
     ],
     "min": [
      -17.6864,
@@ -222,17 +223,17 @@
     "size": [
      35.3728,
      35.4728,
-     31.0
+     39.7
     ],
-    "tris": 6081
+    "tris": 6697
    }
   },
   "size": [
    35.3728,
    35.4728,
-   31.0
+   39.7
   ],
-  "tris": 6081
+  "tris": 6697
  },
  "ExtWalls": {
   "budget": 20000,
