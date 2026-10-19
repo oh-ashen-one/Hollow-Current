@@ -12,7 +12,7 @@ namespace HollowCurrent
     //   tool 2  Grave-ash lantern      brass cage lantern around a violet glass chimney and a glowing core (replaces the UV lamp)
     //   tool 3  Vellum ear-trumpet     flared brass horn under a vellum wrap with leather bindings (replaces the EVP recorder)
     // Everything is procedural: meshes are generated here (units: metres, +z away from the player, +y up, +x right, origin = the mount point
-    // of Investigator.heldTool) and the three textures (dial, vellum, glass glare) are painted at runtime from a hash, so there are no new binary
+    // of Investigator.heldTool) and the three textures (dial, vellum) are painted at runtime from a hash, so there are no new binary
     // assets. Hand transform, interaction and reading behaviour are Investigator's and are unchanged. Vertex budget: MaxVertices per instrument.
     public static class CastleInstrumentArt
     {
@@ -61,22 +61,29 @@ namespace HollowCurrent
         // ------------------------------------------------------------------------------------------------------------------------------
         // Hollow Compass
         // ------------------------------------------------------------------------------------------------------------------------------
-        public const float DialLevel = .46f;   // fc-light2: unlit dial brightness (parchment x this)
+        public const float DialLevel = .68f;   // fc-art2: unlit dial brightness (aged parchment x this; fc-light2 had .46, which still rendered pale grey)
         static Transform BuildCompass(Transform parent, out CompassParts parts)
         {
             var root = NewRoot(parent, "Field kit art / Hollow Compass (period)");
             var visual = new GameObject("Compass visual").transform; visual.SetParent(root, false); visual.localPosition = new Vector3(0, .012f, 0);
             var brass = Brass("Compass brass");
             // fc-light2 (director: "the compass glass is a mirror ... hides the dial and needle"): the held items sit on the equipment layer, which
-            // the lantern does not light (Investigator.Torch excludes layer 30), so the Standard parchment dial rendered as a dark grey disc under
-            // a white glare veil and read as a hand mirror. The dial is now drawn unlit at a dim parchment level (as if catching the lantern's
-            // spill) so the dark needle and the ember pips read on it at a glance; the glass is a faint rim and one soft streak.
-            var dial = Sprite("Compass dial", DialTexture(), new Color(DialLevel, DialLevel * .93f, DialLevel * .80f, 1));   // r1: read pale grey; warmer parchment
-            var glass = Sprite("Compass glass", GlareTexture(), new Color(1, 1, 1, .85f));
+            // the lantern does not light (Investigator.Torch excludes layer 30), so the dial is drawn unlit at a fixed level.
+            // fc-art2 (director: "the dial reads pale grey, not parchment"): fc-light2's captures (fc3/r3 compass_idle) still show a flat neutral
+            // grey disc (about 106,105,104), a grey-blue needle and salmon (veiled) ember pips, so a bluish-white veil lies over the whole face and
+            // the painted parchment never reaches the screen. The only layer between the camera and the dial was the glass dome (a second CastleSprite
+            // submesh with a glare texture), the prime suspect, so the dome is gone (not proven: no engine run was possible in this piece, see the
+            // fc-art2 handoff and the HC_COMPASS_DIAL log): the glass is now a thin opaque rim band just inside the case lip (same vertex count,
+            // no blending over the face). The dial is aged ivory with foxing, ink and numerals are dark umber, and the needle is unlit dark
+            // oxblood with an umber tail so it reads whatever the lighting.
+            var dial = Sprite("Compass dial", DialTexture(), new Color(DialLevel, DialLevel * .97f, DialLevel * .93f, 1));
+            var rim = Glow("Compass glass rim", new Color(.105f, .115f, .125f));
 
             // case, bezel and back: one lathe about the z axis (r, z); front (toward the player) is -z. Counter-clockwise outline, outside on the right.
             var body = CompassBodyGeometry();
-            Part(visual, "Compass case", body.ToMesh("Compass case"), brass, dial, glass);
+            Part(visual, "Compass case", body.ToMesh("Compass case"), brass, dial, rim);
+            Debug.Log("HC_COMPASS_DIAL dial_shader=" + dial.shader.name + " rim_shader=" + rim.shader.name + " dial_level=" + DialLevel.ToString("F2") + " glass_dome=False (fc-art2: translucent veil removed)");
+
 
             // the five reading pips on the dial's lower arc: dark when unlit, glowing ember when the reading reaches them
             var pipMesh = CompassPipGeometry();
@@ -85,9 +92,10 @@ namespace HollowCurrent
             parts.Pips = pipGo.GetComponent<MeshRenderer>();
             parts.SetLevel(0);
 
-            // the needle: a flat kite over the dial, red toward +x (the way UpdateNeedle aims it), bone-coloured tail; rotated about z by Investigator
+            // the needle: a flat kite over the dial, oxblood toward +x (the way UpdateNeedle aims it), umber tail; rotated about z by Investigator
             var needleMesh = CompassNeedleGeometry();
-            var needle = Part(visual, "Hollow compass needle", needleMesh.ToMesh("Compass needle"), Lit("Compass needle red", new Color(.62f, .07f, .05f), .2f, .45f), Lit("Compass needle bone", new Color(.84f, .80f, .68f), 0, .3f));
+            // fc-art2: dark umber needle, unlit (CastleEmissive outputs its colour as is, linear): oxblood tip toward the reading, umber tail
+            var needle = Part(visual, "Hollow compass needle", needleMesh.ToMesh("Compass needle"), Glow("Compass needle oxblood", new Color(.10f, .016f, .010f)), Glow("Compass needle umber", new Color(.034f, .018f, .010f)));
             needle.transform.localPosition = new Vector3(0, 0, -.0085f);
             parts.Needle = needle.transform;
             return root;
@@ -147,10 +155,10 @@ namespace HollowCurrent
                 (.0752f, -.010f), (.0752f, .012f), (.0725f, .0195f), (.052f, .0245f), (.020f, .0265f), (0, .0268f),
             }, 28);
             body.Lathe(1, Vector3.zero, fwd, new (float, float)[] { (0, -.0052f), (.060f, -.0052f) }, 28, true, .060f);   // the dial disc, planar uv
-            body.Lathe(2, Vector3.zero, fwd, new (float, float)[]                                                         // the glass dome (a glare sprite, not a real transparent)
+            body.Lathe(2, Vector3.zero, fwd, new (float, float)[]                                                         // fc-art2: the glass is a thin rim band inside the lip (was a dome over the whole face; same 5 profile points)
             {
-                (0, -.0225f), (.025f, -.0218f), (.045f, -.0200f), (.058f, -.0172f), (.0625f, -.0150f),
-            }, 28, true, .0625f);
+                (.0595f, -.0152f), (.0608f, -.0158f), (.0620f, -.0160f), (.0632f, -.0158f), (.0645f, -.0153f),
+            }, 28);
             // hub over the needle pivot
             body.Lathe(0, Vector3.zero, fwd, new (float, float)[] { (0, -.0133f), (.0020f, -.0132f), (.0055f, -.0120f), (.0075f, -.0098f), (.0075f, -.0085f), (0, -.0085f) }, 12);
             // suspension collar and ring at the top (the ring stands in the XY plane)
@@ -289,29 +297,53 @@ namespace HollowCurrent
             fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
             return Mathf.Lerp(Mathf.Lerp(Hash(xi, yi), Hash(xi + 1, yi), fx), Mathf.Lerp(Hash(xi, yi + 1), Hash(xi + 1, yi + 1), fx), fy);
         }
-        // aged parchment with an inked ring, 24 ticks (long at the quarters) and a red mark at 12 o'clock (the needle's "ahead")
+        // fc-art2: aged ivory parchment (warm, edge-stained, with foxing) with an umber inked ring, 24 ticks (long at the quarters), the numerals
+        // 3 / 6 / 9 and an oxblood mark at 12 o'clock (the needle's "ahead", at the top of the face). Colours are the texture's; DialLevel only dims the unlit material.
+        static readonly int[][] DigitRows =
+        {
+            new[] { 7, 1, 7, 1, 7 },   // 3  (111 / 001 / 111 / 001 / 111)
+            new[] { 7, 4, 7, 5, 7 },   // 6  (111 / 100 / 111 / 101 / 111)
+            new[] { 7, 5, 7, 1, 7 },   // 9  (111 / 101 / 111 / 001 / 111)
+        };
+        // 1 where the numeral `digit` (index into DigitRows) is inked at texture-space (fx, fy) in [-1,1], for a glyph box centred on (cx, cy)
+        static float NumeralInk(int digit, float fx, float fy, float cx, float cy)
+        {
+            const float boxW = .115f, boxH = .185f;
+            float u = (fx - cx) / boxW + .5f, v = (fy - cy) / boxH + .5f;
+            if (u < 0 || u >= 1 || v < 0 || v >= 1) return 0;
+            int col = Mathf.Min(2, (int)(u * 3)), row = Mathf.Min(4, (int)((1 - v) * 5));
+            return ((DigitRows[digit][row] >> (2 - col)) & 1) == 1 ? 1 : 0;
+        }
         static Texture2D DialTexture()
         {
             const int n = 128;
             var tex = new Texture2D(n, n, TextureFormat.RGBA32, true) { name = "HC period dial (runtime)", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-            var ink = new Color(.20f, .13f, .08f); var red = new Color(.46f, .08f, .06f);
+            var ink = new Color(.16f, .095f, .055f); var red = new Color(.40f, .065f, .045f);   // dark umber ink, oxblood mark
+            var foxTint = new Color(.70f, .54f, .36f);                                           // foxing: rust-brown blotches over the ivory
             var px = new Color[n * n];
             for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
                 {
-                    float fx = (x + .5f) / n * 2 - 1, fy = (y + .5f) / n * 2 - 1, r = Mathf.Sqrt(fx * fx + fy * fy);
-                    float stain = .88f + .14f * Noise(x * .09f, y * .09f) + .05f * (Hash(x, y) - .5f);
-                    var c = new Color(.80f, .70f, .50f) * stain * (1 - .38f * Mathf.SmoothStep(.55f, 1.0f, r));
+                    float tx = (x + .5f) / n * 2 - 1, ty = (y + .5f) / n * 2 - 1, r = Mathf.Sqrt(tx * tx + ty * ty);
+                    // The planar dial uv (Mb.Lathe, axis +z) runs u toward mesh -x and v toward mesh -y, i.e. the texture lands turned 180 degrees on the
+                    // face (fc3/r3 showed the 12 o'clock mark at the bottom). All features are laid out in the face's own frame (mx right, my up).
+                    float fx = -tx, fy = -ty;
+                    float stain = .91f + .10f * Noise(x * .09f, y * .09f) + .04f * (Hash(x, y) - .5f);
+                    var c = new Color(.88f, .79f, .57f) * stain * (1 - .34f * Mathf.SmoothStep(.55f, 1.0f, r));   // warm ivory, darker toward the edge
+                    float blot = Mathf.SmoothStep(.78f, .94f, Noise(x * .27f + 17f, y * .27f + 3f));              // foxing patches
+                    float speck = Hash(x / 2 + 41, y / 2 + 7) > .988f ? 1 : 0;                                      // pinprick foxing
+                    c = Color.Lerp(c, c * foxTint, Mathf.Clamp01(blot * .6f + speck * .6f));
                     float ang = Mathf.Atan2(fy, fx) * Mathf.Rad2Deg;
                     float near15 = Mathf.Abs(Mathf.DeltaAngle(ang, Mathf.Round(ang / 15f) * 15f));
                     float q = Mathf.Round(ang / 15f) * 15f;
                     bool quarter = Mathf.Abs(Mathf.Repeat(q, 90f)) < .01f || Mathf.Abs(Mathf.Repeat(q, 90f) - 90f) < .01f;
                     bool eighth = !quarter && Mathf.Abs(Mathf.Repeat(q, 45f)) < .01f;
                     float arc = near15 * Mathf.Deg2Rad * r;   // distance across a tick
-                    bool tickHit = r > (quarter ? .62f : eighth ? .70f : .78f) && r < .90f && arc < (quarter ? .034f : eighth ? .022f : .012f);
+                    bool tickHit = r > (quarter || eighth ? .78f : .82f) && r < .90f && arc < (quarter ? .034f : eighth ? .022f : .012f);   // ticks stop short of the numerals
                     bool ring = Mathf.Abs(r - .94f) < .022f || Mathf.Abs(r - .57f) < .010f;
                     bool mark = r > .46f && r < .60f && Mathf.Abs(Mathf.DeltaAngle(ang, 90)) < 14f * (1 - (r - .46f) / .14f) + 1f;
-                    if (mark) c = red; else if (tickHit || ring) c = Color.Lerp(c, ink, .88f);
+                    bool numeral = NumeralInk(0, fx, fy, .68f, 0) > 0 || NumeralInk(1, fx, fy, 0, -.68f) > 0 || NumeralInk(2, fx, fy, -.68f, 0) > 0;
+                    if (mark) c = red; else if (tickHit || ring || numeral) c = Color.Lerp(c, ink, .92f);
                     c.a = 1; px[y * n + x] = c;
                 }
             tex.SetPixels(px); tex.Apply(true, true); return tex;
@@ -331,26 +363,6 @@ namespace HollowCurrent
                 }
             tex.SetPixels(px); tex.Apply(true, true); return tex;
         }
-        // soft glass glare for the compass face: a faint veil with a diagonal highlight, alpha 0 outside the dome
-        static Texture2D GlareTexture()
-        {
-            const int n = 64;
-            var tex = new Texture2D(n, n, TextureFormat.RGBA32, true) { name = "HC period glass glare (runtime)", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-            var px = new Color[n * n];
-            for (int y = 0; y < n; y++)
-                for (int x = 0; x < n; x++)
-                {
-                    float fx = (x + .5f) / n * 2 - 1, fy = (y + .5f) / n * 2 - 1, r = Mathf.Sqrt(fx * fx + fy * fy);
-                    // fc-light2: no veil (was .05 over the whole face), streaks .30/.16 -> .07/.04, plus a faint rim so the glass still reads as glass
-                    float streak = Mathf.Exp(-Mathf.Pow((fx + fy * .8f + .55f) / .16f, 2)) * .07f * Mathf.Clamp01(1.2f - r);
-                    float streak2 = Mathf.Exp(-Mathf.Pow((fx + fy * .8f + .85f) / .05f, 2)) * .04f * Mathf.Clamp01(1.2f - r);
-                    float rim = Mathf.SmoothStep(.86f, .98f, r) * .16f;
-                    float a = (streak + streak2 + rim) * (r < 1 ? 1 : 0);
-                    px[y * n + x] = new Color(.92f, .96f, 1f, a);
-                }
-            tex.SetPixels(px); tex.Apply(true, true); return tex;
-        }
-
         // ------------------------------------------------------------------------------------------------------------------------------
         // a tiny mesh builder: lathes, sweeps and flat triangles, several submeshes. Triangle winding is derived from the vertex normals, so a
         // primitive is never inside out as long as its normals point outward.
