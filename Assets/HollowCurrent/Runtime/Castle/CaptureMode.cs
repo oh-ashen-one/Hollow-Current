@@ -152,10 +152,15 @@ namespace HollowCurrent
             {
                 // fc-fbx (old-kit axis fix and door leaf thickness): the dining-hall fireplace between its two lancet windows from inside the room
                 // (fireplace, chairs and sideboard were turned; the window tracery is the hall kit), the portrait hall's south wall frames and the
-                // portrait door's canvas, and the closed Hall great doors seen almost edge-on from the hall side (slab inside the frame, no proud leaf).
+                // portrait door's canvas, and the closed Hall great doors seen almost edge-on from the hall side (slab inside the frame, no proud leaf);
+                // fc-art2 adds the telescope and the kitchen hearth.
                 views.Add(("kit_window_inside",new Vector3(-7.2f,1.64f,15.0f),new Vector3(-13.55f,1.4f,16.0f)));
                 views.Add(("kit_portrait",new Vector3(8.0f,4.84f,17.5f),new Vector3(9.4f,4.6f,13.8f)));
                 views.Add(("kit_door_edge",new Vector3(2.7f,1.7f,14.85f),new Vector3(-.6f,1.9f,14.32f)));
+                // fc-art2: the observatory telescope from the south along the strip between the orrery and the stair opening (tube heading to the north window at x 12),
+                // and the kitchen hearth with the west lancet beside it from the north-east corner of the room (window and hearth side by side, no overlap)
+                views.Add(("kit_telescope",new Vector3(11.0f,8.04f,20.3f),new Vector3(11.7f,8.7f,26.8f)));
+                views.Add(("kit_hearth",new Vector3(-10.5f,1.64f,9.2f),new Vector3(-13.3f,1.4f,5.0f)));
             }
             else if(set=="layout")
             {
