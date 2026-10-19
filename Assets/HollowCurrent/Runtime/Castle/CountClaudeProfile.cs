@@ -112,7 +112,9 @@ namespace HollowCurrent
         // Variety (r13: side snatch and drop-spin 0 of 12): each open-floor dive plans its grab from a deck kept across runs
         // (PlayerPrefs hc.castle.grabdeck); the eligible variant furthest below its target share is chosen. Side and spin approaches go
         // to their own start points (her flank / beside-behind her) and fall back to the plain grab if not committed in time.
-        public float DropTargetShare=.40f, SpinTargetShare=.15f, SideTargetShare=.25f, PlanJitter=.35f;
+        // fe2-count: drop .40 -> .45 and side .25 -> .22 (r13 FE2 r2: once side and spin were feasible the deck gave them the hall dives and
+        // drops fell to 2 of 8 open grabs with headroom, against >= 30 %).
+        public float DropTargetShare=.45f, SpinTargetShare=.15f, SideTargetShare=.22f, PlanJitter=.35f;
         public float SpinPlanBearing=80f, PlanLockDistance=6f, VariantCommitTolerance=.7f, VariantGiveUpSeconds=3.5f;
         // fe2-count (r13 FE: side snatch and drop-spin 0 of 29 commits; plans were n/a "flank closed" / "no open start point" in the hall,
         // on the 3 m drawbridge and in the corridors, and four drawbridge drop-spin dives in a row were abandoned right above her):
@@ -125,7 +127,8 @@ namespace HollowCurrent
         //   sample (the start point at his hover height) has a clear line to her eye;
         // - VariantAwayExtra m more before a variant's dive counts as "moving away", VariantCurveSeconds more before "not committed in time";
         // - a planned drop-spin commits at once when he is already above her (origin >= SpinConeMinHeight over her floor, within the
-        //   spin's stand-off + SpinConeSlack of her) and the stand-off spot on his side (or the planned side, if he is overhead) is open;
+        //   spin's stand-off + SpinConeSlack of her: inside RingTolerance, so it is in reach at once; r1 used 0.7 and the cone point at 2.85 m
+        //   then needed a route) and the stand-off spot on his side (or the planned side, if he is overhead) is open;
         // - a dive within DiveSenseRadius of her eye senses her (clear line) whatever his facing (he lost her "outside the sight cone"
         //   0.3 m above her head);
         // - after VariantForceAfterAbandons abandoned variant plans in one hunt, the next dive takes the simplest feasible variant
@@ -133,7 +136,7 @@ namespace HollowCurrent
         public float[] SpinPlanBearings={80f,100f,60f,120f,140f,160f}, SideFrameYaws={0f,20f,-15f,35f};
         public int VariantRouteMaxWaypoints=4, VariantForceAfterAbandons=2;
         public float VariantRouteMaxRatio=1.7f, VariantNearRadius=9f, VariantNearRouteMax=14f, VariantAwayExtra=3f, VariantCurveSeconds=1.5f;
-        public float SpinConeMinHeight=1.8f, SpinConeSlack=.7f, DiveSenseRadius=3f, FloorStep=.4f;
+        public float SpinConeMinHeight=1.8f, SpinConeSlack=.2f, DiveSenseRadius=3f, FloorStep=.4f;
         // fe2-count: a drop-spin's view follows his skull through the hold and the spin at this share of the half field of view
         // (0.55 of 45.7 deg horizontal is about 0.53 of the half width: inside the central 60 %).
         public float SpinTrackMargin=.55f;

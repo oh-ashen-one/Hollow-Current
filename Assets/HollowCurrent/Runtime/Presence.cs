@@ -863,7 +863,7 @@ namespace HollowCurrent
             if(plannedMode<0||!(IsSide(plannedMode)||plannedMode==count.ModeGrabDropSpin))return;
             string from=PlanName(plannedMode);int next=-1;
             var feet=Game.Player.transform.position;
-            huntVariantAbandons++;
+            if(!diveResolved)huntVariantAbandons++;   // fe2-count: a plan already committed this dive is not an abandon
             if(IsSide(plannedMode)&&!why.StartsWith("not committed",System.StringComparison.Ordinal)&&!why.StartsWith("detour",System.StringComparison.Ordinal)&&SidePlanPoint(-planSide,out var other,out float oy,out _)&&DirectTo(other,false,out _))
             {planSide=-planSide;planFrameYaw=oy;next=planSide<0?LeftSideMode:RightSideMode;planLocked=false;}
             else if(diveHigh&&count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")&&DropRoomRing(feet,count.GrabDropClipTop,out _,out _))next=count.ModeGrabDrop;
@@ -1324,7 +1324,7 @@ namespace HollowCurrent
                     chaseRouteFails=0;
                     // fe-count (r13 FD huntcam): a variant's start point that needs a NavMesh detour is dropped for the next feasible grab.
                     // fe2-count: a short bend is accepted (RouteAcceptable: the same rule the plan was made with).
-                    if(VariantPlanned&&!witnessedHide&&route.Count>2)
+                    if(VariantPlanned&&!witnessedHide&&route.Count>2&&spinConeDir==Vector3.zero)
                     {
                         if(!RouteAcceptable(out var rw)){DropPlan("detour: "+rw+" to the start point");replan=0;}
                         else if(!curveLogged){curveLogged=true;Debug.Log("HC_GRAB_VARIANT curved=True plan="+PlanName(plannedMode)+" route="+rw);}
@@ -1393,7 +1393,7 @@ namespace HollowCurrent
             }
             if(!touching&&actor.Head)lastDiveSkull=actor.Head.position;
             if(!touching&&grabMode>=0&&committedUntil>0&&Time.time>=committedUntil)
-            {Debug.Log("HC_COUNT_GRAB released=clip_end mode="+grabMode);contact=0;grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam&&!capturePresentation)EndGrabCam("clip ended");}
+            {Debug.Log("HC_COUNT_GRAB released=clip_end mode="+grabMode);contact=0;grabMode=-1;plannedMode=-1;spinConeDir=Vector3.zero;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam&&!capturePresentation)EndGrabCam("clip ended");}
             // Integrator (r10 rerun, hostile return): a walking player flickered in and out of GrabDistance every frame, so contact
             // reset and he chose a grab 20 times on the bridge without one kill. Contact now decays instead of resetting.
             contact=touching?contact+dt:Mathf.Max(0,contact-dt*.5f);
@@ -1419,7 +1419,7 @@ namespace HollowCurrent
                 if(contact>=Profile.GrabSeconds&&huntClock>Profile.GrabGraceSeconds)Game.Case.Die();
                 if(Game.Case.Terminal)return;
                 // The clip has played and she is still alive (the driver's invulnerability): let go, and no new grab for a while.
-                if(grabMode>=0&&Time.time>=committedUntil&&!clearReach&&!atHideEntrance){Debug.Log("HC_COUNT_GRAB released=clip_end mode="+grabMode);contact=0;grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam)EndGrabCam("clip ended");}
+                if(grabMode>=0&&Time.time>=committedUntil&&!clearReach&&!atHideEntrance){Debug.Log("HC_COUNT_GRAB released=clip_end mode="+grabMode);contact=0;grabMode=-1;plannedMode=-1;spinConeDir=Vector3.zero;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam)EndGrabCam("clip ended");}
                 return;
             }
             if(grabMode>=0&&!committed&&contact<=0){grabMode=-1;committedUntil=-1;recommitBlockedUntil=Time.time+count.RecommitBlock;if(grabCam&&!capturePresentation)EndGrabCam("released");}

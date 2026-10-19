@@ -323,10 +323,12 @@ namespace HollowCurrent
             if(tool==3){yield return Press(i=>i.Fire=true);yield return Wait(4.6f);}
             else{input.FireHeld=true;float end=Time.realtimeSinceStartup+4f;while(Time.realtimeSinceStartup<end&&!game.Case.Evidence.Contains(evidence))yield return null;Reset();}
             // Wave K: an apparition's interference (or a close hunting Count) can suspend recording; wait it out once and retry.
-            if(!game.Case.Evidence.Contains(evidence)&&game.Player.Instrument.StartsWith("INTERFERENCE",StringComparison.Ordinal))
+            // fe2-count (r13 FE2 r2 fear: a rush apparition's interference ran over most of the 4 s hold and had ended by the check, so no retry
+            // happened): any failed recording is retried once, after the interference (if any) has passed.
+            if(!game.Case.Evidence.Contains(evidence))
             {
-                Debug.Log("HC_PLAY record_retry "+what+" after interference");
-                float until=Time.realtimeSinceStartup+20;while(game.Player.Instrument.StartsWith("INTERFERENCE",StringComparison.Ordinal)&&Time.realtimeSinceStartup<until)yield return null;
+                Debug.Log("HC_PLAY record_retry "+what+" instrument="+game.Player.Instrument+" interference="+game.Scares.Interference);
+                float until=Time.realtimeSinceStartup+20;while((game.Scares.Interference||game.Player.Instrument.StartsWith("INTERFERENCE",StringComparison.Ordinal))&&Time.realtimeSinceStartup<until)yield return null;
                 yield return Frames(6);
                 if(tool==3){yield return Press(i=>i.Fire=true);yield return Wait(4.6f);}
                 else{input.FireHeld=true;float end2=Time.realtimeSinceStartup+4f;while(Time.realtimeSinceStartup<end2&&!game.Case.Evidence.Contains(evidence))yield return null;Reset();}
@@ -433,6 +435,13 @@ namespace HollowCurrent
         // begins with an interval roll: [interval, hunt roll, tell roll, false-alarm roll (dice only),
         // warning length (told/false), hunt length (when the hunt starts)]. Holds for any RunDreadMin (30-50)
         // and any Dread at Disturbance entry (RulesTests WaveH "driver queues line up").
+        // fe2-count (r13 FE2 r2 fear: a burst-start apparition at 37 s put the forced false-warning roll inside the 11.5 s apparition gate; the
+        // deferred roll redrew its interval and the queue no longer lined up): forced dice wait until the gate is open.
+        IEnumerator GateOpen()
+        {
+            if(game.Case.ApparitionGateClosed)Debug.Log("HC_PLAY forced_dice wait=apparition_gate");
+            float until=Time.realtimeSinceStartup+15;while(game.Case.ApparitionGateClosed&&Time.realtimeSinceStartup<until)yield return null;
+        }
         void ForceDice(string why,params float[] queue)
         {
             var c=game.Case;float before=c.Dread;c.ForceDread(Mathf.Max(55,c.RunDreadMin+5));foreach(var v in queue)dice.Enqueue(v);
@@ -483,6 +492,7 @@ namespace HollowCurrent
             for(int i=0;i<5;i++){game.Scares.Dread();yield return Wait(2.2f);}
             yield return Step("castle_beats","scareCastle="+Tag("HC_SCARE_CASTLE"));
             // 5. False warning: real dice path (interval 0 -> 2 s, hunt roll 0, no-tell roll 0.9, false-alarm roll 0, warning length 0.5 -> 9 s).
+            yield return GateOpen();
             ForceDice("false warning",0f,0f,.9f,0f,.5f);
             yield return WaitFor(()=>c.Phase==Phase.Warning,20);
             yield return Step("warning","false="+c.FalseWarning+" length="+c.WarningLength.ToString("F1"));
@@ -497,6 +507,7 @@ namespace HollowCurrent
             if(!game.Player.Hidden)Blocker("could not hide before the no-tell hunt");
             yield return Step("hidden",hide?hide.name:"none");
             yield return WaitFor(()=>c.Phase==Phase.Disturbance,60);
+            yield return GateOpen();
             ForceDice("no-tell hunt",0f,0f,0f,.5f); // interval 0, hunt roll 0, no-tell roll 0, hunt length 0.5 -> 38 s
             StartCoroutine(ChannelWatch("no_tell"));
             yield return WaitFor(()=>c.Phase==Phase.Hunt,20);
@@ -507,6 +518,7 @@ namespace HollowCurrent
             yield return Torch(true);
             // 7. Told hunt; he sees her, then she hides in front of him (witnessed: he opens it, the driver blocks the grab).
             yield return WaitFor(()=>c.Phase==Phase.Disturbance,50); // recoveries are 10-40 s
+            yield return GateOpen();
             ForceDice("told hunt",0f,0f,.9f,.9f,.5f,.5f); // interval 0, hunt 0, no-tell 0.9, false alarm 0.9, warning 9 s, hunt 38 s
             yield return WaitFor(()=>c.Phase==Phase.Warning||c.Phase==Phase.Hunt,20);
             yield return Step("told_warning","false="+c.FalseWarning);
