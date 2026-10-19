@@ -245,6 +245,7 @@ namespace HollowCurrent
                     +(d.Open?" viewerSide="+(d.SideOf(v.eye)<0?"-z":"+z")+" leafSide="+(d.LeafSideNow()<0?"-z":d.LeafSideNow()>0?"+z":"0")+" swing="+(d.LeafSideNow()!=0&&(d.LeafSideNow()<0)!=(d.SideOf(v.eye)<0)?"away":"toward"):""));
                 if(set=="kit")KitLog(v.id);
                 if(set=="exterior"&&(v.id=="gate_out_S6"||v.id=="battlement_out"))yield return Measure("art_exterior_"+v.id,3);   // wave FD: frame time looking over the lake
+                if(set=="exterior"&&v.id=="battlement_out"&&ProfileRequested)yield return ExteriorProfile("battlement_out");
                 yield return Shot("art_"+set+"_"+v.id,"(r12 art review)",v.eye,v.target,"fov 72");
                 if(lowered)bridge.Snap(false);
                 foreach(var d in gateLeaves)d.Open=false;
@@ -316,25 +317,110 @@ namespace HollowCurrent
         // interior (12-25 % near-black); "off" (default) is the dark-room case (35-55 %). S5/S6 and the hunt frames always had the lantern on.
         public static bool LanternOn{get{var a=Environment.GetCommandLineArgs();for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-capture-lantern")return a[i+1]=="on";return false;}}
         static string V(Vector3 v)=>v.x.ToString("F2")+","+v.y.ToString("F2")+","+v.z.ToString("F2");
-        // Unscaled frame times for `seconds`: mean / p95 / max in milliseconds.
+        // Unscaled frame times for `seconds`: mean / p95 / max in milliseconds. fe-exterior: plus the engine split per frame from
+        // FrameTimingManager (main thread minus its Present wait, render thread, GPU), so a slow view says what bound it.
         IEnumerator Measure(string id,float seconds)
         {
-            var samples=new List<float>();float end=Time.realtimeSinceStartup+seconds;
-            while(Time.realtimeSinceStartup<end){yield return null;samples.Add(Time.unscaledDeltaTime*1000);}
-            Record(id,samples);
+            var samples=new List<float>();var split=new EngineSplit();float end=Time.realtimeSinceStartup+seconds;
+            while(Time.realtimeSinceStartup<end){yield return null;samples.Add(Time.unscaledDeltaTime*1000);split.Sample(this);}
+            Record(id,samples,split.Describe());
         }
-        void Record(string id,List<float> samples)
+        void Record(string id,List<float> samples,string engine="")
         {
             if(samples.Count==0)return;
             samples.Sort();float sum=0;foreach(var s in samples)sum+=s;
             float mean=sum/samples.Count,p95=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.95f))],p99=samples[Mathf.Min(samples.Count-1,(int)(samples.Count*.99f))],max=samples[samples.Count-1];
-            entries.Add("{\"frametime\":\""+id+"\",\"frames\":"+samples.Count+",\"mean_ms\":"+mean.ToString("F2")+",\"p95_ms\":"+p95.ToString("F2")+",\"p99_ms\":"+p99.ToString("F2")+",\"max_ms\":"+max.ToString("F2")+"}");
-            Log("FRAMETIME "+id+" frames="+samples.Count+" mean="+mean.ToString("F2")+"ms p95="+p95.ToString("F2")+"ms p99="+p99.ToString("F2")+"ms max="+max.ToString("F2")+"ms");
+            entries.Add("{\"frametime\":\""+id+"\",\"frames\":"+samples.Count+",\"mean_ms\":"+mean.ToString("F2")+",\"p95_ms\":"+p95.ToString("F2")+",\"p99_ms\":"+p99.ToString("F2")+",\"max_ms\":"+max.ToString("F2")+(engine.Length>0?",\"engine\":\""+engine.Trim()+"\"":"")+"}");
+            Log("FRAMETIME "+id+" frames="+samples.Count+" mean="+mean.ToString("F2")+"ms p95="+p95.ToString("F2")+"ms p99="+p99.ToString("F2")+"ms max="+max.ToString("F2")+"ms"+engine);
+        }
+        static float P(List<float> v,float q){if(v.Count==0)return 0;var c=new List<float>(v);c.Sort();return c[Mathf.Min(c.Count-1,(int)(c.Count*q))];}
+        static float Mean(List<float> v){if(v.Count==0)return 0;float s=0;foreach(var x in v)s+=x;return s/v.Count;}
+        readonly FrameTiming[] timingBuffer=new FrameTiming[1];ulong timingStamp;
+        sealed class EngineSplit
+        {
+            public readonly List<float> Main=new List<float>(),Render=new List<float>(),Gpu=new List<float>();
+            public void Sample(CaptureMode owner)
+            {
+                if(!FrameTimingManager.IsFeatureEnabled())return;
+                FrameTimingManager.CaptureFrameTimings();
+                if(FrameTimingManager.GetLatestTimings(1,owner.timingBuffer)==0)return;
+                var t=owner.timingBuffer[0];if(t.cpuTimeFrameComplete==owner.timingStamp)return;owner.timingStamp=t.cpuTimeFrameComplete;
+                Main.Add((float)System.Math.Max(0,t.cpuMainThreadFrameTime-t.cpuMainThreadPresentWaitTime));Render.Add((float)t.cpuRenderThreadFrameTime);Gpu.Add((float)t.gpuFrameTime);
+            }
+            public string Describe()=>Main.Count==0?" engine=n/a":" engine_frames="+Main.Count+" main="+Mean(Main).ToString("F2")+"/"+P(Main,.99f).ToString("F2")+"ms render="+Mean(Render).ToString("F2")+"/"+P(Render,.99f).ToString("F2")+"ms gpu="+Mean(Gpu).ToString("F2")+"/"+P(Gpu,.99f).ToString("F2")+"ms (mean/p99)";
+        }
+        // fe-exterior: -hc-exterior-profile. At the S4 eye (and at battlement_out in the exterior art set) the frame is measured with one piece
+        // switched off at a time (CastleExteriorCost groups: water, kit pieces, approach parts, banks, fog, interior; realtime light groups via
+        // cullingMask 0, realtime shadows, occlusion culling), 2 s each after a 0.4 s settle, with the render counters the release player
+        // exposes. Every piece is restored after its variant. Diagnostic only; never in a normal launch.
+        static bool ProfileRequested=>Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-exterior-profile")>=0;
+        IEnumerator ExteriorProfile(string view)
+        {
+            var layout=FindFirstObjectByType<WorldLayout>();var root=layout?layout.transform:null;
+            if(!root){Log("EXTERIOR_PROFILE skipped: no castle root");yield break;}
+            CastleExteriorCost.Log(root,"runtime_"+view);
+            var groups=CastleExteriorCost.Classify(root);
+            var lights=FindObjectsByType<Light>(FindObjectsSortMode.None).Where(l=>l&&l!=game.Player.Torch&&l.type!=LightType.Directional&&CastleExteriorCost.Realtime(l)).ToList();
+            var cam=game.Player.View;
+            var variants=new List<(string name,Action off,Action on)>{("baseline",null,null)};
+            foreach(var kv in groups.OrderBy(k=>k.Key,StringComparer.Ordinal)){var list=kv.Value;variants.Add(("off_"+kv.Key+"("+list.Count+")",()=>{foreach(var r in list)if(r)r.enabled=false;},()=>{foreach(var r in list)if(r)r.enabled=true;}));}
+            foreach(var lg in lights.GroupBy(CastleExteriorCost.LightGroup).OrderBy(g=>g.Key,StringComparer.Ordinal))
+            {
+                var list=lg.ToList();var masks=list.Select(l=>l.cullingMask).ToArray();
+                variants.Add(("off_"+lg.Key+"("+list.Count+")",()=>{foreach(var l in list)if(l)l.cullingMask=0;},()=>{for(int i=0;i<list.Count;i++)if(list[i])list[i].cullingMask=masks[i];}));
+            }
+            var shadows=QualitySettings.shadows;variants.Add(("off_realtime_shadows",()=>QualitySettings.shadows=ShadowQuality.Disable,()=>QualitySettings.shadows=shadows));
+            bool oc=cam.useOcclusionCulling;variants.Add(("off_occlusion_culling",()=>cam.useOcclusionCulling=false,()=>cam.useOcclusionCulling=oc));
+            variants.Add(("baseline_again",null,null));
+            string[] counters={"Batches Count","SetPass Calls Count","Draw Calls Count","Triangles Count","Shadow Casters Count"};
+            Log("EXTERIOR_PROFILE view="+view+" variants="+variants.Count+" lights="+lights.Count+" occlusionData="+(cam.useOcclusionCulling?"camera_on":"camera_off"));
+            foreach(var v in variants)
+            {
+                v.off?.Invoke();
+                yield return new WaitForSecondsRealtime(.4f);
+                var recs=counters.Select(c=>Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Render,c)).ToArray();
+                var sums=new double[counters.Length];int n=0;var samples=new List<float>();var split=new EngineSplit();
+                float end=Time.realtimeSinceStartup+2f;
+                while(Time.realtimeSinceStartup<end)
+                {
+                    yield return null;samples.Add(Time.unscaledDeltaTime*1000);split.Sample(this);
+                    for(int i=0;i<recs.Length;i++)if(recs[i].Valid)sums[i]+=recs[i].LastValue;n++;
+                }
+                var sb=new StringBuilder();
+                for(int i=0;i<counters.Length;i++)sb.Append(" "+counters[i].Replace(" Count","").Replace(" ","_").ToLowerInvariant()+"="+(recs[i].Valid&&n>0?(sums[i]/n).ToString("F0"):"n/a"));
+                foreach(var r in recs)r.Dispose();
+                v.on?.Invoke();
+                Log("EXTERIOR_PROFILE view="+view+" variant="+v.name+" frames="+samples.Count+" mean="+Mean(samples).ToString("F2")+"ms p99="+P(samples,.99f).ToString("F2")+"ms"+split.Describe()+sb);
+            }
+        }
+        // fe-exterior: -hc-moat "_Glade=1.4,_GladeRough=.3,_RedGladeColor=1:.3:.22:1" sets CastleWater properties on the moat material before the
+        // shots (capture only), so one build can compare glint settings; the chosen values are then written into CastleExterior.Moat().
+        static void MoatOverrides()
+        {
+            var a=Environment.GetCommandLineArgs();string spec=null;for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-moat")spec=a[i+1];
+            if(string.IsNullOrEmpty(spec))return;
+            var mats=new HashSet<Material>();
+            foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))foreach(var m in r.sharedMaterials)if(m&&m.shader&&m.shader.name=="HollowCurrent/CastleWater")mats.Add(m);
+            var inv=System.Globalization.CultureInfo.InvariantCulture;var applied=new List<string>();
+            foreach(var kv in spec.Split(','))
+            {
+                var p=kv.Split('=');if(p.Length!=2)continue;string key=p[0].Trim();
+                var parts=p[1].Split(':');
+                foreach(var m in mats)
+                {
+                    if(!m.HasProperty(key))continue;
+                    if(parts.Length==4)m.SetVector(key,new Vector4(float.Parse(parts[0],inv),float.Parse(parts[1],inv),float.Parse(parts[2],inv),float.Parse(parts[3],inv)));
+                    else m.SetFloat(key,float.Parse(parts[0],inv));
+                }
+                applied.Add(key+"="+p[1]);
+            }
+            Log("moat override materials="+mats.Count+" "+string.Join(" ",applied));
         }
         IEnumerator Run()
         {
             while(game.Loading)yield return null;
             var warm=Time.realtimeSinceStartup+3;while(Time.realtimeSinceStartup<warm)yield return null;
+            MoatOverrides();
             if(ArtSet!=null){yield return ArtRun(ArtSet);yield break;}
             Log("screen "+Screen.width+"x"+Screen.height+" quality="+QualitySettings.names[QualitySettings.GetQualityLevel()]+" aa="+QualitySettings.antiAliasing+" shadows="+QualitySettings.shadowResolution+"/"+QualitySettings.shadowDistance+" targetFps="+Application.targetFrameRate+" vsync="+QualitySettings.vSyncCount);
             // S7: title screen with the map picker (Castle selected).
@@ -408,6 +494,7 @@ namespace HollowCurrent
             Log("S4"+moons);
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S4_exterior_sky",3);   // wave FD: the exterior's frame time (lake, braziers)
             yield return Shot("S4_exterior_sky","refs/exterior_sky.png",e,t,"eye "+V(e)+", search "+s4+";"+moons);SetPiece.Report(game.Player.View,"S4");
+            if(ProfileRequested)yield return ExteriorProfile("S4");
             game.Player.View.fieldOfView=fov;
             if(spots!=null&&spots.Drawbridge)spots.Drawbridge.Snap(false);
             // S5 (round 5): Count Claude crouched on the rose-window ledge (Presence.StageOnRoseLedge,

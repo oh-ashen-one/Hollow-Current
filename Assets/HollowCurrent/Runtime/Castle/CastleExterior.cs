@@ -185,11 +185,12 @@ namespace HollowCurrent
         // the backdrop ridges rising behind the shore mist. The lake stops at x +-24 and z -16 so the backdrop ring (tools/castle_exterior.py LAYERS)
         // stands on land everywhere. Render-only dressing except the causeway deck and its rails (CastleWorld.Exterior owns those colliders).
         public const float LakeNear = -.45f, LakeFar = -16f, LakeHalfWidth = 24f, CausewayStart = -6.3f, CausewayHalf = 2.3f, WaterY = -1.6f;
-        // glint sources for CastleWater (xyz castle-local, w intensity): the two far-bank braziers, the two lamps at the causeway's castle end
+        // glint sources for CastleWater (xyz castle-local, w intensity): the two far-bank braziers, the two lamps at the causeway's castle end.
+        // fe-exterior (moat glint test): the castle-end lamps .3 -> .6, so their columns read beside the causeway in battlement_out and S4.
         public static readonly Vector4[] Lamps =
         {
             new Vector4(-3.0f, 1.55f, -23.0f, 1.8f), new Vector4(3.0f, 1.55f, -23.0f, 1.8f),
-            new Vector4(-2.3f, 2.05f, -7.4f, .3f), new Vector4(2.3f, 2.05f, -7.4f, .3f),
+            new Vector4(-2.3f, 2.05f, -7.4f, .6f), new Vector4(2.3f, 2.05f, -7.4f, .6f),
         };
         static Material plank, iron, ground, ember;
 

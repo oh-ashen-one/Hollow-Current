@@ -40,6 +40,11 @@ namespace HollowCurrent
         // z 13.5-29, y 0-9.5). Default = WindowMoonlightFloor, i.e. no change this round; it is the integrator's hall-only fallback knob
         // (BAKED: re-bake the castle after editing it). Chapel, courtyard and crypt windows keep WindowMoonlightFloor / WindowMoonlightCrypt.
         public float HallWindowMoonlight = .30f;    // integ-fc fallback (fc-light table, S1 off 30.3 % < 31): .48 -> .30
+        // fe-exterior (r13 open item 5, hall lantern-off from_doors 32.6 / skeleton_head 31.8 / side_east 30.4 / S1 30.4 against 35-55; the
+        // HallWindowMoonlight knob above measured no change in integ-fc): the other row of fc-light's fallback table, the castle bake ambient.
+        // Linear multiplier on HouseLighting's castle trilight (x0.68 of hc/look3), applied in Tune(root) below, the castle-only bake hook, so
+        // Bellwether's bake receipt is untouched. BAKED: re-bake the castle after editing it. 1 = wave FD.
+        public float BakeAmbientScale = .5f;
         public float MoonDirectional = .10f;         // was .16
         public Color SecondMoonColor = new Color(.62f, .24f, .34f);
         public float SecondMoonDirectional = .035f;  // was .05
@@ -195,7 +200,22 @@ namespace HollowCurrent
             try
             {
                 var t = defaults.AddComponent<CastleLightTuning>();
-                return Tune(root ? root.GetComponentsInChildren<Light>(true) : new Light[0], t);
+                int n = Tune(root ? root.GetComponentsInChildren<Light>(true) : new Light[0], t);
+#if UNITY_EDITOR
+                if (!Application.isPlaying)
+                {
+                    // fe-exterior: the castle bake ambient knob and the castle's occlusion data (CastleExteriorCost.BakeOcclusion) ride on this
+                    // castle-only hook; HouseLighting has already set the castle trilight and saves the scene after the bake.
+                    var k = Mathf.Max(0f, t.BakeAmbientScale);
+                    Color Scale(Color c) { var l = c.linear * k; return new Color(l.r, l.g, l.b, c.a).gamma; }
+                    RenderSettings.ambientSkyColor = Scale(RenderSettings.ambientSkyColor);
+                    RenderSettings.ambientEquatorColor = Scale(RenderSettings.ambientEquatorColor);
+                    RenderSettings.ambientGroundColor = Scale(RenderSettings.ambientGroundColor);
+                    Debug.Log("HC_CASTLE_BAKE_AMBIENT scale=" + k.ToString("F2") + " sky=" + RenderSettings.ambientSkyColor + " equator=" + RenderSettings.ambientEquatorColor + " ground=" + RenderSettings.ambientGroundColor);
+                    CastleExteriorCost.BakeOcclusion(root);
+                }
+#endif
+                return n;
             }
             finally { if (Application.isPlaying) Destroy(defaults); else DestroyImmediate(defaults); }
         }

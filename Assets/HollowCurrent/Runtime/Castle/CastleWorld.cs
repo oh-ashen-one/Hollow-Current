@@ -176,6 +176,7 @@ namespace HollowCurrent
             BuildNavigation();
             Debug.Log("HC_ARCH_KIT wall and floor tiles placed=" + tileCount + " (stone variants, art-backed veneer; colliders unchanged)");
             CastleKitAxis.Log(root);   // fc-fbx: HC_KIT_AXIS old-kit axis audit (tools/check_castle_kit.py)
+            CastleExteriorCost.Log(root, "prepare");   // fe-exterior: HC_EXTERIOR_COST per exterior piece (runtime fill lights are not built yet)
         }
 
         // ---- materials and primitives -----------------------------------------------------------------
