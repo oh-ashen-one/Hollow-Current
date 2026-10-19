@@ -1,3 +1,101 @@
+# HANDOFF: session close. Wave FG integrated, two r15 fixes, built and proved (fg-integ). Read this section first.
+
+Branch `haunted-castle` = `hc/integ-fg`, pushed. Integrator: Opus 5.5 (piece fg-integ), main clone, 2026-10-19. **This closes the session**: no piece branch is open, nothing of mine is running, the GPU slot table is 0/2.
+- PlayerPrefs restored: `unity.Bellwether Field Office.Hollow Current` `hc.castle.runs` = `L,E,L` (never changed); `com.bellwether.hollowcurrent` put back from `L,E,L` to `E,M,B`; `hc.castle.grabdeck` deleted (absent at the start, so the runs used a fresh-player deck carried across runs). Backups: session scratchpad `fginteg/{u,c}.backup.plist`.
+- `docs/haunted-castle/CODEX_HANDOFF.md` is still uncommitted and untouched (Codex's). `rounds/r13/critic/`, `r14/critic/`, `r15/critic/` and `rounds/r14/captures/fg-art-offline/` stay untracked.
+- Worktrees: `.wt/fg-polish` removed (branch `hc/fg-polish` stays on origin). Left in place, all Codex's: `.wt/wallart-art`, `.wt/codex-ui`, `.wt/codex-variants`.
+- `main` untouched. Merging `haunted-castle` to `main` needs the owner.
+
+**Merged on `hc/integ-fg` (from `haunted-castle` `4e65cc1`, code `9269090` + r15 critic report):** hc/fg-polish `35b531b` (merge `5f4d6ee`, clean). Handoff: `docs/haunted-castle/handoffs/fg-polish.md` (owed apparition follow-ups, blind dives keep their side/spin plan + side balance bonus, 0.45 m seat cut + 0.43 m root leash on every grab path, S1 capture eye at gallery height, corrected moat masks, calmer water).
+
+**Integrator changes: the two r15 required fixes** (`a02b5b6`)
+1. **Doors close with E from the opening** (r15 critic 8f: 8/8 doorproof closes needed `close=direct`; a 155 deg leaf lies flat on the wall, out of the interact ray).
+   - `CastleWorld.BuildDoor`: every castle leaf except the portrait door gets a static `<leaf> / opening` door volume: a trigger filling that leaf's half of the doorway through the whole wall (`OpeningDepth` 1.1 m), on layer 2 (Ignore Raycast), no renderer. Sight lines, the Count's queries (all default-mask or `Ignore` queries), the nav bake (skips triggers) and the swing probe never see it. 22 volumes in the prepared scene.
+   - `Investigator.FocusRay`: only when nothing else is focused, the nearest layer-2 door volume the ray meets before the first solid hit is the focus. Bellwether has no layer-2 interactables: focus unchanged, `bellwether_fuzz` identical.
+   - `Door.Toggle(by)`: the castle logs `HC_DOOR_STATE ... state=closed closed_by=E|direct`. `Interactable.Use` passes `"E"`.
+   - `doorproof`: after each opening she looks at the middle of that leaf's half of the doorway and presses E; logs `HC_DOORPROOF close=E via=leaf|opening`; a press that does not close is a close failure (`close=direct close_fail`). PASS now needs `closes >= 8` and `close_failures=0`. Each closed leaf is captured (`doorproof_<door>_<side>_closed`).
+   - The cold route never presses E on an already open door (an open doorway is focusable now).
+2. **Castle UI says lantern / resonance box** (r15 critic: "Flashlight" and "radio" leak into the castle UI). Castle only, Bellwether strings unchanged:
+   - Settings `Lantern level`; settings footer `F lantern · R resonance box`; loading footer; HUD pill `LANTERN`; help hint `R RESONANCE BOX` (pad `L2/LT RESONANCE BOX`); hide prompt `LANTERN OFF`.
+   - Castle `CaseBook`: `Resonance box / ...` cards (interference, hunt), kit label `..., resonance box`, lost card `Douse the lantern and still the resonance box.` `FieldMessages.ShowCard` also shows `Resonance box / ` cards.
+   - Tests: `RulesTests.WaveFGTests` asserts no castle CaseBook string contains radio/flashlight, castle cards still show, Bellwether's unchanged; `check_castle_scares.py` fails any Interface.cs literal naming flashlight/radio without a castle alternative on its line. `tools/docui_journal_mock.py` settings slider renamed to match.
+   - Not renamed (not player-facing): asset/role keys (`FieldRadio`, `held_radio`, `HC_INSTRUMENTS radio=`), the `radio` sound cue id.
+
+**Build:** `Builds/macOS/Hollow Current.app` (both maps), Assembly-CSharp.dll **2026-10-19 17:43:53**, built right after bake commit `0a15d1b` (17:43:37). Both maps re-baked (shared code changed). All proofs below ran on it.
+
+**Prepare log** (`.castle-bake-fg.log`): `HC_KIT_AXIS_SUMMARY problems=0`, `HC_DOOR_LEAF_SUMMARY doors=23 problems=0` (both stages), `HC_CANDLES floating=0 PASS`, `HC_CHAPEL_PROPS overlap=False PASS`, `HC_TELESCOPE clear=True`, `HC_HEARTH window_overlap=False`, `HC_HIDE_SPOTS_SUMMARY audited=8 focusable=8 failed=[]`, `HC_SKELETON PASS`, `HC_HALL_AXIS PASS`, `HC_CHAPEL`, `HC_EXTERIOR_AXIS ok`; Castle 8 maps / 197 probes / 17 reflections, Bellwether 4 / 124 / 9; only the 7 known portrait `HC_MISSING_ART`; 0 compile errors/exceptions.
+
+**Static checks (HEAD):** check_source PASS (**1615** assertions incl. rules tests; known CS0649 warnings), check_castle_scares PASS (incl. the new string lint), check_audio_keys OK (69), check_audio_quality OK, check_throwables_scene rc 0, check_castle_doors OK (23 leaves), check_castle_kit OK, bellwether_fuzz **identical** (`ee3b74dc...fd68f2f`), check_voice_logs PASS (8 castle logs, all `from=head`; escape `--require-evp` PASS).
+
+**Proofs** (logs `.playtest-fg-<run>.log`, frames `docs/haunted-castle/rounds/r15/captures/fg/<run>/`, local, gitignored). Runs: doorproof, natural x3, cold x2, fear, huntcam, siege_held x1 (`-hc-hold-dread 60`), escape, settings, Bellwether `-hc-verify` and `-hc-ui-only`; captures rooms off/on, exterior, lantern. No tuning round (director's order): numbers as they are.
+
+| Proof | Band | FG (this build) | Verdict |
+|---|---|---|---|
+| **Door close by E** (doorproof) | 0 `close=direct` | `HC_DOORPROOF toward=0 toggles=8 unfocused=0 closes=8 close_failures=0 leaves=4 PASS`; 8/8 `close=E via=opening`, `HC_DOOR_STATE closed_by=E` x8 (the one `closed_by=direct` is the driver's re-close of an auto-open before a side) | **PASS** |
+| Castle strings | no Flashlight/radio | settings frame shows `Lantern level`, footer `F lantern · R resonance box`; HUD `LANTERN`, `R RESONANCE BOX` (doorproof frames) | **PASS** |
+| Threats 10-20 s after an apparition (natural x3, pooled) | >= 2 | **4** (1 / 2 / 1) | PASS |
+| Threats 25-60 s / within 10 s | <= 50 % / <= 35 % | 0/8 / 0/8 | PASS |
+| Follow-ups | cancelled <= 30 % | drawn 5, owed 4, adopted 3, fired 3, **cancelled 2 = 40 %** (both `cancelled=phase_Containment`: the case ended, not grace); `HC_SCARE_WANTED reason=owed_follow` x3, `adopted` x3, `lapsed` 0 | **FAIL** on the letter; no grace/hold cancel (FF: 7/9 by grace) |
+| Share / longest gap / first hunts | 15-30 % / >= 120 s | 20.3 / 26.5 / 21.6 %; 132 / 121 / 193 s; first hunts 133 / 89 / 194 (spread 105 s) | PASS |
+| Apparitions < 480 s / CV pooled | >= 4 / >= 0.5 | 5 / 5 / 5; CV 0.60 (17 gaps) | PASS |
+| Cold x2 | gate=cap, first hunt ~155-164 s | `gate=cap firstDocAt=-1`, first hunt 159.7 / 160.5 s, warning lead 9.7 / 10.5 s, `HC_PLAY_COLD pass=True` x2 | PASS |
+| Grab mix (natural x3 + cold x2 + huntcam + fear, 17 commits) | m10 >= 1, m11 >= 1, m9 <= 40 % | m8 5, m9 6 (**35 %**), m10 3, m11 2, **m12 1** (fear Return drop-spin) | PASS (drop-spin back; r15 had 0) |
+| Side planning | report | `stage=blind` x1 (natural3, R, flew 5.49 m on to the start point); `(+0.6 balance)` scores x5; flank yaw reasons mostly `line` / `floor` on both sides (L open 6, R open 6 of all tried yaws) | report |
+| Dives unresolved / torch dive share | 0 / <= 30 % | 0 in every run / 6 of 22 natural dives = 27 % | PASS |
+| Dive misses (natural x3) | | 16 misses over 22 dives: 8 `recommit blocked: released 1.5-1.9 s ago` (driver invulnerability), 4 `abandoned: the hunt ended`, 3 `moving away`; 0 `path blocked by ... Ledger` | note |
+| Root slide (every grab, 27) | root_slide <= 0.45 or seat cut | **26/27**: natural1 drop `root_slide=0.46 root_ok=False` (`HC_GRAB_LEASH over=skull_push travel=0.44`); seat cuts 4 (side 0.46 / 0.85, fear hideopen 1.11); leash held 0.02 m on most dive grabs | **FAIL** by 0.01 m on one grab |
+| Commit vs last dive sample (r15 test 3) | <= 0.5 m | 0.23, 0.58-0.71, 0.94 (10/11 over) | FAIL (not in FG scope) |
+| Hide grabs (grab_luma) | t 0.16 mean >= 18, box >= 5 % | t 0.16: 4/4 PASS (30.2, 29.0, 31.3, fear 46.6); **t 0.01: 0/4** (5.5 x3, 11.3) | t 0.16 PASS; t 0.01 FAIL (r15 test) |
+| Grab continuity / HUD / first frame | | every run `continuity n/n`, `hudZero n/n`, `firstFrameVisible n/n`, cam min 0.65 | PASS |
+| Hidden survival (siege_held x1) | <= 85 % | 3/6 = 50 % (one siege only) | PASS (low; one run) |
+| S1 lancets / moon / piers / floor mirror | >= 3 / 1 / >= 2 / >= 80 px | 6 lancets, moon 489 px (west), piers 2.47 / 2.89, mirror 370 px | PASS |
+| **S1 table lantern off** | >= 15k px | **3,089** (10,416 >= 8; proxy 27,773 visible): est. was 18-19k | **FAIL**, worse than FF 10.8k |
+| S4 sd right / left | <= 12 | **11.1 / 10.5** (both rooms captures) | PASS |
+| Seams battlement_out / bridge_left | <= 25 | **9.3 / 2.5** | PASS |
+| S4 red moon / pale glade / R/G | | 7,978 px / 234 px / 8.15 | PASS |
+| Frame time p99 | <= 16.7 | S1 11.69 / 11.68, S4 11.13 / 11.55 (rooms off / on) | PASS (checker WARNs only because the frame-time lines sit in `.playtest-fg-rooms_*.log`, not `player.log`) |
+| Exposure lantern off | 35-55 | S1 **42.3** (FF 30.2: the new eye), S2 41.9, S3 35.9 | PASS |
+| Exposure lantern on | 12-25 | S1 16.4, S2 21.6, S3 16.7 | PASS |
+| fear / huntcam / escape | | fear WON 0 blockers; huntcam `dead=True`, commit m8; escape WON 0 blockers | PASS |
+| UI | overlaps 0 | `HC_DOC_LAYOUT overlaps=0` on settings, journal, ending | PASS |
+| Bellwether | | `-hc-verify`: `HC_NATIVE_ROUTE_PASS`, 64 PASS, 0 FAIL, `HC_PERF pass=False engine_cost_over_16ms=112 (max 33.2)` (known); `-hc-ui-only` reached `ui-journal-ready`, closed by SIGTERM at its timeout (as FD-FF) | as before |
+| Exceptions | 0 | 0 in every log | PASS |
+
+`tools/check_art_views.py captures/fg/{rooms_off,rooms_on,ext}`: `HC_ART_VIEWS pass=False fail=1 warn=1 tests=22` (fail: S1 table; warn: frame-time lookup). FF gave fail=6.
+
+**Looked at (frames)**
+- S1 (new gallery-height eye) vs `refs/great_hall.png`: the frame is now mostly balconies, balustrades and floating candles; the table is a small dark shape in the middle distance (lantern off) and the shrouded ribcage is a red lump at the bottom edge inside the rune ring. Three north lancets with both moons sit small at the top centre behind the chandelier. Further from the reference than FF (table in front, skeleton behind, three lancets dominant). The offline estimate did not hold: the table's lit top is not what the camera sees.
+- Moat (S4, battlement_out): smooth dark-red water, no glitter, no seam; the lamp glint is a narrow warm column. In S4 the moat is only a thin red band below the bridge; no mirrored castle reads.
+- Side snatch (`natural3/10-13`, m11 in the upper gallery corridor): lantern-lit and readable from t 0.01, claws reach toward her by t 0.46; the held ear-trumpet still covers his torso and right claw at t 0.16-0.46 (the r15 occlusion complaint stands).
+- Hide grab (`siege1/06-07`, near-miss): t 0.01 is black with ember eyes and red wings; t 0.16 her lantern lights him fully in the doorway.
+- Doors (`doorproof/12-13`, `04-05`): open leaf with `[E] Close Dining hall door` aimed at the empty opening, then closed; same for the hall great doors.
+
+**Session state for the next one**
+- Build to play: `Builds/macOS/Hollow Current.app` (17:43:53), both maps.
+- What passes: the fear loop (share, gaps, apparition clock incl. the new owed follow-ups, cold gate), grab variety (all five modes incl. drop-spin), hide grabs at t 0.16, the moat tests, exposure on/off, doors (open away + close by E), castle wording, UI layout, voice from his head, 0 exceptions.
+
+**What the r15 critic still wants (CRITIC.md section 9), with its tests**
+1. S1 and S4 to the reference (blind S1 >= 6, S4 >= 6). S1: >= 2 lancets each >= 25 % of frame height with a moon >= 60 px, floor mist sd <= 6 and mean >= 20 beyond the ring, >= 2 banners >= 120 px, skull >= 8 % of `hall_skull_from_east` with 2 dark sockets. S4: `check_art_views` all PASS on a critic capture (now true here except S1 table), a castle reflection cluster >= 2,000 px of luma >= 25 below the keep, ridge cards luma sd >= 6. **This build moved S1 away from the reference**: the next S1 work is layout (table near the eye, skeleton behind, lancets large), not the camera height.
+2. Grabs readable at +0.3 s: claw >= 200 px from pixels in >= 80 % of grabs; held instrument covers <= 10 % of `countRect` to +0.6 s (lower or drop it at commit; still occluding here); hide-grab t 0.01 mean >= 18 (5.5 here); no two side snatches share `skull_px` within 20 px at t >= 0.46; side `min_eye_skull <= 1.0` (1.53-1.55 here); >= 1 drop-spin (1 here); `claw_px_proj` with first-person occluders.
+3. Commit seat and blocked dives: `fromLastDiveSample <= 0.5` (10/11 over here); no `seatCut=True` (2 here, by design of fg-polish's cut); no mode-9 with `originY - floor > 0.5`; mode-9 skull steps <= 0.5 m per sample; 0 `path blocked by ... Ledger` (0 here in 3 naturals).
+- Secondary (CRITIC.md): torch dive <= 30 % (27 % here), hidden beats in hunts within +-30 % of calm, cold first hunt after the first record or warning >= 9 s (9.7 / 10.5 s here), kit portrait mean >= 15 and a hearth with >= 3 flames, Bellwether `HC_PERF pass=True`, driver releasing after the first blocked kill (`teleportsDuringGrab=0` in cold: 0 here), 16:9 capture frames.
+
+**Owner decisions pending**
+1. Playtest feedback on this build (Hari plays; the last owner notes are from 2026-10-15).
+2. Codex UI pick (`.wt/codex-ui`, `hc/codex-ui-prompt`; variants in `.wt/codex-variants`).
+3. Voice audition: the Kokoro `bm_george` hunt lines (incl. the four FF lines `cc_hunt_found_b/c`, `smell_b`, `run_b`) need an owner listen.
+4. docui approval: the nine-slice document cards (journal, settings, ending) and the Codex UI direction.
+5. Build distribution: how and to whom the macOS build goes (nothing has been distributed); merging `haunted-castle` to `main`.
+
+**Open items (new first)**
+1. S1 table 3,089 px (FF 10.8k) with the gallery-height eye, and the composition is further from the reference; revert the eye or change the hall layout.
+2. Follow cancellations 2/5 by Containment (case end), 0 by grace; the band counts them.
+3. One drop grab slid 0.46 m (leash 0.43 + a 0.44 m skull push), 0.01 over the rule.
+4. Dive commit vs last dive sample still ~0.6 m (r15 test 3); hide-grab t 0.01 frames still black (r15 test 2); held instrument over the side snatch.
+5. Carried: Bellwether `performance_pass`, the 7 missing portraits, chapel confessional/guard_door exposure (as FE), `tools/ff_moat_twin.py` vs the engine.
+
+---
+
 # HANDOFF: wave FF integrated, tuned once, built and proved (ff-integ). Read this section first.
 
 Branch `haunted-castle` = `hc/integ-ff`, pushed. Integrator: Opus 5.5 (piece ff-integ), main clone, 2026-10-19. Nothing of mine left running; my GPU slot released (the one remaining holder is another session's Unreal editor).
