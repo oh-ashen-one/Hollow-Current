@@ -70,6 +70,9 @@ namespace HollowCurrent
             {
                 if(message.StartsWith("HC_SCARE visible=",StringComparison.Ordinal))scareTimes.Add(game.Case.Elapsed);
                 if(message.StartsWith("HC_HUNT_START",StringComparison.Ordinal))huntStarts.Add((game.Case.Elapsed,message.Contains(" phase=Return")));
+                // ff-count: torch drop-outs against contacts (a failure followed by HC_GRAB_COMMIT within 1.5 s "tells the dive").
+                if(message.StartsWith("HC_TORCH_FAIL",StringComparison.Ordinal))torchFails.Add((Time.time,message.Contains("source=dive")));
+                if(message.StartsWith("HC_GRAB_COMMIT mode=",StringComparison.Ordinal))contactTimes.Add(Time.time);
             }
             // Wave K: a screenshot at every grab-camera sample (commit, +0.3 s, +1.0 s, kill), named by kind and time.
             if(message.StartsWith("HC_COUNT_GRABCAM t=",StringComparison.Ordinal))
@@ -86,11 +89,14 @@ namespace HollowCurrent
                 pendingGrabShots.Enqueue(("grabcam_"+kind+"_t"+tt,keep.ToString().Trim()));
             }
         }
-        static readonly string[] GrabKeys={"t=","path=","kind=","visible=","blend=","kill=","mode=","skull_px=","skull_in_central60=","claw_px_proj=","claw_ok=","eyeToSkull=","headAboveEye="};
+        static readonly string[] GrabKeys={"t=","path=","kind=","visible=","blend=","kill=","mode=","skull_px=","skull_in_central60=","claw_px_proj=","claw_ok=","eyeToSkull=","headAboveEye=",
+            "skull=","rootReseat=","seatOffset=","frameCut=","countRect="};   // ff-count: skull world position, root re-seat, cut, his screen box
         // Wave L run statistics (r12 critic pass tests), printed as HC_PLAY_STATS by Finish: apparition times, hunt starts,
         // threat time (Warning, Hunt, hostile Return), the longest stretch without one, and hunts spent hidden.
         readonly List<float> scareTimes=new List<float>();
         readonly List<(float t,bool ret)> huntStarts=new List<(float,bool)>();
+        // ff-count: non-Return threat starts (Warning or no-tell hunt) for the apparition-to-threat lead; torch failures and contacts (real time).
+        readonly List<float> threatStarts=new List<float>();readonly List<(float t,bool dive)> torchFails=new List<(float,bool)>();readonly List<float> contactTimes=new List<float>();
         float threatTime,gapStart,longestGap,lastStatT;bool inThreat,statsOn,huntHidden,inHunt;int hiddenHunts,hiddenSurvived,blockedAtHunt;
         void Update()
         {
@@ -99,6 +105,7 @@ namespace HollowCurrent
             bool threat=c.Phase==Phase.Warning||c.Phase==Phase.Hunt||c.Phase==Phase.Return&&c.HuntActive;
             if(threat)threatTime+=dt;
             if(threat&&!inThreat)longestGap=Mathf.Max(longestGap,t-gapStart);
+            if(threat&&!inThreat&&c.Phase!=Phase.Return)threatStarts.Add(t);
             if(!threat&&inThreat)gapStart=t;
             inThreat=threat;
             bool hunt=c.Phase==Phase.Hunt;
@@ -120,8 +127,15 @@ namespace HollowCurrent
                 cv=(Mathf.Sqrt(v)/Mathf.Max(.01f,mean)).ToString("F2");
             }
             var arrivals=new System.Text.StringBuilder();foreach(var a in scareTimes)arrivals.Append(a.ToString("F0")).Append(',');
+            // ff-count (r14 critic item 3): each non-Return threat's lead after the last visible apparition before it (r14: 6 of 6 in 26-57 s).
+            var leads=new System.Text.StringBuilder();int nl=0,l2560=0,l1020=0,l10=0;
+            foreach(var h in threatStarts){float last=-1;foreach(var a in scareTimes)if(a<=h)last=a;if(last<0)continue;float d=h-last;nl++;if(d>=25&&d<=60)l2560++;if(d>=10&&d<=20)l1020++;if(d<=10)l10++;leads.Append(d.ToString("F1")).Append(',');}
+            // ff-count (r14 critic: HC_TORCH_FAIL source=dive on 7 of 13 dives): torch failures by source, and how many came 0-1.5 s before a contact.
+            int tfDive=0,tfPre=0;foreach(var f in torchFails){if(f.dive)tfDive++;foreach(var k in contactTimes)if(k-f.t>=0&&k-f.t<=1.5f){tfPre++;break;}}
             return "huntsNonReturn="+nonReturn+" withinScare10s="+afterScare+" pctWithinScare10s="+(nonReturn>0?(100f*afterScare/nonReturn).ToString("F0"):"n/a")
                 +" apparitions="+scareTimes.Count+" apparitionCV="+cv+" apparitionTimes=["+arrivals.ToString().TrimEnd(',')+"]"
+                +" threatLeads=["+leads.ToString().TrimEnd(',')+"] lead25_60="+l2560+"/"+nl+" lead10_20="+l1020+"/"+nl+" lead10="+l10+"/"+nl
+                +" torchFails="+torchFails.Count+" torchDive="+tfDive+" torchHunt="+(torchFails.Count-tfDive)+" dives="+diveStarts+" torchBeforeContact15="+tfPre+"/"+torchFails.Count
                 +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
                 +" grabContinuity="+continuityPass+"/"+continuityGrabs+" grabContinuity20="+continuityPass20+"/"+continuity20+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0")
                 +(game.Onboarding?" onboard: "+game.Onboarding.SummaryFields():"");
@@ -148,7 +162,8 @@ namespace HollowCurrent
             Debug.Log("HC_GRAB_SUMMARY grabs="+commits.Count+" continuity="+continuityPass+"/"+continuityGrabs+" continuity20="+continuityPass20+"/"+continuity20+
                 " firstFrameVisible="+firstVisible+"/"+firstFrames+" camDistOk="+camDistOk+"/"+camDists+" camDistMin="+(camDists>0?camDistMin.ToString("F2"):"n/a")+
                 " lineAllClear="+lineAllClear+"/"+camDists+" hudZero="+hudZero+"/"+hudRecords+" teleportsDuringGrab="+grabTeleports+
-                " dives="+diveStarts+" diveCommits="+diveCommits+" diveMisses="+diveMisses+" diveUnresolved="+Mathf.Max(0,diveStarts-diveCommits-diveMisses));
+                " dives="+diveStarts+" diveCommits="+diveCommits+" diveMisses="+diveMisses+" diveUnresolved="+Mathf.Max(0,diveStarts-diveCommits-diveMisses)+
+                " variantContinuity="+variantPass+"/"+variantGrabs+" variantCuts="+variantCuts+" variantCentral03="+variantCentral+"/"+variantCentralN+" rootSlideOk="+rootSlideOk+"/"+continuityGrabs);
         }
         void OnApplicationQuit(){PrintGrabSummary();}
         // Wave L3 continuity measure (critic r13 kill pass), per grab, from the skull's world position every frame (after animation):
@@ -160,9 +175,14 @@ namespace HollowCurrent
         //   a 60 fps neighbour step). The r13 measure (raw neighbour steps) is kept as legacy_pass.
         //   crawl (mode 9): no step over 0.5 m. Also per grab: the closest eye-to-skull distance and frames with a blocked eye line.
         // HC_PLAY_GRAB_CONTINUITY per grab with the offending frame; totals in HC_PLAY_STATS and HC_GRAB_SUMMARY.
+        int rootSlideOk;
         int lastGrabMode=-1,continuityGrabs,continuityPass;Vector3 lastPreSkull;int lastPreFrame=-9;int grabModeAtCommit;float grabClock;
         readonly List<(float t,Vector3 p,float dt,float eye,bool line)> grabSkull=new List<(float,Vector3,float,float,bool)>();
-        Vector3 commitPreSkull;bool commitHasPre;
+        // ff-count (r14 critic: the driver said commit_gap=0.00 while the root re-seated 0.45-0.97 m under a hard cut): his root (transform)
+        // before the commit and through the grab: root_jump = the frame before the commit to the first grab frame, root_slide = the furthest
+        // horizontal root travel from the first grab frame inside the measured 1.2 s, frame_cut = frame 0 was a hard cut.
+        Vector3 lastPreRoot,commitPreRoot,grabRoot0;float rootSlide;bool frameCut;
+        Vector3 commitPreSkull;bool commitHasPre,commitCut;bool? central03;float x03,y03;int variantGrabs,variantPass,variantCuts,variantCentral,variantCentralN;
         void GrabContinuity()
         {
             if(!game||!game.Creature||game.Map!=MapId.Castle)return;
@@ -170,7 +190,17 @@ namespace HollowCurrent
             if(cam&&!inGrab)
             {
                 inGrab=true;grabEvaluated=false;grabSkull.Clear();grabClock=0;grabModeAtCommit=lastGrabMode;
-                commitHasPre=lastPreFrame==Time.frameCount-1;commitPreSkull=lastPreSkull;
+                commitHasPre=lastPreFrame==Time.frameCount-1;commitPreSkull=lastPreSkull;commitCut=false;central03=null;
+                commitPreRoot=lastPreRoot;grabRoot0=cr.transform.position;rootSlide=0;frameCut=false;
+            }
+            if(cam&&inGrab&&cr.GrabFrameCut)frameCut=true;
+            if(cam&&inGrab&&!grabEvaluated&&grabClock<=1.2f){var dr=cr.transform.position-grabRoot0;dr.y=0;rootSlide=Mathf.Max(rootSlide,dr.magnitude);}
+            // fe3-grab: a frame-0 seat cut (Presence HC_GRAB_CUT) is logged per grab; the skull's place on screen at +0.3 s.
+            if(cam&&inGrab&&cr.GrabSeatCut)commitCut=true;
+            if(cam&&inGrab&&!grabEvaluated&&central03==null&&grabClock>=.3f)
+            {
+                var v=game.Player.View.WorldToViewportPoint(skull);
+                central03=v.z>0&&v.x>=.2f&&v.x<=.8f&&v.y>=.2f&&v.y<=.8f;x03=v.x;y03=v.y;
             }
             if(inGrab&&!grabEvaluated)
             {
@@ -185,14 +215,15 @@ namespace HollowCurrent
                 if((!cam||grabClock>1.2f)&&grabSkull.Count>0){EvaluateGrab();grabEvaluated=true;}
             }
             if(!cam&&inGrab)inGrab=false;
-            if(!cam&&cr.Actor&&cr.Actor.gameObject.activeInHierarchy){lastPreSkull=skull;lastPreFrame=Time.frameCount;}
+            if(!cam&&cr.Actor&&cr.Actor.gameObject.activeInHierarchy){lastPreSkull=skull;lastPreRoot=cr.transform.position;lastPreFrame=Time.frameCount;}
         }
         bool inGrab,grabEvaluated;
         static float Median(List<float> v){if(v.Count==0)return 0;v.Sort();return v[v.Count/2];}
         void EvaluateGrab()
         {
             continuityGrabs++;var g=grabSkull;int mode=grabModeAtCommit;bool drop=mode==8||mode==12,crawl=mode==9;
-            float commitGap=commitHasPre?Vector3.Distance(commitPreSkull,g[0].p):-1;bool commitOk=commitGap<0||commitGap<=.5f;
+            // fe3-grab: a commit gap over 0.5 m passes only as a logged frame-0 cut (Presence HC_GRAB_CUT), never as a slide.
+            float commitGap=commitHasPre?Vector3.Distance(commitPreSkull,g[0].p):-1;bool commitOk=commitGap<0||commitGap<=.5f||commitCut;
             int low=0;for(int i=1;i<g.Count;i++)if(g[i].p.y<g[low].p.y)low=i;
             string against="none";bool fallOk=true;
             if(drop)for(int i=1;i<=low;i++)if(g[i].p.y-g[i-1].p.y>.05f){fallOk=false;against="t="+g[i].t.ToString("F2")+" rise="+(g[i].p.y-g[i-1].p.y).ToString("F2");break;}
@@ -212,9 +243,14 @@ namespace HollowCurrent
             float minEye=99;int blocked=0;foreach(var s in g){minEye=Mathf.Min(minEye,s.eye);if(!s.line)blocked++;}
             bool pass=commitOk&&fallOk&&stepOk&&crawlOk;if(pass)continuityPass++;
             if(g.Count>=20){continuity20++;if(pass)continuityPass20++;}
+            bool variant=mode==10||mode==11||mode==12;
+            if(variant){variantGrabs++;if(pass)variantPass++;if(commitCut)variantCuts++;if(central03.HasValue){variantCentralN++;if(central03.Value)variantCentral++;}}
             Debug.Log("HC_PLAY_GRAB_CONTINUITY n="+continuityGrabs+" mode="+mode+" frames="+g.Count+" commit_gap="+(commitGap<0?"n/a":commitGap.ToString("F2"))+" commit_ok="+commitOk+" fall_ok="+(drop?fallOk.ToString():"n/a")+" against="+against+
                 " step_ok="+stepOk+" crawl_ok="+(crawl?crawlOk.ToString():"n/a")+" max_step="+maxStep.ToString("F2")+" max_dt="+maxDt.ToString("F3")+" pop="+pop+" min_eye_skull="+minEye.ToString("F2")+" line_blocked="+blocked+"/"+g.Count+
-                " pass="+pass+" legacy_pass="+(commitOk&&fallOk&&legacyOk)+" legacy_pop="+legacyPop);
+                " pass="+pass+" legacy_pass="+(commitOk&&fallOk&&legacyOk)+" legacy_pop="+legacyPop+
+                " seat_cut="+commitCut+" central03="+(central03.HasValue?central03.Value+" x03="+x03.ToString("F2")+" y03="+y03.ToString("F2"):"n/a")+" variant="+variant+
+                " root_jump="+(commitHasPre?Vector3.Distance(commitPreRoot,grabRoot0).ToString("F2"):"n/a")+" root_slide="+rootSlide.ToString("F2")+" frame_cut="+frameCut+" root_ok="+(rootSlide<=.5f));
+            if(rootSlide<=.5f)rootSlideOk++;
         }
         bool grabShotBusy;
         IEnumerator GrabShot((string name,string measures) g)
@@ -883,9 +919,15 @@ namespace HollowCurrent
                 if(c.BlockedDeaths>blocked&&!returnKill)
                 {
                     returnKill=true;
+                    // ff-count (r14 critic: HC_RETURN_KILL would_die=true phase=Won huntActive=False, natural2:937, natural3:729): the kill is
+                    // recorded at the blocked death (phase Return, hunt active), and she stops walking for the presentation, so the invulnerable
+                    // driver no longer crosses the bridge and wins inside the grab (it also walked out of the Return grab's framing).
+                    string killPhase=c.Phase.ToString();bool killHunt=c.HuntActive;var killAt=game.Player.transform.position;float killDist=Vector3.Distance(at,killAt);
+                    input.Move=Vector2.zero;
                     // fd-grab (r13 natural3 #2: 4 frames, not judged): the grab presentation plays 1.3 s before the driver lets go.
-                    float held=Time.realtimeSinceStartup;while(game.Creature.GrabCamActive&&Time.realtimeSinceStartup-held<1.3f)yield return null;
-                    Debug.Log("HC_RETURN_KILL would_die=true phase="+c.Phase+" huntActive="+c.HuntActive+" player="+game.Player.transform.position+" count="+at+" dist="+Vector3.Distance(at,game.Player.transform.position).ToString("F2"));
+                    float held=Time.realtimeSinceStartup;while(game.Creature.GrabCamActive&&Time.realtimeSinceStartup-held<1.3f&&c.Phase!=Phase.Won)yield return null;
+                    Debug.Log("HC_RETURN_KILL would_die=true phase="+killPhase+" huntActive="+killHunt+" player="+killAt+" count="+at+" dist="+killDist.ToString("F2")+" phaseAfterPresentation="+c.Phase);
+                    if(c.Phase==Phase.Won)Blocker("return kill: the case was won during the grab presentation");
                     game.Creature.ReleaseGrab("driver return kill");Reset();TeleportPlayer(mid-Vector3.up*1.0f);yield return Frames(5);continue;
                 }
                 if(Time.realtimeSinceStartup>nextLog){nextLog=Time.realtimeSinceStartup+.5f;Debug.Log("HC_PLAY_BRIDGE player="+game.Player.transform.position+" count="+at+" huntActive="+c.HuntActive+" dist="+Vector3.Distance(at,game.Player.transform.position).ToString("F1"));}

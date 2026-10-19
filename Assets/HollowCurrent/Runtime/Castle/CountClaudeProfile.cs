@@ -109,6 +109,19 @@ namespace HollowCurrent
         // fe-count (r13 FD first frames): an open-floor commit waits up to EyeHoldSeconds while her eye line to his skull is blocked; a seat
         // gap's horizontal part beyond SeatMaxGap stays in the root (no slide); a first frame turning more than FirstFrameCutDegrees is a cut.
         public float EyeHoldSeconds=.4f, SeatMaxGap=.45f, FirstFrameCutDegrees=90f;
+        // fe3-grab: the seat rule for side and spin grabs too. A commit whose clip start skull is over SeatMaxGap from his skull is held
+        // up to VariantSeatHoldSeconds while he flies onto it (at least VariantSeatHoldSpeed m/s); a gap still over it is a frame-0 cut.
+        public float VariantSeatHoldSeconds=.3f, VariantSeatHoldSpeed=4f;
+        // Wave FF (r14 critic top change 2). The crawl (mode 9) is planned only while its deck share stays at or under CrawlMaxShare (unless
+        // nothing else is feasible); a planned drop starts its clip no later than DropStartMaxT (the fall is shown, not skipped): if his skull is
+        // under the clip's skull at that time he climbs first (at DropRiseSpeed, at most DropRiseMaxSeconds, never into a ceiling), and he
+        // commits only at a ring point whose ceiling clears the fall (no "from=door" crawl when the ring had headroom). A planned side snatch
+        // that reaches its start point after she turned is re-framed from where he is (SideAdaptMaxTurn), never dropped there; a dropped side
+        // plan is owed: the next dive of that hunt plans a side if one is feasible.
+        public float CrawlMaxShare=.3f, DropStartMaxT=.1f, DropRiseSpeed=4.5f, DropRiseMaxSeconds=1.2f, SideAdaptMaxTurn=60f;
+        // Wave FF (r14: hide grabs averaged 5/255 luma): at a hide grab (the door torn open) her lantern swings up: her hand lantern's spot is lit
+        // for the presentation (even if it was off) with a warm glow at the lantern in her hand (HideLanternGlow intensity, HideLanternRange m).
+        public float HideLanternGlow=1.6f, HideLanternRange=5.5f;
         // Variety (r13: side snatch and drop-spin 0 of 12): each open-floor dive plans its grab from a deck kept across runs
         // (PlayerPrefs hc.castle.grabdeck); the eligible variant furthest below its target share is chosen. Side and spin approaches go
         // to their own start points (her flank / beside-behind her) and fall back to the plain grab if not committed in time.

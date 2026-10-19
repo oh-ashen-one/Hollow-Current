@@ -68,7 +68,7 @@ namespace HollowCurrent
             // Wave FE: and while a known threat (first-hunt deadline, timed hunt, share-floor pull, armed escalation) is due within 11.5 s.
             if(IsCastle)
             {
-                float planned=game.Case.PlannedThreatIn;
+                float planned=game.Case.PlannedThreatInForApparition;   // wave FF: the first hunt's "rest" lead widens the window
                 bool baseBlock=ScareRhythm.CastleBlocked(game.Case.Phase,game.Case.GraceRemaining,game.Player.Hidden,game.Modal,float.PositiveInfinity,rhythm.QuotaBehind);
                 bool plannedBlock=!baseBlock&&planned<=ScareRhythm.CastlePlannedHuntWindow;
                 if(plannedBlock&&!plannedGateLogged&&rhythm.CanSurprise&&rhythm.DueIn<=0)
@@ -99,14 +99,19 @@ namespace HollowCurrent
                 if(Trigger(true)){basement=true;BasementFlashes++;}
                 return;
             }
+            // ff-count: a first hunt whose lead drew "follow" asks for an apparition its lead before the deadline (Investigation.WantsApparitionNow);
+            // the director checks at once and retries every 1-1.5 s while the window lasts (the rhythm's spacing still holds).
+            bool wanted=IsCastle&&game.Case.WantsApparitionNow&&rhythm.CanSurprise&&!rhythm.AppearanceDue;
+            if(wanted&&!wantedLogged){wantedLogged=true;next=0;Debug.Log("HC_SCARE_WANTED reason=first_follow huntIn="+game.Case.PlannedThreatIn.ToString("F1")+" t="+game.Case.Elapsed.ToString("F1"));}
             next-=dt;if(next>0)return;
             bool fired=false;
-            if(!approachingHunt&&rhythm.AppearanceDue)fired=Trigger();
+            if(!approachingHunt&&(rhythm.AppearanceDue||wanted))fired=Trigger(false,wanted);
             else{if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=rhythm canSurprise="+rhythm.CanSurprise+" age="+rhythm.Age.ToString("F0"));Dread();}
             next=IsCastle?Random.Range(12f,25f):Random.Range(22f,38f); // castle: check the rhythm more often
             // Wave FE2 (r13 FE natural7: eight no_visible_point skips, each waiting 12-25 s, then a block redrew the due time): a due castle
             // apparition that found no place to stand is retried every 2.5-4 s (she turns; the next look may open a spot).
             if(IsCastle&&!fired&&rhythm.AppearanceDue){next=Random.Range(2.5f,4f);FastRetries++;}
+            if(wanted&&!fired)next=Random.Range(1f,1.5f);
             // Wave L (r13 natural1: drawn 45-70 s gaps arrived as 80+ s because the 12-25 s check landed late): the castle checks again
             // when the clock comes due, so arrivals follow the irregular draw. Only while not yet due, so a failed Trigger is not retried fast.
             if(IsCastle&&rhythm.DueIn>0)next=Mathf.Min(next,rhythm.DueIn+.25f);
@@ -140,10 +145,12 @@ namespace HollowCurrent
             }
             return Castle.DreadTick();
         }
-        public bool Trigger(bool firstBasement=false)
+        bool wantedLogged;
+        public bool Trigger(bool firstBasement=false)=>Trigger(firstBasement,false);
+        public bool Trigger(bool firstBasement,bool wanted)
         {
             if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
-            if(!firstBasement&&!rhythm.AppearanceDue)return false;
+            if(!firstBasement&&!rhythm.AppearanceDue&&!(wanted&&IsCastle&&game.Case.WantsApparitionNow))return false;
             if(!IsCastle&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false; // Bellwether only (critic r10 #26)
             // Wave FE2: when the castle's apparition floor is behind (QuotaBehind), a wider search (VisiblePointWide) is tried as well.
             if(!(IsCastle&&Castle&&Castle.ApparitionPoint(out var point))&&!VisiblePoint(out point)&&!(IsCastle&&rhythm.QuotaBehind&&VisiblePointWide(out point)))
