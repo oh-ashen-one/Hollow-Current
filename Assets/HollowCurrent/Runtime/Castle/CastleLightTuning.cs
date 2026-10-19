@@ -47,14 +47,6 @@ namespace HollowCurrent
         // fe r1 measured x0.5 against x1: every hall, chapel and crypt view moved 0.0-0.2 points (lantern off and on). The castle interior is
         // enclosed, so the bake's sky ambient barely reaches it; the knob is back at 1 (wave FD lightmaps) and stays only as the documented row.
         public float BakeAmbientScale = 1f;
-        // fe-integ (director's one hall-only round, r13 open item: hall lantern-off S1 30.2 / from_doors 32.4 / skeleton_head 31.9 / side_east 30.3
-        // against 35-55, side_west 52.1; the bake ambient and HallWindowMoonlight knobs had no effect). The four standing floor candelabras of the
-        // great hall (CastleLayout.Candles at |x| 3.4, z 16.9 / 20.1, y 0; not the two table lights) burn at this extra multiplier, and the floor
-        // sheen's reflections of those four stands (CastleWorld.FloorSheen sources 0-3) are scaled by HallSheenStandScale. Realtime/runtime only:
-        // HouseLighting restores candle values after Tune(root), and the sheen is scaled in the player. 1 / 1 = wave FD.
-        // Capture override for measurement: -hc-hall-candle <scale> -hc-hall-sheen <scale> (logged as HC_HALL_KNOB).
-        public float HallFloorCandleScale = .75f;
-        public float HallSheenStandScale = .5f;
         public float MoonDirectional = .10f;         // was .16
         public Color SecondMoonColor = new Color(.62f, .24f, .34f);
         public float SecondMoonDirectional = .035f;  // was .05
@@ -162,38 +154,8 @@ namespace HollowCurrent
                 var layout = FindFirstObjectByType<WorldLayout>();
                 Root = layout ? layout.transform : null;
             }
-            HallKnobArgs();
             Apply();
             BuildFills();
-        }
-
-        void HallKnobArgs()
-        {
-            var args = Environment.GetCommandLineArgs();
-            for (int i = 0; i + 1 < args.Length; i++)
-            {
-                if (args[i] == "-hc-hall-candle" && float.TryParse(args[i + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var c)) HallFloorCandleScale = c;
-                if (args[i] == "-hc-hall-sheen" && float.TryParse(args[i + 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var h)) HallSheenStandScale = h;
-            }
-            Debug.Log("HC_HALL_KNOB floor_candles=" + HallFloorCandleScale.ToString("F2") + " sheen_stands=" + HallSheenStandScale.ToString("F2"));
-        }
-
-        // fe-integ: the floor sheen's four candle-stand reflections (sources _S0.._S3, w > 0) follow the dimmer stands. Player only, once.
-        bool sheenDone;
-        void ApplyHallSheen()
-        {
-            if (sheenDone || !Application.isPlaying || !Root) return;
-            var q = Root.Find("Hall floor sheen");
-            var r = q ? q.GetComponent<Renderer>() : null;
-            if (!r || !r.sharedMaterial) return;
-            sheenDone = true;
-            var m = r.material;
-            for (int i = 0; i < 4; i++)
-            {
-                var v = m.GetVector("_S" + i);
-                if (v.w > 0) { v.w *= HallSheenStandScale; m.SetVector("_S" + i, v); }
-            }
-            Debug.Log("HC_HALL_SHEEN stands_scaled=4 scale=" + HallSheenStandScale.ToString("F2"));
         }
 
         void Start()
@@ -275,7 +237,6 @@ namespace HollowCurrent
             {
                 Light[] lights = Root ? Root.GetComponentsInChildren<Light>(true) : FindObjectsByType<Light>(FindObjectsInactive.Include, FindObjectsSortMode.None);
                 Tune(lights, this);
-                ApplyHallSheen();
                 ApplyTorch();
             }
             catch (Exception e) { Debug.LogWarning("[CastleLightTuning] skipped: " + e.Message); }
@@ -336,7 +297,6 @@ namespace HollowCurrent
                     l.color = v.CandleColor;
                     l.intensity *= v.CandleIntensityScale;
                     l.range = Mathf.Clamp(l.range * v.CandleRangeScale, v.CandleMinRange, v.CandleMaxRange);
-                    if (HallFloorCandle(l)) l.intensity *= v.HallFloorCandleScale;
                 }
                 else if (baseName == "Window moonlight")
                 {
@@ -362,16 +322,6 @@ namespace HollowCurrent
 
         // Window spots are children of the castle root, so localPosition is castle-local. The hall is x -6..6, z 14.3..28; window spots
         // sit 0.6 m outside their wall plane (|x| 6.6 for the clerestories, z 28.6 for the north wall).
-        // fe-integ: "Candle light" sits under its "Candelabra" (castle-local position = the parent's localPosition). The hall's floor stands are at
-        // y 0; the two table lights (y .775) and every other room's candles are left alone.
-        static bool HallFloorCandle(Light l)
-        {
-            var g = l.transform.parent;
-            if (!g || g.name != "Candelabra") return false;
-            var p = g.localPosition;
-            return p.y < .3f && Mathf.Abs(p.x) <= 6f && p.z >= 14.3f && p.z <= 28f;
-        }
-
         static bool InHall(Vector3 p) => Mathf.Abs(p.x) <= 6.8f && p.z >= 13.5f && p.z <= 29f && p.y >= 0f && p.y <= 9.5f;
 
         // ---- extra fill lights -------------------------------------------------------------------------------------------
