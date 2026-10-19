@@ -36,6 +36,11 @@ namespace HollowCurrent
         public float Brightness = 1;
         // Multiplier on the torch intensity set by the castle's light tuning (CastleLightTuning.TorchIntensityScale); 1 = Bellwether.
         public float TorchScale = 1;
+        // ff-count (r14: hide grabs were near black): Presence sets this to 1 for a hide grab's presentation (the door torn open, her lantern
+        // swings up): the hand lantern's beam is lit whatever TorchOn or a torch failure says, plus a warm glow at the lantern in her hand.
+        public float LanternRaise;
+        public float LanternGlowIntensity = 1.6f, LanternGlowRange = 5.5f;
+        Light lanternGlow;
         // Map regions come from the active World (Bellwether: house / van; Castle: walls / gatehouse).
         public bool Inside => Game.World.IsInside(transform.position);
         public bool InVan => Game.World.IsSafe(transform.position);
@@ -106,6 +111,9 @@ namespace HollowCurrent
             hiddenVision=adaptation.AddComponent<Light>();hiddenVision.type=LightType.Point;hiddenVision.range=2.6f;
             hiddenVision.color=new Color(.48f,.55f,.64f);hiddenVision.intensity=.09f;hiddenVision.shadows=LightShadows.None;
             hiddenVision.cullingMask&=~(1<<30);hiddenVision.enabled=false;
+            var glow=new GameObject("Raised lantern glow");glow.transform.SetParent(cam.transform,false);glow.transform.localPosition=new Vector3(-.22f,-.16f,.42f);
+            lanternGlow=glow.AddComponent<Light>();lanternGlow.type=LightType.Point;lanternGlow.color=new Color(1f,.74f,.46f);lanternGlow.shadows=LightShadows.None;
+            lanternGlow.cullingMask&=~(1<<30);lanternGlow.enabled=false;
         }
         void BuildInstruments(Transform camera)
         {
@@ -168,7 +176,9 @@ namespace HollowCurrent
         {
             if(Game==null)return;
             UpdateMicrophone();
-            Torch.enabled=Game.Case.Equipped&&TorchOn&&!(Game.Scares&&Game.Scares.TorchFailed);Torch.intensity=.85f*Brightness*TorchScale;
+            bool lanternUp=LanternRaise>0&&Game.Case.Equipped;   // no lantern without the kit
+            Torch.enabled=lanternUp||Game.Case.Equipped&&TorchOn&&!(Game.Scares&&Game.Scares.TorchFailed);Torch.intensity=.85f*Brightness*TorchScale;
+            if(lanternGlow){lanternGlow.enabled=lanternUp;if(lanternUp){lanternGlow.intensity=LanternGlowIntensity*LanternRaise*Mathf.Max(.5f,Brightness);lanternGlow.range=LanternGlowRange;}}
             Ultraviolet.enabled=Game.Case.Equipped&&Tool==2&&!Hidden;
             hiddenVision.enabled=Hidden&&!Game.Modal;hiddenVision.intensity=.09f*Brightness;
             bool swordOut=Game.Castle&&Game.Castle.Forge.HasSword&&Game.Case.Equipped&&!Game.Modal&&!Hidden;

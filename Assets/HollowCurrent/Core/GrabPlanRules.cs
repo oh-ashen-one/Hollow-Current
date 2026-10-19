@@ -191,4 +191,71 @@ namespace HollowCurrent
             return heldSeconds < holdSeconds ? Seat.Hold : Seat.Cut;
         }
     }
+    // Wave FF (r14 blind critic, top change 2: mode 9 crawl was 10 of 17 grabs and replayed the same frames; side snatch 0 of 17; drops
+    // started 0.22-0.50 s into their fall). Pure rules shared by Presence and RulesTests.
+    public static class GrabMixRules
+    {
+        // The crawl is planned only while its share of the deck's commits stays under maxShare, or when nothing else is feasible.
+        // commits: the deck (by mode); crawl: the crawl mode; others: the modes counted with it (the scored open-floor grabs).
+        public static bool CrawlAllowed(int[] commits, int crawl, int[] scored, float maxShare, bool otherFeasible, out float share)
+        {
+            int total = 0; foreach (int m in scored) if (m >= 0 && m < commits.Length) total += commits[m];
+            int have = crawl >= 0 && crawl < commits.Length ? commits[crawl] : 0;
+            // The share this plan would make if it committed as a crawl (so the cap holds after the commit, not only before it).
+            share = (have + 1) / (float)(total + 1);
+            return !otherFeasible || share <= maxShare;
+        }
+        // A drop shows its fall: the clip starts no later than maxStartT, so his skull must be at least the clip's skull at that time over
+        // her floor when he commits (curve = skull height over the root through the clip, sampled every step seconds from t = 0).
+        public static float DropStartSkull(float[] curve, float step, float maxStartT)
+        {
+            if (curve == null || curve.Length == 0) return 0;
+            int i = Math.Max(0, Math.Min(curve.Length - 1, (int)Math.Floor(maxStartT / Math.Max(1e-4f, step))));
+            float min = curve[0]; for (int k = 0; k <= i; k++) min = Math.Min(min, curve[k]);
+            return min;
+        }
+        // The rise hold: a planned drop whose skull is under need climbs (no commit) for at most maxSeconds, then commits from where it is.
+        public enum Rise { Commit, Hold, Timeout }
+        public static Rise RiseDecision(float skull, float need, float heldSeconds, float maxSeconds)
+        {
+            if (skull >= need) return Rise.Commit;
+            return heldSeconds < maxSeconds ? Rise.Hold : Rise.Timeout;
+        }
+        // The crawl's variation (it replayed the same camera-relative frames in every grab): a start offset into the clip, a playback speed and
+        // a small aim offset of the grab camera (yaw sign alternates with the parity so two crawls in a row sit on different sides).
+        public struct CrawlVariant { public float StartT, Speed, YawOffset, PitchOffset; }
+        public static CrawlVariant DrawCrawl(float u1, float u2, float u3, float u4, int parity)
+        {
+            u1 = Clamp01(u1); u2 = Clamp01(u2); u3 = Clamp01(u3); u4 = Clamp01(u4);
+            return new CrawlVariant
+            {
+                StartT = .24f * u1,
+                Speed = .86f + .32f * u2,
+                YawOffset = ((parity & 1) == 0 ? 1 : -1) * (3.5f + 4.5f * u3),
+                PitchOffset = -3f + 6f * u4,
+            };
+        }
+        static float Clamp01(float u) => float.IsNaN(u) ? .5f : Math.Max(0, Math.Min(1, u));
+        // The side snatch's frame at the commit, from where he actually is (wave FF: a planned side reached its start point after she turned,
+        // and the planned frame's gate refused it; FE2 fell to the crawl, 2 of 2 r14 side plans). The frame is turned so his bearing in it is
+        // the clip's start bearing on his side: frameYaw = his view bearing - sign x startBearing (degrees, + = toward her right), accepted
+        // when |frameYaw| <= maxTurn (the grab camera turns that far onto the frame). sign = the side he is on.
+        public static bool AdaptFrame(float viewBearing, float startBearing, float maxTurn, out int sign, out float frameYaw, out string why)
+        {
+            sign = viewBearing < 0 ? -1 : 1; frameYaw = viewBearing - sign * startBearing; why = "";
+            if (Math.Abs(viewBearing) < 1) { why = "he is straight ahead of her"; return false; }
+            if (Math.Abs(frameYaw) > maxTurn) { why = "frame turn " + Math.Abs(frameYaw).ToString("F0") + " over " + maxTurn.ToString("F0"); return false; }
+            return true;
+        }
+        // Voice pools (r14: cc_hunt_found was 10 of 27 lines): the variant played for a base line is the one played least this run; ties go
+        // to the dice (u in [0, 1)), never the variant just played when another ties with it.
+        public static int PickVariant(int[] played, int last, float u)
+        {
+            if (played == null || played.Length == 0) return -1;
+            int min = int.MaxValue; foreach (var n in played) min = Math.Min(min, n);
+            var tied = new List<int>(); for (int i = 0; i < played.Length; i++) if (played[i] == min && (i != last || played.Length == 1)) tied.Add(i);
+            if (tied.Count == 0) for (int i = 0; i < played.Length; i++) if (played[i] == min) tied.Add(i);
+            return tied[Math.Min(tied.Count - 1, (int)(Clamp01(u) * tied.Count))];
+        }
+    }
 }

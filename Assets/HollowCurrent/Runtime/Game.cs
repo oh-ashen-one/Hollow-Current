@@ -161,7 +161,7 @@ namespace HollowCurrent
                 Creature.DiveLastSecond+=()=>
                 {
                     float roll=UnityEngine.Random.value;
-                    if(roll<TorchFailChance){Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL source=dive eta="+Creature.DiveEndsIn.ToString("F2")+" roll="+roll.ToString("F2"));}
+                    if(roll<DiveTorchFailChance){Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL source=dive eta="+Creature.DiveEndsIn.ToString("F2")+" roll="+roll.ToString("F2"));}
                     else Debug.Log("HC_TORCH_SKIP source=dive roll="+roll.ToString("F2"));
                 };
                 Creature.Beat+=CountBeat;
@@ -214,14 +214,32 @@ namespace HollowCurrent
             ApplyFocus();Debug.Log("HC_STARTUP_READY");
         }
         // Wave L torch failure: chance per dive (last second) and per hunt (random moment, no dive); -1 = none planned.
-        const float TorchFailChance=.5f;
-        float huntTorchFailAt=-1;
+        // ff-count (r14 critic: source=dive preceded 7 of 13 dives, 0.0-1.0 s before contact, against 4 hunt failures, so the drop-out still
+        // said "grab now" about half the time): a dive fails the torch in its last second at DiveTorchFailChance (0.2), and each hunt plans
+        // 0-2 failures at random moments with no dive under way (HuntTorchFailCounts: 0 at 20 %, 1 at 45 %, 2 at 35 %, at least 6 s apart).
+        // Expected per natural run: about 0.8 dive failures against 3.4 hunt failures, so under a quarter of all failures come just before a
+        // contact. HC_TORCH_PLAN hunt n= at=[..].
+        const float DiveTorchFailChance=.2f;
+        static readonly float[] HuntTorchFailOdds={.2f,.45f,.35f};
+        readonly List<float> huntTorchFails=new List<float>();float huntTorchFailAt=-1;
+        void PlanHuntTorchFails()
+        {
+            huntTorchFails.Clear();float roll=UnityEngine.Random.value;int n=0;float acc=0;
+            for(int i=0;i<HuntTorchFailOdds.Length;i++){acc+=HuntTorchFailOdds[i];if(roll<acc){n=i;break;}n=i;}
+            float end=Mathf.Max(8f,Case.CurrentHuntSeconds*.85f);
+            for(int i=0;i<n;i++){float t=UnityEngine.Random.Range(4f,end);bool clash=false;foreach(var o in huntTorchFails)if(Mathf.Abs(o-t)<6)clash=true;if(!clash)huntTorchFails.Add(t);}
+            huntTorchFails.Sort();var b=new System.Text.StringBuilder();foreach(var t in huntTorchFails)b.Append(b.Length>0?",":"").Append(t.ToString("F1"));
+            huntTorchFailAt=huntTorchFails.Count>0?Time.time+huntTorchFails[0]:-1;huntTorchStart=Time.time;huntTorchNext=0;
+            Debug.Log("HC_TORCH_PLAN hunt roll="+roll.ToString("F2")+" n="+huntTorchFails.Count+" at=["+b+"] diveChance="+DiveTorchFailChance.ToString("F2"));
+        }
+        float huntTorchStart;int huntTorchNext;
         void HuntTorchFail()
         {
             if(huntTorchFailAt<0||Time.time<huntTorchFailAt||Modal)return;
             if(Case.Phase!=Phase.Hunt){huntTorchFailAt=-1;return;}
             if(Creature&&(Creature.Diving||Creature.GrabInProgress)){huntTorchFailAt=Time.time+2;return;} // never on top of a dive
-            huntTorchFailAt=-1;Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL source=hunt t="+Case.Elapsed.ToString("F0")+" dive=false");
+            Scares.Blackout(1);Debug.Log("HC_TORCH_FAIL source=hunt t="+Case.Elapsed.ToString("F0")+" dive=false n="+(huntTorchNext+1)+"/"+huntTorchFails.Count);
+            huntTorchNext++;huntTorchFailAt=huntTorchNext<huntTorchFails.Count?Mathf.Max(Time.time+6,huntTorchStart+huntTorchFails[huntTorchNext]):-1;
         }
         void Update()
         {
@@ -472,8 +490,8 @@ namespace HollowCurrent
             var previous=lastPhase;lastPhase=phase;
             if(Map==MapId.Castle)
             {
-                // Wave L: a hunt-moment torch failure with the dive rate (TorchFailChance), at a random time in the hunt.
-                if(phase==Phase.Hunt){float roll=UnityEngine.Random.value;huntTorchFailAt=roll<TorchFailChance?Time.time+UnityEngine.Random.Range(4f,Mathf.Max(6f,Case.Rules.HuntSeconds*.8f)):-1;Debug.Log("HC_TORCH_PLAN hunt roll="+roll.ToString("F2")+" at="+(huntTorchFailAt<0?"none":(huntTorchFailAt-Time.time).ToString("F1")+"s"));}
+                // Wave L: hunt-moment torch failures at random times in the hunt (ff-count: 0-2 per hunt, PlanHuntTorchFails).
+                if(phase==Phase.Hunt)PlanHuntTorchFails();   // ff-count: 0-2 failures per hunt
                 else huntTorchFailAt=-1;
                 // False warnings strobe and radio like real ones (Investigation never turns them into a hunt);
                 // no-tell hunts skip the Warning phase, so nothing here strobes or speaks for them.
@@ -483,7 +501,8 @@ namespace HollowCurrent
                 // Wave FD: the tell before every hunt (kind=warning|escalation|none, lead_s = the Warning's length); the first hunt also says how
                 // the cold gate held it (gate=page|cap|off, firstDocAt = case time of the first document read, -1 = none).
                 if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_TELL kind="+Case.LastTellKind+" lead_s="+Case.LastTellLead.ToString("F1")+" t="+Case.Elapsed.ToString("F0")+" hunts="+Case.Hunts+" phase="+phase
-                    +(Case.Hunts==1?" first=True cold="+(RunPlan!=null&&RunPlan.Cold)+" gate="+Case.FirstHuntColdGate+" firstDocAt="+Case.FirstNoteAt.ToString("F0"):""));
+                    // ff-count: firstDocAt is the document that gates the cold first hunt: the first ledger page or evidence record (letterAt = the arrival letter).
+                    +(Case.Hunts==1?" first=True cold="+(RunPlan!=null&&RunPlan.Cold)+" gate="+Case.FirstHuntColdGate+" firstDocAt="+Case.ColdGateDocAt.ToString("F0")+" firstDocKind="+(Case.FirstGateDocKind.Length>0?Case.FirstGateDocKind:"none")+" letterAt="+Case.FirstNoteAt.ToString("F0"):""));
                 if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" grace="+Case.GraceSeconds.ToString("F1")+" huntDreadAdded="+Case.HuntDreadAdded.ToString("F1")+" huntShare="+Case.HuntShare.ToString("F3")+" governor="+Case.GovernorAtLastGrace.ToString("F2")+" governorShare="+Case.GovernorShare.ToString("F3")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             }
             Creature?.PhaseChanged(phase);

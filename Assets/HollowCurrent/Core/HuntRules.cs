@@ -118,6 +118,21 @@ namespace HollowCurrent
         public float LateLowChanceScale;
         // At most this many share-floor pulls per run (so the floor cuts one long gap, not every gap). 0 = no limit.
         public int ShareFloorMaxPulls;
+        // Wave FF (r14 critic item 3: every non-Return threat with a prior apparition began 26-57 s after it, 6 of 6: "apparition, then about
+        // 30 s of safety, then danger" became a learnable clock). Each visible apparition (NoteApparition, after the run's first hunt) draws its
+        // lead: with ApparitionFollowChance the castle answers it, a dice-style threat armed ApparitionFollowMin..Max s after the apparition
+        // (after the 11.5 s gap); with ApparitionRestChance the dice are held ApparitionRestMin..Max s after it (he lets her breathe); otherwise
+        // nothing changes (the memoryless dice). The draw never applies in the post-hunt grace, a dice hold (lull, the long quiet stretch) or
+        // before the first hunt; the follow is cancelled by any threat, Containment or the end. 0 = off (Bellwether, and FE behaviour).
+        public float ApparitionFollowChance, ApparitionFollowMin, ApparitionFollowMax, ApparitionRestChance, ApparitionRestMin, ApparitionRestMax;
+        // Wave FF: the first hunt's lead (2 of the 6 r14 cases). Drawn once per run: with FirstLeadFollowChance an apparition that lands while the
+        // first-hunt deadline is further out pulls the deadline to ApparitionFollowMin..Max s after it (never before the plan's band minimum); with
+        // FirstLeadRestChance apparitions are held for FirstLeadRestWindow s (not 11.5) before the planned first hunt, so its lead is longer.
+        public float FirstLeadFollowChance, FirstLeadRestChance, FirstLeadRestWindow;
+        // Wave FF (r14 critic onboarding: the arrival letter, read at 4 s, opened the cold gate and a new player was hunted at 105 s with no
+        // evidence): a cold run's first hunt waits for the first ledger page or evidence record (Investigation.FirstGateDocAt), not any
+        // document; ColdFirstHuntCap still caps it. false = the FD rule (any document).
+        public bool ColdGateNeedsLedger;
         // Return phase is a hunt until the bridge is crossed (FinishAtVan).
         public bool HostileReturn;
 
@@ -205,6 +220,7 @@ namespace HollowCurrent
             LieThreshold=0,DoorHeldThreshold=0,DeathPenalty=false,DeathDread=0,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
             ApparitionHuntGap=0,ShareFloor=0,ShareFloorAfter=0,ShareFloorPullMin=0,ShareFloorPullMax=0,ShareFloorMaxPulls=0,LateLowChanceScale=0,
+            ApparitionFollowChance=0,ApparitionFollowMin=0,ApparitionFollowMax=0,ApparitionRestChance=0,ApparitionRestMin=0,ApparitionRestMax=0,ColdGateNeedsLedger=false,FirstLeadFollowChance=0,FirstLeadRestChance=0,FirstLeadRestWindow=0,
         };
 
         // The castle (FEAR_PLAN items 1-5, 7).
@@ -228,6 +244,7 @@ namespace HollowCurrent
             LieThreshold=70,DoorHeldThreshold=60,DeathPenalty=true,DeathDread=60,NailedHides=0,
             PerchMinSeconds=0,PerchMaxSeconds=0,
             ApparitionHuntGap=11.5f,ShareFloor=.15f,ShareFloorAfter=240,ShareFloorPullMin=20,ShareFloorPullMax=150,ShareFloorMaxPulls=1,LateLowChanceScale=3,
+            ApparitionFollowChance=.35f,ApparitionFollowMin=12,ApparitionFollowMax=19.5f,ApparitionRestChance=.3f,ApparitionRestMin=40,ApparitionRestMax=90,ColdGateNeedsLedger=true,FirstLeadFollowChance=.4f,FirstLeadRestChance=.4f,FirstLeadRestWindow=62,
         };
 
         // Field Settings "Long Night" dial on the castle (FEAR_PLAN item 6): no Warning

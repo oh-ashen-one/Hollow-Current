@@ -239,6 +239,7 @@ namespace HollowCurrent
             bool huntGate = !Rules.UsesDread && (Phase == Phase.Hunt || Phase == Phase.Warning && !FalseWarning);
             if (!Equipped || Terminal || huntGate || Phase == Phase.Briefing) return false;
             if (!Evidence.Add(value)) return false;
+            if (FirstGateDocAt < 0) { FirstGateDocAt = Elapsed; FirstGateDocKind = "record"; }   // wave FF: an evidence record opens a cold run's first-hunt gate
             Say("Evidence secured / " + Book.EvidenceName(value) + ". Journal updated.");
             if (Evidence.Count == 1 && Phase == Phase.Survey) Set(Phase.Disturbance);
             return true;
@@ -247,6 +248,7 @@ namespace HollowCurrent
         {
             if (Terminal || !Notes.Add(note)) return false;
             if (FirstNoteAt < 0) FirstNoteAt = Elapsed;
+            if (FirstGateDocAt < 0 && note != Book.ArrivalNoteTitle) { FirstGateDocAt = Elapsed; FirstGateDocKind = "page"; }   // wave FF: a ledger page, never the arrival letter
             Say("Filed / " + note);
             return true;
         }
@@ -319,7 +321,7 @@ namespace HollowCurrent
             }
             else if (Phase == Phase.Survey || Phase == Phase.Containment) { if (!TickFirstHunt(dt)) TickQuietDice(dt); }
             // Wave FE (castle): an armed escalation's delayed tell, then the share floor (both no-ops without their rules).
-            if (Rules.UsesDread && !Terminal) { TickArmedEscalation(); TickShareFloor(); }
+            if (Rules.UsesDread && !Terminal) { TickArmedEscalation(); TickApparitionFollow(); TickShareFloor(); }
         }
         // First-hunt guarantee (the mystery needs a hunt survived, so it can never stall). Record-keyed (Disturbance, from the
         // FirstHuntEvidence-th record) or, with Rules.FirstHuntFromSpawn, from the run's first Survey second in Survey and
@@ -355,7 +357,7 @@ namespace HollowCurrent
         // Survey and Containment after the first hunt: a rare flat roll, so no phase is a refuge.
         void TickQuietDice(float dt)
         {
-            if (Rules.QuietPhaseChance <= 0 || Rules.DiceIntervalMax <= 0 || Hunts == 0 || GraceRemaining > 0 || DiceHeld) return;
+            if (Rules.QuietPhaseChance <= 0 || Rules.DiceIntervalMax <= 0 || Hunts == 0 || GraceRemaining > 0 || DiceHeld || ApparitionRestHolds) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
@@ -386,7 +388,7 @@ namespace HollowCurrent
         void TickRecoveryDice(float dt)
         {
             float chance = DiceDread >= Rules.RecoveryDiceDread ? Rules.RecoveryDiceChance : Rules.RecoveryLowChance;
-            if (chance <= 0 || Rules.DiceIntervalMax <= 0 || GraceRemaining > 0 || DiceHeld) return;
+            if (chance <= 0 || Rules.DiceIntervalMax <= 0 || GraceRemaining > 0 || DiceHeld || ApparitionRestHolds) return;
             if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
             diceTimer -= dt;
             if (diceTimer > 0) return;
@@ -425,7 +427,7 @@ namespace HollowCurrent
             if (TickFirstHunt(dt)) return;
             // Dice-roll hunts: banded at or above the run's boundary, a flat low roll below it after the first hunt.
             bool low = !dreadful && Hunts > 0 && Rules.LowDreadChance > 0;
-            if (Rules.DiceIntervalMax > 0 && (dreadful || low) && GraceRemaining <= 0 && !DiceHeld)
+            if (Rules.DiceIntervalMax > 0 && (dreadful || low) && GraceRemaining <= 0 && !DiceHeld && !ApparitionRestHolds)
             {
                 if (float.IsNaN(diceTimer)) { diceTimer = NextDiceInterval(); return; }
                 diceTimer -= dt;
@@ -480,7 +482,7 @@ namespace HollowCurrent
             // Wave FD: what preceded this hunt, for HC_HUNT_TELL (read before Set clears EscalatedWarning).
             LastTellKind = noTell || Phase != Phase.Warning ? "none" : EscalatedWarning ? "escalation" : "warning";
             LastTellLead = LastTellKind == "none" ? 0 : PhaseTime;
-            if (Hunts == 0) FirstHuntColdGate = ColdFirstHunt ? (FirstNoteAt >= 0 ? "page" : "cap") : "off";
+            if (Hunts == 0) FirstHuntColdGate = ColdFirstHunt ? (ColdGateDocAt >= 0 ? (Rules.ColdGateNeedsLedger ? FirstGateDocKind : "page") : "cap") : "off";
             Hunts++;
             previousHuntFromEscalation = LastHuntFromEscalation; LastHuntFromEscalation = escalationPending; escalationPending = false;
             FalseWarning = false;
@@ -527,19 +529,123 @@ namespace HollowCurrent
             float before = Dread;
             AddDread(Rules.DreadApparition);
             apparitionShadow = Math.Max(0, Dread - before); apparitionAt = Elapsed;
+            DrawApparitionLead();
+        }
+        // ---- Wave FF: the apparition's lead (HuntRules.ApparitionFollow* / ApparitionRest*) -------------------------------------------------
+        // One draw per visible apparition. "follow": a dice-style threat (the usual no-tell / false-alarm / told rolls) is armed
+        // ApparitionFollowMin..Max s after it; "rest": the dice (banded, low, quiet-phase, recovery) are held until ApparitionRestMin..Max s
+        // after it; "open": nothing (the memoryless dice). Never before the first hunt, in the post-hunt grace, in a dice hold, with a threat
+        // already armed or outside Disturbance / Recovery: those log kind=none. Logs HC_APPARITION_LEAD.
+        public string LastApparitionLead { get; private set; } = "";
+        public int LeadFollows { get; private set; }
+        public int LeadRests { get; private set; }
+        public int LeadFollowFired { get; private set; }
+        float followDueAt = -1, restUntil = -1;
+        public float FollowDueAt => followDueAt;
+        // The dice are resting after an apparition (wave FF).
+        public bool ApparitionRestHolds => restUntil >= 0 && Elapsed < restUntil;
+        // The first hunt's lead kind for this run ("" = not drawn yet, then follow | rest | open), drawn at the run's first apparition.
+        public string FirstLead { get; private set; } = "";
+        bool firstLeadPulled;
+        public bool FirstLeadPulled => firstLeadPulled;
+        // Seconds before a planned threat during which no apparition may land (ScareRhythm.CastlePlannedHuntWindow, or FirstLeadRestWindow
+        // before a first hunt whose lead drew "rest").
+        public float ApparitionWindow => Hunts == 0 && FirstLead == "rest" && Rules.FirstLeadRestWindow > ScareRhythm.CastlePlannedHuntWindow ? Rules.FirstLeadRestWindow : ScareRhythm.CastlePlannedHuntWindow;
+        // PlannedThreatIn shifted so ScareRhythm.CastleBlocked's 11.5 s window acts as ApparitionWindow (ScareDirector and the session model).
+        public float PlannedThreatInForApparition => PlannedThreatIn - Math.Max(0, ApparitionWindow - ScareRhythm.CastlePlannedHuntWindow);
+        float firstFollowLead = -1;
+        void DrawFirstLead()
+        {
+            if (FirstLead.Length > 0 || Rules.FirstLeadFollowChance <= 0 && Rules.FirstLeadRestChance <= 0) return;
+            float u = Roll();
+            FirstLead = u < Rules.FirstLeadFollowChance ? "follow" : u < Rules.FirstLeadFollowChance + Rules.FirstLeadRestChance ? "rest" : "open";
+            if (FirstLead == "follow") firstFollowLead = Rules.ApparitionFollowMin + (Rules.ApparitionFollowMax - Rules.ApparitionFollowMin) * Roll();
+            Note("HC_APPARITION_LEAD first=" + FirstLead + (FirstLead == "follow" ? " lead=" + F1(firstFollowLead) : "") + " u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed));
+        }
+        // Wave FF: a first hunt whose lead drew "follow" and that no apparition has been pulled to yet asks for one now, its drawn lead before
+        // the deadline (ScareDirector fires it when the rhythm's spacing allows; NoteApparition then ties the deadline to it).
+        public bool WantsApparitionNow
+        {
+            get
+            {
+                if (Hunts > 0 || FirstLead != "follow" || firstLeadPulled || firstHuntAt < 0 || ColdHold || Terminal) return false;
+                if (Phase != Phase.Survey && Phase != Phase.Disturbance) return false;
+                float left = firstHuntAt - firstHuntClock;
+                return left <= firstFollowLead && left > ScareRhythm.CastlePlannedHuntWindow + .5f;
+            }
+        }
+        void DrawApparitionLead()
+        {
+            if (Hunts == 0 && Rules.UsesDread)
+            {
+                // (FirstLead is drawn with the run plan, UseRunPlan; a run without a plan keeps the open first lead.)
+                // The first hunt is pulled to follow this apparition (once), if its deadline is further out and the pull keeps the band minimum.
+                if (FirstLead == "follow" && !firstLeadPulled && firstHuntAt >= 0 && Rules.FirstHuntSeconds > 0)
+                {
+                    float lead = firstFollowLead;
+                    float bandMin = Plan != null ? Plan.FirstHuntMin : Rules.FirstHuntMin, bandMax = Plan != null ? Plan.FirstHuntMax : Rules.FirstHuntMax;
+                    float left = firstHuntAt - firstHuntClock;
+                    // Pulled earlier, or pushed a little later (a deadline due sooner than the lead), always inside the plan's band.
+                    if (firstHuntClock + lead >= bandMin && firstHuntClock + lead <= Math.Max(bandMax, firstHuntAt) && !ColdHold)
+                    {
+                        firstLeadPulled = true; firstHuntAt = firstHuntClock + lead;
+                        Note("HC_APPARITION_LEAD kind=first_follow threatIn=" + F1(lead) + " was=" + F1(left) + " t=" + F1(Elapsed));
+                    }
+                }
+            }
+            if (Rules.ApparitionFollowChance <= 0 && Rules.ApparitionRestChance <= 0) return;
+            // (An apparition in the post-hunt grace or a dice hold draws too: a follow that would still land in it is cancelled when due, a rest
+            // reaches past it.)
+            string block = Hunts == 0 ? "before_first_hunt" : escalationDueAt >= 0 || followDueAt >= 0 || sharePullAt >= 0 ? "armed"
+                : Phase != Phase.Disturbance && Phase != Phase.Recovery ? "phase_" + Phase : null;
+            if (block != null) { LastApparitionLead = "none"; Note("HC_APPARITION_LEAD kind=none reason=" + block + " t=" + F1(Elapsed)); return; }
+            float u = Roll();
+            if (u < Rules.ApparitionFollowChance)
+            {
+                followDueAt = apparitionAt + Rules.ApparitionFollowMin + (Rules.ApparitionFollowMax - Rules.ApparitionFollowMin) * Roll();
+                if (Rules.ApparitionHuntGap > 0) followDueAt = Math.Max(followDueAt, apparitionAt + Rules.ApparitionHuntGap + .1f);
+                LeadFollows++; LastApparitionLead = "follow";
+                Note("HC_APPARITION_LEAD kind=follow threatIn=" + F1(followDueAt - Elapsed) + " u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed));
+            }
+            else if (u < Rules.ApparitionFollowChance + Rules.ApparitionRestChance)
+            {
+                restUntil = apparitionAt + Rules.ApparitionRestMin + (Rules.ApparitionRestMax - Rules.ApparitionRestMin) * Roll();
+                LeadRests++; LastApparitionLead = "rest";
+                Note("HC_APPARITION_LEAD kind=rest diceHeldFor=" + F1(restUntil - Elapsed) + " u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed));
+            }
+            else { LastApparitionLead = "open"; Note("HC_APPARITION_LEAD kind=open u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed)); }
+        }
+        // Fires an armed follow when its time comes (Disturbance or Recovery, no grace, no dice hold); anything else first cancels it.
+        void TickApparitionFollow()
+        {
+            if (followDueAt < 0) return;
+            if (Terminal || Phase != Phase.Disturbance && Phase != Phase.Recovery) { Note("HC_APPARITION_LEAD follow=cancelled phase=" + Phase + " t=" + F1(Elapsed)); followDueAt = -1; return; }
+            if (Elapsed < followDueAt) return;
+            followDueAt = -1;
+            if (GraceRemaining > 0 || DiceHeld) { Note("HC_APPARITION_LEAD follow=cancelled reason=" + (GraceRemaining > 0 ? "grace" : "held") + " t=" + F1(Elapsed)); return; }
+            if (HuntGateHolds("follow")) { Note("HC_APPARITION_LEAD follow=cancelled reason=gate t=" + F1(Elapsed)); return; }
+            LeadFollowFired++;
+            Note("HC_APPARITION_LEAD follow=fired since=" + F1(Elapsed - apparitionAt) + " t=" + F1(Elapsed));
+            StartThreat(true);
         }
         public int Apparitions { get; private set; }
         // Wave L3. The run's plan (RunHistory.Next): the first hunt is due FirstHuntMin..Max s after the second record (uniform;
         // fb-onboard: after spawn when Rules.FirstHuntFromSpawn),
         // instead of Draw(60, 95, 180). Call once at the run's start, before the second record.
-        public void UseRunPlan(RunPlan plan) { if (plan == null) return; Plan = plan; firstHuntAt = -1; }
+        public void UseRunPlan(RunPlan plan) { if (plan == null) return; Plan = plan; firstHuntAt = -1; if (Rules.UsesDread && Hunts == 0) DrawFirstLead(); }   // wave FF: the first hunt's lead is drawn with the plan
         public RunPlan Plan { get; private set; }
         // Wave FD (r13 critic onboarding: a cold player's first hunt was no-tell at 87 s, in Survey, with 0 evidence). A cold run (RunPlan.Cold:
         // no history, so the Early band) keeps its band, but the first hunt (a) never starts before a document is read (Read: the gate
         // keeper's letter or a ledger page) or Rules.ColdFirstHuntCap seconds have passed, whichever comes first, so a passive player is
         // still hunted, and (b) is always preceded by a told Warning (5-14 s). Long Night (no Warning phase) and Bellwether: off.
         public bool ColdFirstHunt => Plan != null && Plan.Cold && Rules.ColdFirstHuntCap > 0 && Rules.WarningSeconds > 0 && Hunts == 0;
-        public bool ColdGateOpen => FirstNoteAt >= 0 || Elapsed >= Rules.ColdFirstHuntCap;
+        public bool ColdGateOpen => (Rules.ColdGateNeedsLedger ? FirstGateDocAt : FirstNoteAt) >= 0 || Elapsed >= Rules.ColdFirstHuntCap;
+        // Wave FF: Elapsed at the first ledger page read or evidence record (-1 = none yet); with Rules.ColdGateNeedsLedger this, not the
+        // arrival letter, opens a cold run's first-hunt gate. HC_HUNT_TELL firstDocAt logs it.
+        public float FirstGateDocAt { get; private set; } = -1;
+        public string FirstGateDocKind { get; private set; } = "";
+        // The time that opened (or will open) the cold gate under the current rules (-1 = none yet).
+        public float ColdGateDocAt => Rules.ColdGateNeedsLedger ? FirstGateDocAt : FirstNoteAt;
         bool ColdHold => ColdFirstHunt && !ColdGateOpen;
         // Elapsed at the first document read (-1 = none yet). Diagnostics and the cold gate.
         public float FirstNoteAt { get; private set; } = -1;
@@ -580,7 +686,7 @@ namespace HollowCurrent
             if (Rules.EscalationLitChance > 0 || Rules.EscalationDarkChance > 0)
             {
                 if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return 0;
-                if (escalationDueAt >= 0) return 0;                                      // wave FE: one is already armed
+                if (escalationDueAt >= 0 || followDueAt >= 0) return 0;                  // wave FE: one is already armed (wave FF: or a follow)
                 if (Apparitions <= 1) return 0;                                            // never the run's first apparition
                 if (Rules.EscalationNeedsFirstHunt && Hunts == 0) return 0;              // wave L3: the first hunt comes from its band
                 if (DiceHeld) return 0;                                                  // wave L3: a lull or the post-first-hunt hold
@@ -596,7 +702,7 @@ namespace HollowCurrent
             if (Rules.EscalationLitChance > 0 || Rules.EscalationDarkChance > 0)
             {
                 if (Phase != Phase.Disturbance && Phase != Phase.Recovery) return "phase";
-                if (escalationDueAt >= 0) return "armed";
+                if (escalationDueAt >= 0 || followDueAt >= 0) return "armed";
                 if (Apparitions <= 1) return "first_apparition";
                 if (Rules.EscalationNeedsFirstHunt && Hunts == 0) return "before_first_hunt";
                 if (DiceHeld) return "held";
@@ -682,6 +788,7 @@ namespace HollowCurrent
                     best = Math.Min(best, Rules.TimedHuntSeconds - huntClock);
                 if (sharePullAt >= 0) best = Math.Min(best, sharePullAt - Elapsed);
                 if (escalationDueAt >= 0) best = Math.Min(best, escalationDueAt - Elapsed);
+                if (followDueAt >= 0) best = Math.Min(best, followDueAt - Elapsed);   // wave FF
                 return Math.Max(0, best);
             }
         }

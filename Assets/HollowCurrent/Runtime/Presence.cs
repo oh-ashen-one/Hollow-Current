@@ -408,7 +408,7 @@ namespace HollowCurrent
             // Quiet start (r10 rerun: the wing loop jumped +0.6 at take-off in both sampled no-tell hunts): a no-tell or hostile-return
             // hunt flies its first leg silent and its second at most soft, and plays no one-shot for 8 s unless he has seen her.
             quietHunt=Game.Case.NoTellHunt||HostileReturn;quietReason=HostileReturn?"return":"notell";quietLeg=0;quietSeen=false;quietHeldLogged=false;
-            gateStage=0;huntClock=0;missCooldownUntil=-1;plannedMode=-1;huntVariantAbandons=0;seenThisHunt=false;grabSurvivedThisHunt=false;huntLines=0;guaranteeNext=Random.Range(count.AttackGuaranteeMin,count.AttackGuaranteeMax);chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
+            gateStage=0;huntClock=0;missCooldownUntil=-1;plannedMode=-1;huntVariantAbandons=0;huntSideOwed=false;seenThisHunt=false;grabSurvivedThisHunt=false;huntLines=0;guaranteeNext=Random.Range(count.AttackGuaranteeMin,count.AttackGuaranteeMax);chaseClosest=99;nearMissRolled=false;nearMissStage=0;pendingWitnessed=false;swooping=false;diveLastFired=false;grabMode=-1;dropHeight=0;sawPlayer=false;route.Clear();
             silhouette.gameObject.SetActive(true);SetRim(count.RimLightScale);
             PrimeClipCurves();
             int best=keepPerch?perchIndex:-1;
@@ -684,7 +684,7 @@ namespace HollowCurrent
         }
         float eyeHoldSince=-1;string sideGateWhy="";
         float seatHoldT,seatHoldLast,seatPredictGap=-1;
-        void BeginChase(){if(huntClock<missCooldownUntil)return;seatHoldT=0;seatHoldLast=0;seatPredictGap=-1;CloseDive("a new dive began");diveOpen=true;diveResolved=false;chaseExit="";eyeHoldSince=-1;hideGrabLocked=false;PlanVariant();PickDiveStyle();chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;coneLogged=false;curveLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;nearNoGrab=0;pathHoldLogged=false;groundLogged=false;ringAge=99;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
+        void BeginChase(){if(huntClock<missCooldownUntil)return;seatHoldT=0;seatHoldLast=0;seatPredictGap=-1;riseHoldT=0;riseHoldLast=0;dropSpotLogged=false;adaptLogged=false;CloseDive("a new dive began");diveOpen=true;diveResolved=false;chaseExit="";eyeHoldSince=-1;hideGrabLocked=false;PlanVariant();PickDiveStyle();chaseT0=huntClock;chaseD0=Vector3.Distance(transform.position,Game.Player.transform.position);diveCloseLogged=false;coneLogged=false;curveLogged=false;chaseRouteFails=0;flight=Flight.Chase;dropHeight=0;diveLastFired=false;diveEndsIn=float.PositiveInfinity;tell=0;holdTimer=0;replan=0;route.Clear();attackAttempted=true;nearMissStage=0;nearNoGrab=0;pathHoldLogged=false;groundLogged=false;ringAge=99;Debug.Log("HC_COUNT_DIVE "+DiagnosticState);Voice("cc_hunt_run");}
 
         // ---- fd-grab: grab variety, ring points, path clearance, the readable miss ----------------------------------------
         // A deck across runs (PlayerPrefs hc.castle.grabdeck, counts of committed open-floor grabs by mode): each dive plans the eligible
@@ -793,13 +793,19 @@ namespace HollowCurrent
             Consider(count.ModeGrabDrop,dropOk,dropT,d[8],"drop",dropWhy);
             Consider(count.ModeGrabDropSpin,spinOk,spinT,d[12],"spin",spinWhy);
             Consider(sideSign<0?LeftSideMode:RightSideMode,sideOk,sideT,d[10]+d[11],"side",sideWhy);
-            Consider(count.ModeGrabCrawl,count.ModeGrabCrawl>=0,crawlT,d[9],"crawl","no clip");
+            // ff-count (r14: mode 9 was 10 of 17 grabs): the crawl is planned only while its deck share stays at or under CrawlMaxShare, unless
+            // nothing else is feasible here (no headroom, no flank: the hall gallery).
+            float crawlShare=0;bool crawlOk=count.ModeGrabCrawl>=0&&GrabMixRules.CrawlAllowed(d,count.ModeGrabCrawl,new[]{8,9,10,11,12},count.CrawlMaxShare,dropOk||spinOk||sideOk,out crawlShare);
+            Consider(count.ModeGrabCrawl,crawlOk,crawlT,d[9],"crawl",count.ModeGrabCrawl<0?"no clip":"crawl share "+crawlShare.ToString("F2")+" over "+count.CrawlMaxShare.ToString("F2"));
             string forced="";
             if(force&&!(plannedMode==count.ModeGrabDropSpin||IsSide(plannedMode)))
             {
                 plannedMode=spinOk&&dropRoom?count.ModeGrabDropSpin:sideSign<0?LeftSideMode:RightSideMode;
                 forced=" forced=True reason=abandoned "+huntVariantAbandons+" variant plans this hunt";
             }
+            // ff-count (r14: both side plans were dropped and no side followed): a side plan dropped earlier in this hunt is owed; this dive plans
+            // the side if one is feasible.
+            if(huntSideOwed&&sideOk&&!IsSide(plannedMode)){plannedMode=sideSign<0?LeftSideMode:RightSideMode;forced=" forced=True reason=side owed (a side plan was dropped this hunt)";}
             if(IsSide(plannedMode)){planSide=sideSign;planFrameYaw=sideYaw;planHow=sideHow;}
             if(plannedMode==count.ModeGrabDropSpin){planSide=spinSign;planSpinBearing=spinBearing;planHow=spinHow;}
             spinConeDir=Vector3.zero;
@@ -815,7 +821,7 @@ namespace HollowCurrent
         string flankL="",flankR="";int flankFirst;
         // fe2-count: abandoned variant plans this hunt (dropped mid-dive or a dive that ended without its variant); the plan's frame turn
         // (side), start bearing (spin) and approach (direct | curved n | near n) as planned; the overhead drop-spin's direction.
-        bool coneLogged,curveLogged;int huntVariantAbandons;float planFrameYaw,planSpinBearing;string planHow="";Vector3 spinConeDir;
+        bool coneLogged,curveLogged,huntSideOwed;int huntVariantAbandons;float planFrameYaw,planSpinBearing;string planHow="";Vector3 spinConeDir;
         // fe2-count: can he get to a variant's start point? Directly (DirectTo), by a short bend (a NavMesh route of at most
         // VariantRouteMaxWaypoints legs no longer than VariantRouteMaxRatio x the straight line + 1 m), or, within VariantNearRadius of him,
         // by any route up to VariantNearRouteMax m when its last sample (the start point at his hover height) sees her eye. Only called
@@ -899,6 +905,7 @@ namespace HollowCurrent
             if(IsSide(plannedMode)&&!why.StartsWith("not committed",System.StringComparison.Ordinal)&&!why.StartsWith("detour",System.StringComparison.Ordinal)&&SidePlanPoint(-planSide,out var other,out float oy,out _)&&DirectTo(other,false,out _))
             {planSide=-planSide;planFrameYaw=oy;next=planSide<0?LeftSideMode:RightSideMode;planLocked=false;}
             else if(diveHigh&&count.ModeGrabDrop>=0&&HasModeState(count.ModeGrabDrop,"GrabDrop")&&DropRoomRing(feet,count.GrabDropClipTop,out _,out _))next=count.ModeGrabDrop;
+            if(IsSide(plannedMode)&&!IsSide(next))huntSideOwed=true;   // ff-count: the next dive of this hunt plans a side if it can
             plannedMode=next;if(!IsSide(next))planLocked=false;
             Debug.Log("HC_GRAB_VARIANT dropped="+from+" reason="+why+" next="+(next<0?"plain":PlanName(next))+" t="+(huntClock-chaseT0).ToString("F1")+" abandonsThisHunt="+huntVariantAbandons);
         }
@@ -925,6 +932,24 @@ namespace HollowCurrent
             string w=!SideClearFrame(f,sign)?"flank line blocked":!FloorAt(pt,feet.y)?"no floor at the flank start":!BodyFits(pt)?"no room at the flank start":null;
             if(w!=null){why="flank closed ("+w+" at yaw "+(y*sign).ToString("F0")+")";return false;}
             point=pt;why="";return true;
+        }
+        // ff-count: re-frame a planned side snatch from where he is (GrabMixRules.AdaptFrame): the frame turned so his bearing in it is the
+        // clip's start bearing on the side he is on, at most SideAdaptMaxTurn from her view, with that frame's flank lines open. Sets the plan
+        // (side, mode, frame yaw, start point = where he is) and returns true; false with the reason otherwise.
+        bool AdaptSideFrame(out string why)
+        {
+            var p=Game.Player;var feet=p.transform.position;var f0=p.View.transform.forward;f0.y=0;
+            if(f0.sqrMagnitude<1e-4f){why="no view direction";return false;}f0.Normalize();
+            float vb=BearingFromHerView();
+            if(Mathf.Abs(vb)<count.SideMinBearing*.5f){why="she faces him (bearing "+vb.ToString("F0")+")";return false;}
+            int sg=vb<0?-1:1;var st=SideStart(feet,f0,sg)-feet;st.y=0;float sb=Mathf.Abs(Vector3.SignedAngle(f0,st,Vector3.up));
+            if(!GrabMixRules.AdaptFrame(vb,sb,count.SideAdaptMaxTurn,out int sign,out float yaw,out why))return false;
+            int mode=sign<0?LeftSideMode:RightSideMode;
+            if(mode<0||!HasModeState(mode,mode==count.ModeGrabSideL?"GrabSideL":"GrabSideR")){why="no clip";return false;}
+            var f=Quaternion.Euler(0,yaw,0)*f0;
+            if(!SideClearFrame(f,sign)){why="flank line blocked in the re-framed view (turn "+yaw.ToString("F0")+")";return false;}
+            planSide=sign;plannedMode=mode;planFrameYaw=yaw*sign;planPoint=new Vector3(transform.position.x,feet.y,transform.position.z);planLocked=true;
+            return true;
         }
         // The side frame for a plan: her view turned by the planned frame yaw toward the planned side.
         Vector3 SideFrameForward(int sign)
@@ -1339,9 +1364,26 @@ namespace HollowCurrent
             if(spinConeDir!=Vector3.zero&&plannedMode==count.ModeGrabDropSpin)toPlan=0;
             grabReach=IsSide(wantMode)?(VariantPlanned?new Vector2(planPoint.x-feet0.x,planPoint.z-feet0.z).magnitude:count.SideCommitDistance):count.StandOffFor(wantMode);
             // At the planned point but the variant no longer fits (she turned to face him): the plain grab from here.
-            if(VariantPlanned&&planLocked&&toPlan<count.VariantCommitTolerance&&wantMode!=plannedMode&&!(IsSide(plannedMode)&&IsSide(wantMode)))
+            // ff-count (r14: both side plans reached their start point and fell to the crawl, "came in low"): a side snatch is re-framed from
+            // where he is (AdaptSideFrame: the frame turned so his bearing in it is the clip's start bearing, at most SideAdaptMaxTurn from her
+            // view); if that fails too the plan is unlocked and follows her view again (it can still time out: "not committed in time").
+            if(VariantPlanned&&planLocked&&toPlan<count.VariantCommitTolerance&&wantMode!=plannedMode&&IsSide(plannedMode)&&!IsSide(wantMode))
             {
-                if(IsSide(plannedMode))Debug.Log("HC_GRAB_FLANK side="+(planSide<0?"L":"R")+" stage=commit feasible=False reason="+(sideGateWhy.Length>0?sideGateWhy:wantWhy).Replace(' ','_')+" bearing="+BearingFromHerView().ToString("F0")+" toPlan="+toPlan.ToString("F2"));
+                string was=sideGateWhy.Length>0?sideGateWhy:wantWhy;
+                if(AdaptSideFrame(out string adaptWhy))
+                {
+                    wantMode=PredictGrab(out wantWhy);grabReach=IsSide(wantMode)?new Vector2(planPoint.x-feet0.x,planPoint.z-feet0.z).magnitude:count.StandOffFor(wantMode);toPlan=0;
+                    Debug.Log("HC_GRAB_FLANK side="+(planSide<0?"L":"R")+" stage=adapt feasible="+IsSide(wantMode)+" frameYaw="+(planFrameYaw*planSide).ToString("F0")+" was="+was.Replace(' ','_')+" now="+wantWhy.Replace(' ','_'));
+                }
+                else if(!adaptLogged)
+                {
+                    adaptLogged=true;planLocked=false;
+                    Debug.Log("HC_GRAB_FLANK side="+(planSide<0?"L":"R")+" stage=commit feasible=False reason="+was.Replace(' ','_')+" adapt="+adaptWhy.Replace(' ','_')+" bearing="+BearingFromHerView().ToString("F0")+" toPlan="+toPlan.ToString("F2")+" next=relock");
+                }
+                else planLocked=false;
+            }
+            if(VariantPlanned&&planLocked&&toPlan<count.VariantCommitTolerance&&wantMode!=plannedMode&&!(IsSide(plannedMode)&&IsSide(wantMode))&&!IsSide(plannedMode))
+            {
                 DropPlan("at the start point, "+wantWhy);wantMode=PredictGrab(out wantWhy);grabReach=count.StandOffFor(wantMode);toPlan=0;
             }
             diveEndsIn=Mathf.Max(0,distance-grabReach)/Mathf.Max(speedNow,1f);
@@ -1417,6 +1459,46 @@ namespace HollowCurrent
                 clearReach=false;gateWhy="path blocked by "+pathBlocker;
             }
             else if(clearReach)pathHoldSince=-1;
+            // ff-count (r14: mode 8 started 0.22-0.50 s into its clip, the fall cut; 3 planned drops fell to the crawl with 12 m of headroom):
+            // a drop commits only where its fall clears the ceiling (his own bearing's stand-off; he keeps flying to the open ring point), and
+            // only with his skull at least the clip's skull at DropStartMaxT over her floor: lower, he climbs first (the rise hold, at most
+            // DropRiseMaxSeconds, never into a ceiling). A rise that cannot reach it commits from where it got to, or, under the clip's landed
+            // skull, ends the dive as a readable miss (never the crawl).
+            if(clearReach&&!committed&&grabMode<0&&wantMode==count.ModeGrabDrop&&wantMode>=0&&!atHideEntrance&&actor&&actor.Head&&!player.Hidden)
+            {
+                var feetD=player.transform.position;var outD=transform.position-feetD;outD.y=0;
+                if(outD.sqrMagnitude<.01f){outD=-player.View.transform.forward;outD.y=0;}
+                outD=outD.sqrMagnitude>1e-4f?outD.normalized:Vector3.forward;
+                float spotCeil=CeilingOver(feetD+outD*count.StandOffFor(wantMode),feetD.y);
+                if(spotCeil<count.GrabDropClipTop+.1f)
+                {
+                    clearReach=false;gateWhy="drop spot under a "+spotCeil.ToString("F2")+" m ceiling (flying to the open ring point)";
+                    if(!dropSpotLogged){dropSpotLogged=true;Debug.Log("HC_GRAB_DROP held=True reason=spot_ceiling ceiling="+spotCeil.ToString("F2")+" needs="+(count.GrabDropClipTop+.1f).ToString("F2")+" ring="+ringWhy+" "+DiagnosticState);}
+                }
+                else if(clipSkull.TryGetValue(count.ModeGrabDrop,out var dropCurve))
+                {
+                    float need=GrabMixRules.DropStartSkull(dropCurve,ClipSampleStep,count.DropStartMaxT)+.02f,skullNow=actor.Head.position.y-feetD.y;
+                    var rise=GrabMixRules.RiseDecision(skullNow,need,riseHoldT,count.DropRiseMaxSeconds);
+                    if(rise==GrabMixRules.Rise.Hold)
+                    {
+                        float climb=Mathf.Min(count.DropRiseSpeed*Mathf.Max(dt,1e-4f),need-skullNow+.03f);
+                        bool headClear=!Physics.SphereCast(actor.Head.position,.25f,Vector3.up,out var rh,climb+.4f,FlightMask,QueryTriggerInteraction.Ignore)||IgnoreHit(rh.collider);
+                        if(headClear)
+                        {
+                            if(riseHoldT<=0)Debug.Log("HC_GRAB_DROP rise=begin skull="+skullNow.ToString("F2")+" need="+need.ToString("F2")+" "+DiagnosticState);
+                            riseHoldT+=Mathf.Max(dt,1e-4f);transform.position+=Vector3.up*climb;speedNow=Mathf.Max(speedNow*.9f,1f);
+                            gateWhy="rising to drop ("+skullNow.ToString("F2")+" < "+need.ToString("F2")+")";lastDiveSkull=actor.Head.position;
+                            if(flat.sqrMagnitude>.0001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(flat),count.TurnDegreesPerSecond*dt);
+                            return;
+                        }
+                        Debug.Log("HC_GRAB_DROP rise=blocked skull="+skullNow.ToString("F2")+" need="+need.ToString("F2")+" blocker="+(rh.collider?rh.collider.name:"none"));
+                        rise=GrabMixRules.Rise.Timeout;
+                    }
+                    if(riseHoldT>0||rise==GrabMixRules.Rise.Timeout)Debug.Log("HC_GRAB_DROP rise=end held="+riseHoldT.ToString("F2")+" skull="+skullNow.ToString("F2")+" need="+need.ToString("F2")+" result="+(rise==GrabMixRules.Rise.Commit?"commit":"timeout"));
+                    riseHoldLast=riseHoldT;riseHoldT=0;
+                    if(rise==GrabMixRules.Rise.Timeout&&skullNow<dropCurve[dropCurve.Length-1]+.05f){DiveMiss("drop rise blocked (skull "+skullNow.ToString("F2")+" m, the clip lands at "+dropCurve[dropCurve.Length-1].ToString("F2")+")",distance,vertical);return;}
+                }
+            }
             // fe-count (r13 FD natural2 Return drop: first frame visible=False lineClear=False): an open-floor commit also waits, up to
             // EyeHoldSeconds, while her eye line to his skull is blocked, so the commit frame shows him (the seat keeps the skull where it is).
             if(clearReach&&!committed&&grabMode<0&&actor&&actor.Head)
@@ -1488,7 +1570,7 @@ namespace HollowCurrent
                     if(atHideEntrance)OpenHideDoor(player.HideExit);
                     grabMode=CommitGrab(atHideEntrance,grabMode);
                     if(diveOpen&&!diveResolved){diveResolved=true;Debug.Log("HC_COUNT_DIVE end=commit mode="+grabMode+" planned="+PlanName(plannedMode)+" t="+(huntClock-chaseT0).ToString("F1"));}
-                    committedUntil=Time.time+count.ClipSecondsFor(grabMode)-clipStartT+.25f;
+                    committedUntil=Time.time+(count.ClipSecondsFor(grabMode)-clipStartT)/Mathf.Max(.5f,grabClipSpeed)+.25f;   // ff-count: the crawl's speed
                     // count18: a grab at a hide entrance is a hide open even when the dive delivered it (path label for the proof).
                     BeginGrabCam(atHideEntrance?"hideopen":"dive",atHideEntrance);
                 }
@@ -1524,6 +1606,7 @@ namespace HollowCurrent
             Fly(dt,Profile.ModeReach);
         }
         float hideStuck,committedUntil=-1,recommitBlockedUntil=-1,recommitLogAt,flare=1;Vector3? lastDiveSkull;
+        float riseHoldT,riseHoldLast;bool dropSpotLogged,adaptLogged;   // ff-count: the drop's rise hold and spot gate; the side re-frame log
         void Fly(float dt,int mode)
         {
             if(routeAt<route.Count)
@@ -2014,7 +2097,7 @@ namespace HollowCurrent
         void BeginGrabCam(string path,bool hide=false)
         {
             if(grabCam)return;
-            doorClampLogged=false;grabCamSnap=false;firstCutWhy="";seatCut=false;seatCutGap=0;spinLogged=false;spinEndLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" "+DiagnosticState);
+            doorClampLogged=false;grabCamSnap=false;firstCutWhy="";seatCut=false;seatCutGap=0;spinLogged=false;spinEndLogged=false;grabCam=true;grabKill=false;grabHide=hide;grabCamT=0;grabCamLog=0;grabCamKind=path;grabBeginRoot=transform.position;Debug.Log("HC_COUNT_GRABCAM begin path="+path+" hide="+hide+" root="+transform.position.ToString("F2")+" "+DiagnosticState);
             // fd-grab: per-grab presentation state (seat offset, first frame, distance and view-line records).
             presentT=0;seatSet=false;seat0=seatApplied=Vector3.zero;camInit=false;sideCheckLogged=false;camDistLogged=false;minEyeSkull=float.MaxValue;minEyeSkullT=0;
             lineClear=lineSamples=0;lineBlockers.Clear();skullPushes=0;presentFrames=0;
@@ -2022,19 +2105,29 @@ namespace HollowCurrent
             // fd-grab: every grab clip starts at once (no 0.06 s any-state crossfade from the dive or crawl pose), so the seat offset
             // measured in the commit frame covers the whole pose change and decays smoothly.
             if(grabMode>=0&&clipPlayedFrame!=Time.frameCount&&actor&&actor.Animator&&actor.Animator.runtimeAnimatorController&&grabMode<ModeStateNames.Length&&HasModeState(grabMode,ModeStateNames[grabMode]))
-            {actor.Pose(grabMode);actor.Animator.Play(ModeStateNames[grabMode],0,0);clipPlayedFrame=Time.frameCount;}
+            {
+                actor.Pose(grabMode);float n0=0;
+                if(clipStartT>0){var clip=FindClip(ModeStateNames[grabMode]);if(clip&&clip.length>.01f)n0=Mathf.Clamp01(clipStartT/clip.length);}   // ff-count: a hide crawl's drawn start
+                actor.Animator.Play(ModeStateNames[grabMode],0,n0);clipPlayedFrame=Time.frameCount;
+            }
             NoteCommit(path,hide);
             // fd-grab (r13 natural3: silhouette at the commit, fully lit 0.15 s later): a torch that failed in the dive's last second stays
             // out for the whole grab (it used to come back mid-grab); a burning torch keeps burning (no failure starts in a grab).
             bool failed=Game.Scares&&Game.Scares.TorchFailed;
-            if(failed)Game.Scares.Blackout(count.ClipSecondsFor(grabMode)-clipStartT+.6f);
-            Debug.Log("HC_GRAB_LIGHT torch="+(Game.Player.TorchOn?(failed?"held-out":"on"):"off")+" rim="+rimScale.ToString("F2")+" layer="+count.GrabLightLayer+" gate="+(lanternGated?"always":"pending")+" mode="+grabMode);
+            // ff-count (r14: hide grabs path=nearmiss / hideopen averaged 5/255 luma, only his ember eyes showed): when he tears the hide open
+            // her lantern swings up. From the commit frame (no pop between t 0.01 and 0.16) her hand lantern's beam is lit even if she had put
+            // it out, with a warm glow at the lantern in her hand that spills over the hide's opening and him (Investigator.LanternRaise).
+            if(hide){Game.Player.LanternGlowIntensity=count.HideLanternGlow;Game.Player.LanternGlowRange=count.HideLanternRange;Game.Player.LanternRaise=1;}
+            else if(failed)Game.Scares.Blackout(count.ClipSecondsFor(grabMode)-clipStartT+.6f);
+            Debug.Log("HC_GRAB_LIGHT torch="+(Game.Player.TorchOn?(failed?"held-out":"on"):"off")+" rim="+rimScale.ToString("F2")+" layer="+count.GrabLightLayer+" gate="+(lanternGated?"always":"pending")+" mode="+grabMode+
+                " hideLantern="+(hide?"raised glow="+count.HideLanternGlow.ToString("F2")+" range="+count.HideLanternRange.ToString("F1")+(failed?" (over a failed torch)":""):"none"));
         }
         void EndGrabCam(string why)
         {
             rootBlend=false;if(!grabCam)return;
             LogCamDist("end "+why);
-            grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;ShieldFromLantern(false);
+            grabCam=false;grabKill=false;grabHide=false;hideGrabLocked=false;ShieldFromLantern(false);crawlVarOn=false;grabClipSpeed=1;
+            if(Game&&Game.Player)Game.Player.LanternRaise=0;   // ff-count: the hide grab's raised lantern goes back down
             // The seat offset and pushes stay where they are (no snap back); the presentation clock lets go of the Animator.
             seatApplied=Vector3.zero;if(actor&&actor.Animator)actor.Animator.speed=1;clockScaled=false;
             RestoreLineProps();
@@ -2074,7 +2167,7 @@ namespace HollowCurrent
             float step=unscaled||Time.timeScale>0?Mathf.Min(Time.unscaledDeltaTime,count.GrabMaxFrameStep):0;presentDt=step;
             if(!anim)return;
             float raw=unscaled?Time.unscaledDeltaTime:Time.deltaTime;
-            anim.speed=raw>1e-5f?Mathf.Clamp01(step/raw):1;clockScaled=true;
+            anim.speed=(raw>1e-5f?Mathf.Clamp01(step/raw):1)*(crawlVarOn?grabClipSpeed:1);clockScaled=true;   // ff-count: the crawl's drawn speed
         }
         // ---- fd-grab: grab records for the integrator ---------------------------------------------------------------------
         // HC_GRAB_COMMIT (one per grab, with the mode actually played), HC_GRAB_MODE_HIST (this run, running), the variety deck.
@@ -2089,6 +2182,7 @@ namespace HollowCurrent
             runGrabs++;if(m>=0&&m<runModes.Length)runModes[m]++;if(hide)runHide++;if(ret)runReturn++;
             if(!hide&&!ret&&headroom){runOpenHeadroom++;if(m==count.ModeGrabDrop||m==count.ModeGrabDropSpin)runOpenHeadroomDrops++;}
             if(!hide&&m>=0&&m<Deck().Length){DeckState.Committed(m);SaveDeck();}
+            if(IsSide(m))huntSideOwed=false;
             Debug.Log("HC_GRAB_COMMIT mode="+m+" path="+path+" hide="+hide+" return="+ret+" headroom="+headroom+" headroomAt="+roomAt.Replace(' ','_')+" ceilingMax="+roomCeiling.ToString("F2")+" planned="+PlanName(plannedMode)+" clip_start_t="+clipStartT.ToString("F2")+" deck="+DeckText());
             var b=new System.Text.StringBuilder();for(int i=6;i<runModes.Length;i++)b.Append(" m").Append(i).Append('=').Append(runModes[i]);
             Debug.Log("HC_GRAB_MODE_HIST grabs="+runGrabs+b+" hide="+runHide+" return="+runReturn+" openHeadroom="+runOpenHeadroom+" openHeadroomDrops="+runOpenHeadroomDrops+
@@ -2287,6 +2381,8 @@ namespace HollowCurrent
                 switchedTo=count.ModeGrabCrawl;MatchClipStart(count.ModeGrabCrawl,floorY,headBefore);return;
             }
             int start=0;
+            // ff-count (r14: every crawl replayed the same camera-relative frames): the crawl starts at its drawn offset (DrawCrawlVariant).
+            if(mode==count.ModeGrabCrawl){DrawCrawlVariant("open");start=Mathf.Clamp(Mathf.RoundToInt(crawlVar.StartT/ClipSampleStep),0,curve.Length-1);}
             if(mode!=count.ModeGrabCrawl)
             {
                 int peak=0;for(int i=1;i<curve.Length;i++)if(curve[i]>curve[peak])peak=i;
@@ -2346,9 +2442,17 @@ namespace HollowCurrent
             bool central=x>=.2f&&x<=.8f&&y>=.2f&&y<=.8f;
             Debug.Log("HC_GRAB_SIDEFRAME mode="+mode+" t=0.30 x="+x.ToString("F2")+" y="+y.ToString("F2")+" central="+central+" covered="+covered.Replace(' ','_')+" bias="+sideAimBias.ToString("F1")+" targetX="+tx.ToString("F2"));
         }
+        // ff-count: the crawl's variation for this grab (GrabMixRules.DrawCrawl): clip start offset, playback speed, grab-camera aim offset.
+        GrabMixRules.CrawlVariant crawlVar;bool crawlVarOn;float grabClipSpeed=1;static int crawlDraws;
+        void DrawCrawlVariant(string path)
+        {
+            crawlVar=GrabMixRules.DrawCrawl(Random.value,Random.value,Random.value,Random.value,crawlDraws++);crawlVarOn=true;grabClipSpeed=crawlVar.Speed;
+            Debug.Log("HC_GRAB_CRAWL_VARIANT path="+path+" start="+crawlVar.StartT.ToString("F2")+" speed="+crawlVar.Speed.ToString("F2")+" yaw="+crawlVar.YawOffset.ToString("F1")+" pitch="+crawlVar.PitchOffset.ToString("F1")+" n="+crawlDraws);
+        }
         int CommitGrab(bool hide,int mode)
         {
             clipStartT=0;sideAimBias=0;   // fe3-grab: a side or hide grab kept the last drop's clip start (natural8 side commits logged 0.28)
+            grabClipSpeed=1;crawlVarOn=false;   // ff-count: the crawl variant applies to this grab only when drawn
             var p=Game.Player;var feet=p.transform.position;var eye=p.View.transform.position;
             var outward=hide?p.HideExit-feet:transform.position-feet;outward.y=0;
             if(outward.sqrMagnitude<.01f){outward=-p.View.transform.forward;outward.y=0;}
@@ -2393,6 +2497,7 @@ namespace HollowCurrent
                 var at=feet+outward*count.StandOffFor(mode);at.y=feet.y;
                 transform.SetPositionAndRotation(at,Quaternion.LookRotation(-outward));hideGrabLocked=true;
                 Debug.Log("HC_COUNT_GRAB placed=door at="+at+" standOff="+count.StandOffFor(mode).ToString("F2")+" mode="+mode);
+                if(mode==count.ModeGrabCrawl){DrawCrawlVariant("hide");clipStartT=crawlVar.StartT;}   // BeginGrabCam plays the clip from clipStartT
             }
             return mode;
         }
@@ -2478,6 +2583,7 @@ namespace HollowCurrent
             if(to.sqrMagnitude>.0001f)
             {
                 float yaw=Mathf.Atan2(to.x,to.z)*Mathf.Rad2Deg,pitch=-Mathf.Atan2(to.y,new Vector2(to.x,to.z).magnitude)*Mathf.Rad2Deg;
+                if(crawlVarOn&&grabMode==count.ModeGrabCrawl&&grabMode>=0){yaw+=crawlVar.YawOffset;pitch+=crawlVar.PitchOffset;}   // ff-count: the crawl's framing varies
                 if(IsSide(grabMode)&&sideAimBias!=0)yaw+=sideAimBias*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.6f,SideSeconds,presentT)));   // fe3-grab: SideHandFrame
                 if(!camInit)
                 {
@@ -2544,6 +2650,8 @@ namespace HollowCurrent
         bool seatCut;float seatCutGap;
         /// <summary>Playtest driver: the current (or last) grab began with a logged frame-0 seat cut (HC_GRAB_CUT).</summary>
         public bool GrabSeatCut=>count!=null&&seatCut;
+        /// <summary>Playtest driver (ff-count): frame 0 of the current (or last) grab was a hard cut (a > 90 deg turn, a skull outside the frame, or a seat cut).</summary>
+        public bool GrabFrameCut=>count!=null&&(grabCamSnap||seatCut);
         bool Blocked(Vector3 from,Vector3 to)=>Physics.Linecast(from,to,out var h,FlightMask,QueryTriggerInteraction.Ignore)&&!IgnoreHit(h.collider);
         // Kill presentation: ease him so the nearer claw sits GrabCamClawDistance from the lens; no joint inside CameraClearance.
         bool spinLogged,spinEndLogged;
@@ -2666,7 +2774,30 @@ namespace HollowCurrent
             float claw=ProjectedClawPx(cam,out var hands);
             Debug.Log("HC_COUNT_GRABCAM t="+grabCamT.ToString("F2")+" path="+grabCamKind+" visible="+VisibleToCamera(cam,head)+" pos="+transform.position+" blend="+(grabCamT<count.GrabCamTurnSeconds&&!grabCamSnap?"turning":"done")+" kill="+grabKill+" mode="+actor.Mode+
                 " skull_px=("+(v.x*2560).ToString("F0")+","+((1-v.y)*1440).ToString("F0")+") skull_in_central60="+central+" claw_px_proj="+claw.ToString("F0")+" claw_ok="+(claw>=200)+" hands=["+hands.Trim()+"]"+
-                " eyeToSkull="+Vector3.Distance(cam.transform.position,head).ToString("F2")+" headAboveEye="+(head.y-cam.transform.position.y).ToString("F2"));
+                " eyeToSkull="+Vector3.Distance(cam.transform.position,head).ToString("F2")+" headAboveEye="+(head.y-cam.transform.position.y).ToString("F2")+
+                // ff-count (r14 critic: the samples had no skull world position, so the 0.45-0.97 m root re-seats under a hard cut could not be
+                // tested): his skull in world space, how far his root is from where it stood at the commit (begin line) and the seat offset still
+                // applied, whether frame 0 was a cut, and his on-screen box (2560 x 1440 scale, like skull_px) for the hide-grab luma test.
+                " skull=("+head.x.ToString("F2")+","+head.y.ToString("F2")+","+head.z.ToString("F2")+") rootReseat="+Vector3.Distance(transform.position,grabBeginRoot).ToString("F2")+" seatOffset="+seatApplied.magnitude.ToString("F2")+
+                " frameCut="+(grabCamSnap||seatCut)+" countRect="+CountScreenRect(cam));
+        }
+        Vector3 grabBeginRoot;
+        string CountScreenRect(Camera cam)
+        {
+            float x0=1,y0=1,x1=0,y1=0;bool any=false;
+            foreach(var r in silhouette.GetComponentsInChildren<Renderer>())
+            {
+                if(!r.enabled||!r.gameObject.activeInHierarchy)continue;var b=r.bounds;
+                for(int i=0;i<8;i++)
+                {
+                    var c=b.center+Vector3.Scale(b.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1));
+                    var v=cam.WorldToViewportPoint(c);if(v.z<=0)continue;any=true;
+                    x0=Mathf.Min(x0,v.x);x1=Mathf.Max(x1,v.x);y0=Mathf.Min(y0,v.y);y1=Mathf.Max(y1,v.y);
+                }
+            }
+            if(!any)return "none";
+            x0=Mathf.Clamp01(x0);x1=Mathf.Clamp01(x1);y0=Mathf.Clamp01(y0);y1=Mathf.Clamp01(y1);
+            return "("+(x0*2560).ToString("F0")+","+((1-y1)*1440).ToString("F0")+","+(x1*2560).ToString("F0")+","+((1-y0)*1440).ToString("F0")+")";
         }
         float ClosestJoint(Vector3 point)
         {
@@ -2804,9 +2935,27 @@ namespace HollowCurrent
         // plays in the castle, and it plays from his head (HeadPosition, from="head"). Not the ear-trumpet, not the evidence spot, not behind
         // the player. `asked` is for a line the player explicitly requested (the ear-trumpet reply, the sarcophagus reading): it waives the
         // off-hunt 180 s gap and the first-8-s hold, never the presence, distance, per-hunt or hunt-line-range rules.
+        // ff-count (r14 critic: cc_hunt_found was 10 of 27 lines, 37 %): the hunt lines are pools; CountSpeak plays the variant played least
+        // this run (GrabMixRules.PickVariant: ties to the dice, never the one just played). Every variant is a voice_cc_* clip from his head.
+        static readonly Dictionary<string,string[]> VoicePools=new Dictionary<string,string[]>
+        {
+            {"cc_hunt_found",new[]{"cc_hunt_found","cc_hunt_found_b","cc_hunt_found_c"}},
+            {"cc_hunt_smell",new[]{"cc_hunt_smell","cc_hunt_smell_b"}},
+            {"cc_hunt_run",new[]{"cc_hunt_run","cc_hunt_run_b"}},
+        };
+        readonly Dictionary<string,int[]> voicePlayed=new Dictionary<string,int[]>();readonly Dictionary<string,int> voiceLast=new Dictionary<string,int>();
+        // The pool a line id belongs to (its base id), or the id itself.
+        static string VoiceBase(string id){foreach(var kv in VoicePools)if(System.Array.IndexOf(kv.Value,id)>=0)return kv.Key;return id;}
+        string PickVoice(string id,out int index)
+        {
+            index=-1;if(!VoicePools.TryGetValue(id,out var pool))return id;
+            if(!voicePlayed.TryGetValue(id,out var played)){played=new int[pool.Length];voicePlayed[id]=played;}
+            index=GrabMixRules.PickVariant(played,voiceLast.TryGetValue(id,out int last)?last:-1,Random.value);
+            return index>=0?pool[index]:id;
+        }
         public string CountSpeakBlocker(string id,bool asked=false)
         {
-            float now=Time.time;
+            float now=Time.time;id=VoiceBase(id);
             var view=Game.Player.View.transform.position;var head=HeadPosition;float dist=Vector3.Distance(view,head);
             bool close=id=="cc_hunt_found"||id=="cc_hunt_smell"||id=="cc_hunt_run"||id=="cc_stay";
             if(!silhouette||!silhouette.gameObject.activeInHierarchy)return "not in the world";
@@ -2821,7 +2970,9 @@ namespace HollowCurrent
         {
             string why=CountSpeakBlocker(id,asked);
             if(why!=null){Debug.Log("HC_VOICE_GATE held id="+id+" reason="+why+" t="+huntClock.ToString("F1"));return false;}
-            if(!Game.Sound.Speak(id,HeadPosition,"head"))return false;
+            string baseId=VoiceBase(id);string line=PickVoice(baseId,out int vi);
+            if(!Game.Sound.Speak(line,HeadPosition,"head"))return false;
+            if(vi>=0){voicePlayed[baseId][vi]++;voiceLast[baseId]=vi;id=line;}
             if(huntOn)huntLines++;else lastOffHuntLine=Time.time;
             Debug.Log("HC_VOICE_GATE spoke id="+id+" from=head asked="+asked+" huntLines="+huntLines+" t="+huntClock.ToString("F1")+" "+DiagnosticState);
             return true;

@@ -131,5 +131,29 @@
     "rate": 112,
     "voice": "en-gb-x-rp+m7",
     "pitch": 14
+  },
+  "cc_hunt_found_b": {
+    "text": "Ah. Found you.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 14
+  },
+  "cc_hunt_found_c": {
+    "text": "Hello again, little lamp.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 14
+  },
+  "cc_hunt_smell_b": {
+    "text": "You breathe so loudly in there.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 16
+  },
+  "cc_hunt_run_b": {
+    "text": "Yes. Run. I like it when they run.",
+    "rate": 112,
+    "voice": "en-gb-x-rp+m7",
+    "pitch": 16
   }
 }
