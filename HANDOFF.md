@@ -1,3 +1,42 @@
+# HANDOFF: integrator fc-integ2 (fc-bw60b merged: Present-wait subtraction for Bellwether `performance_pass`). Read this section first.
+
+Branch `haunted-castle` = `hc/integ-fc2`, pushed. Integrator: Sonnet 5.5, main clone, 2026-10-18. Nothing left running; GPU slot released.
+- The owner's `hc.castle.runs` (`unity.Bellwether Field Office.Hollow Current`) is still `L,E,L`.
+- The test runs rewrote `com.bellwether.hollowcurrent` `hc.castle.runs` from `E,M,B` to `L,E,L`. It was put back to `E,M,B` (backups: session scratchpad `fcinteg2/{u,c}.backup.plist`).
+- `CODEX_HANDOFF.md` is still uncommitted and was not touched.
+
+**Build:** `Builds/macOS/Hollow Current.app` (both maps), binary 2026-10-18 20:01:10, built from bake commit `7bda81a` (committed 20:00:51), which sits on the merge of `hc/fc-bw60b` (`4b7c433`). Both maps were re-baked (three `.cs` files changed). Castle prepare log `.castle-bake-fcinteg2.log`: `HC_KIT_AXIS_SUMMARY problems=0`, `HC_DOOR_LEAF_SUMMARY problems=0`, `HC_CANDLES placed=46 ... floating=0 PASS`, `HC_CHAPEL_PROPS overlap=False gap=0.52 PASS`, `HC_HIDE_SPOTS_SUMMARY failed=[]`, `HC_SKELETON PASS`, `HC_CHAPEL PASS`; `tools/check_castle_kit.py` OK.
+
+**Static checks:** check_source PASS (rules tests included), check_castle_scares PASS, check_audio_keys OK, check_throwables_scene rc 0.
+
+**Proofs** (evidence local/gitignored: `docs/haunted-castle/rounds/r13/captures/fc/fc4/{bwverify,cold,escape}`, logs `.playtest-fcinteg2-*.log`)
+
+| Run | Result |
+|---|---|
+| Bellwether `-hc-verify` | `HC_NATIVE_ROUTE_PASS`, 0 `HC_VERIFY FAIL`. `performance_pass` is still **False** (below) |
+| Castle `cold` | `pass=True`: `HC_ONBOARD_START equipped=True`, first cue 9.2 s, 5 cues, hides answered 5/5, first hunt 81.9 s, blockers 0, 0 exceptions |
+| Castle `escape` | `won=True`, blockers 0, 4 `HC_DOC_OPEN` (letter + 3 ledger pages), 0 exceptions |
+
+`HC_PERF` end line, verbatim:
+`HC_PERF pass=False reason=engine_cost_over_16ms=92(max 105.6 ms) frames_over_16ms=97 p99=11.9 floor=60 frames=37188 engine_cost_over_16ms=92 engine_cost_p99=11.6 engine_cost_samples=36979 present_wait_mean_ms=1.00 present_wait_max_ms=16.83 present_wait_frames=36979 ui_frames_over_16ms=4 harness_excluded_frames=86`
+
+**Why `performance_pass` is still False (nothing relaxed).** The Metal player does populate `cpuMainThreadPresentWaitTime` (mean 1.00 ms, max 16.83 ms, on every frame), so the subtraction runs, but it does not touch the slow frames. Of the 64 stored `engine_cost_slow_frames` (of 92), 63 are `bound_by=main_thread` and 1 is `gpu` (Recovery, 18.1 ms). On the main-thread frames:
+- `cpu_main_ms` is 16.7-18.4 (a few 21-22, one 44.1, one 105.7 in Survey); `present_wait_ms` is about 0 (one frame 0.8), so there is nothing to subtract.
+- The render thread is 0.4-4.6 ms and the GPU 1.1-3.1 ms on the same frames: the main thread was blocked or busy while render and GPU idled.
+- The 16.7-18.4 ms values still cluster at one 60 Hz tick, as in the earlier diagnosis, but the wait is not booked as Present wait. It could be a drawable/compositor wait that `FrameTimingManager` reports elsewhere, or a periodic main-thread task; this data cannot tell them apart. The frames spread over Briefing, Survey, Disturbance, Hunt, Recovery and Containment, not one phase.
+- GPU contention was not the cause: `gpu_slot.sh status` before and after the run showed 0 holders and 0 Unreal processes (system GPU utilisation 23-37 % from non-slot work, load average 6-10).
+
+**Open items (new first, then carried over)**
+1. `performance_pass` False: 92 main-thread-bound frames of 36979 at the one-tick signature with Present wait 0. Next step is a diagnostic, not a relaxation: log `cpuTimePresentCalled` / `cpuTimeFrameComplete` deltas (measure their unit) and `Time.unscaledDeltaTime` against `cpuMainThreadFrameTime` for those frames, plus which script phase ran, to split drawable-wait from real main-thread work. The 105.7 and 44.1 ms Survey frames are real one-off hitches worth a look.
+2. Three chapel views with the lantern on are too dark: from_guard_door 34.4, from_great_doors 27.1, confessional 25.4 (fc-light2 item 1); next lever `ChapelCandleIntensity` .75 -> .9.
+3. S1 with the lantern on: far wall and vault dim but readable at range 15.
+4. Hall with the lantern off is still 27-30 % near-black in 4 views (bake ambient).
+5. Hall floating candelabras and books are unchanged (design floaters); director's call whether they get holders.
+6. The compass dial reads neutral grey, not parchment. The field radio is still the modern mesh.
+7. Earlier FC open items (telescope points into the room; kitchen hearth covers a window) still stand. Merges to `main` need the owner.
+
+---
+
 # HANDOFF: piece fc-light2 (lantern pool, chapel candle sconces, compass glass, castle hand lantern). Read this section first.
 
 Branch `haunted-castle` = `hc/fc-light2`, pushed. Builder: Opus 5.5, in the main clone, 2026-10-18. Nothing left running. The GPU slot was released; the one remaining holder is another session's Unreal editor.
