@@ -23,7 +23,17 @@ namespace HollowCurrent
             if(castleRandom==null)return;
             blockedNow=blocked;
             if(blocked){if(Age>=nextAppearance)expiredInBlock=true;return;}
-            if(expiredInBlock){expiredInBlock=false;Rescheduled++;LastInterval=QuotaClamp(CastleBurstGap(Unit(castleRandom())));nextAppearance=Age+LastInterval;quietUntil=Math.Min(quietUntil,nextAppearance);}
+            if(expiredInBlock)
+            {
+                expiredInBlock=false;Rescheduled++;
+                // Wave FE2 (r13 FE: natural4 and natural7 had 3 visible apparitions before 480 s): a due time that expired in a block while the
+                // count lags the floor by CastleLiftLag (the deadline of the apparition after next has passed too) comes CastleLiftCatchUpMin..Max s
+                // after the block lifts, not after a fresh 30-50 s burst gap or a 15-30 s catch-up (each later block redrew it again). A lag of
+                // one keeps the old redraw (a lag-1 catch-up cut the model's 3-run pooled CV >= 0.5 share from 0.94 to 0.83).
+                if(Age>=(CastleAppearances+CastleLiftLag)*CastleQuotaSeconds){LastInterval=CastleLiftCatchUpMin+(CastleLiftCatchUpMax-CastleLiftCatchUpMin)*Unit(castleRandom());LiftCatchUps++;}
+                else LastInterval=QuotaClamp(CastleBurstGap(Unit(castleRandom())));
+                nextAppearance=Age+LastInterval;quietUntil=Math.Min(quietUntil,nextAppearance);
+            }
         }
         // The castle's block (wave L3): no apparition in Warning, Hunt, Recovery or the post-hunt grace, nor while hidden, in a modal,
         // in Briefing, Containment or Return. Pure: the director passes these.
@@ -88,7 +98,11 @@ namespace HollowCurrent
         // n x CastleQuotaSeconds of rhythm age: a drawn gap (burst, lull or a post-block redraw) that would end later is cut to that
         // deadline, or, when the deadline has already passed (a hunt blocked it), to a catch-up gap of CastleCatchUpMin..Max s (one extra
         // draw). It never lengthens a gap, so short bursts and the long lulls that fit stay as drawn (pooled CV stays >= 0.5).
-        public const float CastleQuotaSeconds=90,CastleCatchUpMin=15,CastleCatchUpMax=30;
+        public const float CastleQuotaSeconds=90,CastleCatchUpMin=15,CastleCatchUpMax=30,CastleLiftCatchUpMin=4,CastleLiftCatchUpMax=10;public const int CastleLiftLag=2;
+        public int LiftCatchUps{get;private set;}
+        // Wave FE2: true while the floor is behind (the next apparition's deadline has passed); the director then retries a failed
+        // apparition (no visible point) every few seconds instead of 12-25 s.
+        public bool QuotaBehind=>castleRandom!=null&&Age>=(CastleAppearances+1)*CastleQuotaSeconds;
         public int CastleAppearances{get;private set;}
         public int QuotaClamps{get;private set;}
         float QuotaClamp(float gap)

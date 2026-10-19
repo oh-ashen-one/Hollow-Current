@@ -114,6 +114,29 @@ namespace HollowCurrent
         // to their own start points (her flank / beside-behind her) and fall back to the plain grab if not committed in time.
         public float DropTargetShare=.40f, SpinTargetShare=.15f, SideTargetShare=.25f, PlanJitter=.35f;
         public float SpinPlanBearing=80f, PlanLockDistance=6f, VariantCommitTolerance=.7f, VariantGiveUpSeconds=3.5f;
+        // fe2-count (r13 FE: side snatch and drop-spin 0 of 29 commits; plans were n/a "flank closed" / "no open start point" in the hall,
+        // on the 3 m drawbridge and in the corridors, and four drawbridge drop-spin dives in a row were abandoned right above her):
+        // - the drop-spin start is searched over SpinPlanBearings off her view (80 first, then wider and further behind her, up to 160:
+        //   on the bridge only a point behind her is on the planks);
+        // - the side snatch's frame (its origin straight ahead of her view, he starts at the clip's flank start) may turn SideFrameYaws
+        //   toward his side, so its start bearing stays 38-88 deg (inside SideMinBearing-SideMaxBearing);
+        // - an approach may bend: a NavMesh route of at most VariantRouteMaxWaypoints legs no longer than VariantRouteMaxRatio x the
+        //   straight line (+1 m), or, for a start point within VariantNearRadius of him, any route up to VariantNearRouteMax m whose last
+        //   sample (the start point at his hover height) has a clear line to her eye;
+        // - VariantAwayExtra m more before a variant's dive counts as "moving away", VariantCurveSeconds more before "not committed in time";
+        // - a planned drop-spin commits at once when he is already above her (origin >= SpinConeMinHeight over her floor, within the
+        //   spin's stand-off + SpinConeSlack of her) and the stand-off spot on his side (or the planned side, if he is overhead) is open;
+        // - a dive within DiveSenseRadius of her eye senses her (clear line) whatever his facing (he lost her "outside the sight cone"
+        //   0.3 m above her head);
+        // - after VariantForceAfterAbandons abandoned variant plans in one hunt, the next dive takes the simplest feasible variant
+        //   (drop-spin, else a side snatch) whatever the deck says.
+        public float[] SpinPlanBearings={80f,100f,60f,120f,140f,160f}, SideFrameYaws={0f,20f,-15f,35f};
+        public int VariantRouteMaxWaypoints=4, VariantForceAfterAbandons=2;
+        public float VariantRouteMaxRatio=1.7f, VariantNearRadius=9f, VariantNearRouteMax=14f, VariantAwayExtra=3f, VariantCurveSeconds=1.5f;
+        public float SpinConeMinHeight=1.8f, SpinConeSlack=.7f, DiveSenseRadius=3f;
+        // fe2-count (r13 FE siege_held: 17/18 hidden hunts survived; siege1 rolled six 0.33 first-visit attempts in a row and never came):
+        // at Dread >= BagDread, after NearMissAttemptPity failed attempts in a row he checks her hide on the next hunt (castle only).
+        public int NearMissAttemptPity=2;
         // A known hide is approached to the stand-off point of its grab; within this of it he commits.
         public float HideStandTolerance=.5f;
         // After the slats, an opening visit rears back to the grab's stand-off at this speed before the grab commits.

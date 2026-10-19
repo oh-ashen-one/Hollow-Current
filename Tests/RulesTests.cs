@@ -186,6 +186,7 @@ static class RulesTests
         WaveL3Tests();
         WaveFDTests();
         WaveFETests();
+        WaveFE2Tests();
         OnboardTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
@@ -1052,20 +1053,59 @@ static class RulesTests
         }
         var o=new float[4];for(int i=0;i<4;i++)o[i]=u[i]/(float)Math.Max(1,n[i]);return o;
     }
+    // Wave FE2 (r13 FE proofs): siege_held hidden survival 94 % (dice: siege1 failed six 0.33 first-visit attempts), and an apparition
+    // due time that expired in a block was redrawn as a full gap at every later block.
+    static void WaveFE2Tests()
+    {
+        // 1. siege_held model: 6 hidden hunts in one hide at Dread 60. Until he has found her there, each hunt rolls the 0.33 near-miss
+        //    attempt (Presence: certain after NearMissAttemptPity = 2 failed attempts in a row); then every hunt visits and NearMissDice
+        //    rolls the open. An open is a grab (not survived).
+        var rng=new Random(2026);int sets=0,pass=0,b2bSets=0;double survSum=0;
+        for(int k=0;k<20000;k++)
+        {
+            int opens3=0;bool b2b=false;
+            for(int r=0;r<3;r++)
+            {
+                var dice=new NearMissDice();bool learned=false;int fails=0,last=-99,visit=0;
+                for(int h=0;h<6;h++)
+                {
+                    if(!learned){if(fails>=2||rng.NextDouble()<.33){learned=true;fails=0;}else{fails++;continue;}}
+                    if(dice.Roll((float)rng.NextDouble(),out _)){opens3++;if(visit-last<=2)b2b=true;last=visit;}
+                    visit++;
+                }
+            }
+            float surv=1-opens3/18f;survSum+=surv;sets++;if(surv<=.85f)pass++;if(b2b)b2bSets++;
+        }
+        float mean=(float)(survSum/sets),passShare=pass/(float)sets,b2bShare=b2bSets/(float)sets;
+        Console.WriteLine("WAVE_FE2 siege_held x3 model: mean hidden survival="+mean.ToString("F3")+" pooled<=85% in "+passShare.ToString("F3")+" of sets, quick re-open in "+b2bShare.ToString("F3"));
+        Assert(mean>=.68f&&mean<=.80f,"siege_held expected hidden survival 68-80 % ("+mean.ToString("F3")+")");
+        Assert(passShare>=.85f,"3 sieges pooled <= 85 % survival in >= 85 % of sets");
+        Assert(b2bShare>=.75f,"3 sieges still show back-to-back opens in >= 75 % of sets");
+        // 2. Lift catch-up: a due time that expires inside a long block, with the count 2 behind the floor, comes 4-10 s after the lift.
+        var rh=new ScareRhythm();var ur=new Random(5);rh.UseCastleClock(()=>(float)ur.NextDouble(),false);
+        for(int i=0;i<400;i++)rh.Tick(.5f,true);   // 200 s blocked: the first two apparitions' 90 / 180 s deadlines are gone
+        Assert(rh.QuotaBehind,"the floor is behind after 200 s without an apparition");
+        rh.Tick(.5f,false);float due=rh.DueIn;
+        Assert(due>=3.4f&&due<=10f&&rh.LiftCatchUps==1,"behind the floor, the lifted block's apparition is due in 4-10 s (got "+due.ToString("F1")+")");
+        // Not behind: the redraw stays a burst gap (30-50 s, quota-clamped).
+        var rq=new ScareRhythm();var uq=new Random(6);rq.UseCastleClock(()=>(float)uq.NextDouble(),true);
+        float first=rq.DueIn;for(float t=0;t<first+5;t+=.5f)rq.Tick(.5f,true);rq.Tick(.5f,false);
+        Assert(rq.LiftCatchUps==0&&rq.DueIn>=14f,"a block lifted less than 2 behind the floor redraws a burst / catch-up gap ("+rq.DueIn.ToString("F1")+")");
+    }
     // Wave FD (r13 blind critic): unbagged hide opens, a told and gated first hunt for a cold player, an apparition floor.
     static void WaveFDTests()
     {
         // 1. Near-miss opens: a per-visit roll, never a guaranteed safe window after an open.
         var d=new NearMissDice();var rng=new Random(4242);int maxClosed=0;
         float minP=1;for(int i=0;i<200000;i++){d.Roll((float)rng.NextDouble(),out float p);minP=Math.Min(minP,p);maxClosed=Math.Max(maxClosed,d.ClosedStreak);}
-        Assert(minP>=.24f,"every visit can open (lowest chance "+minP+")");
+        Assert(minP>=.28f,"every visit can open (lowest chance "+minP+")");
         float rate=d.Opens/(float)d.Visits;Console.WriteLine("WAVE_FD near-miss open dice long-run rate="+rate.ToString("F3")+" longest closed run="+maxClosed);
         Assert(rate>=.30f&&rate<=.40f,"long-run open rate about 1 in 3 ("+rate.ToString("F3")+")");
         Assert(maxClosed<=7,"the soft pity floor ends a closed run by the 8th visit");
         var a=new NearMissDice();a.Roll(0,out _);Assert(a.LastOpened&&Math.Abs(a.ChanceNow-.45f)<1e-6f,"after an open the next visit rolls 0.45: no safe window");
         a.Roll(0,out float again);Assert(a.Opens==2&&again==.45f,"back-to-back opens happen");
-        var b=new NearMissDice();for(int i=0;i<4;i++){b.Roll(.99f,out float pb);Assert(pb==.24f,"no pity in the first four closed visits");}
-        b.Roll(.99f,out float p5);b.Roll(.99f,out float p6);Assert(Math.Abs(p5-.49f)<1e-5f&&Math.Abs(p6-.74f)<1e-5f,"soft pity after four closed visits (+0.25 each)");
+        var b=new NearMissDice();for(int i=0;i<4;i++){b.Roll(.99f,out float pb);Assert(pb==.28f,"no pity in the first four closed visits");}
+        b.Roll(.99f,out float p5);b.Roll(.99f,out float p6);Assert(Math.Abs(p5-.53f)<1e-5f&&Math.Abs(p6-.78f)<1e-5f,"soft pity after four closed visits (+0.25 each)");
         // The integrator's siege_held proof: 3 runs of 6 hidden hunts in one hide; at least one open within 2 visits of a previous open.
         int sets=0,b2b=0;var sr=new Random(77);
         for(int k=0;k<5000;k++){bool hit=false;for(int r=0;r<3;r++){var nd=new NearMissDice();int last=-99;for(int v=0;v<6;v++)if(nd.Roll((float)sr.NextDouble(),out _)){if(v-last<=2)hit=true;last=v;}}sets++;if(hit)b2b++;}

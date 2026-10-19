@@ -322,8 +322,24 @@ namespace HollowCurrent
         IEnumerator Measure(string id,float seconds)
         {
             var samples=new List<float>();var split=new EngineSplit();float end=Time.realtimeSinceStartup+seconds;
-            while(Time.realtimeSinceStartup<end){yield return null;samples.Add(Time.unscaledDeltaTime*1000);split.Sample(this);}
+            // fe2-count (r13 FE: S4 p99 17.97 from one-tick main-thread hitches): every frame over 14 ms is listed with what else happened
+            // in it (GC collections, managed allocation, log lines, texture streaming), so the cause can be read from the capture log.
+            var alloc=Unity.Profiling.ProfilerRecorder.StartNew(Unity.Profiling.ProfilerCategory.Memory,"GC Allocated In Frame");
+            int logs=0;Application.LogCallback count=(a,b,c)=>logs++;Application.logMessageReceived+=count;
+            var hitches=new StringBuilder();int nh=0,g0=System.GC.CollectionCount(0),g1=System.GC.CollectionCount(1);
+            try
+            {
+                while(Time.realtimeSinceStartup<end)
+                {
+                    int l0=logs;yield return null;float ms=Time.unscaledDeltaTime*1000;samples.Add(ms);split.Sample(this);
+                    int c0=System.GC.CollectionCount(0),c1=System.GC.CollectionCount(1);
+                    if(ms>14&&nh<12){nh++;hitches.Append(" [f"+samples.Count+" "+ms.ToString("F1")+"ms gc0="+(c0-g0)+" gc1="+(c1-g1)+" alloc="+(alloc.Valid?alloc.LastValue.ToString():"n/a")+" logs="+(logs-l0)+" texLoading="+Texture.streamingTextureLoadingCount+"]");}
+                    g0=c0;g1=c1;
+                }
+            }
+            finally{Application.logMessageReceived-=count;alloc.Dispose();}
             Record(id,samples,split.Describe());
+            if(nh>0)Log("FRAMETIME_HITCH "+id+" over14ms="+nh+hitches);
         }
         void Record(string id,List<float> samples,string engine="")
         {

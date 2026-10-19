@@ -8,11 +8,12 @@ namespace HollowCurrent
     //   - right after an open the next visit rolls AfterOpenChance (higher: he comes back hungrier), so an open is never followed by a safe
     //     window and back-to-back opens happen,
     //   - a soft pity floor starts only after PityAfter consecutive closed visits: each further closed visit adds PityStep (capped at 1).
-    // Long-run open rate about 0.37 (0.32 over a 6-visit siege from a fresh start); no visit is ever certain to stay closed. Pure: the
-    // caller passes the uniform roll in [0,1).
+    // Long-run open rate about 0.39; no visit is ever certain to stay closed. Pure: the caller passes the uniform roll in [0,1).
+    // Wave FE2 (r13 FE siege_held: 17/18 hidden hunts survived): BaseChance 0.24 -> 0.28, with Presence's first-visit pity (after two
+    // failed 0.33 attempts at Dread >= 50 he checks her hide): expected hidden survival over a 6-hunt siege about 73 % (was 79 %).
     public sealed class NearMissDice
     {
-        public float BaseChance = .24f, AfterOpenChance = .45f, PityStep = .25f;
+        public float BaseChance = .28f, AfterOpenChance = .45f, PityStep = .25f;
         public int PityAfter = 4;
         // Visits since the last open (or since the start).
         public int ClosedStreak { get; private set; }

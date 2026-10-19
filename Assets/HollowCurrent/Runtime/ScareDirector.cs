@@ -100,9 +100,13 @@ namespace HollowCurrent
                 return;
             }
             next-=dt;if(next>0)return;
-            if(!approachingHunt&&rhythm.AppearanceDue)Trigger();
+            bool fired=false;
+            if(!approachingHunt&&rhythm.AppearanceDue)fired=Trigger();
             else{if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=rhythm canSurprise="+rhythm.CanSurprise+" age="+rhythm.Age.ToString("F0"));Dread();}
             next=IsCastle?Random.Range(12f,25f):Random.Range(22f,38f); // castle: check the rhythm more often
+            // Wave FE2 (r13 FE natural7: eight no_visible_point skips, each waiting 12-25 s, then a block redrew the due time): a due castle
+            // apparition that found no place to stand is retried every 2.5-4 s (she turns; the next look may open a spot).
+            if(IsCastle&&!fired&&rhythm.AppearanceDue){next=Random.Range(2.5f,4f);FastRetries++;}
             // Wave L (r13 natural1: drawn 45-70 s gaps arrived as 80+ s because the 12-25 s check landed late): the castle checks again
             // when the clock comes due, so arrivals follow the irregular draw. Only while not yet due, so a failed Trigger is not retried fast.
             if(IsCastle&&rhythm.DueIn>0)next=Mathf.Min(next,rhythm.DueIn+.25f);
@@ -141,7 +145,14 @@ namespace HollowCurrent
             if(game.Modal||game.Player.Hidden||game.Case.Phase==Phase.Hunt||game.Case.Phase==Phase.Warning||game.Case.Phase==Phase.Recovery&&!IsCastle||game.Case.Phase==Phase.Containment||game.Case.Phase==Phase.Return||!rhythm.CanSurprise)return false;
             if(!firstBasement&&!rhythm.AppearanceDue)return false;
             if(!IsCastle&&game.Case.Phase==Phase.Disturbance&&game.Case.Evidence.Count>=2&&game.Case.PhaseTime>=55)return false; // Bellwether only (critic r10 #26)
-            if(!(IsCastle&&Castle&&Castle.ApparitionPoint(out var point))&&!VisiblePoint(out point)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=no_visible_point");if(!firstBasement)Dread();return false;}
+            // Wave FE2: when the castle's apparition floor is behind (QuotaBehind), a wider search (VisiblePointWide) is tried as well.
+            if(!(IsCastle&&Castle&&Castle.ApparitionPoint(out var point))&&!VisiblePoint(out point)&&!(IsCastle&&rhythm.QuotaBehind&&VisiblePointWide(out point)))
+            {
+                if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=no_visible_point behind="+rhythm.QuotaBehind+" retries="+FastRetries);
+                // Wave FE2: with the fast retry, at most one stand-in dread beat per 12 s.
+                if(!firstBasement&&(!IsCastle||age-lastNoPointBeat>=12)){lastNoPointBeat=age;Dread();}
+                return false;
+            }
             bool rush=!firstBasement&&Events%3==2;
             if(!game.Creature.ManifestAt(point,0,firstBasement?.32f:rush?1.6f:.55f,true)){if(IsCastle)Debug.Log("HC_SCARE_SKIP reason=manifest_refused at="+point+" "+game.Creature.DiagnosticState);return false;}
             game.Creature.FacePlayer();if(rush)game.Creature.BeginFakeRush();
@@ -167,6 +178,26 @@ namespace HollowCurrent
             }
             // Wave L: escalate= / reason= on the apparition line itself, so "hunts within 10 s of an apparition" can be audited per line.
             Debug.Log("HC_SCARE visible="+Events+" basement="+firstBasement+" rush="+rush+(IsCastle?" t="+game.Case.Elapsed.ToString("F0")+" escalate="+(escalate?"true":"false")+" reason="+escalateReason:""));return true;
+        }
+        public int FastRetries{get;private set;}
+        float lastNoPointBeat=-99;
+        // Wave FE2 (castle, floor behind): the same tests as VisiblePoint over a wider fan (up to 50 deg off her view, 2.9-7.5 m).
+        bool VisiblePointWide(out Vector3 point)
+        {
+            var view=game.Player.View.transform;var forward=Vector3.ProjectOnPlane(view.forward,Vector3.up).normalized;
+            if(forward.sqrMagnitude<.1f)forward=game.Player.transform.forward;
+            foreach(float angle in new[]{12f,-12f,30f,-30f,46f,-46f})foreach(float distance in new[]{2.9f,4.2f,5.6f,7.5f})
+            {
+                var desired=game.Player.transform.position+Quaternion.Euler(0,angle,0)*forward*distance;
+                if(!NavMesh.SamplePosition(desired,out var hit,1,NavMesh.AllAreas)||Mathf.Abs(hit.position.y-game.Player.transform.position.y)>.6f)continue;
+                var candidate=hit.position;var eye=candidate+Vector3.up*1.65f;
+                if(Vector3.Distance(candidate,game.Player.transform.position)<2.8f||Vector3.Angle(view.forward,eye-view.position)>50)continue;
+                if(Physics.Linecast(view.position,eye,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore)||Physics.Linecast(view.position,candidate+Vector3.up*.8f,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))continue;
+                if(Physics.CheckCapsule(candidate+Vector3.up*.4f,candidate+Vector3.up*1.7f,.28f,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore))continue;
+                Debug.Log("HC_SCARE_POINT wide=True angle="+angle.ToString("F0")+" distance="+distance.ToString("F1"));
+                point=candidate;return true;
+            }
+            point=Vector3.zero;return false;
         }
         bool VisiblePoint(out Vector3 point)
         {
