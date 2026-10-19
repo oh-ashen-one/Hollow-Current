@@ -519,7 +519,7 @@ def sunburst_window():
 def spec_for(name):
     def check(info):
         if name == "HallColumn":
-            assert approx(info["size"][0], .92, .05) and approx(info["size"][2], CAP_TOP, .02), info["size"]
+            assert approx(info["size"][0], .90, .05) and approx(info["size"][2], CAP_TOP, .02), info["size"]
         if name == "LongTable":
             assert approx(info["notes"]["top"], .775, .001)
         if name == "Altar":
@@ -532,7 +532,10 @@ BUILDERS = [
     ("LancetWindow", window_builder("LancetWindow", 1.2, 1.6), 4000), ("TallLancetWindow", window_builder("TallLancetWindow", 1.4, 3.5), 4000),
     ("ClerestoryWindow", window_builder("ClerestoryWindow", 1.2, 1.8), 4000), ("ObservatoryWindow", window_builder("ObservatoryWindow", 1.6, 2.7), 4500),
     # wave FD (r13 critic: "lancet windows: none in the hall"): the north wall's lancets flanking the rose window and at the galleries' ends
-    ("HallLancetWindow", window_builder("HallLancetWindow", 1.0, 2.8), 4000), ("GalleryLancetWindow", window_builder("GalleryLancetWindow", 1.0, 4.4), 4500),
+    # wave FF (r14 critic: "no lancet windows in the S1 frame"): the flanking pair reaches down behind the north gallery's balustrade (sill 3.55,
+    # was 4.3; the head stays under the end formeret), and a blind 1.5 x 2.25 lancet with moonlit glass on each side wall at gallery height
+    ("HallLancetWindow", window_builder("HallLancetWindow", 1.0, 3.55), 4000), ("GalleryLancetWindow", window_builder("GalleryLancetWindow", 1.0, 4.4), 4500),
+    ("GalleryBlindLancet", window_builder("GalleryBlindLancet", 1.5, 2.25), 4500),
     ("PointedArch", pointed_arch, 2000), ("HallColumn", hall_column, 7000), ("HallCorbel", hall_corbel, 1200),
     ("HallPlinth", plinth, 300), ("HallStringCourse", string_course, 300), ("HallVault", hall_vault, 45000),
     ("Candelabra", candelabra, 6000), ("Candlestick", candlestick_asset, 1500), ("LongTable", trestle_table, 12000),

@@ -1,0 +1,78 @@
+{
+ "S4_exterior_sky": {
+  "eye": [
+   0.0,
+   1.64,
+   -22.0
+  ],
+  "fwd": [
+   0.0,
+   0.47716,
+   0.87882
+  ],
+  "fov": 90.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "mask_px": 86260,
+  "source": "tools/castle_fd_raycast.py --ff (BVH proxy of CastleWorld.Exterior + CastleExterior.Approach), water hits eroded 5 px, components >= 1500 px"
+ },
+ "art_exterior_battlement_out": {
+  "eye": [
+   3.6,
+   9.0,
+   -0.4
+  ],
+  "fwd": [
+   -0.11836,
+   -0.19727,
+   -0.97318
+  ],
+  "fov": 72.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "mask_px": 300253,
+  "source": "tools/castle_fd_raycast.py --ff (BVH proxy of CastleWorld.Exterior + CastleExterior.Approach), water hits eroded 5 px, components >= 1500 px"
+ },
+ "art_exterior_bridge_left": {
+  "eye": [
+   -1.2,
+   1.7,
+   -3.5
+  ],
+  "fwd": [
+   -0.87513,
+   0.19144,
+   0.4444
+  ],
+  "fov": 72.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "mask_px": 62142,
+  "source": "tools/castle_fd_raycast.py --ff (BVH proxy of CastleWorld.Exterior + CastleExterior.Approach), water hits eroded 5 px, components >= 1500 px"
+ },
+ "art_exterior_gate_out_S6": {
+  "eye": [
+   0.3,
+   1.64,
+   1.4
+  ],
+  "fwd": [
+   -0.00467,
+   0.02616,
+   -0.99965
+  ],
+  "fov": 72.0,
+  "size": [
+   1920,
+   1080
+  ],
+  "mask_px": 56200,
+  "source": "tools/castle_fd_raycast.py --ff (BVH proxy of CastleWorld.Exterior + CastleExterior.Approach), water hits eroded 5 px, components >= 1500 px"
+ }
+}

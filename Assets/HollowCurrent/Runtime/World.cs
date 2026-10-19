@@ -275,7 +275,9 @@ namespace HollowCurrent
             var trace=GameObject.CreatePrimitive(PrimitiveType.Quad);trace.name="Persistent claw-scores";trace.transform.SetParent(Root,false);
             trace.transform.position=Print;trace.transform.rotation=Quaternion.LookRotation(-normal);trace.transform.localScale=new Vector3(.45f,.4f,1);
             trace.GetComponent<Collider>().enabled=false;
-            var texture=Resources.Load<Texture2D>("Castle/ClawScores");if(!texture)texture=Resources.Load<Texture2D>("Surfaces/UVHandprint");
+            // wave FF (r14 critic: "a white *human* handprint labelled claw-scores"): Codex's generated Castle/ClawScores.png first, then the procedural
+            // claw gouges (tools/ff_hall_glass.py), the Bellwether handprint only if both are missing
+            var texture=Resources.Load<Texture2D>("Castle/ClawScores");if(!texture)texture=Resources.Load<Texture2D>("Castle/Textures/Castle_ClawScoresProcedural");if(!texture)texture=Resources.Load<Texture2D>("Surfaces/UVHandprint");
             var material=new Material(Resources.Load<Shader>("UVTrace")){name="Castle latent claw-scores",mainTexture=texture};Materials["uvtrace"]=material;
             var renderer=trace.GetComponent<Renderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
             Trace=trace.transform;Trace.gameObject.SetActive(false);

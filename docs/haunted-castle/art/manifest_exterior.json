@@ -237,7 +237,7 @@
  },
  "ExtWalls": {
   "budget": 20000,
-  "bytes": 40652,
+  "bytes": 41148,
   "file": "Assets/HollowCurrent/Resources/Castle/ExtWalls.fbx",
   "materials": [
    "Castle_StoneDark",
@@ -271,7 +271,7 @@
      29.57,
      4.62
     ],
-    "tris": 1320
+    "tris": 1344
    }
   },
   "size": [
@@ -279,6 +279,6 @@
    29.57,
    4.62
   ],
-  "tris": 1320
+  "tris": 1344
  }
 }

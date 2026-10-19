@@ -30,6 +30,12 @@ namespace HollowCurrent
         public float CandleRangeScale = 1.3f;
         public float CandleMinRange = 6.5f;
         public float CandleMaxRange = 10f;
+        // wave FF (r14 critic: "the banquet table is a small dark shape at the far end, legible only with the lantern on"; test: >= 15k table px
+        // lantern off): the two light-only candles on the table (CastleWorld names them "Table candle light", 0.55 m over the top) get a short range
+        // and ForcePixel, so they light the table, its candlesticks and chairs instead of losing the object's forward pixel slots to the floor
+        // stands (r14: table median luma 8.7 lantern off, 22 lantern on). Range 3.5 keeps the pool on the table, its chairs and the dais.
+        public float TableCandleIntensity = .7f;
+        public float TableCandleRange = 3.5f;
 
         [Header("Moonlight (cold blue; must stay dimmer than the candles)")]
         public Color MoonColor = new Color(.36f, .51f, .75f);
@@ -292,7 +298,12 @@ namespace HollowCurrent
             {
                 if (!l || Done.Contains(l.GetInstanceID())) continue;
                 string baseName = l.name;
-                if (baseName == "Candle light" && l.type == LightType.Point)
+                if (baseName == "Table candle light" && l.type == LightType.Point)
+                {
+                    l.color = v.CandleColor; l.intensity = v.TableCandleIntensity; l.range = v.TableCandleRange;
+                    l.renderMode = LightRenderMode.ForcePixel; l.shadows = LightShadows.None;
+                }
+                else if (baseName == "Candle light" && l.type == LightType.Point)
                 {
                     l.color = v.CandleColor;
                     l.intensity *= v.CandleIntensityScale;

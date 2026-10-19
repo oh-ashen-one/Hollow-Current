@@ -71,7 +71,9 @@ namespace HollowCurrent
         // 0-6 % near-black while the walls were black). Linear multiplier on FogAreaColors[0] (the hall layers only; the crypt mist is untouched).
         // 1 = wave FB mist, .5 = fc-light. Integrator knob: lower it if the hall is still too bright with the lantern off (S1 < 35 % near-black),
         // raise it if hall views go past 55 %.
-        public float HallMistBrightness = .375f;
+        // wave FF: .375 -> .30, to pay for the moonlit north sky card, the blind gallery lancets and the table pool it adds to S1 (the r14 S1
+        // frame re-projected onto the FF layout: near-black 30.4 % at .375 with the new glass, 32.5 % at .30; tools/ff_hall_reproject.py --mist).
+        public float HallMistBrightness = .30f;
         public float[] FogAreaHeight = { 1.1f, .40f };           // top layer height above the floor, metres
 
         [Header("Room fog profile (exponential fog while the camera is in the crypt, castle-local y below CryptBelowY)")]
