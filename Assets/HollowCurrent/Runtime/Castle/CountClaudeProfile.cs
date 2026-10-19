@@ -82,7 +82,8 @@ namespace HollowCurrent
         public float GrabRootBlendDrop=.5f, GrabRootBlendCrawl=.35f;
         // count-l4: commits happen within RingTolerance of the clip's stand-off ring; the high dive flares upright over the last
         // FlareDistance; a release blocks any new grab for RecommitBlock; a committed grab holds for its clip (ClipSecondsFor).
-        // count-l4: at Dread >= BagDread the hide he keeps finding her in opens exactly once in every BagSize visits.
+        // count-l4: at Dread >= BagDread the hide he keeps finding her in opens on its own dice. Wave FD: NearMissDice (per-visit roll with a
+        // soft pity floor) replaced the bag of BagSize; BagSize is no longer read (kept so serialized profiles still load).
         public float BagDread=50f; public int BagSize=3;
         public float RingTolerance=.25f, FlareDistance=1.2f, RecommitBlock=2f, GrabDropPeakSkullDefault=4.2f;
         public float ClipSecondsFor(int mode)=>mode==ModeGrabDropId?1.6f:mode==ModeGrabCrawlId?1.4f:mode==ModeGrabSideLId||mode==ModeGrabSideRId?1.2f:mode==ModeGrabDropSpinId?1.9f:.9f;
@@ -174,6 +175,11 @@ namespace HollowCurrent
         // Wave G #11: when a between-hunt perch move is due, this share of them is a visible flight even while she watches
         // (not a hunt; nothing can kill), so seeing him move no longer means "hunt".
         public float ObservedReperchChance=.2f;
+        // Wave FD (r13 critic: "HC_COUNT_PERCH flight observed=True = 0 in every run"): one relocation per run is flown while she can see it.
+        // From ShowcaseAfterSeconds of case time, in Survey, Disturbance and Recovery, while he is perched the camera is tested every
+        // ShowcaseCheckSeconds against his departure perch and every arrival perch that keeps the distance rules (viewport and line of
+        // sight). He flies at the first chance; with no chance in ShowcaseWaitSeconds of perched calm time he flies anyway and waits again.
+        public float ShowcaseAfterSeconds=20f, ShowcaseWaitSeconds=90f, ShowcaseCheckSeconds=.25f;
         // Wave G #35: the lantern is a beacon. With the torch on and not hidden, his sight range is SightRange x this.
         public float TorchSightScale=1.5f;
         // Wave G #14: DiveEndsIn below this fires DiveLastSecond once per dive (the integrator's torch failure).

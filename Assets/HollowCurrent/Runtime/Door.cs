@@ -57,20 +57,44 @@ namespace HollowCurrent
         // The leaf extends +X from the hinge; a negative angle swings it toward +Z, a positive angle toward -Z. Open away from the player
         // whenever that side has at least MinAwayClear degrees of clear arc, else take the widest clear arc (fb-doors, owner item 4).
         public const float MinAwayClear=85;
-        // Chooses openAngle for an opening that starts now. Returns the side the player stands on (local z sign) for the log.
-        float ChooseSwing(Game game)
+        // Wave FD (castle only; r13 critic saw the Hall great doors swing toward a hall-side viewer). Castle hinges sit on the jamb corner, so
+        // the clearance probe's near-hinge corner meets the jamb at about 55-60 degrees on one side (tools/check_castle_doors.py --swing: 55 / 155
+        // for the Hall, Dining hall and Vestibule hall leaves). The old rule then fell back to the widest arc, i.e. toward a player on that side.
+        // Now the castle opens away whenever that arc is at least MinAwayPartial AND still leaves MinPassWidth of the opening free
+        // (leaf width x (1 - cos arc): a 1.5 m leaf at 55 degrees leaves 0.64 m for a 0.54 m player); otherwise the widest arc, as before.
+        public const float MinAwayPartial=45,MinPassWidth=.62f;
+        public float LeafWidth=>ProbeCenter.x*2-.04f;
+        bool Passable(float arc)=>arc>=MinAwayPartial&&LeafWidth*(1-Mathf.Cos(arc*Mathf.Deg2Rad))>=MinPassWidth;
+        // Diagnostics of the last opening (doorproof, capture): the opener's side in the closed hinge frame (-1 / +1, 0 = nobody) and
+        // whether the chosen angle swings the leaf away from that side.
+        public int LastOpenerSide{get;private set;}
+        public bool LastSwingAway{get;private set;}
+        public string LastOpener{get;private set;}="none";
+        // The opener's side of the closed leaf: local z in the closed hinge frame.
+        public float SideOf(Vector3 point)
+        {
+            var closed=(transform.parent?transform.parent.rotation:Quaternion.identity)*Closed;
+            return (Quaternion.Inverse(closed)*(point-transform.position)).z;
+        }
+        // Chooses openAngle for an opening that starts now, away from the player. Returns the side the player stands on (local z) for the log.
+        float ChooseSwing(Game game)=>ChooseSwing(game,game&&game.Player?game.Player.transform.position:(Vector3?)null,"player");
+        // The same rule from any viewpoint (fd-rules: the capture camera's position, so stills use the real swing logic).
+        float ChooseSwing(Game game,Vector3? opener,string who)
         {
             Measure();
-            float side=0;
-            if(game&&game.Player)
+            float side=0;bool castle=game&&game.Map==MapId.Castle;
+            if(opener.HasValue)
             {
-                var closed=(transform.parent?transform.parent.rotation:Quaternion.identity)*Closed;
-                var local=Quaternion.Inverse(closed)*(game.Player.transform.position-transform.position);
-                side=local.z;
-                if(local.z<0&&negative>=MinAwayClear)openAngle=-negative;
-                else if(local.z>=0&&positive>=MinAwayClear)openAngle=positive;
+                side=SideOf(opener.Value);
+                float away=side<0?negative:positive;
+                if(away>=MinAwayClear||castle&&Passable(away))openAngle=side<0?-away:away;
             }
-            if(NativeVerification.Requested)Debug.Log("HC_DOOR_STATE "+name+" pivot="+transform.position+" positive="+positive+" negative="+negative+" playerSide="+(side<0?"-z":"+z")+" selected="+openAngle);
+            LastOpenerSide=!opener.HasValue?0:side<0?-1:1;LastOpener=who;
+            // A negative angle swings the leaf toward +Z: away from an opener on the -Z side.
+            LastSwingAway=opener.HasValue&&(side<0)==(openAngle<0);
+            if(NativeVerification.Requested||castle)
+                Debug.Log("HC_DOOR_STATE name=\""+name+"\" side="+(side<0?"-z":"+z")+" swing="+(!opener.HasValue?"none":LastSwingAway?"away":"toward")+" angle="+openAngle.ToString("F0")+
+                    " by="+who+" positive="+positive+" negative="+negative+" pivot="+transform.position);
             return side;
         }
         public void Toggle()
@@ -80,6 +104,20 @@ namespace HollowCurrent
             if(!Open)ChooseSwing(game);
             Open=!Open;lastOpen=Open;BeginMotion(game);
             if(game&&game.Sound)game.Sound.Cue(Open?"door":"latch",transform.position+Vector3.up);
+        }
+        // Open (if closed) choosing the swing from this viewpoint instead of the player's (capture stills). No sound.
+        public void OpenFrom(Vector3 viewer,string who)
+        {
+            if(!measured)Measure();
+            if(Open)return;
+            var game=Owner;ChooseSwing(game,viewer,who);
+            Open=true;lastOpen=true;BeginMotion(game);
+        }
+        // Where the leaf actually is now (its probe centre in the closed hinge frame): -1 / +1 side, for the doorproof frame check.
+        public int LeafSideNow()
+        {
+            var center=transform.position+transform.rotation*ProbeCenter;
+            float z=SideOf(center);return Mathf.Abs(z)<.05f?0:z<0?-1:1;
         }
 
         // ---- never push the player (fb-doors, owner item 5) --------------------------------------------------------------
@@ -126,7 +164,7 @@ namespace HollowCurrent
             if(!measured)Measure();
             var game=Owner;
             // Something other than Toggle (the hunter walking through) set Open: pick the swing the same way and treat it as motion.
-            if(Open!=lastOpen){lastOpen=Open;if(Open)ChooseSwing(game);BeginMotion(game);}
+            if(Open!=lastOpen){lastOpen=Open;if(Open)ChooseSwing(game,game&&game.Player?game.Player.transform.position:(Vector3?)null,"auto");BeginMotion(game);}
             var target=Closed*Quaternion.Euler(0,Open?openAngle:0,0);
             transform.localRotation=Quaternion.RotateTowards(transform.localRotation,target,Time.deltaTime*150);
             bool moving=Quaternion.Angle(transform.localRotation,target)>.05f;

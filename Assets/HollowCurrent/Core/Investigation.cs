@@ -246,6 +246,7 @@ namespace HollowCurrent
         public bool Read(string note)
         {
             if (Terminal || !Notes.Add(note)) return false;
+            if (FirstNoteAt < 0) FirstNoteAt = Elapsed;
             Say("Filed / " + note);
             return true;
         }
@@ -328,6 +329,7 @@ namespace HollowCurrent
             firstHuntClock += dt;
             if (firstHuntAt < 0) firstHuntAt = Plan != null ? Plan.FirstHuntMin + (Plan.FirstHuntMax - Plan.FirstHuntMin) * Roll() : Rules.FirstHuntMax > Rules.FirstHuntMin ? HuntRules.Draw(Rules.FirstHuntMin, Rules.FirstHuntSeconds, Rules.FirstHuntMax, Roll()) : Rules.FirstHuntSeconds * (1 - Rules.FirstHuntJitter + 2 * Rules.FirstHuntJitter * Roll());
             if (firstHuntClock < firstHuntAt) return false;
+            if (ColdHold) return false;   // wave FD: a cold run's first hunt waits for a read page or ColdFirstHuntCap
             StartThreat(false);
             return true;
         }
@@ -410,6 +412,8 @@ namespace HollowCurrent
             if (dreadful) huntClock += dt;
             // Crossing the boundary restarts the roll schedule for the new kind of roll.
             if (dreadful != diceHigh) { diceHigh = dreadful; diceTimer = float.NaN; }
+            // Wave FD: before a cold run's gate opens, only TickFirstHunt may start the first hunt (and it waits for the gate too).
+            if (ColdHold) { TickFirstHunt(dt); return; }
             // Timed hunt: Bellwether's 95 s timer, the castle's 240 s floor.
             if (Rules.TimedHuntSeconds > 0 && dreadful && huntClock >= Rules.TimedHuntSeconds && Evidence.Count >= Rules.TimedHuntEvidence && !DiceHeld) { StartThreat(false); return; }
             // First-hunt guarantee so the mystery cannot stall at low Dread (TickFirstHunt: record-keyed, or from spawn).
@@ -437,6 +441,9 @@ namespace HollowCurrent
         void StartThreat(bool fromDice)
         {
             ThreatFrom = Phase;
+            // Wave FD (r13 critic: a cold player's first hunt came with no tell at 87 s): a cold run's first hunt is always a told
+            // Warning (no no-tell roll, never a false alarm), drawn WarningSecondsMin..Max like every Warning.
+            if (ColdFirstHunt) { Warn(DrawWarningSeconds(), false, true); return; }
             // No-tell starts leave BreakerOn alone: the brazier and room tone must not announce them.
             if (Rules.WarningSeconds <= 0 || Rules.NoTellChance > 0 && Roll() < Rules.NoTellChance) { StartHunt(true); return; }
             bool falseAlarm = fromDice && Rules.FalseWarningChance > 0 && Roll() < Rules.FalseWarningChance;
@@ -454,6 +461,10 @@ namespace HollowCurrent
         }
         void StartHunt(bool noTell)
         {
+            // Wave FD: what preceded this hunt, for HC_HUNT_TELL (read before Set clears EscalatedWarning).
+            LastTellKind = noTell || Phase != Phase.Warning ? "none" : EscalatedWarning ? "escalation" : "warning";
+            LastTellLead = LastTellKind == "none" ? 0 : PhaseTime;
+            if (Hunts == 0) FirstHuntColdGate = ColdFirstHunt ? (FirstNoteAt >= 0 ? "page" : "cap") : "off";
             Hunts++;
             previousHuntFromEscalation = LastHuntFromEscalation; LastHuntFromEscalation = escalationPending; escalationPending = false;
             FalseWarning = false;
@@ -507,6 +518,20 @@ namespace HollowCurrent
         // instead of Draw(60, 95, 180). Call once at the run's start, before the second record.
         public void UseRunPlan(RunPlan plan) { if (plan == null) return; Plan = plan; firstHuntAt = -1; }
         public RunPlan Plan { get; private set; }
+        // Wave FD (r13 critic onboarding: a cold player's first hunt was no-tell at 87 s, in Survey, with 0 evidence). A cold run (RunPlan.Cold:
+        // no history, so the Early band) keeps its band, but the first hunt (a) never starts before a document is read (Read: the gate
+        // keeper's letter or a ledger page) or Rules.ColdFirstHuntCap seconds have passed, whichever comes first, so a passive player is
+        // still hunted, and (b) is always preceded by a told Warning (5-14 s). Long Night (no Warning phase) and Bellwether: off.
+        public bool ColdFirstHunt => Plan != null && Plan.Cold && Rules.ColdFirstHuntCap > 0 && Rules.WarningSeconds > 0 && Hunts == 0;
+        public bool ColdGateOpen => FirstNoteAt >= 0 || Elapsed >= Rules.ColdFirstHuntCap;
+        bool ColdHold => ColdFirstHunt && !ColdGateOpen;
+        // Elapsed at the first document read (-1 = none yet). Diagnostics and the cold gate.
+        public float FirstNoteAt { get; private set; } = -1;
+        // How the run's first hunt was gated: "off" (not a cold run), "page" (a document was read first), "cap" (ColdFirstHuntCap); "" before it.
+        public string FirstHuntColdGate { get; private set; } = "";
+        // The tell before the current hunt: "warning", "escalation" or "none" (no-tell, hostile Return), and its length in seconds.
+        public string LastTellKind { get; private set; } = "none";
+        public float LastTellLead { get; private set; }
         // Wave L3. The rhythm's lull: for `seconds` of non-threat time (the countdown stops in Warning and Hunt) every dice roll and the
         // floor are held unless DiceDread >= Rules.LullDiceDread. The first-hunt guarantee is not held.
         public void HoldDice(float seconds) { if (Rules.UsesDread && !float.IsNaN(seconds) && seconds > 0) DiceHoldRemaining = Math.Max(DiceHoldRemaining, seconds); }
@@ -592,7 +617,7 @@ namespace HollowCurrent
             if (SealProgress >= 1)
             {
                 // Hostile Return: the escape is a tell-less hunt until the bridge is crossed.
-                if (Rules.HostileReturn) { Hunts++; NoTellHunt = true; ThreatFrom = Phase.Containment; HuntDreadAdded = 0; previousHuntFromEscalation = LastHuntFromEscalation; LastHuntFromEscalation = false; }
+                if (Rules.HostileReturn) { LastTellKind = "none"; LastTellLead = 0; Hunts++; NoTellHunt = true; ThreatFrom = Phase.Containment; HuntDreadAdded = 0; previousHuntFromEscalation = LastHuntFromEscalation; LastHuntFromEscalation = false; }
                 Set(Phase.Return);
                 Say(Book.SealedMessage);
             }

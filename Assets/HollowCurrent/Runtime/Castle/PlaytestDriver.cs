@@ -297,6 +297,7 @@ namespace HollowCurrent
             if(Mode=="death"){yield return Death();yield break;}
             if(Mode=="huntcam"){yield return HuntCam();yield break;}
             if(Mode=="cold"){yield return Cold();yield break;}
+            if(Mode=="doorproof"){yield return DoorProof();yield break;}
             // Field kit from the lantern cart.
             yield return Use(Find(InteractKind.Kit),"field kit");
             if(!game.Case.Equipped)Blocker("kit not equipped");
@@ -596,6 +597,8 @@ namespace HollowCurrent
             while(Time.realtimeSinceStartup<end)
             {
                 var p=spots[k++%spots.Length];
+                // r13 critic (natural1 grab #2): never teleport during a grab presentation; wait until the grab camera is released.
+                while(game.Creature&&game.Creature.GrabCamActive)yield return null;
                 if(NavMesh.SamplePosition(p,out var hit,3,NavMesh.AllAreas))game.Player.Teleport(hit.position+Vector3.up*.05f);
                 float stay=Time.realtimeSinceStartup+20;
                 while(Time.realtimeSinceStartup<stay){input.Look=game.Player.View.transform.position+Quaternion.Euler(0,Time.realtimeSinceStartup*12,0)*Vector3.forward;yield return null;}
@@ -828,6 +831,77 @@ namespace HollowCurrent
             }
             if(!castle.Fight.Dead)Blocker("fight not finished in 300 s (hits "+castle.Fight.Hits+", bell rings "+rings+")");
             yield return Wait(2.5f);
+        }
+        // ---- doorproof (fd-rules, r13 critic "door swing unproven") ---------------------------------------------------------------------
+        // The Hall great doors (both leaves) and two interior doors (Dining hall door, Vestibule hall door), from EACH side: stand 3.2 m out,
+        // walk up to 1.5 m on foot (TestInput), look at the leaf, press E through the interaction ray like a player. Door logs HC_DOOR_STATE
+        // name= side= swing= angle= by=player; 0.5 s after the press a frame is saved and the leaf's real side is measured (its probe centre in the
+        // closed hinge frame) against hers: HC_DOORPROOF name= side= swing=away|toward angle= leafSide= playerSide= focus=. Then E again closes
+        // it. Ends with HC_DOORPROOF toward=<n> toggles=<m> PASS|FAIL (PASS = every toggle away, every leaf focused by the ray).
+        static readonly string[] ProofDoors={"Hall great doors","Dining hall door","Vestibule hall door"};
+        IEnumerator DoorProof()
+        {
+            var c=game.Case;int toward=0,toggles=0,unfocused=0;
+            // Driver choice (logged): the Late first-hunt band (160-200 s), so the ~70 s proof runs before the first hunt and the Count does not
+            // open these doors himself mid-proof.
+            c.UseRunPlan(new RunPlan{Band=FirstHuntBand.Late});Debug.Log("HC_DOORPROOF plan=Late (driver) t="+c.Elapsed.ToString("F1"));
+            var leaves=new List<(Door door,Interactable panel)>();
+            foreach(var d in game.World.Doors)
+            {
+                if(!d)continue;var it=d.GetComponentInChildren<Interactable>(true);
+                if(it&&it.Kind==InteractKind.Door&&Array.IndexOf(ProofDoors,it.Label)>=0)leaves.Add((d,it));
+            }
+            Debug.Log("HC_DOORPROOF begin leaves="+leaves.Count+" doors="+string.Join(",",leaves.ConvertAll(l=>l.door.name)));
+            if(leaves.Count<4)Blocker("doorproof: expected 4 leaves (hall x2, dining, vestibule), found "+leaves.Count);
+            yield return Torch(true);
+            foreach(var (door,panel) in leaves)
+            foreach(int side in new[]{-1,1})
+            {
+                if(door.Open){door.Toggle();yield return Wait(1.2f);}
+                var closed=(door.transform.parent?door.transform.parent.rotation:Quaternion.identity)*door.Closed;
+                var col=panel.GetComponent<Collider>();var centre=col?col.bounds.center:panel.transform.position;
+                var normal=closed*Vector3.forward;normal.y=0;normal.Normalize();
+                var floor=new Vector3(centre.x,door.transform.position.y,centre.z);
+                string tag=door.name.Replace(' ','_').Replace('(','_').Replace(')','_')+"_"+(side<0?"m":"p")+"z";
+                // Stand 3.2 m out on this side (NavMesh), then walk up to the door on foot.
+                var far=floor+normal*side*3.2f;
+                if(!NavMesh.SamplePosition(far,out var fh,1.2f,NavMesh.AllAreas)||Mathf.Sign(door.SideOf(fh.position))!=side){Blocker("doorproof "+door.name+" side "+side+": no walkable stand point");continue;}
+                game.Player.Teleport(fh.position+Vector3.up*.05f);input.Look=centre;yield return Frames(4);
+                float walkEnd=Time.realtimeSinceStartup+5;
+                while(Time.realtimeSinceStartup<walkEnd)
+                {
+                    var p=game.Player.transform.position;var flat=floor-p;flat.y=0;
+                    if(flat.magnitude<=1.5f)break;
+                    input.Look=centre;input.Move=new Vector2(0,1);yield return null;
+                }
+                input.Move=Vector2.zero;input.Look=centre;yield return Frames(6);
+                var player=game.Player.transform.position;int playerSide=door.SideOf(player)<0?-1:1;
+                bool focused=game.Player.Focus==panel;
+                if(!focused){
+                    // A double door: aim at this leaf's half, a little lower.
+                    input.Look=centre+Vector3.down*.4f;yield return Frames(6);focused=game.Player.Focus==panel;
+                }
+                if(focused)yield return Press(i=>i.Use=true);
+                else{unfocused++;Debug.Log("HC_DOORPROOF focus_fail name=\""+door.name+"\" focus="+(game.Player.Focus?game.Player.Focus.name:"none"));door.Toggle();}
+                float pressed=Time.realtimeSinceStartup;
+                if(!door.Open){Blocker("doorproof "+door.name+": E did not open it");continue;}
+                toggles++;
+                while(Time.realtimeSinceStartup-pressed<.5f)yield return null;
+                int leafSide=door.LeafSideNow();bool away=leafSide!=0&&leafSide!=playerSide;
+                if(!away)toward++;
+                Debug.Log("HC_DOORPROOF name=\""+door.name+"\" side="+(playerSide<0?"-z":"+z")+" swing="+(away?"away":"toward")+" angle="+door.OpenAngle.ToString("F0")+" chosen="+(door.LastSwingAway?"away":"toward")
+                    +" leafSide="+leafSide+" playerSide="+playerSide+" focus="+focused+" by="+door.LastOpener+" leafRot="+door.transform.localEulerAngles.y.ToString("F0")+" player="+player.ToString("F1")+" t="+c.Elapsed.ToString("F0"));
+                yield return Shot("doorproof_"+tag+"_open05");
+                yield return Wait(1f);
+                // Close it again with E, like a player (the ray may now miss the swung leaf: then Toggle, logged).
+                if(game.Player.Focus==panel)yield return Press(i=>i.Use=true);else{door.Toggle();Debug.Log("HC_DOORPROOF close=direct name=\""+door.name+"\"");}
+                yield return Wait(1.2f);
+            }
+            input.Move=Vector2.zero;
+            bool pass=toward==0&&toggles>=8&&unfocused==0;
+            Debug.Log("HC_DOORPROOF toward="+toward+" toggles="+toggles+" unfocused="+unfocused+" leaves="+leaves.Count+" "+(pass?"PASS":"FAIL"));
+            if(!pass)Blocker("doorproof: toward="+toward+" toggles="+toggles+" unfocused="+unfocused);
+            yield return Finish();
         }
         // ---- cold: a first-time player (fb-onboard) ------------------------------------------------------------------------------
         static readonly string[] ColdHides={"Hall armoire","Dining armoire","Kitchen larder","Confessional","Vestibule press"};

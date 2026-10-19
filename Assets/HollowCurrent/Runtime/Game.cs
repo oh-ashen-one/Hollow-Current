@@ -135,7 +135,7 @@ namespace HollowCurrent
                 var history=RunHistory.Parse(fresh?"":PlayerPrefs.GetString("hc.castle.runs",""));
                 RunPlan=history.Next(UnityEngine.Random.value,UnityEngine.Random.value);Case.UseRunPlan(RunPlan);
                 if(!restoreCheckpoint&&!fresh){history.Push(RunPlan);PlayerPrefs.SetString("hc.castle.runs",history.Serialize());PlayerPrefs.Save();}
-                Debug.Log("HC_RUN_PLAN band="+RunPlan.Band+" firstHunt="+RunPlan.FirstHuntMin.ToString("F0")+"-"+RunPlan.FirstHuntMax.ToString("F0")+" burstStart="+RunPlan.BurstStart+" history="+history.Serialize());
+                Debug.Log("HC_RUN_PLAN band="+RunPlan.Band+" firstHunt="+RunPlan.FirstHuntMin.ToString("F0")+"-"+RunPlan.FirstHuntMax.ToString("F0")+" burstStart="+RunPlan.BurstStart+" cold="+RunPlan.Cold+" coldCap="+Case.Rules.ColdFirstHuntCap.ToString("F0")+" history="+history.Serialize());
             }
             // Wave K death first: a grab in the same frame as the crossing or the killing blow wins over the win, whatever
             // order Presence, CastleRun and Game run in this frame.
@@ -480,6 +480,10 @@ namespace HollowCurrent
                 if(phase==Phase.Warning)Debug.Log("HC_WARNING false="+Case.FalseWarning+" escalated="+Case.EscalatedWarning+" length="+Case.CurrentWarningSeconds.ToString("F1")+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1"));
                 if(previous==Phase.Warning&&phase!=Phase.Hunt&&!Case.Terminal)Debug.Log("HC_FALSE_WARNING ended phase="+phase);
                 if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_START t="+Case.Elapsed.ToString("F0")+" phase="+phase+" noTell="+Case.NoTellHunt+" from="+previous+" escalated="+Case.EscalatedWarning+" threatFrom="+Case.ThreatFrom+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1")+" runDreadMin="+Case.RunDreadMin.ToString("F1")+" huntSeconds="+Case.CurrentHuntSeconds.ToString("F1")+" breaker="+Case.BreakerOn+" hunts="+Case.Hunts);
+                // Wave FD: the tell before every hunt (kind=warning|escalation|none, lead_s = the Warning's length); the first hunt also says how
+                // the cold gate held it (gate=page|cap|off, firstDocAt = case time of the first document read, -1 = none).
+                if(phase==Phase.Hunt||phase==Phase.Return&&Case.HuntActive)Debug.Log("HC_HUNT_TELL kind="+Case.LastTellKind+" lead_s="+Case.LastTellLead.ToString("F1")+" t="+Case.Elapsed.ToString("F0")+" hunts="+Case.Hunts+" phase="+phase
+                    +(Case.Hunts==1?" first=True cold="+(RunPlan!=null&&RunPlan.Cold)+" gate="+Case.FirstHuntColdGate+" firstDocAt="+Case.FirstNoteAt.ToString("F0"):""));
                 if(phase==Phase.Recovery)Debug.Log("HC_RECOVERY seconds="+Case.CurrentRecoverySeconds.ToString("F1")+" grace="+Case.GraceSeconds.ToString("F1")+" huntDreadAdded="+Case.HuntDreadAdded.ToString("F1")+" huntShare="+Case.HuntShare.ToString("F3")+" governor="+Case.GovernorAtLastGrace.ToString("F2")+" governorShare="+Case.GovernorShare.ToString("F3")+" dread="+Case.Dread.ToString("F1")+" felt="+Case.FeltDread.ToString("F1"));
             }
             Creature?.PhaseChanged(phase);
