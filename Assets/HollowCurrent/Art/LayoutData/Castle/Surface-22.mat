@@ -27,12 +27,12 @@ Material:
     m_Floats:
     - _FogKeep: 0.45
     - _Glade: 1
-    - _GladeBody: 0.55
+    - _GladeBody: 0.45
     - _GladeElev: 13
     - _GladeRough: 0.26
-    - _Glitter: 2.6
+    - _Glitter: 3.2
     - _GlitterCell: 12
-    - _GlitterDensity: 0.18
+    - _GlitterDensity: 0.26
     - _GlitterFacet: 6
     - _GlitterHalo: 1.6
     - _MoonKeep: 0.35
