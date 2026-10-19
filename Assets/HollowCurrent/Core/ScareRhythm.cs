@@ -34,6 +34,12 @@ namespace HollowCurrent
             modal||hidden||graceRemaining>0&&graceRemaining<CastleGraceMargin||phase==Phase.Recovery&&graceRemaining<=0||
             phase==Phase.Warning||phase==Phase.Hunt||phase==Phase.Briefing||phase==Phase.Containment||phase==Phase.Return;
         public const float CastleGraceMargin=20;
+        // Wave FE (r13 FD proofs: natural1's floor apparition at 70 s, 7 s before its planned 77 s first hunt): an apparition is also blocked
+        // while a threat the rules already know about (Investigation.PlannedThreatIn: first-hunt deadline, timed hunt, share-floor pull, armed
+        // escalation) is due within this many seconds, so it lands after that hunt instead of making the hunt wait out the apparition gap.
+        public const float CastlePlannedHuntWindow=11.5f;
+        public static bool CastleBlocked(Phase phase,float graceRemaining,bool hidden,bool modal,float plannedThreatIn)=>
+            CastleBlocked(phase,graceRemaining,hidden,modal)||plannedThreatIn<=CastlePlannedHuntWindow;
         bool expiredInBlock,blockedNow;
         public int Rescheduled{get;private set;}
         // Castle (r10 rerun) sets Spacing 60 and AppearanceBase/Spread 60/50; the defaults are Bellwether's 90 and 105-165 s.

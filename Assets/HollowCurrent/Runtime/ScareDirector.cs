@@ -11,6 +11,7 @@ namespace HollowCurrent
         float next=24,activity,blackout,age;
         readonly ScareRhythm rhythm=new ScareRhythm();
         Phase previousPhase;
+        bool plannedGateLogged;
         bool basement;
         readonly List<Transform> props=new List<Transform>();
         ParticleSystem mist;
@@ -64,7 +65,18 @@ namespace HollowCurrent
             float dt=Time.deltaTime;age+=dt;activity=Mathf.Max(0,activity-dt);blackout=Mathf.Max(0,blackout-dt);
             if(!game.Case.Equipped||game.Case.Phase==Phase.Briefing||game.Case.Phase==Phase.Return)return;
             // Wave L3: the castle clock knows when an apparition is blocked; a due time that expires in a block is redrawn when it lifts.
-            rhythm.Tick(dt,IsCastle&&ScareRhythm.CastleBlocked(game.Case.Phase,game.Case.GraceRemaining,game.Player.Hidden,game.Modal));
+            // Wave FE: and while a known threat (first-hunt deadline, timed hunt, share-floor pull, armed escalation) is due within 11.5 s.
+            if(IsCastle)
+            {
+                float planned=game.Case.PlannedThreatIn;
+                bool baseBlock=ScareRhythm.CastleBlocked(game.Case.Phase,game.Case.GraceRemaining,game.Player.Hidden,game.Modal);
+                bool plannedBlock=!baseBlock&&planned<=ScareRhythm.CastlePlannedHuntWindow;
+                if(plannedBlock&&!plannedGateLogged&&rhythm.CanSurprise&&rhythm.DueIn<=0)
+                {plannedGateLogged=true;Debug.Log("HC_APPARITION_GATE deferred=apparition reason=planned_hunt huntIn="+planned.ToString("F1")+" phase="+game.Case.Phase+" t="+game.Case.Elapsed.ToString("F1"));}
+                if(!plannedBlock)plannedGateLogged=false;
+                rhythm.Tick(dt,baseBlock||plannedBlock);
+            }
+            else rhythm.Tick(dt,false);
             if(previousPhase!=game.Case.Phase)
             {
                 previousPhase=game.Case.Phase;

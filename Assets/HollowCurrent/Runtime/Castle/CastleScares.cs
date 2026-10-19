@@ -269,7 +269,7 @@ namespace HollowCurrent
             if(game==null||game.Case==null)return;
             int hunts=game.Case.Hunts;
             if(hunts<trackedHunts)trackedHunts=hunts; // a restored checkpoint
-            while(trackedHunts<hunts){huntBorn.Add(Time.time-lastEscalationAt<12f);trackedHunts++;}
+            while(trackedHunts<hunts){huntBorn.Add(trackedHunts==hunts-1?game.Case.LastHuntFromEscalation:Time.time-lastEscalationAt<16f);trackedHunts++;} // wave FE: an escalation's hunt now starts 11.5-13.5 s after it is armed
         }
 
         // ---- ambient substitute for the phases where the director is quiet (critic N11, scare-layer silence as a tell) ------------------
