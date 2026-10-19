@@ -135,6 +135,9 @@ namespace HollowCurrent
             return "huntsNonReturn="+nonReturn+" withinScare10s="+afterScare+" pctWithinScare10s="+(nonReturn>0?(100f*afterScare/nonReturn).ToString("F0"):"n/a")
                 +" apparitions="+scareTimes.Count+" apparitionCV="+cv+" apparitionTimes=["+arrivals.ToString().TrimEnd(',')+"]"
                 +" threatLeads=["+leads.ToString().TrimEnd(',')+"] lead25_60="+l2560+"/"+nl+" lead10_20="+l1020+"/"+nl+" lead10="+l10+"/"+nl
+                // fg-polish: the apparition follow-ups (drawn = direct + owed; cancelled covers armed and owed ones, HC_APPARITION_FOLLOWUP cancelled=).
+                +" followDrawn="+c.LeadFollows+" followOwed="+c.FollowOwed+" followAdopted="+c.FollowAdopted+" followFired="+c.LeadFollowFired+" followCancelled="+c.FollowCancelled
+                +" followCancelledPct="+(c.LeadFollows>0?(100f*c.FollowCancelled/c.LeadFollows).ToString("F0"):"n/a")
                 +" torchFails="+torchFails.Count+" torchDive="+tfDive+" torchHunt="+(torchFails.Count-tfDive)+" dives="+diveStarts+" torchBeforeContact15="+tfPre+"/"+torchFails.Count
                 +" firstHunt="+(first<0?"none":first.ToString("F0"))+" huntShare="+(t>0?(threatTime/t).ToString("F3"):"0")+" longestGap="+gap.ToString("F0")
                 +" grabContinuity="+continuityPass+"/"+continuityGrabs+" grabContinuity20="+continuityPass20+"/"+continuity20+" hiddenHunts="+hiddenHunts+" hiddenSurvived="+hiddenSurvived+" hiddenSurvivalPct="+(hiddenHunts>0?(100f*hiddenSurvived/hiddenHunts).ToString("F0"):"n/a")+" runSeconds="+t.ToString("F0")

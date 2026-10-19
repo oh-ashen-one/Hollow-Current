@@ -216,7 +216,7 @@ namespace HollowCurrent
             // The saved event part keeps decaying; the death penalty's Dread above the saved ambient part is event Dread too.
             float savedAmbient=Math.Max(0,saved.Dread-Math.Max(0,saved.DreadEvent));
             DreadEvent=!Rules.UsesDread?0:Math.Max(0,Math.Min(Dread,DeathPenaltyApplied?Dread-savedAmbient:saved.DreadEvent));
-            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();apparitionShadow=0;apparitionAt=float.NegativeInfinity;escalationPending=false;escalationDueAt=-1;sharePullAt=-1;quietShareTime=0;GovernorAtLastGrace=1;firstThreatAt=-1;quietBeforeThreat=false;
+            GraceRemaining=0;HuntDreadAdded=0;threatSpans.Clear();apparitionShadow=0;apparitionAt=float.NegativeInfinity;escalationPending=false;escalationDueAt=-1;sharePullAt=-1;followDueAt=-1;restUntil=-1;owedLead=-1;owedPlaceableAt=-1;quietShareTime=0;GovernorAtLastGrace=1;firstThreatAt=-1;quietBeforeThreat=false;
             if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
             feltBase=Dread;feltEpisodeKind=0;if(Rules.UsesDread)ScheduleFeltEpisode(Elapsed);firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
@@ -568,12 +568,20 @@ namespace HollowCurrent
         {
             get
             {
-                if (Hunts > 0 || FirstLead != "follow" || firstLeadPulled || firstHuntAt < 0 || ColdHold || Terminal) return false;
+                if (Hunts > 0) return OwedFollowWanted;   // wave FG: an owed follow asks for its apparition
+                if (FirstLead != "follow" || firstLeadPulled || firstHuntAt < 0 || ColdHold || Terminal) return false;
                 if (Phase != Phase.Survey && Phase != Phase.Disturbance) return false;
                 float left = firstHuntAt - firstHuntClock;
-                return left <= firstFollowLead && left > ScareRhythm.CastlePlannedHuntWindow + .5f;
+                // fg-polish (FF natural4: the window was lead..12 s, 0.9 s wide for a 12.9 s lead, and its one try found no visible point):
+                // it opens FirstFollowWantEarly s before the lead and stays open to FirstFollowWantLast s, while tying the deadline to the
+                // apparition (pulled earlier or pushed later) keeps the plan's band, the rule NoteApparition applies.
+                if (left > firstFollowLead + FirstFollowWantEarly || left <= FirstFollowWantLast) return false;
+                float bandMin = Plan != null ? Plan.FirstHuntMin : Rules.FirstHuntMin, bandMax = Plan != null ? Plan.FirstHuntMax : Rules.FirstHuntMax;
+                float tied = firstHuntClock + firstFollowLead;
+                return tied >= bandMin && tied <= Math.Max(bandMax, firstHuntAt);
             }
         }
+        public const float FirstFollowWantEarly = 8, FirstFollowWantLast = 3;
         void DrawApparitionLead()
         {
             if (Hunts == 0 && Rules.UsesDread)
@@ -598,14 +606,41 @@ namespace HollowCurrent
             // reaches past it.)
             string block = Hunts == 0 ? "before_first_hunt" : escalationDueAt >= 0 || followDueAt >= 0 || sharePullAt >= 0 ? "armed"
                 : Phase != Phase.Disturbance && Phase != Phase.Recovery ? "phase_" + Phase : null;
+            // Wave FG: an owed follow is adopted by the first apparition whose follow would land outside the quiet (or in the grace's last
+            // ApparitionFollowGraceCut s); an apparition that cannot carry it draws nothing.
+            if (block == null && owedLead >= 0)
+            {
+                if (FollowQuietAt(owedLead, out float graceAt, out float holdAt) == null)
+                {
+                    followDueAt = apparitionAt + owedLead; FollowAdopted++;
+                    Note("HC_APPARITION_FOLLOWUP adopted lead=" + F1(owedLead) + " owedFor=" + F1(Elapsed - owedSince) + " graceAtDue=" + F1(graceAt) + " t=" + F1(Elapsed));
+                    Note("HC_APPARITION_LEAD kind=follow owed=adopted threatIn=" + F1(followDueAt - Elapsed) + " t=" + F1(Elapsed));
+                    owedLead = -1; owedPlaceableAt = -1; LastApparitionLead = "follow";
+                    return;
+                }
+                block = "owed";
+            }
             if (block != null) { LastApparitionLead = "none"; Note("HC_APPARITION_LEAD kind=none reason=" + block + " t=" + F1(Elapsed)); return; }
             float u = Roll();
             if (u < Rules.ApparitionFollowChance)
             {
-                followDueAt = apparitionAt + Rules.ApparitionFollowMin + (Rules.ApparitionFollowMax - Rules.ApparitionFollowMin) * Roll();
-                if (Rules.ApparitionHuntGap > 0) followDueAt = Math.Max(followDueAt, apparitionAt + Rules.ApparitionHuntGap + .1f);
+                float lead = Rules.ApparitionFollowMin + (Rules.ApparitionFollowMax - Rules.ApparitionFollowMin) * Roll();
+                if (Rules.ApparitionHuntGap > 0) lead = Math.Max(lead, Rules.ApparitionHuntGap + .1f);
                 LeadFollows++; LastApparitionLead = "follow";
-                Note("HC_APPARITION_LEAD kind=follow threatIn=" + F1(followDueAt - Elapsed) + " u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed));
+                string quiet = FollowQuietAt(lead, out float graceAt, out float holdAt);
+                if (quiet != null && Rules.ApparitionFollowOweSeconds > 0)
+                {
+                    // Wave FG: it would land in the quiet: owed to a later apparition (WantsApparitionNow asks for one when the quiet allows).
+                    owedLead = lead; owedSince = Elapsed; owedPlaceableAt = -1; FollowOwed++;
+                    Note("HC_APPARITION_FOLLOWUP drawn=owed lead=" + F1(lead) + " quiet=" + quiet + " graceAtDue=" + F1(graceAt) + " holdAtDue=" + F1(holdAt) + " t=" + F1(Elapsed));
+                    Note("HC_APPARITION_LEAD kind=follow owed=" + quiet + " lead=" + F1(lead) + " u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed));
+                }
+                else
+                {
+                    followDueAt = apparitionAt + lead;
+                    Note("HC_APPARITION_FOLLOWUP drawn=direct lead=" + F1(lead) + " graceAtDue=" + F1(graceAt) + " t=" + F1(Elapsed));
+                    Note("HC_APPARITION_LEAD kind=follow threatIn=" + F1(followDueAt - Elapsed) + " u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed));
+                }
             }
             else if (u < Rules.ApparitionFollowChance + Rules.ApparitionRestChance)
             {
@@ -615,19 +650,58 @@ namespace HollowCurrent
             }
             else { LastApparitionLead = "open"; Note("HC_APPARITION_LEAD kind=open u=" + u.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " t=" + F1(Elapsed)); }
         }
-        // Fires an armed follow when its time comes (Disturbance or Recovery, no grace, no dice hold); anything else first cancels it.
+        // Fires an armed follow when its time comes (Disturbance or Recovery, no dice hold, at most ApparitionFollowGraceCut s of grace left,
+        // which it ends); anything else first cancels it. Wave FG: an owed follow lapses or is cancelled here too.
         void TickApparitionFollow()
         {
+            if (owedLead >= 0)
+            {
+                if (Terminal || Phase != Phase.Disturbance && Phase != Phase.Recovery) { owedLead = -1; owedPlaceableAt = -1; CancelFollow(Phase == Phase.Warning || Phase == Phase.Hunt ? "threat" : "phase_" + Phase, "owed"); }
+                else if (FollowQuietAt(owedLead, out _, out _) == null)
+                {
+                    if (owedPlaceableAt < 0) owedPlaceableAt = Elapsed;
+                    else if (Elapsed - owedPlaceableAt > Rules.ApparitionFollowOweSeconds) { owedLead = -1; owedPlaceableAt = -1; CancelFollow("lapsed", "owed"); }
+                }
+            }
             if (followDueAt < 0) return;
-            if (Terminal || Phase != Phase.Disturbance && Phase != Phase.Recovery) { Note("HC_APPARITION_LEAD follow=cancelled phase=" + Phase + " t=" + F1(Elapsed)); followDueAt = -1; return; }
+            if (Terminal || Phase != Phase.Disturbance && Phase != Phase.Recovery) { followDueAt = -1; CancelFollow(Phase == Phase.Warning || Phase == Phase.Hunt ? "threat" : "phase_" + Phase, "armed"); return; }
             if (Elapsed < followDueAt) return;
             followDueAt = -1;
-            if (GraceRemaining > 0 || DiceHeld) { Note("HC_APPARITION_LEAD follow=cancelled reason=" + (GraceRemaining > 0 ? "grace" : "held") + " t=" + F1(Elapsed)); return; }
-            if (HuntGateHolds("follow")) { Note("HC_APPARITION_LEAD follow=cancelled reason=gate t=" + F1(Elapsed)); return; }
+            if (HuntGateHolds("follow")) { CancelFollow("gate", "armed"); return; }
+            float cut = 0;
+            if (GraceRemaining > 0 && GraceRemaining <= Rules.ApparitionFollowGraceCut && !DiceHeld) { cut = GraceRemaining; GraceRemaining = 0; }
+            if (GraceRemaining > 0 || DiceHeld) { CancelFollow(GraceRemaining > 0 ? "grace" : "held", "armed"); return; }
             LeadFollowFired++;
+            Note("HC_APPARITION_FOLLOWUP fired since=" + F1(Elapsed - apparitionAt) + " graceCut=" + F1(cut) + " t=" + F1(Elapsed));
             Note("HC_APPARITION_LEAD follow=fired since=" + F1(Elapsed - apparitionAt) + " t=" + F1(Elapsed));
             StartThreat(true);
         }
+        // ---- Wave FG: follow-ups that survive the quiet ---------------------------------------------------------------------------------------
+        // Drawn follows: direct (armed at once) or owed; adopted owed follows; fired (LeadFollowFired); cancelled (any reason, armed or owed).
+        public int FollowOwed { get; private set; }
+        public int FollowAdopted { get; private set; }
+        public int FollowCancelled { get; private set; }
+        public float OwedFollowLead => owedLead;
+        float owedLead = -1, owedSince = -1, owedPlaceableAt = -1;
+        void CancelFollow(string reason, string state)
+        {
+            FollowCancelled++;
+            Note("HC_APPARITION_FOLLOWUP cancelled=" + reason + " state=" + state + " t=" + F1(Elapsed));
+            Note("HC_APPARITION_LEAD follow=cancelled reason=" + reason + " t=" + F1(Elapsed));
+        }
+        // What quiet a follow due `lead` s from now would meet: "held" (a dice hold still running then; the hold is threat-free time, so this
+        // keeps the long quiet stretch and the lull whole), "grace" (more than ApparitionFollowGraceCut s of grace left then), or null (it fires).
+        string FollowQuietAt(float lead, out float graceAtDue, out float holdAtDue)
+        {
+            graceAtDue = Math.Max(0, GraceRemaining - lead);
+            holdAtDue = DiceHeld ? Math.Max(0, DiceHoldRemaining - lead) : 0;
+            if (holdAtDue > 0) return "held";
+            if (graceAtDue > Rules.ApparitionFollowGraceCut) return "grace";
+            return null;
+        }
+        // An owed follow could be carried by an apparition now: the calm phases, its threat would fire, and no other known threat comes first.
+        bool OwedFollowWanted => owedLead >= 0 && !Terminal && (Phase == Phase.Disturbance || Phase == Phase.Recovery) && escalationDueAt < 0 && sharePullAt < 0
+            && FollowQuietAt(owedLead, out _, out _) == null && PlannedThreatIn > owedLead + 2;
         public int Apparitions { get; private set; }
         // Wave L3. The run's plan (RunHistory.Next): the first hunt is due FirstHuntMin..Max s after the second record (uniform;
         // fb-onboard: after spawn when Rules.FirstHuntFromSpawn),

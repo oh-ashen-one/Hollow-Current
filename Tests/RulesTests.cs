@@ -189,6 +189,7 @@ static class RulesTests
         WaveFE2Tests();
         Fe3GrabTests();
         WaveFFTests();
+        WaveFGTests();
         OnboardTests();
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
@@ -219,7 +220,7 @@ static class RulesTests
         {
             var c=StartOn(CaseBook.Castle,()=>.1f);c.Record(Evidence.Induction);c.NoteApparition();Assert(c.LastApparitionLead=="none"&&c.FollowDueAt<0,"no follow or rest before the first hunt (it comes from its band)");
             var g=StartOn(CaseBook.Castle,()=>.1f);g.Record(Evidence.Induction);g.BeginNoTellHunt();for(int t=0;t<60&&g.Phase==Phase.Hunt;t++)g.Tick(1,false);
-            if(g.GraceRemaining>14){g.NoteApparition();float at=g.Elapsed;while(g.Elapsed<at+21)g.Tick(.5f,false);Assert(g.LeadFollowFired==0&&g.Phase!=Phase.Warning&&g.Phase!=Phase.Hunt,"a follow that comes due inside the post-hunt grace is cancelled");}
+            if(g.GraceRemaining>14){g.NoteApparition();float at=g.Elapsed;while(g.Elapsed<at+21)g.Tick(.5f,false);Assert(g.LeadFollowFired==0&&g.Phase!=Phase.Warning&&g.Phase!=Phase.Hunt,"a follow that would come due inside the post-hunt grace / long-quiet hold does not fire there (fg-polish: it is owed, WaveFGTests)");}
         }
         // 2. The first hunt's lead (drawn with the plan). "rest" holds apparitions FirstLeadRestWindow s before the planned deadline; "follow"
         //    asks for an apparition its lead before the deadline and ties the deadline to it, inside the band.
@@ -228,7 +229,7 @@ static class RulesTests
             Assert(Math.Abs(r.ApparitionWindow-62)<.01f&&Math.Abs(r.PlannedThreatInForApparition-(r.PlannedThreatIn-50.5f))<.01f&&ScareRhythm.CastleBlocked(Phase.Survey,0,false,false,r.PlannedThreatInForApparition)==(r.PlannedThreatIn<=62),"first-hunt rest: apparitions are held 62 s before the deadline");
             var f=StartOn(CaseBook.Castle,()=>.2f);f.UseRunPlan(new RunPlan{Band=FirstHuntBand.Mid});Assert(f.FirstLead=="follow","a 0.2 roll draws the first-hunt follow");
             int t=0;while(!f.WantsApparitionNow&&f.Hunts==0&&t<400){f.Tick(1,false);t++;}
-            Assert(f.WantsApparitionNow&&f.PlannedThreatIn>11.5f&&f.PlannedThreatIn<=19.6f,"the first-hunt follow asks for an apparition its lead before the deadline ("+f.PlannedThreatIn+")");
+            Assert(f.WantsApparitionNow&&f.PlannedThreatIn>Investigation.FirstFollowWantLast&&f.PlannedThreatIn<=19.6f+Investigation.FirstFollowWantEarly,"the first-hunt follow asks for an apparition its lead (+ up to 8 s, fg-polish) before the deadline ("+f.PlannedThreatIn+")");
             float at=f.Elapsed;f.NoteApparition();Assert(f.FirstLeadPulled&&!f.WantsApparitionNow,"the apparition ties the deadline to it");
             while(f.Hunts==0&&f.Phase!=Phase.Warning&&f.Elapsed<at+40)f.Tick(.5f,false);
             Assert(f.Elapsed-at>=12-.6f&&f.Elapsed-at<=19.6f&&f.Elapsed>=110&&f.Elapsed<=151,"the first hunt follows it by 12-19.5 s, inside the Mid band ("+(f.Elapsed-at)+" s after, at "+f.Elapsed+")");
@@ -321,6 +322,102 @@ static class RulesTests
             Assert(ok==sets,"no single Count line exceeds 25 % of the lines");
             var pl=new[]{2,1,1};Assert(GrabMixRules.PickVariant(pl,1,.99f)==2&&GrabMixRules.PickVariant(new[]{1,1},0,0)==1,"the least-played variant; a tie never repeats the last one");
         }
+    }
+    // fg-polish (FF proofs: 7 of 9 apparition follow-ups cancelled by the post-hunt grace / long-quiet hold; the 10-20 s band passed on one
+    // follow in five naturals). A follow due in the grace's last 20 s ends the grace; one that would meet more quiet is owed to a later
+    // apparition the director asks for once the quiet ends within its lead. The long quiet stretch (gap >= 120 s) is never cut.
+    static void WaveFGTests()
+    {
+        var R=HuntRules.Castle;
+        Assert(R.ApparitionFollowGraceCut==20&&R.ApparitionFollowOweSeconds==60&&HuntRules.Bellwether.ApparitionFollowGraceCut==0&&HuntRules.Bellwether.ApparitionFollowOweSeconds==0,"castle fg values; Bellwether off");
+        // 1. Owed in the first hunt's grace + long-quiet hold, asked for when the quiet ends within the lead, adopted, fired 12-19.5 s after.
+        {
+            float u=.1f;var c=StartOn(CaseBook.Castle,()=>u);c.Record(Evidence.Induction);c.BeginNoTellHunt();
+            while(c.Phase==Phase.Hunt)c.Tick(.5f,false);
+            Assert(c.Hunts==1&&c.GraceRemaining>30&&c.DiceHoldRemaining>30,"setup: the first hunt's grace and long-quiet hold run");
+            var lines=new System.Collections.Generic.List<string>();c.Diagnostic+=lines.Add;
+            while(c.Phase!=Phase.Disturbance&&c.Phase!=Phase.Recovery)c.Tick(.5f,false);
+            c.NoteApparition();u=.99f;
+            Assert(c.LastApparitionLead=="follow"&&c.FollowDueAt<0&&c.OwedFollowLead>=12&&c.OwedFollowLead<=19.6f&&c.FollowOwed==1&&!c.WantsApparitionNow,"a follow that would land in the quiet is owed, not armed, and not yet asked for");
+            Assert(lines.Exists(l=>l.StartsWith("HC_APPARITION_FOLLOWUP drawn=owed")),"HC_APPARITION_FOLLOWUP drawn=owed logged");
+            float lead=c.OwedFollowLead;bool earlyWant=false;
+            while(!c.WantsApparitionNow&&c.Elapsed<400){c.Tick(.5f,false);if(c.WantsApparitionNow&&(c.DiceHoldRemaining>lead+.6f||c.GraceRemaining>lead+20.6f))earlyWant=true;}
+            Assert(c.WantsApparitionNow&&!earlyWant&&c.Phase==Phase.Disturbance,"the director is asked for its apparition only once the hold ends within the lead and the grace within lead + 20 s");
+            float at=c.Elapsed;c.NoteApparition();
+            Assert(c.FollowAdopted==1&&c.OwedFollowLead<0&&Math.Abs(c.FollowDueAt-(at+lead))<.01f&&!c.WantsApparitionNow&&lines.Exists(l=>l.StartsWith("HC_APPARITION_FOLLOWUP adopted")),"the apparition adopts the owed follow (its lead after it)");
+            bool early=false;while(c.Phase==Phase.Disturbance&&c.Elapsed<at+25){c.Tick(.25f,false);if(c.Phase!=Phase.Disturbance&&c.Elapsed-at<11.5f)early=true;}
+            Assert(!early&&(c.Phase==Phase.Warning||c.Phase==Phase.Hunt)&&c.Elapsed-at>=12-.3f&&c.Elapsed-at<=19.8f&&c.LeadFollowFired==1&&c.FollowCancelled==0,"the owed follow starts its threat 12-19.5 s after the adopting apparition ("+(c.Elapsed-at)+")");
+            Assert(c.LongQuietDone||c.DiceHoldRemaining<=0,"the long quiet stretch was not cut (hold over at the threat)");
+            Assert(lines.Exists(l=>l.StartsWith("HC_APPARITION_FOLLOWUP fired")),"HC_APPARITION_FOLLOWUP fired logged");
+        }
+        // 2. The grace cut: a direct follow due with <= 20 s of grace left (no hold) ends the grace and fires; > 20 s left it is owed.
+        {
+            float u=.99f;var c=StartOn(CaseBook.Castle,()=>u);c.Record(Evidence.Induction);c.BeginNoTellHunt();
+            for(int t=0;t<800&&(c.Phase!=Phase.Disturbance||!c.LongQuietDone||c.GraceRemaining>0);t++)c.Tick(1,false);
+            Assert(c.LongQuietDone&&c.Phase==Phase.Disturbance,"setup: the long quiet stretch is over");
+            c.BeginNoTellHunt();while(c.Phase==Phase.Hunt)c.Tick(.5f,false);
+            Assert(c.Hunts==2&&c.GraceRemaining>32&&!c.DiceHeld,"setup: a later hunt's grace, no hold ("+c.GraceRemaining+")");
+            float lead=12+7.5f*.1f;
+            while(c.GraceRemaining>lead+15)c.Tick(.25f,false);
+            var lines=new System.Collections.Generic.List<string>();c.Diagnostic+=lines.Add;
+            u=.1f;float at=c.Elapsed;c.NoteApparition();u=.99f;
+            Assert(c.FollowDueAt>0&&c.OwedFollowLead<0&&lines.Exists(l=>l.StartsWith("HC_APPARITION_FOLLOWUP drawn=direct")),"<= 20 s of grace at its due time: armed directly");
+            while(c.Phase!=Phase.Warning&&c.Phase!=Phase.Hunt&&c.Elapsed<at+25)c.Tick(.25f,false);
+            Assert((c.Phase==Phase.Warning||c.Phase==Phase.Hunt)&&c.GraceRemaining==0&&c.LeadFollowFired==1&&lines.Exists(l=>l.StartsWith("HC_APPARITION_FOLLOWUP fired")&&!l.Contains("graceCut=0.0")),"it ends the grace's last seconds and fires ("+(c.Elapsed-at)+" s)");
+        }
+        // 3. Cancellations are logged: an owed follow that a threat overtakes, and one that lapses 60 s after it became placeable.
+        {
+            float u=.1f;var c=StartOn(CaseBook.Castle,()=>u);c.Record(Evidence.Induction);c.BeginNoTellHunt();while(c.Phase==Phase.Hunt)c.Tick(.5f,false);
+            while(c.Phase!=Phase.Disturbance&&c.Phase!=Phase.Recovery)c.Tick(.5f,false);
+            var lines=new System.Collections.Generic.List<string>();c.Diagnostic+=lines.Add;
+            c.NoteApparition();u=.99f;Assert(c.OwedFollowLead>0,"setup: owed");
+            c.BeginNoTellHunt();c.Tick(.1f,false);
+            Assert(c.OwedFollowLead<0&&c.FollowCancelled==1&&lines.Exists(l=>l.StartsWith("HC_APPARITION_FOLLOWUP cancelled=threat")),"a threat cancels an owed follow (logged)");
+            var d=StartOn(CaseBook.Castle,()=>u);u=.1f;d.Record(Evidence.Induction);d.BeginNoTellHunt();while(d.Phase==Phase.Hunt)d.Tick(.5f,false);
+            while(d.Phase!=Phase.Disturbance&&d.Phase!=Phase.Recovery)d.Tick(.5f,false);
+            var dl=new System.Collections.Generic.List<string>();d.Diagnostic+=dl.Add;d.NoteApparition();u=.99f;
+            while(d.OwedFollowLead>0&&d.Elapsed<600)d.Tick(.5f,false);
+            Assert(d.FollowCancelled==1&&dl.Exists(l=>l.StartsWith("HC_APPARITION_FOLLOWUP cancelled=lapsed")),"an owed follow no apparition carries lapses (logged)");
+        }
+        // 3b. The first-hunt follow's request window (FF natural4: 0.9 s wide, its one try found no visible point): >= 8 s of retries.
+        {
+            var f=StartOn(CaseBook.Castle,()=>.2f);f.UseRunPlan(new RunPlan{Band=FirstHuntBand.Mid});int open=0;
+            for(int t=0;t<400&&f.Hunts==0&&f.Phase!=Phase.Warning;t++){f.Tick(.5f,false);if(f.WantsApparitionNow)open++;}
+            Assert(open*.5f>=8,"the first-hunt follow asks for its apparition for >= 8 s ("+(open*.5f)+" s)");
+        }
+        // 4. The model (natural x3 sets, consecutive plans, critic route): follow cancellations <= 30 % (FF rule ~68 %), >= 2 threats 10-20 s
+        //    after an apparition in >= 85 % of sets, <= 50 % of leads at 25-60 s, <= 10 s about 0, share 15-30 %, a >= 120 s gap every run.
+        {
+            string now=WaveFGFollowReport(1500,out float cancel,out float two,out float p2560,out float p10,out float share,out float gap120,out float shareIn);
+            float gc=R.ApparitionFollowGraceCut,ow=R.ApparitionFollowOweSeconds;R.ApparitionFollowGraceCut=0;R.ApparitionFollowOweSeconds=0;
+            string was=WaveFGFollowReport(1500,out float cancelWas,out float twoWas,out _,out _,out _,out _,out _);R.ApparitionFollowGraceCut=gc;R.ApparitionFollowOweSeconds=ow;
+            Console.WriteLine(now);Console.WriteLine(was.Replace("WAVE_FG follow-ups","WAVE_FG follow-ups (FF rule)"));
+            Assert(cancel<=.3f&&cancelWas>.5f,"follow-up cancellations <= 30 % (FF rule "+cancelWas.ToString("F2")+", now "+cancel.ToString("F2")+")");
+            Assert(two>=.85f&&p2560<=.4f&&p10<=.02f,"natural x3 sets: >= 2 threats 10-20 s after an apparition in >= 85 % of sets, 25-60 s and <= 10 s pooled under the bars");
+            Assert(share>=.17f&&share<=.25f&&shareIn>=.9f&&gap120>=.999f,"share mean 0.17-0.25, >= 90 % of runs in 15-30 %, a >= 120 s gap in every run");
+        }
+    }
+    static string WaveFGFollowReport(int runsN,out float cancel,out float setsTwo,out float pooled2560,out float pooled10,out float shareMean,out float gap120,out float shareIn)
+    {
+        float saved=SessionCloseShare;SessionCloseShare=1/3f;bool route=SessionCriticRoute;SessionCriticRoute=true;
+        var history=new RunHistory();var pr=new Random(4242);var leads=new System.Collections.Generic.List<System.Collections.Generic.List<float>>();
+        int drawn=0,cancelled=0,owed=0,adopted=0,fired=0,q120=0,inBand=0;float sum=0;
+        for(int seed=0;seed<runsN;seed++)
+        {
+            var plan=history.Next((float)pr.NextDouble(),(float)pr.NextDouble());var r=Session(HuntRules.Castle,seed+7000,0,false,false,plan);history.Push(plan);
+            var l=new System.Collections.Generic.List<float>();
+            foreach(var h in r.ThreatStartTimes){if(h>ThreatCutoff)break;float last=float.NaN;foreach(var a in r.ApparitionTimes)if(a<=h)last=a;if(!float.IsNaN(last))l.Add(h-last);}
+            leads.Add(l);drawn+=r.LeadFollows;cancelled+=r.FollowCancelled;owed+=r.FollowOwed;adopted+=r.FollowAdopted;fired+=r.LeadFired;
+            sum+=r.ShareRun;if(r.ShareRun>=.15f&&r.ShareRun<=.3f)inBand++;if(r.MaxQuietAfterFirst>=120)q120++;
+        }
+        SessionCloseShare=saved;SessionCriticRoute=route;
+        int sets=0,two=0,all=0,n2560=0,n10=0,n1020=0;
+        for(int i=0;i+2<leads.Count;i+=3){int b=0;for(int k=i;k<i+3;k++)foreach(var v in leads[k]){all++;if(v>=25&&v<=60)n2560++;if(v>=10&&v<=20){b++;n1020++;}if(v<=10)n10++;}sets++;if(b>=2)two++;}
+        cancel=cancelled/(float)Math.Max(1,drawn);setsTwo=two/(float)Math.Max(1,sets);pooled2560=n2560/(float)Math.Max(1,all);pooled10=n10/(float)Math.Max(1,all);
+        shareMean=sum/runsN;gap120=q120/(float)runsN;shareIn=inBand/(float)runsN;
+        return "WAVE_FG follow-ups "+runsN+" runs: drawn/run="+(drawn/(float)runsN).ToString("F2")+" owed="+owed+" adopted="+adopted+" fired="+fired+" cancelled="+cancelled+" ("+cancel.ToString("F3")+")"
+            +" | 3-run sets with >= 2 leads at 10-20 s="+setsTwo.ToString("F3")+" pooled 10-20="+(n1020/(float)Math.Max(1,all)).ToString("F3")+" 25-60="+pooled2560.ToString("F3")+" <=10="+pooled10.ToString("F3")
+            +" | share mean="+shareMean.ToString("F3")+" runs in 15-30 %="+shareIn.ToString("F3")+" runs with a >= 120 s gap="+gap120.ToString("F3");
     }
     // fe3-grab: the grab deck never shuts a mode out, and the side snatch is mirror-symmetric (Core/GrabPlanRules.cs).
     static bool SegHitsCircle(float ax,float az,float bx,float bz,float cx,float cz,float r)
@@ -886,7 +983,7 @@ static class RulesTests
     }
 
     // Wave I (blind critic r10 P3): Dread decay, per-hunt cap, post-hunt grace, HuntShare, and a 10-minute session model.
-    sealed class SessionResult{public float ShareAfterFirst,ShareRun,PinnedSeconds,FirstAt=-1,DreadAt480=-1,MaxQuietAfterFirst,FirstDelayAfterSecondRecord=-1;public bool NoTellBelow70;public System.Collections.Generic.List<float> ApparitionTimes=new System.Collections.Generic.List<float>(),HuntStartTimes=new System.Collections.Generic.List<float>(),ThreatStartTimes=new System.Collections.Generic.List<float>();public int Escalations,EscalationTries,Hunts,LowStarts,NoTellHunts,HuntStarts,LeadFollows,LeadRests,LeadFired,LeadNone;public string FirstLead="";public bool FirstPulled;public System.Collections.Generic.List<float> Gaps=new System.Collections.Generic.List<float>();}
+    sealed class SessionResult{public float ShareAfterFirst,ShareRun,PinnedSeconds,FirstAt=-1,DreadAt480=-1,MaxQuietAfterFirst,FirstDelayAfterSecondRecord=-1;public bool NoTellBelow70;public System.Collections.Generic.List<float> ApparitionTimes=new System.Collections.Generic.List<float>(),HuntStartTimes=new System.Collections.Generic.List<float>(),ThreatStartTimes=new System.Collections.Generic.List<float>();public int Escalations,EscalationTries,Hunts,LowStarts,NoTellHunts,HuntStarts,LeadFollows,LeadRests,LeadFired,LeadNone,FollowOwed,FollowAdopted,FollowCancelled;public string FirstLead="";public bool FirstPulled;public System.Collections.Generic.List<float> Gaps=new System.Collections.Generic.List<float>();}
     // Player model: lit inside (+0.05/s), dark for darkShare of the time (+0.12/s), a 20-40 s gatehouse visit every
     // 150-300 s of calm play (DreadRelief 3), evidence at 10-40 / 40-120 / 120-240 s, ledger read by 240 s, apparitions
     // every 60-110 s in Disturbance (+12, every second one throws +8, one in three lands close: TryEscalate). In a hunt
@@ -933,7 +1030,9 @@ static class RulesTests
                 if(grabAt>=0&&c.PhaseTime>=grabAt&&!grabGiven){grabGiven=true;c.AddDread(c.Rules.DreadGrabSurvived);}
             }
             bool blocked=ScareRhythm.CastleBlocked(c.Phase,c.GraceRemaining,false,false,c.PlannedThreatInForApparition,rhythm.QuotaBehind)||safe;rhythm.Tick(dt,blocked); // wave FE: + a known threat within 11.5 s
-            if(!blocked&&(c.Phase==Phase.Disturbance||c.Phase==Phase.Survey||c.Phase==Phase.Recovery)&&(rhythm.AppearanceDue||c.WantsApparitionNow&&rhythm.CanSurprise))
+            // fg-polish: as ScareDirector, a wanted apparition (the first-hunt follow, an owed follow-up) skips the rhythm's block; the phase, the
+            // gatehouse and the rhythm's spacing still hold.
+            if((c.Phase==Phase.Disturbance||c.Phase==Phase.Survey||c.Phase==Phase.Recovery)&&(!blocked&&rhythm.AppearanceDue||!safe&&c.WantsApparitionNow&&rhythm.CanSurprise))
             {
                 c.NoteApparition();res.ApparitionTimes.Add(t);rhythm.RecordAppearance(0);if(rhythm.TakeLullStart())c.HoldDiceForLull();apps++;if(apps%2==0)c.AddDread(c.Rules.DreadThrow);
                 if(p.NextDouble()<SessionCloseShare){res.EscalationTries++;if(c.TryEscalate(dark))res.Escalations++;}
@@ -945,7 +1044,7 @@ static class RulesTests
         }
         foreach(var g in res.Gaps)res.MaxQuietAfterFirst=Math.Max(res.MaxQuietAfterFirst,g);
         if(!inThreat&&lastEnd>=0)res.MaxQuietAfterFirst=Math.Max(res.MaxQuietAfterFirst,600-lastEnd);
-        res.FirstLead=c.FirstLead;res.FirstPulled=c.FirstLeadPulled;res.LeadFollows=c.LeadFollows;res.LeadRests=c.LeadRests;res.LeadFired=c.LeadFollowFired;
+        res.FirstLead=c.FirstLead;res.FirstPulled=c.FirstLeadPulled;res.LeadFollows=c.LeadFollows;res.LeadRests=c.LeadRests;res.LeadFired=c.LeadFollowFired;res.FollowOwed=c.FollowOwed;res.FollowAdopted=c.FollowAdopted;res.FollowCancelled=c.FollowCancelled;
         res.ShareAfterFirst=res.FirstAt<0?0:threat/(600-res.FirstAt);res.ShareRun=c.HuntShare;res.Hunts=c.Hunts;return res;
     }
     static float Quantile(System.Collections.Generic.List<float> v,float q){v.Sort();return v[Math.Min(v.Count-1,(int)(q*v.Count))];}
