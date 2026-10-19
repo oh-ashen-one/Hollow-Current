@@ -55,6 +55,7 @@ namespace HollowCurrent
             if(message.StartsWith("HC_COUNT_GRAB mode=",StringComparison.Ordinal)){var mm=message.Substring(19);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm))lastGrabMode=gm;}
             // fd-grab: HC_GRAB_COMMIT carries the mode actually played (after 8->9 or headroom switches); the run's grab records.
             if(message.StartsWith("HC_GRAB_COMMIT mode=",StringComparison.Ordinal)){var mm=message.Substring(20);int sp=mm.IndexOf(' ');if(int.TryParse(sp>0?mm.Substring(0,sp):mm,out int gm)){lastGrabMode=gm;commits.Add((gm,message.Contains(" hide=True"),message.Contains(" return=True"),message.Contains(" headroom=True")));}}
+            if(message.StartsWith("HC_DOC_LAYOUT screen=ending_lost",StringComparison.Ordinal))lostCardLogged=true;
             // fe-integ: frames of an armed escalation (fe-count: the apparition vanishes, the silent tell and the hunt come 11.5-13.5 s later).
             if(message.StartsWith("HC_APPARITION_GATE deferred=escalation",StringComparison.Ordinal)&&escShots<2&&isActiveAndEnabled){escShots++;StartCoroutine(EscalationShots(escShots));}
             if(message.StartsWith("HC_GRAB_FIRSTFRAME",StringComparison.Ordinal)){firstFrames++;if(message.Contains(" visible=True"))firstVisible++;}
@@ -248,7 +249,7 @@ namespace HollowCurrent
             File.WriteAllBytes(Path.Combine(OutDir,shot.ToString("00")+"_"+phase+".png"),tex.EncodeToPNG());Destroy(tex);
         }
         IEnumerator Step(string phase,string detail=""){Log(phase,detail);yield return Shot(phase);}
-        int escShots;
+        int escShots;bool lostCardLogged;
         IEnumerator EscalationShots(int n)
         {
             float t0=Time.realtimeSinceStartup;
@@ -759,6 +760,8 @@ namespace HollowCurrent
                 float next=Time.realtimeSinceStartup+.2f;while(Time.realtimeSinceStartup<next)yield return null;
             }
             yield return Wait(2);
+            // fe-integ: the castle lost card (fe-ui, screen=ending_lost) as a frame
+            if(c.Phase==Phase.Dead){float until=Time.realtimeSinceStartup+10;while(!lostCardLogged&&Time.realtimeSinceStartup<until)yield return null;yield return Wait(.6f);yield return Step("lost_card","logged="+lostCardLogged);}
             Debug.Log("HC_PLAY_RESULT mode=huntcam won=False dead="+(c.Phase==Phase.Dead)+" hunts="+c.Hunts+" blockers="+blockers.Count);
             yield return Wait(1);Application.Quit();
         }
