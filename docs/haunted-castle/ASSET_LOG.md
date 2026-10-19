@@ -246,6 +246,7 @@ Owner/critic r12 ("modern props under gothic names"). The castle's three held in
 
 | Instrument | Castle name | Geometry | Vertices (printed by `HC_INSTRUMENTS`) |
 |---|---|---|---|
-| tool 1 (was the induction reader) | Hollow Compass | brass case, bezel and suspension ring; parchment dial (runtime texture: inked ring, 24 ticks, red 12 o'clock mark); glass glare disc; red-tipped needle; five reading pips | 1277 (measured offline with the same builder code) |
+| tool 1 (was the induction reader) | Hollow Compass | brass case, bezel and suspension ring; aged-ivory dial with foxing (runtime texture: umber inked ring, 24 ticks, numerals 3 / 6 / 9, oxblood 12 o'clock mark; `hc/fc-art2`); thin glass rim band (the glare dome was removed in `hc/fc-art2`); unlit oxblood needle with an umber tail; five reading pips | 1277 (measured offline with the same builder code) |
 | tool 2 (was the UV lamp) | Grave-ash Lantern | brass foot, cap and bail ring; six iron cage bars; violet glass chimney (translucent sprite) round a glowing core | 1150 |
 | tool 3 (was the EVP recorder) | Vellum Ear-Trumpet | flared brass horn, vellum wrap (runtime texture), three leather bindings, dark bell interior | 1026 |
+| R-key field radio (was the Tripo `FieldRadio`, castle only; piece `hc/fc-art2`, 2026-10-18) | Resonance Box | walnut box (runtime fibre texture) with two brass straps, inset lid panel, round brass-rimmed grille with five slats, tuning pip, lid knob and a flared brass horn | 1105 (measured offline with the same builder code; printed as `radio=` by `HC_INSTRUMENTS`) |

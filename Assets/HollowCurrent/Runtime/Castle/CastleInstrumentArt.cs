@@ -11,6 +11,7 @@ namespace HollowCurrent
     //                                  (replaces the induction reader's LCD; the five ember pips on the dial are the 0..5 reading)
     //   tool 2  Grave-ash lantern      brass cage lantern around a violet glass chimney and a glowing core (replaces the UV lamp)
     //   tool 3  Vellum ear-trumpet     flared brass horn under a vellum wrap with leather bindings (replaces the EVP recorder)
+    //   radio   Resonance box          fc-art2: brass-banded walnut box with a grille, a tuning pip and a brass horn (replaces the field radio, R key)
     // Everything is procedural: meshes are generated here (units: metres, +z away from the player, +y up, +x right, origin = the mount point
     // of Investigator.heldTool) and the three textures (dial, vellum) are painted at runtime from a hash, so there are no new binary
     // assets. Hand transform, interaction and reading behaviour are Investigator's and are unchanged. Vertex budget: MaxVertices per instrument.
@@ -143,6 +144,76 @@ namespace HollowCurrent
             return root;
         }
 
+
+        // ------------------------------------------------------------------------------------------------------------------------------
+        // Resonance box (the castle's field radio)
+        // ------------------------------------------------------------------------------------------------------------------------------
+        // fc-art2: pressing R in the castle still raises "the radio" (Game.RadioHint: hints, or static during interference or a hunt; the dispatch voice is
+        // gone, the call is text plus the "radio" cue), and it was still the modern Tripo radio mesh. In the castle it is now a small brass-banded walnut
+        // "resonance box" with a grille, a tuning pip and a brass horn, in the same hand as the compass, lantern and trumpet. Bellwether keeps FieldKitArt's
+        // FieldRadio (NativeVerification requires its name and vertex count there); Investigator picks this builder only when Game.Map == Castle.
+        public static Transform CreateRadio(Transform parent)
+        {
+            var root = BuildRadio(parent);
+            foreach (var r in root.GetComponentsInChildren<Renderer>())
+            {
+                r.gameObject.layer = 30; r.shadowCastingMode = ShadowCastingMode.Off; r.receiveShadows = false;
+            }
+            root.gameObject.layer = 30;
+            return root;
+        }
+        static Transform BuildRadio(Transform parent)
+        {
+            var root = NewRoot(parent, "Field kit art / Resonance Box (period)");
+            var visual = new GameObject("Resonance box visual").transform; visual.SetParent(root, false);
+            var m = RadioGeometry();
+            Part(visual, "Resonance box", m.ToMesh("Resonance box"), Lit("Radio walnut", Color.white, 0, .30f, WalnutTexture()), Brass("Radio brass"),
+                Lit("Radio dark panel", new Color(.07f, .045f, .03f), 0, .2f), Glow("Radio tuning pip", new Color(1.30f, .52f, .12f)));
+            return root;
+        }
+        internal static Mb RadioGeometry()
+        {
+            var fwd = Vector3.forward;
+            var m = new Mb(4);   // 0 walnut, 1 brass, 2 dark panel / grille, 3 glowing tuning pip
+            // body: x -.065..+.055, y -.041..+.031, z -.031..+.031 (the glove grips its lower right corner, like the compass case)
+            m.Box(0, new Vector3(-.005f, -.005f, 0), new Vector3(.120f, .072f, .062f));
+            m.Box(2, new Vector3(-.005f, .0325f, 0), new Vector3(.104f, .004f, .046f));                 // inset lid panel
+            foreach (float x in new[] { -.047f, .040f })                                                 // brass straps round the box
+                m.Box(1, new Vector3(x, -.005f, 0), new Vector3(.007f, .0745f, .0645f));
+            // front (toward the player, -z): a brass-rimmed round grille and a tuning pip
+            const float frontZ = -.031f;
+            var grille = new Vector3(-.012f, -.005f, frontZ);
+            m.Lathe(2, grille, fwd, new (float, float)[] { (0, -.0006f), (.0215f, -.0006f) }, 20);
+            m.Lathe(1, grille, fwd, Circle(.0235f, -.0010f, .0032f, 6), 18);
+            for (int i = -2; i <= 2; i++)                                                                // five brass slats across the grille
+                m.Box(1, new Vector3(-.012f, -.005f + i * .0072f, frontZ - .0010f), new Vector3(.040f - Mathf.Abs(i) * .0065f, .0016f, .0016f));
+            m.Lathe(3, new Vector3(.034f, -.020f, frontZ), fwd, new (float, float)[] { (0, -.0012f), (.0042f, -.0012f) }, 10);
+            m.Lathe(1, new Vector3(.034f, -.020f, frontZ), fwd, Circle(.0048f, -.0008f, .0016f, 6), 10);
+            // a brass knob on the lid, right of centre
+            m.Lathe(1, new Vector3(.028f, .0345f, .004f), Vector3.up, new (float, float)[] { (0, 0), (.0085f, 0), (.0085f, .006f), (.0055f, .0105f), (0, .0105f) }, 14);
+            // the horn: from the lid's left end, rising and bending away from the player; flared bell with a dark mouth
+            Vector3 p0 = new Vector3(-.040f, .032f, -.004f), p1 = new Vector3(-.046f, .052f, .030f), p2 = new Vector3(-.052f, .060f, .098f);
+            Func<float, Vector3> path = t => (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
+            Func<float, float> radius = t => .0070f + .0075f * t + .0300f * t * t * t * t * t;
+            m.Sweep(1, path, radius, 0, .94f, 12, 20, true, false, 1, 1);
+            m.Sweep(1, path, t => radius(t) + .0026f, .94f, 1f, 2, 20, true, true, 2, 2);                // flared lip, the end cap is the dark mouth
+            return m;
+        }
+        // a dark walnut with long fibre streaks along x
+        static Texture2D WalnutTexture()
+        {
+            const int n = 64;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, true) { name = "HC period walnut (runtime)", wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+            var px = new Color[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float grain = Noise(x * .035f, y * .55f), fine = Noise(x * .12f + 9, y * 1.7f);
+                    float v = .62f + .55f * grain * grain + .12f * fine + .05f * (Hash(x, y) - .5f);
+                    px[y * n + x] = new Color(.36f * v, .20f * v, .10f * v, 1);
+                }
+            tex.SetPixels(px); tex.Apply(true, true); return tex;
+        }
 
         // ---- geometry recipes (no engine objects, so tools can dump and check them) ----
         internal static Mb CompassBodyGeometry()
@@ -381,6 +452,27 @@ namespace HollowCurrent
                 if (cr.sqrMagnitude < 1e-14f) return;                       // degenerate (a lathe ring on the axis)
                 if (Vector3.Dot(cr, n[a] + n[b] + n[c]) < 0) { int t = b; b = c; c = t; }
                 tris[sub].Add(a); tris[sub].Add(b); tris[sub].Add(c);
+            }
+
+            // flat quad a-b-c-d (any corner order around the quad) facing "toward": own 4 vertices, uv (0,0) (1,0) (1,1) (0,1)
+            public void Quad(int sub, Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 toward)
+            {
+                var nrm = Vector3.Cross(b - a, c - a).normalized;
+                if (Vector3.Dot(nrm, toward) < 0) nrm = -nrm;
+                int ia = Vert(a, nrm, new Vector2(0, 0)), ib = Vert(b, nrm, new Vector2(1, 0)), ic = Vert(c, nrm, new Vector2(1, 1)), id = Vert(d, nrm, new Vector2(0, 1));
+                Tri(sub, ia, ib, ic); Tri(sub, ia, ic, id);
+            }
+            // axis-aligned hard-edged box (24 vertices)
+            public void Box(int sub, Vector3 centre, Vector3 size)
+            {
+                var h = size * .5f; float x = h.x, y = h.y, z = h.z;
+                Vector3 P(float sx, float sy, float sz) => centre + new Vector3(sx * x, sy * y, sz * z);
+                Quad(sub, P(1, -1, -1), P(1, 1, -1), P(1, 1, 1), P(1, -1, 1), Vector3.right);
+                Quad(sub, P(-1, -1, -1), P(-1, 1, -1), P(-1, 1, 1), P(-1, -1, 1), Vector3.left);
+                Quad(sub, P(-1, 1, -1), P(1, 1, -1), P(1, 1, 1), P(-1, 1, 1), Vector3.up);
+                Quad(sub, P(-1, -1, -1), P(1, -1, -1), P(1, -1, 1), P(-1, -1, 1), Vector3.down);
+                Quad(sub, P(-1, -1, 1), P(1, -1, 1), P(1, 1, 1), P(-1, 1, 1), Vector3.forward);
+                Quad(sub, P(-1, -1, -1), P(1, -1, -1), P(1, 1, -1), P(-1, 1, -1), Vector3.back);
             }
 
             // flat triangle facing "toward" (a hard-edged facet)

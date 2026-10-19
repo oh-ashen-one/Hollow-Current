@@ -185,6 +185,7 @@ namespace HollowCurrent
                 views.Add(("held_compass_reading5",eye,look));
                 views.Add(("held_lantern",eye,look));
                 views.Add(("held_trumpet",eye,look));
+                views.Add(("held_radio",eye,look));   // fc-art2: the resonance box raised as the R key does (HC_CAPTURE_HELD tool=4 asset=FieldRadio)
             }
             else
             {
@@ -231,7 +232,7 @@ namespace HollowCurrent
                     Place(v.eye,v.target);yield return null;yield return null;
                     foreach(var d in game.World.Doors)if(d&&d.name.Contains("Hall great doors")){if(v.id.Contains("_open"))d.Open=true;hallLeaves.Add(d);}
                 }
-                if(set=="instruments")game.Player.CaptureHeld(v.id.StartsWith("held_compass")?1:v.id=="held_lantern"?2:3,v.id.EndsWith("reading5")?5:0);
+                if(set=="instruments")game.Player.CaptureHeld(v.id.StartsWith("held_compass")?1:v.id=="held_lantern"?2:v.id=="held_radio"?4:3,v.id.EndsWith("reading5")?5:0);
                 Place(v.eye,v.target);yield return new WaitForSecondsRealtime(gateLeaves.Count>0||hallLeaves.Count>0?3f:1.5f);
                 foreach(var d in hallLeaves)Log("doors "+v.id+" "+d.name+" open="+d.Open+" openAngle="+d.OpenAngle.ToString("F0")+" leafRot="+d.transform.localEulerAngles.y.ToString("F0")+" ignoringPlayer="+d.IgnoringPlayer);
                 if(set=="kit")KitLog(v.id);
