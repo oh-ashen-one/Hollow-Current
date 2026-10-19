@@ -1293,7 +1293,10 @@ namespace HollowCurrent
 
         // The two moons are painted into the openings of the rose window and the chapel windows as distant sprites, placed
         // on the rays from the capture eyes through each opening (the skybox moons sit at azimuths no narrow window frames).
-        static readonly Vector3 S1MoonEye = new Vector3(0f, 2.95f, 14.55f);   // CaptureMode's S1 eye (wave FF)
+        static readonly Vector3 S1MoonEye = new Vector3(0f, 3.6f, 16.0f);   // CaptureMode's S1 eye (wave FG; FF was (0, 2.95, 14.55))
+        // wave FG: the aim point on the north wall moves in from x -+2.6 (the lancet centres) to -+2.45, so from the S5 rose ledge the discs stay
+        // inside the rose (x -+0.95, y 7.1, disc edge 1.45 < its 1.5 m radius); from S1 they sit in the lancets' upper half, cut 0.1 m on the inner jamb.
+        const float MoonAimX = 2.45f;
         void Moons()
         {
             // Rose window: both moons are painted into the opening itself, just outside the wall, so they sit inside the glass from
@@ -1305,7 +1308,7 @@ namespace HollowCurrent
             // x -+0.9, y 7.25, beside the Count where the old sprites were (x -+0.72). The rose glows with the night-sky card (NorthSkyCard).
             foreach (int k in new[] { 0, 1 })
             {
-                var dir = (new Vector3(k == 0 ? -2.6f : 2.6f, 5.6f, 28.0f) - S1MoonEye).normalized;
+                var dir = (new Vector3(k == 0 ? -MoonAimX : MoonAimX, 5.6f, 28.0f) - S1MoonEye).normalized;
                 var at = S1MoonEye + dir * ((28.85f - S1MoonEye.z) / dir.z);
                 var moon = SurrealProps.MakeMoon(root, at, S1MoonEye, .5f, k == 1);
                 var wm = moon.GetComponent<WindowMoon>();

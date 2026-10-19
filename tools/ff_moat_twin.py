@@ -16,12 +16,21 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
+# The shader's defaults. FF (hc/ff-art) values, then ff-integ's tuning pass (_Reflect 2.2 -> 1.4, _Ripple .3 -> .2, _SkySoft .06 -> .15,
+# _RedGlade 1 -> 4, _RedGladeWidth .07 -> .10, _GladeBody .25 -> .08, new _RockFade 4), then wave FG (hc/fg-polish): see FG below.
 PROPS = dict(
-    _Deep=(0.050, 0.0034, 0.0040), _Reflect=2.2, _Ripple=0.30, _CastleTint=(0.010, 0.012, 0.022), _RockTint=(0.0035, 0.0040, 0.0065),
-    _BoxSoft=1.5, _BloodTint=(5.6, 0.45, 0.40), _MoonKeep=0.35, _Ridge=(0.0040, 0.0060, 0.0140), _SkySoft=0.06,
-    _Glade=1.8, _GladeElev=13.0, _GladeRough=0.26, _GladeColor=(0.62, 0.55, 0.55), _RedGlade=1.0, _RedGladeColor=(0.30, 0.0045, 0.004),
-    _GladeBody=0.25, _GladeWidth=0.075, _RedGladeWidth=0.07, _GladeWobble=0.6, _HorizonGlow=0.03, _LampColor=(1.0, 0.36, 0.08), _FogKeep=0.30,
+    _Deep=(0.050, 0.0034, 0.0040), _Reflect=1.4, _Ripple=0.15, _CastleTint=(0.022, 0.0264, 0.0484), _RockTint=(0.0105, 0.012, 0.0195),
+    _BoxSoft=1.5, _RockFade=4.0, _BloodTint=(5.6, 0.45, 0.40), _MoonKeep=0.35, _Ridge=(0.0040, 0.0060, 0.0140), _SkySoft=0.15,
+    _Glade=1.8, _GladeElev=13.0, _GladeRough=0.26, _GladeColor=(0.62, 0.55, 0.55), _RedGlade=4.0, _RedGladeColor=(0.30, 0.0045, 0.004),
+    _GladeBody=0.08, _GladeWidth=0.075, _RedGladeWidth=0.10, _GladeWobble=0.6, _HorizonGlow=0.0, _LampColor=(1.0, 0.36, 0.08), _FogKeep=0.30,
+    _LampRough=0.085, _LampGain=0.45,
 )
+# FG (hc/fg-polish): _Ripple .2 -> .15, _CastleTint x2.2, _RockTint x3, _HorizonGlow .03 -> 0, _LampRough .11 -> .085, _LampGain .55 -> .45.
+# _BoxEdge (twin only, default off) was an experiment: soft lateral mirrored silhouettes; no effect on the S4 patches, not in the shader.
+# Calibration note: on the FF frames the twin's water is 1.0x (bridge_left) to 2.8x (battlement_out) brighter in linear than Unity's (the
+# twin has no fog-layer quads or veil); use it for changes (scripts that transfer twin deltas onto a real frame), not for absolute levels.
+FF_PROPS = dict(PROPS, _Ripple=0.20, _CastleTint=(0.010, 0.012, 0.022), _RockTint=(0.0035, 0.0040, 0.0065), _HorizonGlow=0.03,
+                _LampRough=0.11, _LampGain=0.55)
 LAMPS = [(-3.0, 1.55, -23.0, 1.8), (3.0, 1.55, -23.0, 1.8), (-2.3, 2.05, -7.4, .6), (2.3, 2.05, -7.4, .6)]   # CastleExterior.Lamps
 WAVES = [((.80, .60), 3.1, 1.1, .030), ((-.50, .87), 4.7, 1.6, .022), ((.20, -.98), 7.3, 2.1, .012), ((-.90, -.40), 11.0, 2.7, .007), ((.60, -.80), 2.1, .7, .040)]
 M_PALE = np.array([-.3207, .8192, .4755]); M_RED = np.array([.4973, .6691, .5522])
@@ -42,11 +51,11 @@ def grad(P, T):
         g[:, 0] += c * dx; g[:, 1] += c * dz
     return g
 
-def boxw(P, R, mn, mx, soft, enter_only):
+def boxw(P, R, mn, mx, soft, enter_only, fade=4.0):
     inv = 1.0 / (R + 1e-5); t0 = (np.array(mn) - P) * inv; t1 = (np.array(mx) - P) * inv
     tn = np.minimum(t0, t1).max(1); tf = np.maximum(t0, t1).min(1)
     w = np.clip((tf - np.maximum(tn, 0)) / soft, 0, 1)
-    if enter_only: w = np.where(tn <= 0, 0.0, w)
+    if enter_only: w = np.where(tn <= 0, 0.0, w * np.clip(tn / fade, 0, 1))      # ff-integ _RockFade
     return w
 
 def sky_color(R):
@@ -93,10 +102,15 @@ def water(P, eye, fwd, up, T=3.0, p=PROPS):
     glow = p["_HorizonGlow"] * (1 - smooth(skyline, skyline + .28, R[:, 1])) * (1 - under)   # the night glow just above the ridge line
     sky = sky * (1 - under[:, None]) + np.array(p["_Ridge"])[None] * under[:, None] + glow[:, None] * np.array([.30, .32, .45])[None]
     soft = p["_BoxSoft"]
-    wc = np.maximum(np.maximum(boxw(P, R, (-14.45, -3.2, -.45), (14.45, 7.2, 28.45), soft, False),
-                               boxw(P, R, (-6, -3.2, 14), (6, 9.2, 28.45), soft, False)),
-                    boxw(P, R, (-.5, -3.2, 17.6), (5.1, 32, 23.2), soft, False))
-    wr = boxw(P, R, (-21.5, -3.0, -6.6), (21.5, 3.6, 35.0), soft, True) * (1 - wc)
+    def castle(mn, mx):
+        e = p.get("_BoxEdge", 0.0)
+        if e <= 0: return boxw(P, R, mn, mx, soft, False)
+        # wave FG: soft mirrored silhouette, three samples of the box shrunk / kept / grown by _BoxEdge in x and y (weights .25 / .5 / .25)
+        d = np.array([e, e, 0.0]); mn = np.array(mn, float); mx = np.array(mx, float)
+        return .25 * boxw(P, R, mn + d, mx - d, soft, False) + .5 * boxw(P, R, mn, mx, soft, False) + .25 * boxw(P, R, mn - d, mx + d, soft, False)
+    wc = np.maximum(np.maximum(castle((-14.45, -3.2, -.45), (14.45, 7.2, 28.45)), castle((-6, -3.2, 14), (6, 9.2, 28.45))),
+                    castle((-.5, -3.2, 17.6), (5.1, 32, 23.2)))
+    wr = boxw(P, R, (-21.5, -3.0, -6.6), (21.5, 3.6, 35.0), soft, True, p["_RockFade"]) * (1 - wc)
     sky = sky * (1 - wc[:, None]) + np.array(p["_CastleTint"])[None] * wc[:, None]
     sky = sky * (1 - wr[:, None]) + np.array(p["_RockTint"])[None] * wr[:, None]
     ww = boxw(P, R, (-2.3, -1.6, -16.0), (2.3, 1.0, -6.3), soft, False)
@@ -112,7 +126,7 @@ def water(P, eye, fwd, up, T=3.0, p=PROPS):
     for (lx, ly, lz, li) in LAMPS:
         dd = np.array([lx, ly, lz])[None] - P; dist = np.linalg.norm(dd, axis=1); dd /= dist[:, None]
         H = norm(V + dd); cc = np.maximum(H[:, 1], 1e-3); t2 = (1 - cc * cc) / (cc * cc)
-        lamps += li * np.exp(-t2 / .11 ** 2) * .55 * np.clip(30 / (dist + 6), 0, 1)
+        lamps += li * np.exp(-t2 / p["_LampRough"] ** 2) * p["_LampGain"] * np.clip(30 / (dist + 6), 0, 1)
     col += np.array(p["_LampColor"])[None] * lamps[:, None]
     depth = np.linalg.norm(P - eye[None], axis=1)        # Unity's exp2 fog uses the clip-space depth; the view-ray length is within 10 % here
     fogf = np.exp(-(DENS * depth) ** 2)[:, None]
