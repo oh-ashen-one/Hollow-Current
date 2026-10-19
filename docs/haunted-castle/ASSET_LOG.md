@@ -278,3 +278,20 @@ shader colour. All of it is original project work, CC BY 4.0 (code MIT).
 | `Resources/Castle/Shaders/CastleWater.shader` (rewritten), `CastleFloorSheen.shader` (new), `CastleGore.shader` (regenerated from `tools/castle_textures.py`) | hand-written analytic shaders | MIT |
 | Blood lake, causeway, landing, braziers, ruined gateway, shore rocks, dining ceiling | built in code (`CastleExterior.Approach`, `CastleWorld.Exterior/DiningCeiling`) from cubes, cylinders and a seeded rock mesh; the dead trees reuse `DeadTree.fbx` | Project CC BY 4.0 |
 | `tools/fd_art_masks/*_water.png` | water masks of the capture views from the CPU ray-cast proof (`tools/castle_fd_raycast.py` + `castle_fd_shade.py`), eroded 4 px; used by the moat pixel test in `handoffs/fd-art.md` | Project CC BY 4.0 |
+
+## Great hall lancets, piers, table, floor streak; one moat; claw-scores glyph (piece `hc/ff-art`, wave FF, 2026-10-19): cost 0, all procedural
+
+r14 critic section 4 / item 1 (S1 and S4 at 5/10) and the grave-ash glyph. **No paid job** (no CustomUse, no Higgsfield, no download):
+meshes from the project's own Blender scripts (headless, CPU, no render), textures from numpy, shaders hand-written. Original project work,
+CC BY 4.0 (code MIT).
+
+| Asset | Origin | Licence |
+|---|---|---|
+| `Resources/Castle/HallLancetWindow.fbx` (1.0 x 3.55, was 2.8), `GalleryBlindLancet.fbx` (new, 1.5 x 2.25), `HallColumn.fbx` (octagonal plinth) | `Blender -b -P tools/castle_hall_kit.py -- HallLancetWindow GalleryBlindLancet HallColumn` (`tools/castle_gothic.py` `gothic_window` / `cluster_column`) | Project CC BY 4.0 |
+| `Resources/Castle/ExtWalls.fbx` (back string course stops at the north lancets) | `tools/castle_exterior.py` `walls()`, exported alone (other exterior FBX untouched) | Project CC BY 4.0 |
+| `Resources/Castle/Textures/Castle_NightSkyCard.png`, `Castle_MoonGlass.png`, `Castle_ClawScoresProcedural.png` (+ .meta) | `python3 tools/ff_hall_glass.py` (gradients, fbm noise, diamond-lattice quarries, analytic claw gouges; seeded) | Project CC BY 4.0 |
+| `Resources/Castle/Shaders/CastleWater.shader` (FF rewrite), `CastleFloorSheen.shader` (window streak, `_WetMin`) | hand-written analytic shaders; numpy twins `tools/ff_moat_twin.py`, `tools/ff_sheen_twin.py` | MIT |
+| `tools/ff_art_masks/*.png` + `exterior_masks.json`, `hall_masks.json` | geometry masks from the CPU BVH proxies (`tools/castle_fd_raycast.py --ff`, `tools/ff_hall_raycast.py --masks`) for `tools/check_art_views.py` | Project CC BY 4.0 |
+
+`Castle_ClawScoresProcedural.png` is a fallback only: `World.CastleTrace` loads Codex's generated `Castle/ClawScores.png` first (branch
+`hc/wallart-art`, not merged when this was written), then this one, then the Bellwether handprint.

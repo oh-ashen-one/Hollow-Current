@@ -339,7 +339,9 @@ def walls():
         k.box((xs + sgn * .17, WALL_TOP_FRONT - .12, 14.0), (.42, .24, 29.0), SD)
         for i in range(30):
             k.box((xs + sgn * .2, WALL_TOP_FRONT - .55, .45 + i * .93), (.4, .66, .3), SD)
-    k.box((0, 4.1, z1 + .12), (29.0, .24, .3), SD)                 # back face string course
+    # back face string course; wave FF: it stops at the great hall's north lancets (x -+2.6, sill 3.55 since hc/ff-art), which it crossed at 4.1
+    for (xa, xb) in ((-14.5, -3.15), (-2.05, 2.05), (3.15, 14.5)):
+        k.box(((xa + xb) / 2, 4.1, z1 + .12), (xb - xa, .24, .3), SD)
     for sx in (-1, 1):                                            # courtyard wall walk: crenellated rims and a paved walk
         merlon_row(k, (sx * 6.0, 1.2), (sx * 6.0, 13.2), WALL_TOP_FRONT, 8, 1.0, 1.1, .6, SW, axis='z')
         k.box((sx * 6.0, WALL_TOP_FRONT + .06, 7.2), (.7, .12, 13.8), SD)
