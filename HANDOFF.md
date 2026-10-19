@@ -1,3 +1,61 @@
+# HANDOFF: wave FD (r13 critic fixes) integrated, built and proved (read this section first)
+
+Branch `haunted-castle` = `hc/integ-fd`, pushed. Integrator: Opus 5.5 (piece fd-integ), main clone, 2026-10-18/19. Nothing left running; GPU slot released (0/2 holders).
+- PlayerPrefs restored: `unity.Bellwether Field Office.Hollow Current` `hc.castle.runs` = `L,E,L` (never touched); `com.bellwether.hollowcurrent` `hc.castle.runs` put back from `M,L,L` to `E,M,B`, and the new fd-grab deck key `hc.castle.grabdeck` (written by the test runs, `0,..,8,6,0,1,0`) deleted. Backups: session scratchpad `fdinteg/{u,c}.backup.plist`.
+- `CODEX_HANDOFF.md` is still uncommitted and untouched; `rounds/r13/critic/` stays untracked.
+
+**Merged on `hc/integ-fd` (from `haunted-castle` `0c2796e`):** hc/fc-art2 `f4baa2e`, hc/fd-journal `feabe83`, hc/fd-voice `1054910`, hc/fd-rules `321aac2`, hc/fd-grab `8711324`, hc/fd-art `b696de0`. Conflicts: `ASSET_LOG.md` twice (all sections kept), `PlaytestDriver.cs` (natural teleport guard: fd-grab's `GrabBusy` version kept, fd-rules' copy dropped), `Interface.cs` (`Track`: fd-grab's `CountHudDraw()` + fd-journal's castle kicker colour). `CaptureMode.cs`, `Presence.cs`, `CastleScares.cs`, `CastleWorld.cs` merged cleanly. Handoffs: `docs/haunted-castle/handoffs/fd-*.md`, `fc-art2.md`.
+
+**Integrator changes**
+- `d320c45` `PanelCard.png.meta`: `nPOTScale` None + clamp. The default import made the 1448x1426 card 1024x1024, so `Interface.CastlePanel` was false and every castle journal fell back to the old stretched card (`HC_DOC_PANEL card=1024x1024`). Now `card=1448x1426`.
+- `d320c45` doorproof shot names contained `/` (door names), so the first shot threw `DirectoryNotFoundException` and the proof hung after leaf 1. `5ff0d5c` + `67a633a`: a leaf that opens by itself as she walks in counts as the opening; the leaf is re-closed after the teleport to each side (it had re-opened `by=auto` while she was still on the other side); stand points move 0.8-1.4 m sideways when a hall pier blocks the eye line.
+- `5ff0d5c` journal: nine-slice cell edges rounded to whole pixels (1 px dark seams at ColR/RowB on both cards in the first escape run); `InkSegment` pivot in screen space (the PULSE trace had scattered into loose dashes over the ledger rows; also visible in r13).
+- `d320c45` `tools/check_voice_logs.py` matched `HC_COUNT_VOICE=0` inside `HC_PLAY_SUMMARY` as a voice line; tags now match as tokens.
+- No lighting knob changed: fd-art did not move the hall out of band (see exposure), so fc-light2's one-round fallback was not applied.
+
+**Builds.** Final: `Builds/macOS/Hollow Current.app` (both maps), binary 2026-10-19 01:09:07, after bake commit `a29044e` (01:08:54). Every `.cs` change re-baked both maps (4 rounds; Castle 8 maps / 197 probes / 17 reflections). Proof builds: B1 `c6974b6` (22:40:31, captures, cold, natural), B2 `5216d5b` (23:40:10, death, huntcam, siege x3, bwverify), B3 `f7a036f` (00:50:36, escape, kill, fear, ui-only), B4 = final (doorproof). B1-B4 differ only in the driver's doorproof, the PanelCard import and the two journal draw fixes.
+
+**Prepare log** (`.castle-bake-fd4.log`, same in every round): `HC_KIT_AXIS_SUMMARY problems=0`, `HC_DOOR_LEAF_SUMMARY problems=0` (both stages), `HC_CANDLES floating=0 PASS`, `HC_CHAPEL_PROPS overlap=False gap=0.52`, `HC_TELESCOPE aim=window clear=True`, `HC_HEARTH window_overlap=False PASS`, `HC_HIDE_SPOTS_SUMMARY failed=[]`, `HC_SKELETON y_max=1.48 table_gap=0.63 PASS`, `HC_HALL_AXIS PASS`, `HC_CHAPEL PASS`, `HC_EXTERIOR_APPROACH lake braziers=2 lamps=4`, `HC_EXTERIOR_AXIS ok`. Runtime: `HC_INSTRUMENTS ... radio=1105 period=True`, `HC_COMPASS_DIAL dial_shader=HollowCurrent/CastleSprite glass_dome=False`.
+
+**Static checks (HEAD):** check_source PASS (1260 assertions), check_castle_scares PASS, check_audio_keys OK, check_audio_quality OK, check_throwables_scene rc 0, check_castle_doors OK, check_castle_kit OK (log and scene), bellwether_fuzz identical, `docui_journal_mock.py` overlaps=0, `check_voice_logs.py` PASS on all 13 castle logs (`--require-evp --require-summary` on escape).
+
+**Proofs** (logs `.playtest-fd-*.log` (B2 runs `.playtest-fd-b2-*`), frames `docs/haunted-castle/rounds/r13/captures/fd/<run>/`, local, gitignored)
+
+| Proof | Result |
+|---|---|
+| Shaders | No pink Count (S5, grab and fight frames); floor sheen and blood lake render; wings dark red, no purple under the grave-ash lantern |
+| Exposure off (35-55) | S1 30.4 (new 2.3 m eye), S2 42.2, S3 36.0; hall from_doors 32.6, skeleton_head 31.8, side_east 30.4 FAIL (fc3 30.5/29.5/27.5: 2-3 points darker), pier_gap 38.9, side_west 52.1, tail 37.0 ok. Chapel as fc3 (altar_approach 26.6, confessional 62.6, guard_door 60.4, font 55.3 out) |
+| Exposure on (12-25) | S1 14.0, S2 21.7, S3 16.7 ok; hall 13.1-20.3 ok, side_west 25.1; chapel confessional 25.4, great_doors 27.2, guard_door 35.4 (= fc3, fc-light2 item 1) |
+| S1 / S4 frames | Table, chairs, throne read over the shrouded skeleton; S4 search took the 22 m eye, FOV 90, both moons in frame unoccluded, spires and red lake in frame (moons visibly stretched at FOV 90) |
+| Moat test | R/G gate_out 3.64, S4 2.42, battlement 3.43 PASS (>= 1.6); bright px2 273 / 263 / 201 FAIL (>= 400; masks made at 2416x1292, resized to 1920x1080). The lake reads flat saturated red with one white sparkle patch |
+| Frame time | S1 p99 11.1-11.7, gate_out 11.9, battlement_out 16.5 (max 20.4); **S4 mean 16.7 p99 23.1 FAIL**; hunt_dive capture p99 110 ms / max 122 ms (fc3 max 21.3), but fear great hall p99 11.53 (3 frames > 16.7) |
+| cold x2 | PASS: `cold=True coldCap=150`, letter read at 4 s, `HC_HUNT_TELL kind=warning lead_s=12.4 / 13.1 first=True cold=True gate=page`, first hunt 95 / 99 s, hides 5/5, blockers 0 |
+| natural x3 | WON x3, blockers 0, 0 exceptions. Plans E / L / M. First hunt 77 / 195 / 148, share 0.174 / 0.089 / 0.244, longest gap 226 / 298 / 155, apparitions < 480 s 5 / 5 / 4, `perch flight observed=True showcase=True` 2 / 1 / 1 (`showcase landed seen=False` in all three), teleports during grab 0 |
+| r12 pass tests (naturals, sieges) | hunts <= 10 s after an apparition 3/6 = **50 % FAIL** (natural1 2/2); share 15-30 % **FAIL** in natural2 (0.089, Late band); pooled apparition CV 0.57 PASS; first-hunt spread 118 s PASS; gap >= 120 s PASS x3; hidden survival 11/18 = 61 % PASS |
+| siege_held x3 | `openroll p=` lines, no `bag=`; opens 1 / 3 / 3, back-to-back opens within 2 visits in siege2 and siege3 PASS; survival 83 / 50 / 50 %; `HC_DOOR_HELD` 2/8 each |
+| doorproof | final build: `HC_DOORPROOF toward=0 toggles=8 unfocused=0 leaves=4 PASS`, 8 frames show each leaf swinging away |
+| doors capture | `hall_doors_open_inside` both leaves `swing=away` (angles 55 / -55), frame shows both leaves out into the courtyard |
+| grab (all runs) | continuity 9/9 naturals + fear, death, sieges all `pass=True` (legacy_pass True); HUD `pixels=0 draws=0` every grab; cam distance min 0.65; first frame visible 8/9 natural grabs (natural2 return drop `visible=False lineClear=False`); snapDeg up to 138, seat gap up to 0.90 (natural1 return grab: he slides ~1 m back between t 0.01 and 0.16). **Variety FAIL:** m8 4, m9 many, m11 1, m10 0, m12 0; `openHeadroom=0` in every run so `dropShareHeadroom=n/a`. 0 `HC_COUNT_DIVE miss=True`. **huntcam FAIL:** planned drop-spin, he flew 12 m away along the gallery, no commit and no miss before the driver quit |
+| voice | every log `from_other=0`, 0 `voice not from the Count`; escape `HC_EVP from=trumpet verbal=False clip=castle_evp_static`; B2 kill `HC_EVP from=head verbal=True id=cc_bargain` |
+| journal / end card | `HC_DOC_PANEL card=1448x1426`, `HC_DOC_LAYOUT screen=journal overlaps=0`, `screen=ending overlaps=0` (escape, kill, fear); no seams, PULSE trace drawn as a line (`escape/16_journal.png`, `kill/20_won_kill.png`). Disabled FILE RECONSTRUCTION label still unreadable (pre-existing) |
+| title | Bellwether card reads as a lit porch (`title/S7_title_castle_1920x1080.png`) |
+| escape / kill / fear / death | escape WON 0 blockers; kill WON slain; fear WON on B3 (B2 fear lost one grave-ash record attempt and cascaded to 4 blockers; not reproduced); death + penalty PASS |
+| instruments / kit | compass ivory dial, upright numerals, orange pips, no veil; radio = resonance box (`HC_CAPTURE_HELD tool=4 verts=65545`: counts more than the 1105-vertex box); telescope heads to the north window; hearth beside the west lancet |
+| Bellwether `-hc-verify` | `HC_NATIVE_ROUTE_PASS`, 0 `HC_VERIFY FAIL`; `HC_PERF pass=False engine_cost_over_16ms=95 (max 33.1 ms)` (known) |
+| Bellwether `-hc-ui-only` | `HC_VERIFY PASS Native UI at 1920x1080`; waits for human keys at the reconstruction step, closed by SIGTERM (as in FB) |
+
+**Open items (new first)**
+1. r12 pass tests failing on this sample: hunts within 10 s of an apparition 50 % (natural1 2/2) and natural2 share 0.089. fd-rules' apparition floor raises apparition count; its 15-50 s post-hunt apparitions may pull hunts close to apparitions. More naturals before tuning.
+2. Grab variety: no side-left (m10) or drop-spin (m12) commit in 17 grabs; `openHeadroom` is 0 in every run (the headroom flag on open-floor commits never set), so the drop-share gate cannot be judged. huntcam's planned drop-spin led him away from her (fd-grab spin approach point). 0 readable misses.
+3. S4 exterior frame time p99 23 ms (mean 16.7, at the 90 fps cap); moat bright-glint area below the critic's 400 px2 in all three views; moons stretched at FOV 90.
+4. hunt_dive capture: about 9 frames of 110-122 ms per capture (fc3 max 21 ms). Gameplay great-hall frames are fine (p99 11.5); likely the screenshot frames are now counted. Not diagnosed.
+5. Hall lantern-off still 30-33 % in 4 views (S1 30.4, from_doors 32.6, skeleton_head 31.8, side_east 30.4); chapel views off/on as fc3 (fc-light2 item 1: `ChapelCandleIntensity` .75 -> .9).
+6. `showcase landed seen=False` in every natural; the observed flight is logged at departure/arrival but she does not see the landing.
+7. Disabled FILE RECONSTRUCTION button label is unreadable on the castle card; settings and lost cards still use the stretched card.
+8. Carried: Bellwether `performance_pass` False; floating hall candelabras (design floaters); human audio listen of `castle_evp_static` / `castle_hide_whisper`; merges to `main` need the owner.
+
+---
+
 # HANDOFF: integrator fc-integ2 (fc-bw60b merged: Present-wait subtraction for Bellwether `performance_pass`). Read this section first.
 
 Branch `haunted-castle` = `hc/integ-fc2`, pushed. Integrator: Sonnet 5.5, main clone, 2026-10-18. Nothing left running; GPU slot released.
