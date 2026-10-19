@@ -372,6 +372,9 @@ namespace HollowCurrent
             // fe r2: the outside fills with the InteriorLayer mask lifted again (the wave FD state), to show what the mask saves in the same run
             var fills=lights.Where(l=>CastleExteriorCost.LightGroup(l)=="lights_outside_fills").ToList();
             if(fills.Count>0){var fm=fills.Select(l=>l.cullingMask).ToArray();variants.Add(("fd_fills_light_interior("+fills.Count+")",()=>{foreach(var l in fills)if(l)l.cullingMask|=1<<CastleLightTuning.InteriorLayer;},()=>{for(int i=0;i<fills.Count;i++)if(fills[i])fills[i].cullingMask=fm[i];}));}
+            // fe r3: the interior lights lighting the deep interior again while outside (the deep-interior mask lifted)
+            var tuning=FindFirstObjectByType<CastleLightTuning>();
+            if(tuning)variants.Add(("fd_interior_lights_deep",()=>tuning.DeepMaskSuspended=true,()=>tuning.DeepMaskSuspended=false));
             var shadows=QualitySettings.shadows;variants.Add(("off_realtime_shadows",()=>QualitySettings.shadows=ShadowQuality.Disable,()=>QualitySettings.shadows=shadows));
             bool oc=cam.useOcclusionCulling;variants.Add(("off_occlusion_culling",()=>cam.useOcclusionCulling=false,()=>cam.useOcclusionCulling=oc));
             variants.Add(("baseline_again",null,null));

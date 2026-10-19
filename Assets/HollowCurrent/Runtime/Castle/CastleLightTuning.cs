@@ -111,11 +111,21 @@ namespace HollowCurrent
         // ranges 8-50 m. From outside (S4 on the far landing, battlement_out) their volumes cover the whole castle, so every interior renderer in
         // the view frustum (walls, props and candles behind the solid curtain wall: hidden, but still drawn) took one forward-add pass per fill.
         // fe r1 -hc-exterior-profile at the S4 eye: 10,616 batches; with these three fills culled 7,900, render thread 11.6 -> 8.7 ms, every
-        // frame 11.11 ms (p99 23.0 -> 11.1). Now interior render-only renderers sit on InteriorLayer, which the outside fills do not light.
-        // Renderers within OuterFaceBand of the shell's outer faces, everything outside the shell, and any renderer that carries a collider
-        // keep their layer (physics untouched). Every camera and every other light still renders and lights InteriorLayer.
+        // frame 11.11 ms (p99 23.0 -> 11.1). Now the DEEP interior's render-only renderers sit on InteriorLayer, which the outside fills do not
+        // light. Kept on their layer (so lit exactly as in wave FD): everything outside the shell, renderers within OuterFaceBand of its outer
+        // faces, the gatehouse and courtyard block seen through the gate (|x| <= VisibleHalfX, z <= VisibleMaxZ), the front half's roofs and
+        // wall walks seen from the battlements (bottom above RoofWalkY - .5 and z <= VisibleMaxZ), characters, and any renderer with a collider
+        // (physics untouched). fe r2 kept only the outer-face band and darkened the inner parapets in battlement_in; r3 adds the two zones.
+        // Every camera and every other light still renders and lights InteriorLayer, except the deep-interior rule below.
         public const int InteriorLayer = 27;
         public float OuterFaceBand = 1.0f;
+        public float VisibleHalfX = 6.5f, VisibleMaxZ = 14.5f, RoofWalkY = 5f;
+        // fe r3: with the fills masked, S4 still drew 9,123 batches (render thread 10.2 ms, p99 22.2): the interior's own realtime lights (candles,
+        // hall/chapel/crypt/balcony fills) lit the deep interior behind the curtain wall (profile off_lights_interior: 3,557 batches). While the
+        // camera is outside the gate AND the gate chain is shut (no Gate leaf ajar, or no Gatehouse great door ajar), nothing behind the
+        // gatehouse can be seen, so those lights skip InteriorLayer too; the moment both are open, or the camera steps inside, the masks return.
+        public bool MaskDeepInteriorOutside = true;
+        [NonSerialized] public bool DeepMaskSuspended;   // CaptureMode's -hc-exterior-profile lifts the mask for one variant
         public Color FacadeColor = new Color(.40f, .55f, .88f);
         public float FacadeIntensity = 1.05f;
         public float FacadeRange = 34f;
@@ -179,6 +189,42 @@ namespace HollowCurrent
                 outside = local.z < FacadeMaxCameraZ;
             }
             foreach (var l in outsideLights) if (l && l.enabled != outside) l.enabled = outside;
+            bool deep = MaskDeepInteriorOutside && !DeepMaskSuspended && outside && gateDoors.Count > 0 && !(AnyAjar(gateDoors) && AnyAjar(gatehouseDoors));
+            if (deep != deepMasked) ApplyDeepMask(deep);
+        }
+
+        // ---- fe r3: deep-interior mask for the interior lights while the camera is outside and the gate chain is shut ------------------
+        readonly List<Door> gateDoors = new List<Door>(), gatehouseDoors = new List<Door>();
+        readonly Dictionary<Light, int> interiorMasks = new Dictionary<Light, int>();
+        bool deepMasked; int deepLogs;
+        static bool AnyAjar(List<Door> doors)
+        {
+            foreach (var d in doors) if (d && (d.Open || Quaternion.Angle(d.transform.localRotation, d.Closed) > 3f)) return true;
+            return false;
+        }
+        void FindGateDoors()
+        {
+            gateDoors.Clear(); gatehouseDoors.Clear();
+            if (!Root) return;
+            foreach (var it in Root.GetComponentsInChildren<Interactable>(true))
+            {
+                if (it.Kind != InteractKind.Door || !it.Door) continue;
+                if (it.Label == "Gate") { if (!gateDoors.Contains(it.Door)) gateDoors.Add(it.Door); }
+                else if (it.Label == "Gatehouse great doors" || it.Door.name.Contains("Gatehouse great doors")) { if (!gatehouseDoors.Contains(it.Door)) gatehouseDoors.Add(it.Door); }
+            }
+            Debug.Log("HC_DEEP_INTERIOR_DOORS gate=" + gateDoors.Count + " gatehouse=" + gatehouseDoors.Count + (gateDoors.Count == 0 ? " (no gate found: the deep-interior mask stays off)" : ""));
+        }
+        void ApplyDeepMask(bool on)
+        {
+            deepMasked = on; int n = 0;
+            if (Root)
+                foreach (var l in Root.GetComponentsInChildren<Light>(true))
+                {
+                    if (!l || l.type == LightType.Directional || outsideLights.Contains(l) || l.name == "Brazier light" || l.name == "Window moonlight") continue;
+                    if (on) { if (!interiorMasks.ContainsKey(l)) interiorMasks[l] = l.cullingMask; l.cullingMask = interiorMasks[l] & ~(1 << InteriorLayer); n++; }
+                    else if (interiorMasks.TryGetValue(l, out var m)) { l.cullingMask = m; n++; }
+                }
+            if (deepLogs++ < 8) Debug.Log("HC_DEEP_INTERIOR_MASK on=" + on + " lights=" + n + " (interior lights skip InteriorLayer while outside with the gate chain shut)");
         }
 
         public void Apply()
@@ -305,6 +351,7 @@ namespace HollowCurrent
             var bridge = Fill(group, "Bridge moon fill", BridgeFillPosition, FacadeColor, BridgeFillIntensity, 8f);
             foreach (var l in new[] { facade, keep, bridge }) { l.enabled = false; l.cullingMask &= ~(1 << InteriorLayer); outsideLights.Add(l); }
             TagInterior("build");
+            FindGateDoors();
         }
 
         // Interior render-only renderers -> InteriorLayer (see the facade header). Idempotent: only Default-layer renderers are moved.
@@ -322,6 +369,7 @@ namespace HollowCurrent
                 Vector3 lo = Root.InverseTransformPoint(b.min), hi = Root.InverseTransformPoint(b.max);
                 var bmin = Vector3.Min(lo, hi); var bmax = Vector3.Max(lo, hi);
                 if (bmin.x < min.x + band || bmax.x > max.x - band || bmin.z < min.z + band || bmax.z > max.z - band) { face++; continue; }
+                if (bmin.z <= VisibleMaxZ && ((bmax.x >= -VisibleHalfX && bmin.x <= VisibleHalfX) || bmin.y >= RoofWalkY - .5f)) { face++; continue; }   // gatehouse, courtyard, front roofs and walks
                 r.gameObject.layer = InteriorLayer; moved++;
             }
             Debug.Log("HC_EXTERIOR_FILL_MASK stage=" + stage + " interior_layer=" + InteriorLayer + " moved=" + moved + " outer_face_kept=" + face + " collider_kept=" + collider + " (outside fills do not light InteriorLayer)");

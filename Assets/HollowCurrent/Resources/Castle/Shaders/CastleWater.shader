@@ -21,7 +21,9 @@
 //   * glitter: one hashed sparkle field (world cells re-rolled 4 times a second, a share of them lit, each a small round point at a random spot
 //     in its cell, only on chop facets that face the half-vector) scattered through a halo round each glade and along each lamp column, so the
 //     reflections break into hot points the way rippled water throws a light (fe r1's square 10 cm cells read as confetti; r2 makes them points);
-//   * the smooth glade lobe is weaker (_GladeBody .8 -> .55) so the water between the glints stays blood-red;
+//   * the smooth glade lobe is weaker (_GladeBody .8 -> .45) so the water between the glints stays blood-red;
+//   * values from the fe r2 -hc-moat sweep (bright px2 gate_out / S4 / battlement: r2 defaults 650 / 386 / 1250; density .26 + glitter 3.2:
+//     930 / 636 / 2312; the pass line is 400)
 //   * the castle-end lamps throw twice the glint (CastleExterior.Lamps) and every lamp column sparkles.
 // Cost: still one opaque pass, no texture, no render target: two extra half-vector lobes and one hash per pixel.
 // World space = castle-local space (the castle root sits at the origin). Constants are linear values of the castle_sky.py display colours.
@@ -43,9 +45,9 @@ Shader "HollowCurrent/CastleWater"
         _GladeColor ("Moon glade colour (linear)", Color) = (0.62, 0.52, 0.50, 1)
         _RedGlade ("Blood moon glade strength", Range(0, 4)) = 0.9
         _RedGladeColor ("Blood moon glade colour (linear)", Color) = (1.0, 0.30, 0.20, 1)
-        _GladeBody ("Smooth glade lobe weight", Range(0, 2)) = 0.55
-        _Glitter ("Glitter strength (hot points in the glade halos and lamp columns)", Range(0, 8)) = 2.6
-        _GlitterDensity ("Glitter share of cells lit", Range(0, 0.6)) = 0.18
+        _GladeBody ("Smooth glade lobe weight", Range(0, 2)) = 0.45
+        _Glitter ("Glitter strength (hot points in the glade halos and lamp columns)", Range(0, 8)) = 3.2
+        _GlitterDensity ("Glitter share of cells lit", Range(0, 0.6)) = 0.26
         _GlitterCell ("Glitter cells per metre", Range(2, 40)) = 12
         _GlitterHalo ("Glitter halo width (x glade roughness)", Range(1, 3)) = 1.6
         _GlitterFacet ("Glitter facet power (chop normal . half-vector)", Range(0, 64)) = 6
