@@ -382,6 +382,63 @@
   ],
   "tris": 1960
  },
+ "GalleryBlindLancet": {
+  "budget": 4500,
+  "bytes": 69276,
+  "file": "Assets/HollowCurrent/Resources/Castle/GalleryBlindLancet.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.75,
+   0.26,
+   2.25
+  ],
+  "min": [
+   -0.75,
+   -0.35,
+   0.0
+  ],
+  "notes": {
+   "R": 1.24,
+   "apex": 2.102,
+   "band": 0.13,
+   "depth": 0.52,
+   "hwi": 0.62,
+   "lights": 2,
+   "oculus_centre": 1.854,
+   "oculus_radius": 0.214,
+   "rise_i": 1.074,
+   "spring": 1.028
+  },
+  "parts": {
+   "GalleryBlindLancet": {
+    "max": [
+     0.75,
+     0.26,
+     2.25
+    ],
+    "min": [
+     -0.75,
+     -0.35,
+     0.0
+    ],
+    "size": [
+     1.5,
+     0.61,
+     2.25
+    ],
+    "tris": 1960
+   }
+  },
+  "size": [
+   1.5,
+   0.61,
+   2.25
+  ],
+  "tris": 1960
+ },
  "GalleryLancetWindow": {
   "budget": 4500,
   "bytes": 70380,
@@ -441,19 +498,19 @@
  },
  "HallColumn": {
   "budget": 7000,
-  "bytes": 134012,
+  "bytes": 135276,
   "file": "Assets/HollowCurrent/Resources/Castle/HallColumn.fbx",
   "materials": [
    "Castle_DressedStone"
   ],
   "max": [
-   0.46,
-   0.46,
+   0.45,
+   0.45,
    5.85
   ],
   "min": [
-   -0.46,
-   -0.46,
+   -0.45,
+   -0.45,
    0.0
   ],
   "notes": {
@@ -464,29 +521,29 @@
   "parts": {
    "HallColumn": {
     "max": [
-     0.46,
-     0.46,
+     0.45,
+     0.45,
      5.85
     ],
     "min": [
-     -0.46,
-     -0.46,
+     -0.45,
+     -0.45,
      0.0
     ],
     "size": [
-     0.92,
-     0.92,
+     0.9,
+     0.9,
      5.85
     ],
-    "tris": 4744
+    "tris": 4800
    }
   },
   "size": [
-   0.92,
-   0.92,
+   0.9,
+   0.9,
    5.85
   ],
-  "tris": 4744
+  "tris": 4800
  },
  "HallCorbel": {
   "budget": 1200,
@@ -535,7 +592,7 @@
  },
  "HallLancetWindow": {
   "budget": 4000,
-  "bytes": 68508,
+  "bytes": 69628,
   "file": "Assets/HollowCurrent/Resources/Castle/HallLancetWindow.fbx",
   "materials": [
    "Castle_DressedStone",
@@ -544,7 +601,7 @@
   "max": [
    0.5,
    0.26,
-   2.8
+   3.55
   ],
   "min": [
    -0.5,
@@ -553,22 +610,22 @@
   ],
   "notes": {
    "R": 0.74,
-   "apex": 2.653,
+   "apex": 3.403,
    "band": 0.13,
    "depth": 0.52,
    "hwi": 0.37,
    "lights": 2,
-   "oculus_centre": 2.513,
+   "oculus_centre": 3.263,
    "oculus_radius": 0.105,
    "rise_i": 0.641,
-   "spring": 2.013
+   "spring": 2.763
   },
   "parts": {
    "HallLancetWindow": {
     "max": [
      0.5,
      0.26,
-     2.8
+     3.55
     ],
     "min": [
      -0.5,
@@ -578,17 +635,17 @@
     "size": [
      1.0,
      0.61,
-     2.8
+     3.55
     ],
-    "tris": 1984
+    "tris": 2032
    }
   },
   "size": [
    1.0,
    0.61,
-   2.8
+   3.55
   ],
-  "tris": 1984
+  "tris": 2032
  },
  "HallPlinth": {
   "budget": 300,

@@ -417,6 +417,30 @@ namespace HollowCurrent
         }
         // fe-exterior: -hc-moat "_Glade=1.4,_GladeRough=.3,_RedGladeColor=1:.3:.22:1" sets CastleWater properties on the moat material before the
         // shots (capture only), so one build can compare glint settings; the chosen values are then written into CastleExterior.Moat().
+        // wave FF: -hc-hall-mist B (CastleAtmosphere.HallMistBrightness for the hall ground fog, linear), -hc-hall-glass S (x the blind lancet
+        // glass and the north sky card, CastleWorld.BlindGlassIntensity / NorthSkyIntensity), -hc-hall-table I (the two "Table candle light"
+        // intensities), -hc-hall-sheen S (x the floor and table sheen _Strength): runtime values for one capture, so the integrator can sweep
+        // the hall's lantern-off exposure on one build. Logged as HC_CAPTURE hall override ...
+        static void HallOverrides()
+        {
+            var a=Environment.GetCommandLineArgs();var inv=System.Globalization.CultureInfo.InvariantCulture;
+            float Arg(string k){for(int i=0;i<a.Length-1;i++)if(a[i]==k&&float.TryParse(a[i+1],System.Globalization.NumberStyles.Float,inv,out var v))return v;return float.NaN;}
+            float mist=Arg("-hc-hall-mist"),glass=Arg("-hc-hall-glass"),table=Arg("-hc-hall-table"),sheen=Arg("-hc-hall-sheen");
+            if(float.IsNaN(mist)&&float.IsNaN(glass)&&float.IsNaN(table)&&float.IsNaN(sheen))return;
+            var done=new HashSet<Material>();int nm=0,ng=0,ns=0,nt=0;
+            foreach(var r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))foreach(var m in r.sharedMaterials)
+            {
+                if(!m||!done.Add(m))continue;
+                if(!float.IsNaN(mist)&&m.name.StartsWith("Castle ground fog 0/",StringComparison.Ordinal))
+                {var lin=new Color(.12f,.15f,.21f).linear*Mathf.Max(0,mist);var c=new Color(lin.r,lin.g,lin.b,1).gamma;m.SetColor("_Color",c);nm++;}
+                else if(!float.IsNaN(glass)&&(m.name=="Castle hall blind lancet glass"||m.name=="Castle hall north sky")&&m.HasProperty("_Intensity"))
+                {m.SetFloat("_Intensity",m.GetFloat("_Intensity")*glass);ng++;}
+                else if(!float.IsNaN(sheen)&&(m.name=="Castle hall floor sheen"||m.name=="Castle hall table sheen")&&m.HasProperty("_Strength"))
+                {m.SetFloat("_Strength",m.GetFloat("_Strength")*sheen);ns++;}
+            }
+            if(!float.IsNaN(table))foreach(var l in FindObjectsByType<Light>(FindObjectsSortMode.None))if(l.name=="Table candle light"){l.intensity=table;nt++;}
+            Log("hall override mist="+mist.ToString("F3",inv)+" ("+nm+" layers) glass="+glass.ToString("F2",inv)+" ("+ng+") table="+table.ToString("F2",inv)+" ("+nt+" lights) sheen="+sheen.ToString("F2",inv)+" ("+ns+")");
+        }
         static void MoatOverrides()
         {
             var a=Environment.GetCommandLineArgs();string spec=null;for(int i=0;i<a.Length-1;i++)if(a[i]=="-hc-moat")spec=a[i+1];
@@ -442,7 +466,7 @@ namespace HollowCurrent
         {
             while(game.Loading)yield return null;
             var warm=Time.realtimeSinceStartup+3;while(Time.realtimeSinceStartup<warm)yield return null;
-            MoatOverrides();
+            MoatOverrides();HallOverrides();
             if(ArtSet!=null){yield return ArtRun(ArtSet);yield break;}
             Log("screen "+Screen.width+"x"+Screen.height+" quality="+QualitySettings.names[QualitySettings.GetQualityLevel()]+" aa="+QualitySettings.antiAliasing+" shadows="+QualitySettings.shadowResolution+"/"+QualitySettings.shadowDistance+" targetFps="+Application.targetFrameRate+" vsync="+QualitySettings.vSyncCount);
             // S7: title screen with the map picker (Castle selected).
@@ -459,7 +483,10 @@ namespace HollowCurrent
             // S1: great hall from the entrance doors. Wave FD (r13 critic item 3: "the banquet table is out of shot"): the eye stands on the threshold
             // at 2.3 m (was 1.64 at z 14.7) so the table, the chairs and the throne read over the shrouded skeleton's back, and the framing keeps the
             // vault, the rose window and the four north lancets (CPU proof tools/castle_fd_hall_raycast.py: table ~17k px, lancets 160-176 px tall).
-            var e=new Vector3(0,2.3f,14.55f);var t=new Vector3(0,2.3f,27);Place(e,t);
+            // wave FF (r14 critic: "the banquet table is a small dark shape at the far end"): the eye rises 2.3 -> 2.95 on the threshold and tips 1.8
+            // degrees down, so the table and its chairs clear the shrouded ribcage (proxy: 12.5k -> 17.6k table px) and the frame holds the north
+            // lancets, the blind gallery lancets and the floor between the piers (tools/ff_hall_raycast.py; CastleWorld.S1MoonEye must match)
+            var e=new Vector3(0,2.95f,14.55f);var t=new Vector3(0,2.55f,27);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S1_great_hall",3);
             yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");SetPiece.Report(game.Player.View,"S1");
             // S2: chapel altar from the nave.

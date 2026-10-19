@@ -48,6 +48,8 @@ namespace HollowCurrent
             public const string HallColumn = "HallColumn", HallCorbel = "HallCorbel", HallPlinth = "HallPlinth", HallStringCourse = "HallStringCourse", HallVault = "HallVault", Candlestick = "Candlestick", ChapelSunburst = "ChapelSunburst";
             // wave FD (hc/fd-art, tools/castle_hall_kit.py): the great hall's north-wall lancets
             public const string HallLancetWindow = "HallLancetWindow", GalleryLancetWindow = "GalleryLancetWindow";
+            // wave FF (hc/ff-art, tools/castle_hall_kit.py): the blind gallery lancet on the hall's side walls
+            public const string GalleryBlindLancet = "GalleryBlindLancet";
         }
 
         public static readonly string[] All =
@@ -64,7 +66,7 @@ namespace HollowCurrent
             Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains,
             Names.StringCourse, Names.Corbel, Names.GargoyleSpout, Names.TapestryPanel,
             Names.HallColumn, Names.HallCorbel, Names.HallPlinth, Names.HallStringCourse, Names.HallVault, Names.Candlestick, Names.ChapelSunburst,
-            Names.HallLancetWindow, Names.GalleryLancetWindow,
+            Names.HallLancetWindow, Names.GalleryLancetWindow, Names.GalleryBlindLancet,
             Names.MoonstoneSword, Names.RelicBlade, Names.RelicHilt, Names.RelicMoonstone,
             Names.HandRoot0, Names.HandRoot1, Names.HandRoot2, Names.HandRoot3, Names.HandRoot4, Names.HandRoot5, Names.RootCrown,
             Names.FloatingBookSmall, Names.FloatingBookLarge, Names.BookClosedSmall, Names.BookClosed, Names.BookClosedLarge,

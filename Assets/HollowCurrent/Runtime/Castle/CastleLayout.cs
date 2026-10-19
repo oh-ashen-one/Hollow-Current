@@ -100,6 +100,7 @@ namespace HollowCurrent
             public const string TallLancetWindow = "TallLancetWindow";
             public const string ClerestoryWindow = "ClerestoryWindow";
             public const string HallLancetWindow = "HallLancetWindow", GalleryLancetWindow = "GalleryLancetWindow";   // wave FD: north-wall lancets of the great hall
+            public const string GalleryBlindLancet = "GalleryBlindLancet";   // wave FF: blind lancet with moonlit glass on the hall's side walls, base at the sill
             public const string ObservatoryWindow = "ObservatoryWindow";
             public const string RoseWindow = "RoseWindow";           // base at the opening bottom
             public const string ChapelSunburst = "ChapelSunburst";   // round 13: the broken stained-glass sun above the chapel altar, 2.0 x 3.1 opening, base at the sill
@@ -160,7 +161,8 @@ namespace HollowCurrent
             { ArtNames.ServiceDoorLeaf, new Vector3(.9f, 2.0f, .08f) }, { ArtNames.PortraitDoorLeaf, new Vector3(.9f, 2.0f, .1f) },
             { ArtNames.LancetWindow, new Vector3(1.2f, 1.6f, .35f) }, { ArtNames.TallLancetWindow, new Vector3(1.4f, 3.5f, .35f) },
             { ArtNames.ClerestoryWindow, new Vector3(1.2f, 1.8f, .35f) }, { ArtNames.ObservatoryWindow, new Vector3(1.6f, 2.7f, .35f) },
-            { ArtNames.HallLancetWindow, new Vector3(1.0f, 2.8f, .61f) }, { ArtNames.GalleryLancetWindow, new Vector3(1.0f, 4.4f, .61f) },
+            { ArtNames.HallLancetWindow, new Vector3(1.0f, 3.55f, .61f) }, { ArtNames.GalleryLancetWindow, new Vector3(1.0f, 4.4f, .61f) },
+            { ArtNames.GalleryBlindLancet, new Vector3(1.5f, 2.25f, .61f) },
             { ArtNames.RoseWindow, new Vector3(3.0f, 3.0f, .5f) }, { ArtNames.ChapelSunburst, new Vector3(2.0f, 3.1f, .56f) },
             { ArtNames.ColumnGreat, new Vector3(.9f, 8.8f, .9f) }, { ArtNames.Column, new Vector3(.7f, 3.0f, .7f) },
             { ArtNames.CryptRib, new Vector3(8.4f, .6f, .6f) }, { ArtNames.RafterBeam, new Vector3(11.4f, .5f, .5f) },
@@ -276,8 +278,11 @@ namespace HollowCurrent
             // the lantern off already (fc-light2 open item 3), so the two old spots are dropped rather than moved.
             new CastleWindowDef(true, 28, -4.85f, 0, 1.0f, 3.6f, 8.0f, -1, ArtNames.GalleryLancetWindow, false),
             new CastleWindowDef(true, 28, 4.85f, 0, 1.0f, 3.6f, 8.0f, -1, ArtNames.GalleryLancetWindow, false),
-            new CastleWindowDef(true, 28, -2.6f, 0, 1.0f, 4.3f, 7.1f, -1, ArtNames.HallLancetWindow, false),
-            new CastleWindowDef(true, 28, 2.6f, 0, 1.0f, 4.3f, 7.1f, -1, ArtNames.HallLancetWindow, false),
+            // wave FF (r14 critic: "no lancet windows in the S1 frame"; ">= 3 lancets >= 150 px tall"): the flanking pair now reaches down behind the
+            // north gallery's balustrade (sill 3.55 above the 3.2 gallery floor, was 4.3; the head stays under the end formeret at 7.1), 192 px tall
+            // from the S1 eye instead of 146 (tools/ff_hall_raycast.py), and the left one frames the pale moon (CastleWorld.Moons)
+            new CastleWindowDef(true, 28, -2.6f, 0, 1.0f, 3.55f, 7.1f, -1, ArtNames.HallLancetWindow, false),
+            new CastleWindowDef(true, 28, 2.6f, 0, 1.0f, 3.55f, 7.1f, -1, ArtNames.HallLancetWindow, false),
             new CastleWindowDef(true, 28, 0, 0, 3.0f, 5.6f, 8.6f, -1, ArtNames.RoseWindow, true, true),
             new CastleWindowDef(true, 28, 9, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, true),
             new CastleWindowDef(true, 28, 12, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, false),
@@ -287,10 +292,11 @@ namespace HollowCurrent
             new CastleWindowDef(false, 6, 12, 0, 1.2f, 1.5f, 5.0f, 1, ArtNames.TallLancetWindow, false),
             // great hall clerestory (above the wing roofs, looking outside)
             new CastleWindowDef(false, -6, 17.5f, 0, 1.2f, 6.8f, 8.6f, 1, ArtNames.ClerestoryWindow, false),
-            new CastleWindowDef(false, -6, 21.5f, 0, 1.2f, 6.8f, 8.6f, 1, ArtNames.ClerestoryWindow, true, true),
+            // wave FF: the middle clerestories move 21.5 -> 23.0 to make room for the blind gallery lancets (GalleryBlindLancets, z 20.85-22.35)
+            new CastleWindowDef(false, -6, 23.0f, 0, 1.2f, 6.8f, 8.6f, 1, ArtNames.ClerestoryWindow, true, true),
             new CastleWindowDef(false, -6, 25, 0, 1.2f, 6.8f, 8.6f, 1, ArtNames.ClerestoryWindow, false),
             new CastleWindowDef(false, 6, 17.5f, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, false),
-            new CastleWindowDef(false, 6, 21.5f, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, true, true),
+            new CastleWindowDef(false, 6, 23.0f, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, true, true),
             new CastleWindowDef(false, 6, 25, 0, 1.2f, 6.8f, 8.6f, -1, ArtNames.ClerestoryWindow, false),
         };
 
@@ -378,11 +384,19 @@ namespace HollowCurrent
         // on the rose-window ledge (FOV 50, pitch 4 up), so its lower third (y 5.2-6.1 at z 26.5-27.3) is where these hang, 1.6-2.3 m off
         // the eye-to-Count line, inside the horizontal half-FOV (about 40 degrees). Floater.neverHide keeps the capture's hide-for-shot
         // pass from removing them; HC_S5_CANDLES counts them at S5 time.
+        // Wave FF: pulled 0.15-0.35 m toward the axis (x +-1.45..1.95, was 1.6..2.3) so that from S1 they stand in front of the rose window's
+        // flanks instead of the lancets at x +-2.1..3.1; they stay 1.45-1.95 m off the S5 line, inside its frame.
         public static readonly Vector3[] S5LedgeCandelabras =
         {
-            new Vector3(-1.6f, 5.4f, 26.8f), new Vector3(1.6f, 5.4f, 26.8f), new Vector3(-2.0f, 5.2f, 27.0f),
-            new Vector3(2.0f, 5.2f, 27.0f), new Vector3(-2.3f, 5.6f, 27.3f), new Vector3(2.3f, 5.6f, 27.3f),
+            new Vector3(-1.45f, 5.4f, 26.8f), new Vector3(1.45f, 5.4f, 26.8f), new Vector3(-1.75f, 5.2f, 27.0f),
+            new Vector3(1.75f, 5.2f, 27.0f), new Vector3(-1.95f, 5.6f, 27.3f), new Vector3(1.95f, 5.6f, 27.3f),
         };
+        // Wave FF (r14 critic: ">= 3 pointed lancet windows >= 150 px tall" in S1; "bring lancets onto the side walls at gallery height"): one blind
+        // lancet per side wall, between the 18.6 and 21.6 columns where the S1 eye sees the gallery's back wall through the arcade (rays from
+        // (0, *, 14.55) reach x 5.575 between z 20.56 and 23.53 past the columns), sill 5.1 (above the gallery rail line from S1), head 7.35 (under
+        // S1's top edge). Blind because the wall behind is the library / service stair (west) and the portrait hall (east): tracery set half into
+        // the wall with a moonlit leaded-glass panel behind it (CastleWorld.BlindLancets), no opening, no light. x = the inner wall face.
+        public const float BlindLancetZ = 21.6f, BlindLancetWidth = 1.5f, BlindLancetSill = 5.1f, BlindLancetTop = 7.35f;
         public static readonly Vector3[] HallBooks =
         {
             new Vector3(2.0f, 3.3f, 17.5f), new Vector3(3.0f, 4.3f, 19.2f), new Vector3(1.2f, 5.2f, 21.0f), new Vector3(2.6f, 3.6f, 21.5f),
@@ -512,7 +526,10 @@ namespace HollowCurrent
             new CastleCandleDef(new Vector3(-3.4f, 0, 20.1f), 1.0f, 7f, true), new CastleCandleDef(new Vector3(3.4f, 0, 20.1f), 1.0f, 7f, true),
             new CastleCandleDef(new Vector3(-3.4f, 0, 16.9f), .9f, 7f), new CastleCandleDef(new Vector3(3.4f, 0, 16.9f), .9f, 7f),
             // round 13: the table carries eight baked turned candlesticks of its own; these two stay as light sources only (no mesh), at the new tabletop
-            new CastleCandleDef(new Vector3(0f, .775f, 22.85f), .8f, 5.5f, false, false), new CastleCandleDef(new Vector3(0f, .775f, 24.55f), .8f, 5.5f, false, false),
+            // wave FF (r14 critic: "the banquet table is a small dark shape ... legible only with the lantern on"): the two table lights hang 0.55 m
+            // over the top (was 1.8) and CastleLightTuning gives them their own short range and ForcePixel ("Table candle light"), so the
+            // table, its candlesticks and the chairs are lit by them instead of losing the forward-pixel slots to the floor stands
+            new CastleCandleDef(new Vector3(0f, .775f, 22.85f), .8f, 5.5f, false, false, .55f), new CastleCandleDef(new Vector3(0f, .775f, 24.55f), .8f, 5.5f, false, false, .55f),
             // balcony
             new CastleCandleDef(new Vector3(-4.4f, 3.2f, 16.0f), .6f), new CastleCandleDef(new Vector3(4.4f, 3.2f, 24.0f), .6f),
             // dining hall

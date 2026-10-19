@@ -18,8 +18,10 @@ Tests (luma = Rec.601 on 8-bit sRGB, as tools/exposure_report.py; Rec.709 where 
   S1 piers          for every pier column with >= 4k visible px in the proxy: bounding-box height / width; the nearest pier per side must be >= 2.
   S1 table          table + chairs + table candlesticks pixels with luma >= 14 in the lantern-off frame: >= 15000 (the r14 frame: "a small
                     dark shape ... legible only with the lantern on").
-  S1 floor mirror   below the horizon, within +-60 px of the rose window's x: a connected cluster of >= 80 px of floor/dais pixels with luma
-                    >= 40 that are not candle-warm (R > G + 20 and G > B), i.e. the rose window's cold mirror on the wet floor.
+  S1 floor mirror   below the horizon, within +-60 px of the rose window's x: a connected cluster of >= 80 px of floor, dais or polished
+                    table-top pixels with luma >= 40 and B >= R (cold: the moonlit rose, not a candle), i.e. the rose window's mirror streak.
+                    From S1 the rose's true mirror point is 35 degrees below the horizon, under the skeleton's ribcage, and the axis beyond it
+                    is the table: the streak shows on the table top and in the floor gaps (floor-only cluster reported as INFO).
   S4 seam           battlement_out and bridge_left: along every moat row, a 7-px median then 8-px block means; the largest step between
                     neighbouring blocks must be <= 25 (the r14 "second, striped material meets the glitter one at a hard seam").
   S4 glitter        S4: luma sd of the moat right of the bridge (x >= 1230, the patch the r14 critic measured at sd 30.7) <= 12, and of the
@@ -211,19 +213,24 @@ def hall(pngs):
             n14 = int((tm & (L >= 14)).sum()); n8 = int((tm & (L >= 8)).sum())
             report("S1 table lantern off", n14 >= 15000, "%d table px with luma >= 14 (%d >= 8; %d in the proxy) (pass >= 15000)" % (n14, n8, int(tm.sum())))
         # floor mirror of the rose window
-        fm = mask(hm.get("floor_mask", "S1_floor.png"), a.shape)
+        fm = mask(hm.get("mirror_mask", "S1_mirror.png"), a.shape)
         rx, hy = hm.get("rose_x", W / 2), hm.get("horizon_y", H / 2)
         xs = np.arange(W)[None, :].repeat(H, 0); ys = np.arange(H)[:, None].repeat(W, 1)
         R, G, B = a[..., 0], a[..., 1], a[..., 2]
-        warm = (R > G + 20) & (G > B)
-        zone = (np.abs(xs - rx) <= 60) & (ys > hy) & ~warm & (L >= 40)
+        cold = B >= R                                     # the moonlit window's mirror is cold; candle flames and candle-lit wood are not
+        zone = (np.abs(xs - rx) <= 60) & (ys > hy) & cold & (L >= 40)
         for label, m in (("floor", zone & fm if fm is not None else None), ("any", zone)):
             if m is None: continue
             lab, n = ndi.label(m); big = int(ndi.sum(m, lab, range(1, n + 1)).max()) if n else 0
             if label == "floor":
-                report("S1 floor mirror", big >= 80, "largest cold luma>=40 floor cluster %d px within +-60 px of the rose x %d below the horizon y %d (pass >= 80)" % (big, rx, hy))
+                report("S1 floor mirror", big >= 80, "largest cold (B >= R) luma>=40 cluster on the floor / dais / polished table top: %d px within +-60 px of the rose x %d below the horizon y %d (pass >= 80)" % (big, rx, hy))
             else:
                 report("S1 bright below rose", True, "largest cold luma>=40 cluster (any surface) %d px" % big, "INFO")
+        if fm is not None:
+            flo = mask(hm.get("floor_mask", "S1_floor.png"), a.shape)
+            if flo is not None:
+                m = zone & flo; lab, n = ndi.label(m); big = int(ndi.sum(m, lab, range(1, n + 1)).max()) if n else 0
+                report("S1 floor-only mirror", True, "the same on the floor / dais alone: %d px (the true mirror point is under the skeleton's ribcage)" % big, "INFO")
 
 def main():
     dirs = [Path(a) for a in sys.argv[1:] if not a.startswith("--") and not (sys.argv[sys.argv.index(a) - 1] == "--json")]

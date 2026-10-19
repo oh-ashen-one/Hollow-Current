@@ -770,7 +770,9 @@ namespace HollowCurrent
             var g = new GameObject("Candelabra");
             g.transform.SetParent(root, false); g.transform.localPosition = c.Pos;
             if (c.Art) UnifyFlames(CastleArt.Place(Art.Candelabra, g.transform, Vector3.zero, Quaternion.identity), g.transform);
-            var lg = new GameObject("Candle light");
+            // wave FF: the two light-only candles on the banquet table get their own tuning row (CastleLightTuning "Table candle light")
+            bool table = !c.Art && Mathf.Abs(c.Pos.x - CastleLayout.TablePos.x) < .8f && Mathf.Abs(c.Pos.z - CastleLayout.TablePos.z) < 1.8f && Mathf.Abs(c.Pos.y - .775f) < .05f;
+            var lg = new GameObject(table ? "Table candle light" : "Candle light");
             lg.transform.SetParent(g.transform, false); lg.transform.localPosition = Vector3.up * c.LightHeight;
             var l = lg.AddComponent<Light>();
             l.type = LightType.Point; l.color = new Color(1, .88f, .74f); l.range = c.Range; l.intensity = c.Intensity;
@@ -936,6 +938,8 @@ namespace HollowCurrent
             skeleton.localScale = CastleLayout.SkeletonScaleVec;
             DarkenBone(skeleton);   // wave FD: aged, dark bone under the oxblood shroud (the shroud is part of GiantSkeleton.fbx, tools/castle_props_r12.py)
             FloorSheen();
+            BlindLancets();
+            NorthSkyCard();
             SkeletonCollision();
             CheckHallAxis(skeleton);
             foreach (var b in CastleLayout.HallBanners) ArtAt(CastleArt.Names.TapestryPanel, b.Pos, b.Yaw);
@@ -1010,15 +1014,87 @@ namespace HollowCurrent
             {
                 new Vector4(-3.4f, 1.65f, 20.1f, .55f), new Vector4(3.4f, 1.65f, 20.1f, .55f), new Vector4(-3.4f, 1.65f, 16.9f, .5f), new Vector4(3.4f, 1.65f, 16.9f, .5f),
                 new Vector4(0f, 3.9f, 22.9f, .7f),                                                       // the chandelier
-                new Vector4(0f, 7.1f, 27.4f, -.55f), new Vector4(-3.7f, 5.8f, 27.4f, -.35f), new Vector4(3.7f, 5.8f, 27.4f, -.35f),   // rose window, north lancets
+                // rose window, north lancets (wave FF: at their real x -+2.6, y 5.4; FD had them at -+3.7, 5.8)
+                new Vector4(0f, 7.1f, 27.4f, -.55f), new Vector4(-2.6f, 5.4f, 27.4f, -.35f), new Vector4(2.6f, 5.4f, 27.4f, -.35f),
             };
             for (int i = 0; i < src.Length; i++) m.SetVector("_S" + i, src[i]);
+            // wave FF (r14 critic: "the floor is matte in the capture"; the rose's mirror must show below the horizon near its x): the windows'
+            // stretched streak (CastleFloorSheen header). From the S1 eye the rose's true mirror point is under the skeleton's ribcage and the axis
+            // beyond it is the banquet table, so the table top gets its own polished instance (wet everywhere, x3): a cold band of the rose and
+            // the lancets along the wood, as on a waxed table at night (tools/ff_sheen_twin.py: about 2k px of luma >= 40 near the rose's x).
+            m.SetFloat("_Streak", 1f); m.SetFloat("_StreakLen", .9f); m.SetFloat("_StreakWidth", .035f); m.SetFloat("_WinHalf", .6f);
             var q = GameObject.CreatePrimitive(PrimitiveType.Quad); q.name = "Hall floor sheen"; Release(q.GetComponent<Collider>());
             q.transform.SetParent(root, false); q.transform.localPosition = new Vector3(0, .006f, 20.95f);
             q.transform.localRotation = Quaternion.Euler(90, 0, 0); q.transform.localScale = new Vector3(11.1f, 12.9f, 1);
             var r = q.GetComponent<Renderer>(); r.sharedMaterial = m;
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
             r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off; r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            var tm = new Material(m) { name = "Castle hall table sheen" };
+            tm.SetFloat("_Strength", TableSheenStrength); tm.SetFloat("_WetMin", .9f);
+            var tableSize = CastleLayout.ArtSize(Art.LongTable);
+            var tq = GameObject.CreatePrimitive(PrimitiveType.Quad); tq.name = "Hall table sheen"; Release(tq.GetComponent<Collider>());
+            tq.transform.SetParent(root, false); tq.transform.localPosition = CastleLayout.TablePos + new Vector3(0, tableSize.y + .004f, 0);
+            tq.transform.localRotation = Quaternion.Euler(90, CastleLayout.TableYaw, 0);
+            tq.transform.localScale = new Vector3(tableSize.x * CastleLayout.TableLengthScale - .06f, tableSize.z * CastleLayout.TableWidthScale - .06f, 1);
+            var tr = tq.GetComponent<Renderer>(); tr.sharedMaterial = tm;
+            tr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; tr.receiveShadows = false;
+            tr.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off; tr.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+        }
+        public static float TableSheenStrength = 3f;
+
+        // ---- wave FF (hc/ff-art, r14 critic section 4 / item 1, S1) ------------------------------------------------------------------------
+        // Unlit glass / sky (HollowCurrent/CastleWindow: texture x _Intensity, no fog, opaque; it bakes as black like every castle material).
+        // CaptureMode -hc-hall-glass scales both materials made here at capture time (the integrator's exposure sweep).
+        public static float BlindGlassIntensity = .45f, NorthSkyIntensity = .9f;
+        static Material UnlitGlass(string name, string texture, float intensity)
+        {
+            var shader = Resources.Load<Shader>("Castle/Shaders/CastleWindow");
+            var tex = Resources.Load<Texture2D>("Castle/Textures/" + texture);
+            if (shader == null || !shader.isSupported || tex == null) { Debug.LogWarning("[CastleWorld] " + name + ": CastleWindow or " + texture + " missing"); return null; }
+            var m = new Material(shader) { name = name };
+            m.SetTexture("_MainTex", tex); m.SetFloat("_Intensity", intensity);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.EmissiveIsBlack;
+            return m;
+        }
+        Renderer GlassQuad(string name, Vector3 centre, Vector3 normal, Vector2 size, Material m)
+        {
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad); q.name = name; Release(q.GetComponent<Collider>());
+            q.transform.SetParent(root, false); q.transform.localPosition = centre;
+            q.transform.localRotation = Quaternion.LookRotation(-normal);   // a Quad shows its -Z side: the visible face looks along `normal`
+            q.transform.localScale = new Vector3(size.x, size.y, 1);
+            var r = q.GetComponent<Renderer>(); r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off; r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
+            return r;
+        }
+
+        // Blind gallery lancets (CastleLayout.BlindLancet*): "bring lancets onto the side walls at gallery height". The tracery (GalleryBlindLancet,
+        // tools/castle_hall_kit.py) stands half sunk in the wall face; behind it a leaded-glass panel lit as if the moon stood behind it
+        // (Castle_MoonGlass, tools/ff_hall_glass.py). No opening (the library / service stair and the portrait hall are behind these walls), no light.
+        void BlindLancets()
+        {
+            var m = UnlitGlass("Castle hall blind lancet glass", "Castle_MoonGlass", BlindGlassIntensity);
+            float h = CastleLayout.BlindLancetTop - CastleLayout.BlindLancetSill;
+            foreach (int side in new[] { -1, 1 })
+            {
+                float x = side * CastleHallKit.WallX;
+                var inward = new Vector3(-side, 0, 0);
+                var art = ArtAt(Art.GalleryBlindLancet, new Vector3(x, CastleLayout.BlindLancetSill, CastleLayout.BlindLancetZ), side < 0 ? 90 : -90);
+                CastleHallKit.MarkStatic(art);
+                if (m) GlassQuad("Blind lancet glass", new Vector3(x - side * .012f, CastleLayout.BlindLancetSill + h * .5f, CastleLayout.BlindLancetZ), inward,
+                                 new Vector2(CastleLayout.BlindLancetWidth - .2f, h - .04f), m);
+            }
+        }
+
+        // The night sky behind the north wall, seen through the rose window and the four lancets from inside only (WindowMoon.keepMaterial hides it
+        // for viewers outside the footprint): the r14 lancets and rose read as dark navy holes (median luma 7-11 lantern off). Behind the moon
+        // discs (z 28.85), in front of nothing: 11.6 x 6 m at z 29.25, y 3-9.
+        void NorthSkyCard()
+        {
+            var m = UnlitGlass("Castle hall north sky", "Castle_NightSkyCard", NorthSkyIntensity);
+            if (!m) return;
+            var r = GlassQuad("North sky card", new Vector3(0, 6.0f, 29.25f), Vector3.back, new Vector2(11.6f, 6.0f), m);
+            var wm = r.gameObject.AddComponent<WindowMoon>(); wm.disc = r; wm.castleRoot = root; wm.keepMaterial = true;
         }
 
         static readonly string[] BookCovers = { "Castle_BookLeatherA", "Castle_BookLeatherB", "Castle_BookLeatherC" };
@@ -1035,11 +1111,16 @@ namespace HollowCurrent
             }
         }
 
+        public static bool HallArcadeArches = false;   // wave FF: off (see HallArcade); true restores the round-13 arcade under the galleries
         // Pointed arches between the colonnade columns (their piers sit inside the column footprints) and cross ribs springing
         // from the columns at 6 m across the hall. Pure visuals: no colliders.
         void HallArcade()
         {
             int k = 0;
+            // wave FF (r14 critic: "the lower-hall piers still read squat"): the 3 m pointed arches between the columns sprang at 2.0 and ran up into
+            // the gallery slab at 3.2, so under the galleries they read as wide springer blocks on 2 m shafts (S1 near pier 618 x 336 px, 1.84:1 in the
+            // tools/ff_hall_raycast.py proxy). The galleries rest on the clustered columns alone now (near pier 2.73:1 with the octagonal plinth).
+            if (HallArcadeArches)
             foreach (int side in new[] { -1, 1 })
                 foreach (float zc in new[] { 17.1f, 20.1f, 23.0f })
                 {
@@ -1209,15 +1290,23 @@ namespace HollowCurrent
 
         // The two moons are painted into the openings of the rose window and the chapel windows as distant sprites, placed
         // on the rays from the capture eyes through each opening (the skybox moons sit at azimuths no narrow window frames).
+        static readonly Vector3 S1MoonEye = new Vector3(0f, 2.95f, 14.55f);   // CaptureMode's S1 eye (wave FF)
         void Moons()
         {
             // Rose window: both moons are painted into the opening itself, just outside the wall, so they sit inside the glass from
             // every viewpoint in the hall (S1 from the doors, the round-6 S5 from the rose-window ledge) instead of on one eye's ray.
             // WindowMoon hides them from outside, where the real sky moons are the only moons.
+            // Wave FF (r14 critic: "a moon visible in at least one lancet"; the reference's lancets hold both moons): the two discs are distant moons
+            // now (WindowMoon.fixedDirection). Their directions are the rays from the S1 capture eye through the north lancets (x -+2.6, y 5.6 on the
+            // wall): S1 sees the pale moon in the west lancet and the blood moon in the east one, S5 on the rose ledge sees both in the rose at
+            // x -+0.9, y 7.25, beside the Count where the old sprites were (x -+0.72). The rose glows with the night-sky card (NorthSkyCard).
             foreach (int k in new[] { 0, 1 })
             {
-                var at = new Vector3(k == 0 ? -.72f : .72f, k == 0 ? 7.25f : 6.95f, 28.85f);
-                SurrealProps.MakeMoon(root, at, at + new Vector3(0, -.3f, -8f), .5f, k == 1);
+                var dir = (new Vector3(k == 0 ? -2.6f : 2.6f, 5.6f, 28.0f) - S1MoonEye).normalized;
+                var at = S1MoonEye + dir * ((28.85f - S1MoonEye.z) / dir.z);
+                var moon = SurrealProps.MakeMoon(root, at, S1MoonEye, .5f, k == 1);
+                var wm = moon.GetComponent<WindowMoon>();
+                if (wm) { wm.fixedDirection = true; wm.direction = dir; wm.planeZ = 28.85f; }
             }
             // Chapel windows: no sprites (round 4). The real sky shows through them, and the only window pane in the chapel is
             // CastleAtmosphere's painted-over sun window.

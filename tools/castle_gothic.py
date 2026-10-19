@@ -205,11 +205,13 @@ def octagon(b, c, across_flats, z0, z1, mat, chamfer=0.0):
 def cluster_column(name="HallColumn", height=5.85, seg=16, mat=DS, imposts=(2.0,), band_z=(3.6,)):
     """A bundle of four main shafts (N, E, S, W; r 0.15 at 0.27 from the axis) and four diagonal fillets round a core, on a stepped plinth with
     moulded bases, ring bands at the arcade imposts, bell capitals under one octagonal abacus whose top is at `height`.
-    Footprint 0.92 x 0.92 (the hall's pier collider is 0.9 square). Origin: floor centre."""
+    Footprint 0.89 across the plinth's corners (the hall's pier collider is 0.9 square). Origin: floor centre.
+    Wave FF (r14 critic: "the lower-hall piers still read squat"): the square 0.92 plinth showed its 1.3 m diagonal from the S1 eye and set the
+    pier's width in frame (618 x 336 px, 1.84:1); it is a two-step octagon now (0.82 / 0.76 across flats), no wider than the shafts' bases."""
     b = Builder(name)
-    # plinth: two steps
-    b.box((0, 0, .15), (.92, .92, .30), mat)
-    b.box((0, 0, .36), (.86, .86, .12), mat)
+    # plinth: two octagonal steps
+    octagon(b, (0, 0, 0), .82, 0.0, .30, mat)
+    octagon(b, (0, 0, 0), .76, .30, .42, mat, chamfer=.02)
     zb = .42                                   # top of plinth
     # base moulding profile (r, z): bead, scotia, bead
     def base(r):
