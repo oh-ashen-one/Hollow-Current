@@ -99,6 +99,7 @@ namespace HollowCurrent
             public const string LancetWindow = "LancetWindow";       // base at the sill
             public const string TallLancetWindow = "TallLancetWindow";
             public const string ClerestoryWindow = "ClerestoryWindow";
+            public const string HallLancetWindow = "HallLancetWindow", GalleryLancetWindow = "GalleryLancetWindow";   // wave FD: north-wall lancets of the great hall
             public const string ObservatoryWindow = "ObservatoryWindow";
             public const string RoseWindow = "RoseWindow";           // base at the opening bottom
             public const string ChapelSunburst = "ChapelSunburst";   // round 13: the broken stained-glass sun above the chapel altar, 2.0 x 3.1 opening, base at the sill
@@ -159,6 +160,7 @@ namespace HollowCurrent
             { ArtNames.ServiceDoorLeaf, new Vector3(.9f, 2.0f, .08f) }, { ArtNames.PortraitDoorLeaf, new Vector3(.9f, 2.0f, .1f) },
             { ArtNames.LancetWindow, new Vector3(1.2f, 1.6f, .35f) }, { ArtNames.TallLancetWindow, new Vector3(1.4f, 3.5f, .35f) },
             { ArtNames.ClerestoryWindow, new Vector3(1.2f, 1.8f, .35f) }, { ArtNames.ObservatoryWindow, new Vector3(1.6f, 2.7f, .35f) },
+            { ArtNames.HallLancetWindow, new Vector3(1.0f, 2.8f, .61f) }, { ArtNames.GalleryLancetWindow, new Vector3(1.0f, 4.4f, .61f) },
             { ArtNames.RoseWindow, new Vector3(3.0f, 3.0f, .5f) }, { ArtNames.ChapelSunburst, new Vector3(2.0f, 3.1f, .56f) },
             { ArtNames.ColumnGreat, new Vector3(.9f, 8.8f, .9f) }, { ArtNames.Column, new Vector3(.7f, 3.0f, .7f) },
             { ArtNames.CryptRib, new Vector3(8.4f, .6f, .6f) }, { ArtNames.RafterBeam, new Vector3(11.4f, .5f, .5f) },
@@ -267,8 +269,15 @@ namespace HollowCurrent
             new CastleWindowDef(false, 14, 21, 6.4f, 1.6f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, true),
             new CastleWindowDef(false, 14, 25, 6.4f, 1.6f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, false),
             // north exterior (z = 28, room to -z)
-            new CastleWindowDef(true, 28, -4.4f, 0, 1.4f, 1.8f, 5.3f, -1, ArtNames.TallLancetWindow, true),   // top 5.3: the tracery is 3.5 m tall (was cut 3.6)
-            new CastleWindowDef(true, 28, 4.4f, 0, 1.4f, 1.8f, 5.3f, -1, ArtNames.TallLancetWindow, true),
+            // Wave FD (r13 critic item 3, S1: "lancet windows: none in the hall; two small square windows at the far end"): the two north tall
+            // lancets (x +-4.4, sill 1.8) were cut by the side galleries' floor at 3.2 and read as squares under it. The great hall's north wall now
+            // carries four lancets above the galleries: 4.4 m gallery lancets at x +-4.85 (clear of the rib springers at x +-3.9) and 2.8 m lancets
+            // flanking the rose window at x +-2.6 (their heads stay under the vault's end formeret). No window spots: the hall is too bright with
+            // the lantern off already (fc-light2 open item 3), so the two old spots are dropped rather than moved.
+            new CastleWindowDef(true, 28, -4.85f, 0, 1.0f, 3.6f, 8.0f, -1, ArtNames.GalleryLancetWindow, false),
+            new CastleWindowDef(true, 28, 4.85f, 0, 1.0f, 3.6f, 8.0f, -1, ArtNames.GalleryLancetWindow, false),
+            new CastleWindowDef(true, 28, -2.6f, 0, 1.0f, 4.3f, 7.1f, -1, ArtNames.HallLancetWindow, false),
+            new CastleWindowDef(true, 28, 2.6f, 0, 1.0f, 4.3f, 7.1f, -1, ArtNames.HallLancetWindow, false),
             new CastleWindowDef(true, 28, 0, 0, 3.0f, 5.6f, 8.6f, -1, ArtNames.RoseWindow, true, true),
             new CastleWindowDef(true, 28, 9, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, true),
             new CastleWindowDef(true, 28, 12, 6.4f, 1.4f, .9f, 3.6f, -1, ArtNames.ObservatoryWindow, false),
@@ -305,7 +314,11 @@ namespace HollowCurrent
         // cell >= 1.6 m from both hinges: art z 15.97 (head) .. 21.42 (tail), 5.45 m long.
         public static readonly Vector3 SkeletonPos = new Vector3(0f, 0.05f, 18.72f);
         public const float SkeletonYaw = 0f;
-        public static readonly Vector3 SkeletonScaleVec = new Vector3(.6f, .6f, .45f);   // local x lateral, y height, z length
+        // Wave FD (r13 critic item 3: "a tan quadruped that blocks the centre axis and reads like a museum dinosaur"; the banquet table was out
+        // of the S1 shot behind the 1.7 m ribcage): height .6 -> .5, so the carcass lies lower (ribcage 1.41 m, a collapsed corpse under its
+        // shroud) and the table, chairs and throne read over its back from the S1 eye. Plan (x, z) scale unchanged, so the footprint below, the
+        // pier clearances and HC_SKELETON are unchanged.
+        public static readonly Vector3 SkeletonScaleVec = new Vector3(.6f, .5f, .45f);   // local x lateral, y height, z length
         public const float SkeletonArtMinX = -1.469f, SkeletonArtMaxX = 1.543f, SkeletonArtMinY = -6.010f, SkeletonArtMaxY = 6.103f, SkeletonArtHeight = 2.827f;
         public const float SkeletonClearance = .6f;        // required walking clearance to every pier, the table and the chairs (m)
         public const float SkeletonAxisTolerance = .15f;   // the ribcage centre must sit this close to x = 0
@@ -388,7 +401,9 @@ namespace HollowCurrent
             // TapestryPanel art (origin: centre of the back face, base at the fringe), back face 2 cm proud of the 0.17 m wall relief
             new CastleBannerDef(-5.51f, 3.5f, 19.5f, 90), new CastleBannerDef(-5.51f, 3.5f, 23.3f, 90),
             new CastleBannerDef(5.51f, 3.5f, 19.5f, -90), new CastleBannerDef(5.51f, 3.5f, 23.3f, -90),
-            new CastleBannerDef(-2.4f, 3.5f, 27.36f, 180), new CastleBannerDef(2.4f, 3.5f, 27.36f, 180),
+            // wave FD: the north pair moved down under the balcony (base 0.28, top 2.98 under the slab at 3.0), behind the dais, where the new
+            // north lancets left no room for them beside the rose window
+            new CastleBannerDef(-2.4f, .28f, 27.36f, 180), new CastleBannerDef(2.4f, .28f, 27.36f, 180),
         };
 
         // Chapel (wave FB, owner: "way too crowded ... you keep running into the bench or that chalice that has the blood in it"). Net room:

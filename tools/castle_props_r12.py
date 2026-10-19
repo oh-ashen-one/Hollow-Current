@@ -659,8 +659,22 @@ def giant_skeleton():
     # skull: ~1.6 m, half sunk into the floor, snout down, yawed 40 deg about the occiput so S1 sees a three-quarter head
     sc = (.05, 5.62, .58)
     with b.xf(T(*sc) @ about((0, -.75, 0), Rz(-40)) @ Rx(-20)):
-        loft_rings(b, (0, 0, 0), [(-.80, .10, .12, .30), (-.68, .24, .25, .32), (-.45, .34, .32, .34), (-.22, .32, .27, .28),
-                                  (.02, .24, .21, .21), (.30, .18, .16, .15), (.58, .13, .12, .11), (.80, .09, .09, .08), (.84, .05, .05, .07)], 12, GBONE)
+        # wave FD (r13 critic: "the giant skull from the east is a dark low-poly lump"): 22-sided rings and twice the sections (was 12 x 9)
+        loft_rings(b, (0, 0, 0), [(-.80, .10, .12, .30), (-.74, .19, .20, .31), (-.68, .25, .26, .32), (-.57, .31, .30, .33), (-.45, .34, .32, .34),
+                                  (-.33, .345, .31, .32), (-.22, .32, .27, .28), (-.10, .285, .24, .245), (.02, .24, .21, .21), (.16, .21, .185, .18),
+                                  (.30, .18, .16, .15), (.44, .155, .14, .13), (.58, .13, .12, .11), (.70, .11, .105, .095), (.80, .09, .09, .08),
+                                  (.84, .05, .05, .07)], 22, GBONE)
+        # wave FD: a pair of ridged horns sweeping back from the cranium, so the head reads as a beast skull from the east and from behind
+        for sx_ in (-1, 1):
+            hp = [(sx_ * .26, -.52, .52), (sx_ * .46, -.78, .78), (sx_ * .64, -1.12, .98), (sx_ * .70, -1.48, 1.08), (sx_ * .60, -1.80, 1.06), (sx_ * .44, -1.98, .94)]
+            b.tube(hp, [.15, .13, .105, .08, .05, 0], 10, GBONE)
+            for i in range(1, 5):                                   # growth rings
+                q = Vector(hp[i]); dq = (Vector(hp[i + 1]) - Vector(hp[i - 1])).normalized()
+                ring = [q + (dq.cross(Vector((0, 0, 1))).normalized() * math.cos(a_) + dq.cross(dq.cross(Vector((0, 0, 1)))).normalized() * math.sin(a_)) * ([.15, .13, .105, .08, .05][i] + .012) for a_ in [k * math.tau / 10 for k in range(10)]]
+                b.tube([tuple(v) for v in ring], .012, 4, GBONE, closed=True)
+        # brow ridges over the sockets
+        for sx_ in (-1, 1):
+            b.tube([(sx_ * .08, -.30, .47), (sx_ * .24, -.22, .44), (sx_ * .38, -.10, .36)], [.05, .055, .035], 7, GBONE)
         # sagittal crest
         sweep(b, [(0, -.75, .62), (0, -.40, .66), (0, -.10, .50), (0, .25, .38)], [(.020, .080), (.026, .090), (.020, .070), (.012, .05)], GBONE, sides=4, up=(1, 0, 0), tile=.8, cap_end=True)
         for sx_ in (-1, 1):
@@ -683,6 +697,43 @@ def giant_skeleton():
                 for i in range(5):
                     yy = .04 + i * .15
                     b.tube([(sx_ * (.10 - i * .008), yy, .0), (sx_ * (.10 - i * .008), yy, .11)], [.026, 0], 5, GBONE)
+    # wave FD (r13 critic: "a tan quadruped that reads like a museum dinosaur, not a draped corpse"): a torn oxblood shroud laid over the spine
+    # and hanging down the ribs in three ragged panels with a jagged hem and holes. Two-sided (each face twice, 6 mm apart), clear of the
+    # neural spines (+0.06) and the rib bands (+0.09), inside the measured carcass bounds.
+    b.part("Shroud", (0, 0, 0))
+    drnd = random.Random(2718)
+    CLOTH = "Castle_Oxblood"
+    def env_at(y): return math.sin(math.pi * ((y + 1.5) / .295 + 1.55) / 19.2)
+    for (ya, yb_) in ((-1.15, .05), (.22, 1.12), (1.30, 2.02)):
+        ny = max(3, int((yb_ - ya) / .09))
+        nphi = 11
+        hem = [drnd.uniform(1.05, 2.25) for _ in range(ny + 1)]
+        for k_ in range(1, ny): hem[k_] = .5 * hem[k_] + .25 * (hem[k_ - 1] + hem[k_ + 1])          # ragged, not noisy
+        grid = {}
+        def cp(i, j, side):
+            y = ya + (yb_ - ya) * i / ny
+            e = env_at(y); z0 = catmull(ctrl, y) - .04
+            Rx_ = 1.33 * e + .09; Rz_ = min(1.42 * e, (z0 - .06) / 1.84)
+            phi = hem[i] * j / (nphi - 1)
+            if j == 0: return (0.0, y, catmull(ctrl, y) + .52)
+            x = side * (.15 + Rx_ * math.sin(phi)); z = z0 + .07 - Rz_ * (1 - math.cos(phi))
+            if j == 1: z = max(z, catmull(ctrl, y) + .30)                               # over the transverse processes
+            sag = .035 * math.sin(i * 2.1 + j * .7)
+            return (x + side * sag, y, max(.03, z - abs(sag)))
+        for side in (-1, 1):
+            V_ = [[b._v(cp(i, j, side)) for j in range(nphi)] for i in range(ny + 1)]
+            W_ = [[b._v(Vector(cp(i, j, side)) + Vector((side * .006, 0, .004))) for j in range(nphi)] for i in range(ny + 1)]
+            for i in range(ny):
+                for j in range(nphi - 1):
+                    if j > 2 and drnd.random() < .09: continue                              # holes
+                    if j >= nphi - 2 and drnd.random() < .35: continue                      # torn hem
+                    uv = [(j * .17, (ya + (yb_ - ya) * i / ny)), ((j + 1) * .17, (ya + (yb_ - ya) * i / ny)), ((j + 1) * .17, (ya + (yb_ - ya) * (i + 1) / ny)), (j * .17, (ya + (yb_ - ya) * (i + 1) / ny))]
+                    q = [V_[i][j], V_[i][j + 1], V_[i + 1][j + 1], V_[i + 1][j]]
+                    r_ = [W_[i][j], W_[i][j + 1], W_[i + 1][j + 1], W_[i + 1][j]]
+                    if side < 0: q = q[::-1]; r_ = r_[::-1]; uv = uv[::-1]
+                    b._f(q, CLOTH, True, uv, False)
+                    b._f(r_[::-1], CLOTH, True, uv[::-1], False)
+    b.part("GiantSkeleton", (0, 0, 0))
     # loose bone on the floor (x kept inside the east limit): fallen ribs, vertebrae, a jaw splinter
     for i in range(5):
         y0 = rnd.uniform(-1.2, 4.2); x0 = rnd.uniform(-.9, .9)

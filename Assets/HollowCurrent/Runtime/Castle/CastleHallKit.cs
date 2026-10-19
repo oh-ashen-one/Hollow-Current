@@ -101,7 +101,8 @@ namespace HollowCurrent
             Run(trim, StringCourse, StringCourseY, new Vector3(-WallX, 0, 0), 90, true, WallSouth, WallNorth, bannersSide);
             Run(trim, StringCourse, StringCourseY, new Vector3(WallX, 0, 0), -90, true, WallSouth, WallNorth, new[] { (15.0f, 17.0f), (18.7f, 20.3f), (22.5f, 24.1f) });
             Run(trim, StringCourse, StringCourseY, new Vector3(0, 0, WallSouth), 0, false, -WallX, WallX, new[] { (-2.4f, 2.4f) });
-            Run(trim, StringCourse, StringCourseY, new Vector3(0, 0, WallNorth), 180, false, -WallX, WallX, new[] { (-3.3f, 3.3f) });
+            // wave FD: the north run also stops at the gallery lancets (x +-4.35..5.35, sill 3.6), which it would otherwise cross at 5.5
+            Run(trim, StringCourse, StringCourseY, new Vector3(0, 0, WallNorth), 180, false, -WallX, WallX, new[] { (-5.6f, -4.25f), (-3.3f, 3.3f), (4.25f, 5.6f) });
             MarkStatic(trim);
         }
 

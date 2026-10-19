@@ -933,6 +933,8 @@ namespace HollowCurrent
             VaultCeiling();
             var skeleton = ArtAt(Art.GiantSkeleton, CastleLayout.SkeletonPos, CastleLayout.SkeletonYaw);
             skeleton.localScale = CastleLayout.SkeletonScaleVec;
+            DarkenBone(skeleton);   // wave FD: aged, dark bone under the oxblood shroud (the shroud is part of GiantSkeleton.fbx, tools/castle_props_r12.py)
+            FloorSheen();
             SkeletonCollision();
             CheckHallAxis(skeleton);
             foreach (var b in CastleLayout.HallBanners) ArtAt(CastleArt.Names.TapestryPanel, b.Pos, b.Yaw);
@@ -969,6 +971,53 @@ namespace HollowCurrent
                 f.phase = Mathf.Repeat((i + 1) * .6180339f, 1);
                 f.bobAmplitude = .16f; f.bobHertz = .13f + .02f * (i % 3); f.tiltDegrees = 6; f.yawDegreesPerSecond = 5;
             }
+        }
+
+        // Wave FD (r13 critic: the skeleton read as "a tan museum quadruped"): the hall carcass gets a darker, greyer instance of its grimed bone
+        // (albedo x .55/.51/.47, a little less gloss). Only this skeleton uses Castle_BoneGrime; the instance is persisted with the scene.
+        static Material darkBone;
+        static void DarkenBone(Transform t)
+        {
+            var src = CastleArt.Named("Castle_BoneGrime");
+            if (!src) return;
+            if (!darkBone)
+            {
+                darkBone = new Material(src) { name = "Castle_BoneGrime dark (hall skeleton)" };
+                darkBone.color = new Color(.55f, .51f, .47f);
+                if (darkBone.HasProperty("_Glossiness")) darkBone.SetFloat("_Glossiness", .18f);
+            }
+            foreach (var r in t.GetComponentsInChildren<Renderer>())
+            {
+                var slots = r.sharedMaterials; bool changed = false;
+                for (int i = 0; i < slots.Length; i++)
+                    if (slots[i] && slots[i].name.StartsWith("Castle_BoneGrime", System.StringComparison.Ordinal)) { slots[i] = darkBone; changed = true; }
+                if (changed) r.sharedMaterials = slots;
+            }
+        }
+
+        // Wave FD (r13 critic: "there is no floor sheen and no mist"; it must not break the exposure bands): one additive quad over the hall floor
+        // (HollowCurrent/CastleFloorSheen) that mirrors the candle stands, the chandelier and the north windows in wet patches. It adds light only
+        // along the reflection streaks. Transparent queue, so the bake leaves it out of GI; no collider.
+        void FloorSheen()
+        {
+            var shader = Resources.Load<Shader>("Castle/Shaders/CastleFloorSheen");
+            var noise = Resources.Load<Texture2D>("Castle/Textures/Castle_FogNoise");
+            if (shader == null || !shader.isSupported || noise == null) { Debug.LogWarning("[CastleWorld] CastleFloorSheen unavailable; the hall floor keeps its matte stone"); return; }
+            var m = new Material(shader) { name = "Castle hall floor sheen" };
+            m.SetTexture("_MainTex", noise);
+            var src = new[]
+            {
+                new Vector4(-3.4f, 1.65f, 20.1f, .55f), new Vector4(3.4f, 1.65f, 20.1f, .55f), new Vector4(-3.4f, 1.65f, 16.9f, .5f), new Vector4(3.4f, 1.65f, 16.9f, .5f),
+                new Vector4(0f, 3.9f, 22.9f, .7f),                                                       // the chandelier
+                new Vector4(0f, 7.1f, 27.4f, -.55f), new Vector4(-3.7f, 5.8f, 27.4f, -.35f), new Vector4(3.7f, 5.8f, 27.4f, -.35f),   // rose window, north lancets
+            };
+            for (int i = 0; i < src.Length; i++) m.SetVector("_S" + i, src[i]);
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad); q.name = "Hall floor sheen"; Release(q.GetComponent<Collider>());
+            q.transform.SetParent(root, false); q.transform.localPosition = new Vector3(0, .006f, 20.95f);
+            q.transform.localRotation = Quaternion.Euler(90, 0, 0); q.transform.localScale = new Vector3(11.1f, 12.9f, 1);
+            var r = q.GetComponent<Renderer>(); r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; r.receiveShadows = false;
+            r.lightProbeUsage = UnityEngine.Rendering.LightProbeUsage.Off; r.reflectionProbeUsage = UnityEngine.Rendering.ReflectionProbeUsage.Off;
         }
 
         static readonly string[] BookCovers = { "Castle_BookLeatherA", "Castle_BookLeatherB", "Castle_BookLeatherC" };
@@ -1184,6 +1233,34 @@ namespace HollowCurrent
             Prop(Art.Fireplace, new Vector3(-13.1f, 0, 16f), 90);
             Prop(Art.Sideboard, new Vector3(-11f, 0, 21.4f), 180);
             Hide("Dining armoire", new Vector3(-12.5f, 0, 10.3f), 180);
+            DiningCeiling();
+        }
+
+        // Wave FD (r13 critic: "the dining-hall ceiling beam is a stretched, smeared texture"): the ceiling was the underside of the library's
+        // floor slab in world-space Castle_Oak, whose long grain smeared across the 8 m span. A board liner (Castle_OakPlank, 0.3 m boards) under
+        // the slab and dark oak joists every 1.6 m (headroom 2.71 m; none over the fireplace hood, z 14.8-17.2). Render only, no colliders.
+        void DiningCeiling()
+        {
+            var boards = CastleArt.Surface("Castle_OakPlank", CastleArt.SurfaceKind.World, new Color(.85f, .80f, .74f));
+            var joist = CastleArt.Surface("Castle_Oak", CastleArt.SurfaceKind.World, new Color(.55f, .52f, .50f));
+            GameObject Liner(string n, Vector3 c, Vector3 size, Material m)
+            {
+                var g = GameObject.CreatePrimitive(PrimitiveType.Cube); g.name = n; Release(g.GetComponent<Collider>());
+                g.transform.SetParent(root, false); g.transform.localPosition = c; g.transform.localScale = size;
+                if (m) g.GetComponent<Renderer>().sharedMaterial = m;
+                return g;
+            }
+            var liner = Liner("Dining ceiling boards", new Vector3(-9.925f, 2.98f, 16f), new Vector3(7.25f, .02f, 11.4f), boards);
+            if (boards && liner.GetComponent<Renderer>().sharedMaterial.HasProperty("_Tile"))
+            {
+                var m = new Material(boards) { name = "Castle dining ceiling boards" }; m.SetFloat("_Tile", .83f);
+                liner.GetComponent<Renderer>().sharedMaterial = m;
+            }
+            for (float z = 11.0f; z < 21.6f; z += 1.6f)
+            {
+                if (z > 14.8f && z < 17.2f) continue;
+                Liner("Dining ceiling joist", new Vector3(-9.925f, 2.84f, z), new Vector3(7.25f, .26f, .22f), joist);
+            }
         }
 
         void Kitchen()

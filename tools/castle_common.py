@@ -59,6 +59,9 @@ MATERIALS = {
     "Castle_GlassBlue":  ((0.22, 0.38, 0.92), 0.55, 0.0, False),   # emissive stained glass: cold moon sky
     "Castle_GlassRed":   ((0.80, 0.10, 0.08), 0.55, 0.0, False),   # emissive stained glass: oxblood
     "Castle_GlassInk":   ((0.015, 0.015, 0.022), 0.60, 0.0, False), # painted-over (black ink) glass
+    # wave FD (hc/fd-art): two more emissive glass colours for the chapel's leaded quarries (r13 critic: "a coarse mosaic of flat squares")
+    "Castle_GlassGreen": ((0.16, 0.52, 0.30), 0.55, 0.0, False),   # emissive stained glass: verdigris
+    "Castle_GlassPale":  ((0.46, 0.52, 0.66), 0.55, 0.0, False),   # emissive stained glass: pale moon-grey quarry
 }
 
 def guid(rel):

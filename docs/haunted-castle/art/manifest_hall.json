@@ -252,15 +252,17 @@
   "tris": 1134
  },
  "ChapelSunburst": {
-  "budget": 8000,
-  "bytes": 113500,
+  "budget": 16000,
+  "bytes": 243324,
   "file": "Assets/HollowCurrent/Resources/Castle/ChapelSunburst.fbx",
   "materials": [
    "Castle_DressedStone",
    "Castle_GlassInk",
    "Castle_GlassAmber",
    "Castle_GlassBlue",
-   "Castle_GlassRed"
+   "Castle_GlassRed",
+   "Castle_GlassPale",
+   "Castle_GlassGreen"
   ],
   "max": [
    1.0,
@@ -285,12 +287,14 @@
    "lights": 0,
    "rise_i": 1.507,
    "shards": {
-    "amber": 2,
-    "blue": 19,
-    "ink": 13,
-    "missing": 20,
-    "red": 2,
-    "tilted": 7
+    "amber": 103,
+    "blue": 52,
+    "green": 18,
+    "ink": 22,
+    "missing": 75,
+    "pale": 77,
+    "red": 113,
+    "tilted": 23
    },
    "spring": 1.445
   },
@@ -311,7 +315,7 @@
      0.65,
      3.1
     ],
-    "tris": 2972
+    "tris": 7924
    }
   },
   "size": [
@@ -319,7 +323,7 @@
    0.65,
    3.1
   ],
-  "tris": 2972
+  "tris": 7924
  },
  "ClerestoryWindow": {
   "budget": 4000,
@@ -377,6 +381,63 @@
    1.8
   ],
   "tris": 1960
+ },
+ "GalleryLancetWindow": {
+  "budget": 4500,
+  "bytes": 70380,
+  "file": "Assets/HollowCurrent/Resources/Castle/GalleryLancetWindow.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.5,
+   0.26,
+   4.4
+  ],
+  "min": [
+   -0.5,
+   -0.35,
+   0.0
+  ],
+  "notes": {
+   "R": 0.74,
+   "apex": 4.253,
+   "band": 0.13,
+   "depth": 0.52,
+   "hwi": 0.37,
+   "lights": 2,
+   "oculus_centre": 4.113,
+   "oculus_radius": 0.105,
+   "rise_i": 0.641,
+   "spring": 3.613
+  },
+  "parts": {
+   "GalleryLancetWindow": {
+    "max": [
+     0.5,
+     0.26,
+     4.4
+    ],
+    "min": [
+     -0.5,
+     -0.35,
+     0.0
+    ],
+    "size": [
+     1.0,
+     0.61,
+     4.4
+    ],
+    "tris": 2056
+   }
+  },
+  "size": [
+   1.0,
+   0.61,
+   4.4
+  ],
+  "tris": 2056
  },
  "HallColumn": {
   "budget": 7000,
@@ -471,6 +532,63 @@
    0.55
   ],
   "tris": 304
+ },
+ "HallLancetWindow": {
+  "budget": 4000,
+  "bytes": 68508,
+  "file": "Assets/HollowCurrent/Resources/Castle/HallLancetWindow.fbx",
+  "materials": [
+   "Castle_DressedStone",
+   "Castle_Iron"
+  ],
+  "max": [
+   0.5,
+   0.26,
+   2.8
+  ],
+  "min": [
+   -0.5,
+   -0.35,
+   0.0
+  ],
+  "notes": {
+   "R": 0.74,
+   "apex": 2.653,
+   "band": 0.13,
+   "depth": 0.52,
+   "hwi": 0.37,
+   "lights": 2,
+   "oculus_centre": 2.513,
+   "oculus_radius": 0.105,
+   "rise_i": 0.641,
+   "spring": 2.013
+  },
+  "parts": {
+   "HallLancetWindow": {
+    "max": [
+     0.5,
+     0.26,
+     2.8
+    ],
+    "min": [
+     -0.5,
+     -0.35,
+     0.0
+    ],
+    "size": [
+     1.0,
+     0.61,
+     2.8
+    ],
+    "tris": 1984
+   }
+  },
+  "size": [
+   1.0,
+   0.61,
+   2.8
+  ],
+  "tris": 1984
  },
  "HallPlinth": {
   "budget": 300,
@@ -994,20 +1112,20 @@
  },
  "PointedArch": {
   "budget": 2000,
-  "bytes": 28572,
+  "bytes": 27964,
   "file": "Assets/HollowCurrent/Resources/Castle/PointedArch.fbx",
   "materials": [
    "Castle_DressedStone"
   ],
   "max": [
-   1.95,
+   1.9498,
    0.25,
    5.0799
   ],
   "min": [
-   -1.95,
+   -1.9498,
    -0.25,
-   0.0
+   1.9913
   ],
   "notes": {
    "clear_span": 3.0,
@@ -1016,29 +1134,29 @@
   "parts": {
    "PointedArch": {
     "max": [
-     1.95,
+     1.9498,
      0.25,
      5.0799
     ],
     "min": [
-     -1.95,
+     -1.9498,
      -0.25,
-     0.0
+     1.9913
     ],
     "size": [
-     3.9,
+     3.8997,
      0.5,
-     5.0799
+     3.0887
     ],
-    "tris": 492
+    "tris": 460
    }
   },
   "size": [
-   3.9,
+   3.8997,
    0.5,
-   5.0799
+   3.0887
   ],
-  "tris": 492
+  "tris": 460
  },
  "TallLancetWindow": {
   "budget": 4000,

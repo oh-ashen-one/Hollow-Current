@@ -338,8 +338,10 @@ namespace HollowCurrent
             game.Player.enabled=false;
             Torch(LanternOn);Log("lantern "+(LanternOn?"on":"off")+" torchScale="+game.Player.TorchScale.ToString("F2")+" intensity="+game.Player.Torch.intensity.ToString("F2")+" range="+game.Player.Torch.range.ToString("F1")+" angle="+game.Player.Torch.spotAngle.ToString("F0")+" mode="+game.Player.Torch.renderMode);
             var spots=game.World.Castle;
-            // S1: great hall from the entrance doors at eye level.
-            var e=new Vector3(0,1.64f,14.7f);var t=new Vector3(0,2.6f,27);Place(e,t);
+            // S1: great hall from the entrance doors. Wave FD (r13 critic item 3: "the banquet table is out of shot"): the eye stands on the threshold
+            // at 2.3 m (was 1.64 at z 14.7) so the table, the chairs and the throne read over the shrouded skeleton's back, and the framing keeps the
+            // vault, the rose window and the four north lancets (CPU proof tools/castle_fd_hall_raycast.py: table ~17k px, lancets 160-176 px tall).
+            var e=new Vector3(0,2.3f,14.55f);var t=new Vector3(0,2.3f,27);Place(e,t);
             yield return new WaitForSecondsRealtime(1.5f);yield return Measure("S1_great_hall",3);
             yield return Shot("S1_great_hall","refs/great_hall.png",e,t);CandleFlame.LogLeanReport("S1");SetPiece.Report(game.Player.View,"S1");
             // S2: chapel altar from the nave.

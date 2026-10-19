@@ -46,6 +46,8 @@ namespace HollowCurrent
             public const string StringCourse = "StringCourse", Corbel = "Corbel", GargoyleSpout = "GargoyleSpout", TapestryPanel = "TapestryPanel";
             // round 13 (hc/hall-l, tools/castle_hall_kit.py): the great hall kit and the chapel sunburst; front = +Z at yaw 0 for these (the axis is baked, see the generator)
             public const string HallColumn = "HallColumn", HallCorbel = "HallCorbel", HallPlinth = "HallPlinth", HallStringCourse = "HallStringCourse", HallVault = "HallVault", Candlestick = "Candlestick", ChapelSunburst = "ChapelSunburst";
+            // wave FD (hc/fd-art, tools/castle_hall_kit.py): the great hall's north-wall lancets
+            public const string HallLancetWindow = "HallLancetWindow", GalleryLancetWindow = "GalleryLancetWindow";
         }
 
         public static readonly string[] All =
@@ -62,6 +64,7 @@ namespace HollowCurrent
             Names.CoffinNiche, Names.StoneBridge, Names.GiantSkeleton, Names.FloatingBook, Names.Banner, Names.DrawbridgeChains,
             Names.StringCourse, Names.Corbel, Names.GargoyleSpout, Names.TapestryPanel,
             Names.HallColumn, Names.HallCorbel, Names.HallPlinth, Names.HallStringCourse, Names.HallVault, Names.Candlestick, Names.ChapelSunburst,
+            Names.HallLancetWindow, Names.GalleryLancetWindow,
             Names.MoonstoneSword, Names.RelicBlade, Names.RelicHilt, Names.RelicMoonstone,
             Names.HandRoot0, Names.HandRoot1, Names.HandRoot2, Names.HandRoot3, Names.HandRoot4, Names.HandRoot5, Names.RootCrown,
             Names.FloatingBookSmall, Names.FloatingBookLarge, Names.BookClosedSmall, Names.BookClosed, Names.BookClosedLarge,
@@ -132,6 +135,8 @@ namespace HollowCurrent
             { "Castle_DressedStone", new Spec(new Color(.52f, .54f, .60f), .26f, 0f) }, { "Castle_Wax", new Spec(new Color(.80f, .74f, .60f), .36f, 0f) },
             { "Castle_GlassAmber", new Spec(new Color(1f, .62f, .18f), .55f, 0f, true, new Color(1.3f, .8f, .22f)) }, { "Castle_GlassBlue", new Spec(new Color(.22f, .38f, .92f), .55f, 0f, true, new Color(.3f, .52f, 1.25f)) },
             { "Castle_GlassRed", new Spec(new Color(.8f, .1f, .08f), .55f, 0f, true, new Color(1f, .13f, .08f)) }, { "Castle_GlassInk", new Spec(new Color(.015f, .015f, .022f), .60f, 0f) },
+            // wave FD (hc/fd-art): the chapel's leaded quarries
+            { "Castle_GlassGreen", new Spec(new Color(.16f, .52f, .30f), .55f, 0f, true, new Color(.2f, .72f, .4f)) }, { "Castle_GlassPale", new Spec(new Color(.46f, .52f, .66f), .55f, 0f, true, new Color(.5f, .58f, .78f)) },
         };
 
         // ---- upgraded surfaces (round 2, hc/look) ---------------------------------------------------------------
