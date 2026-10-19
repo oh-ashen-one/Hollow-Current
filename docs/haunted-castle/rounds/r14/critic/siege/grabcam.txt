@@ -1,0 +1,2 @@
+07_grabcam_nearmiss_t0.01.png	t=0.01 path=nearmiss visible=True blend=turning kill=False mode=9 skull_px=(1280,733) skull_in_central60=True claw_px_proj=206 claw_ok=True eyeToSkull=1.44 headAboveEye=-0.42
+08_grabcam_nearmiss_t0.16.png	t=0.16 path=nearmiss visible=True blend=done kill=False mode=9 skull_px=(1280,571) skull_in_central60=True claw_px_proj=206 claw_ok=True eyeToSkull=1.41 headAboveEye=-0.47

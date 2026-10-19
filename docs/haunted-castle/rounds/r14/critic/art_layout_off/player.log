@@ -1,0 +1,90 @@
+Mono path[0] = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.20f1 (c9ba695d4f07)
+[Subsystems] Discovering subsystems at path /Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+ preferred device: Apple M3 Ultra (high power)
+Metal devices available: 1
+0: Apple M3 Ultra (high power)
+Using device Apple M3 Ultra (high power)
+Initializing Metal device caps: Apple M3 Ultra
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.051 seconds
+- Finished resetting the current domain, in  0.001 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+UnloadTime: 0.333167 ms
+HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad (TestInput only); window 1920x1080, owner window 1920x1080 restored on quit
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_CAPTURE switching to Castle from Bellwether
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.499125 ms
+HC_RUN_PLAN band=Mid firstHunt=110-150 burstStart=True cold=False coldCap=150 history=M,L,B
+HC_RULES Castle dread=0 runDreadMin=33.4 felt=4.5
+HC_CASTLE_MIX heartbeat=True wind=True windows=17 rareLine=False
+HC_AUDIO_READY 94 authored clips including intelligible voice takes
+HC_COMPASS_DIAL dial_shader=HollowCurrent/CastleSprite rim_shader=HollowCurrent/CastleEmissive dial_level=0.68 glass_dome=False (fc-art2: translucent veil removed)
+HC_INSTRUMENTS map=castle compass=1277 trumpet=1026 period=True lantern=1150 radio=1105 (max 3000)
+HC_COUNT_REACH receipt grab=1.385 drop=1.615 crawl=1.729 standOff drop=2.22 crawl=2.33 sideL=2.20 sideR=2.21 spin=2.21 spinWindow=0.50-1.15s/120deg
+HC_COUNT_GORE applied Castle gore / Membrane/CountClaude / albedo/Castle gore / Flesh
+HC_COUNT_HANDS vertices=930 groups=2
+HC_COUNT_RIG wingExt=10 arms=True
+HC_COUNT_SKIN_BOUNDS live renderers=1
+HC_SCARE_CLOCK start=burst first_in=34
+HC_THROWABLES director=38
+[CastleLightTuning] tuned 60 lights
+HC_EXTERIOR_FILL_MASK stage=build interior_layer=27 moved=1037 outer_face_kept=597 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_DEEP_INTERIOR_DOORS gate=0 gatehouse_exits=4
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_CAPTURE requested 1920x1080 window 1920x1080 display=3440x1440
+HC_FLAME_CHECK scene material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | runtime material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | queue=3001 | lean shader property _LeanAmount present | one-quad flame mesh in use
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 814 unused Assets to reduce memory usage. Loaded Objects now: 15333.
+Total: 3.607000 ms (FindLiveObjects: 0.272917 ms CreateObjectMapping: 0.042541 ms MarkObjects: 2.577167 ms  DeleteObjects: 0.714333 ms)
+
+[CastleAtmosphere] upgraded 571 world and 877 prop material slots
+HC_STARTUP_READY
+HC_FEAR_CANDLES lights=43 chapelFire=True
+HC_COUNT_RIM scale=0.35 hunt=False
+HC_CAPTURE lantern off torchScale=1.80 intensity=1.53 range=15.0 angle=88 mode=ForcePixel
+HC_COUNT_FLOORS seconds=[0,0,0,0] favourite=-1
+HC_CAPTURE art_layout_hall_from_doors 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_hall_from_doors.png
+HC_CAPTURE art_layout_hall_skeleton_side_west 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_hall_skeleton_side_west.png
+HC_EXTERIOR_FILL_MASK stage=later interior_layer=27 moved=49 outer_face_kept=600 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_CAPTURE art_layout_hall_skeleton_side_east 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_hall_skeleton_side_east.png
+HC_CAPTURE art_layout_hall_skeleton_head 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_hall_skeleton_head.png
+HC_CAPTURE art_layout_hall_skeleton_tail 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_hall_skeleton_tail.png
+HC_CAPTURE art_layout_hall_pier_gap 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_hall_pier_gap.png
+HC_CAPTURE art_layout_chapel_from_great_doors 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_chapel_from_great_doors.png
+HC_CAPTURE art_layout_chapel_from_guard_door 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_chapel_from_guard_door.png
+HC_CAPTURE art_layout_chapel_aisle 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_chapel_aisle.png
+HC_CAPTURE art_layout_chapel_font_corner 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_chapel_font_corner.png
+HC_CAPTURE art_layout_chapel_confessional 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_chapel_confessional.png
+HC_CAPTURE art_layout_chapel_altar_approach 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off/art_layout_chapel_altar_approach.png
+HC_CAPTURE ART DONE layout 12 entries
+HC_APP_QUIT t=26.3 map=Castle started=True paused=False
+Thread 0x172bb3000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x17097f000 may have been prematurely finalized

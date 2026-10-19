@@ -1,0 +1,14 @@
+08_grabcam_dive_t0.01.png	t=0.01 path=dive visible=True blend=turning kill=False mode=9 skull_px=(562,1132) skull_in_central60=True claw_px_proj=0 claw_ok=False eyeToSkull=1.91 headAboveEye=-0.62
+09_grabcam_dive_t0.16.png	t=0.16 path=dive visible=True blend=done kill=False mode=9 skull_px=(1285,618) skull_in_central60=True claw_px_proj=167 claw_ok=False eyeToSkull=2.08 headAboveEye=-0.58
+10_grabcam_dive_t0.30.png	t=0.30 path=dive visible=True blend=done kill=False mode=9 skull_px=(1282,635) skull_in_central60=True claw_px_proj=140 claw_ok=False eyeToSkull=2.45 headAboveEye=-0.45
+11_grabcam_dive_t0.46.png	t=0.46 path=dive visible=True blend=done kill=False mode=9 skull_px=(1280,640) skull_in_central60=True claw_px_proj=115 claw_ok=False eyeToSkull=2.78 headAboveEye=-0.32
+12_grabcam_dive_t0.60.png	t=0.60 path=dive visible=True blend=done kill=False mode=9 skull_px=(1280,629) skull_in_central60=True claw_px_proj=124 claw_ok=False eyeToSkull=2.50 headAboveEye=-0.36
+13_grabcam_dive_t0.76.png	t=0.76 path=dive visible=True blend=done kill=False mode=9 skull_px=(1279,541) skull_in_central60=True claw_px_proj=205 claw_ok=True eyeToSkull=1.35 headAboveEye=-0.30
+14_grabcam_dive_t0.90.png	t=0.90 path=dive visible=True blend=done kill=False mode=9 skull_px=(1271,525) skull_in_central60=True claw_px_proj=292 claw_ok=True eyeToSkull=1.14 headAboveEye=-0.27
+15_grabcam_dive_t1.00.png	t=1.00 path=dive visible=True blend=done kill=False mode=9 skull_px=(1260,539) skull_in_central60=True claw_px_proj=312 claw_ok=True eyeToSkull=1.23 headAboveEye=-0.27
+16_grabcam_dive_t0.01.png	t=0.01 path=dive visible=True blend=done kill=False mode=8 skull_px=(1282,652) skull_in_central60=True claw_px_proj=126 claw_ok=False eyeToSkull=2.86 headAboveEye=0.50
+17_grabcam_dive_t0.16.png	t=0.16 path=dive visible=True blend=done kill=False mode=8 skull_px=(1285,670) skull_in_central60=True claw_px_proj=156 claw_ok=False eyeToSkull=2.72 headAboveEye=0.17
+18_grabcam_dive_t0.30.png	t=0.30 path=dive visible=True blend=done kill=False mode=8 skull_px=(1282,663) skull_in_central60=True claw_px_proj=193 claw_ok=False eyeToSkull=2.57 headAboveEye=0.15
+19_grabcam_dive_t0.46.png	t=0.46 path=dive visible=True blend=done kill=False mode=8 skull_px=(1275,667) skull_in_central60=True claw_px_proj=155 claw_ok=False eyeToSkull=2.89 headAboveEye=0.14
+20_grabcam_dive_t0.60.png	t=0.60 path=dive visible=True blend=done kill=False mode=8 skull_px=(1276,668) skull_in_central60=True claw_px_proj=151 claw_ok=False eyeToSkull=2.89 headAboveEye=0.11
+21_grabcam_dive_t0.76.png	t=0.76 path=dive visible=True blend=done kill=False mode=8 skull_px=(1284,663) skull_in_central60=True claw_px_proj=203 claw_ok=True eyeToSkull=2.56 headAboveEye=0.09

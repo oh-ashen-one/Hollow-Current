@@ -1,0 +1,286 @@
+Mono path[0] = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.20f1 (c9ba695d4f07)
+[Subsystems] Discovering subsystems at path /Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+ preferred device: Apple M3 Ultra (high power)
+Metal devices available: 1
+0: Apple M3 Ultra (high power)
+Using device Apple M3 Ultra (high power)
+Initializing Metal device caps: Apple M3 Ultra
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.052 seconds
+- Finished resetting the current domain, in  0.001 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+UnloadTime: 0.318375 ms
+HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad (TestInput only); window 1920x1080, owner window 1920x1080 restored on quit
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_CAPTURE switching to Castle from Bellwether
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.528166 ms
+HC_RUN_PLAN band=Mid firstHunt=110-150 burstStart=True cold=False coldCap=150 history=M,L,B
+HC_RULES Castle dread=0 runDreadMin=49.1 felt=11.3
+HC_CASTLE_MIX heartbeat=True wind=True windows=17 rareLine=False
+HC_AUDIO_READY 94 authored clips including intelligible voice takes
+HC_COMPASS_DIAL dial_shader=HollowCurrent/CastleSprite rim_shader=HollowCurrent/CastleEmissive dial_level=0.68 glass_dome=False (fc-art2: translucent veil removed)
+HC_INSTRUMENTS map=castle compass=1277 trumpet=1026 period=True lantern=1150 radio=1105 (max 3000)
+HC_COUNT_REACH receipt grab=1.385 drop=1.615 crawl=1.729 standOff drop=2.22 crawl=2.33 sideL=2.20 sideR=2.21 spin=2.21 spinWindow=0.50-1.15s/120deg
+HC_COUNT_GORE applied Castle gore / Membrane/CountClaude / albedo/Castle gore / Flesh
+HC_COUNT_HANDS vertices=930 groups=2
+HC_COUNT_RIG wingExt=10 arms=True
+HC_COUNT_SKIN_BOUNDS live renderers=1
+HC_SCARE_CLOCK start=burst first_in=45
+HC_THROWABLES director=38
+[CastleLightTuning] tuned 60 lights
+HC_EXTERIOR_FILL_MASK stage=build interior_layer=27 moved=1037 outer_face_kept=597 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_DEEP_INTERIOR_DOORS gate=0 gatehouse_exits=4
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_CAPTURE requested 1920x1080 window 1920x1080 display=3440x1440
+HC_FLAME_CHECK scene material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | runtime material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | queue=3001 | lean shader property _LeanAmount present | one-quad flame mesh in use
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 814 unused Assets to reduce memory usage. Loaded Objects now: 15333.
+Total: 3.700125 ms (FindLiveObjects: 0.303834 ms CreateObjectMapping: 0.035416 ms MarkObjects: 2.654500 ms  DeleteObjects: 0.706375 ms)
+
+[CastleAtmosphere] upgraded 571 world and 877 prop material slots
+HC_STARTUP_READY
+HC_FEAR_CANDLES lights=43 chapelFire=True
+HC_COUNT_RIM scale=0.35 hunt=False
+HC_CAPTURE screen 1920x1080 quality=Ultra aa=4 shadows=Medium/16 targetFps=90 vsync=0
+HC_CAPTURE S7_gatehouse_hud_case_start 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S7_gatehouse_hud_case_start.png
+HC_CAPTURE lantern off torchScale=1.80 intensity=1.53 range=15.0 angle=88 mode=ForcePixel
+HC_COUNT_FLOORS seconds=[0,0,0,0] favourite=-1
+HC_EXTERIOR_FILL_MASK stage=later interior_layer=27 moved=54 outer_face_kept=595 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_CAPTURE FRAMETIME S1_great_hall frames=269 mean=11.19ms p95=11.44ms p99=11.90ms max=16.60ms engine_frames=269 main=9.80/11.90ms render=4.93/5.36ms gpu=3.33/4.42ms (mean/p99)
+HC_CAPTURE FRAMETIME_HITCH S1_great_hall over14ms=2 [f23 16.4ms gc0=0 gc1=0 alloc=n/a logs=0 texLoading=0] [f253 16.6ms gc0=0 gc1=0 alloc=n/a logs=0 texLoading=0]
+HC_CAPTURE S1_great_hall 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S1_great_hall.png
+HC_LEAN_CHECK S1 candle 1 at 10.7 m: wick screen position before lean (588.2,629.4) after (588.2,629.4) moved 0.00 px; rendered flame tip is tilted 3 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=2.7 _LeanDir=(-0.69,0.01,-0.72)
+HC_LEAN_CHECK S1 candle 2 at 10.9 m: wick screen position before lean (580.7,628.7) after (580.7,628.7) moved 0.00 px; rendered flame tip is tilted 3 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=2.5 _LeanDir=(-0.71,0.01,-0.71)
+HC_LEAN_CHECK S1 candle 3 at 10.9 m: wick screen position before lean (609.6,627.5) after (609.6,627.5) moved 0.00 px; rendered flame tip is tilted 4 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=4.0 _LeanDir=(-0.69,0.02,-0.72)
+HC_FLAME_RIGID S1 flame 1 at 2.5 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 0 deg PASS
+HC_FLAME_RIGID S1 flame 2 at 2.6 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 0 deg PASS
+HC_FLAME_RIGID S1 flame 3 at 2.8 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 0 deg PASS
+HC_FLAME_RIGID S1 flame 4 at 3.0 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.08 m, lean 0 deg PASS
+HC_FLAME_RIGID S1 flame 5 at 3.1 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 0 deg PASS
+HC_FLAME_RIGID S1 summary: 5 nearest flames PASS (402 flames in the scene)
+HC_SETPIECE S1 chandelier 44.8% of frame height (viewport y 0.55..1.00, centre x 0.50)
+HC_SETPIECE S1 dais+throne 17.0% of frame height (viewport y 0.35..0.53, centre x 0.50)
+HC_CAPTURE S2_chapel_altar 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S2_chapel_altar.png
+HC_SETPIECE S2 altar_sockets 5.3% of frame height (viewport y 0.58..0.63, centre x 0.50)
+HC_CAPTURE S3_crypt 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S3_crypt.png
+HC_SETPIECE S3 crypt_niches_north 10.6% of frame height (viewport y 0.46..0.57, centre x 0.50)
+HC_SETPIECE S3 crypt_vault_arches 41.5% of frame height (viewport y 0.51..0.92, centre x 0.50)
+HC_CAPTURE S4 search eye=0.00,1.64,-22.00 pitch=28.5 fov=90
+HC_CAPTURE S4 pale_moon inFrame=True occluded=False viewport=(0.39,0.80) red_moon inFrame=True occluded=False viewport=(0.67,0.70)
+HC_DEEP_INTERIOR_MASK on=True lights=57 (interior lights skip InteriorLayer while outside with the gate chain shut)
+HC_CAPTURE FRAMETIME S4_exterior_sky frames=268 mean=11.23ms p95=11.35ms p99=17.56ms max=19.13ms engine_frames=268 main=9.92/17.56ms render=7.60/8.37ms gpu=2.18/3.07ms (mean/p99)
+HC_CAPTURE FRAMETIME_HITCH S4_exterior_sky over14ms=4 [f21 18.0ms gc0=0 gc1=0 alloc=n/a logs=0 texLoading=0] [f125 19.1ms gc0=0 gc1=0 alloc=n/a logs=0 texLoading=0] [f132 15.1ms gc0=0 gc1=0 alloc=n/a logs=0 texLoading=0] [f133 17.6ms gc0=0 gc1=0 alloc=n/a logs=0 texLoading=0]
+HC_CAPTURE S4_exterior_sky 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S4_exterior_sky.png
+HC_SETPIECE S4 keep_block 25.4% of frame height (viewport y 0.33..0.58, centre x 0.51)
+HC_SETPIECE S4 plank_deck 3.4% of frame height (viewport y 0.14..0.18, centre x 0.50)
+HC_COUNT_STAGED perch=2 point=(0.00, 5.45, 27.00) feet=(0.00, 5.45, 27.00) yaw=-180
+HC_COUNT_STAGED rose ledge feet=(0.00, 5.45, 27.20) edge=(0.00, 5.45, 26.90)
+HC_COUNT_RIM scale=1.00 hunt=False
+HC_COUNT_GRAB_STATE mode=0 Perch=True
+HC_COUNT_GRAB_STATE mode=1 Glide=True
+HC_COUNT_GRAB_STATE mode=2 Search=True
+HC_COUNT_GRAB_STATE mode=3 Dive=True
+HC_COUNT_GRAB_STATE mode=4 Stagger=True
+HC_COUNT_GRAB_STATE mode=5 Death=True
+HC_COUNT_GRAB_STATE mode=6 Grab=True
+HC_COUNT_GRAB_STATE mode=7 Crawl=True
+HC_COUNT_GRAB_STATE mode=8 GrabDrop=True
+HC_COUNT_GRAB_STATE mode=9 GrabCrawl=True
+HC_COUNT_GRAB_STATE mode=10 GrabSideL=True
+HC_COUNT_GRAB_STATE mode=11 GrabSideR=True
+HC_COUNT_GRAB_STATE mode=12 GrabDropSpin=True
+HC_COUNT_MODES bound=0:Perch=1 1:Glide=1 2:Search=1 3:Dive=1 4:Stagger=1 5:Death=1 6:Grab=1 7:Crawl=1 8:GrabDrop=1 9:GrabCrawl=1 10:GrabSideL=1 11:GrabSideR=1 12:GrabDropSpin=1 frames=[0,0,0,0,0,0,0,0,0,0,0,0,0]
+HC_COUNT_GRAB light=lantern-excluded layer=29 renderers=1 uvLight=True gate=always (no layer switch at the commit; the grave-ash lantern never recolours him)
+HC_LEAN_CHECK auto candle 1 at 41.6 m: wick screen position before lean (989.5,235.8) after (989.5,235.8) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.0 _LeanDir=(-0.19,0.06,0.98)
+HC_LEAN_CHECK auto candle 2 at 42.8 m: wick screen position before lean (961.0,243.2) after (961.0,243.2) moved 0.00 px; rendered flame tip is tilted 3 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=3.8 _LeanDir=(-0.01,0.00,1.00)
+HC_LEAN_CHECK auto candle 3 at 42.4 m: wick screen position before lean (951.1,244.2) after (951.1,244.2) moved 0.00 px; rendered flame tip is tilted 2 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=1.8 _LeanDir=(0.07,0.00,1.00)
+HC_FLAME_RIGID auto flame 1 at 3.0 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 3.1 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 3.2 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 3.2 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 3.3 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_CAPTURE_FLOATERS_HIDDEN 13 eye=(-0.01, 6.11, 24.24) target=(-0.02, 6.51, 26.92)
+HC_CAPTURE_FLOATERS_HIDDEN 0 eye=(-0.01, 6.11, 24.24) target=(-0.72, 7.25, 28.85)
+HC_CAPTURE_FLOATERS_HIDDEN 0 eye=(-0.01, 6.11, 24.24) target=(0.72, 6.95, 28.85)
+HC_S5_FRAMING eye=(-0.01, 6.11, 24.24) target=(-0.02, 6.51, 26.92) pitch=8.6 distance=2.71 moons=2 rise=0.66
+HC_CAPTURE S5 neverHide floaters re-shown 6
+HC_CAPTURE S5 rose ledge, RoseLedgeFraming(0.58) -> flattened: pitch 4 deg, FOV 50, distance 2.69 m, framed height max(head-to-feet 0.94, 0.6 x pose) 1.46 m, pose height 2.43 m, floaters hidden 0 eye=-0.01,6.33,24.23 target=-0.02,6.51,26.92 moonSpritesInFrame=2
+HC_DEEP_INTERIOR_MASK on=False lights=57 (interior lights skip InteriorLayer while outside with the gate chain shut)
+HC_CAPTURE S5_lord_perch 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S5_lord_perch.png
+HC_LEAN_CHECK S5 candle 1 at 2.6 m: wick screen position before lean (146.0,363.9) after (146.0,363.9) moved 0.00 px; rendered flame tip is tilted 25 deg on screen from its candle axis, tip distance from wick 49 px (unleaned 46 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=22.0 _LeanDir=(0.84,0.28,0.47)
+HC_LEAN_CHECK S5 candle 2 at 2.7 m: wick screen position before lean (1972.1,247.5) after (1972.1,247.5) moved 0.00 px; rendered flame tip is tilted 26 deg on screen from its candle axis, tip distance from wick 55 px (unleaned 50 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=22.0 _LeanDir=(-0.83,0.33,0.44)
+HC_LEAN_CHECK S5 candle 3 at 2.7 m: wick screen position before lean (1536.8,291.4) after (1536.8,291.4) moved 0.00 px; rendered flame tip is tilted 23 deg on screen from its candle axis, tip distance from wick 51 px (unleaned 49 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=22.0 _LeanDir=(-0.80,0.46,0.39)
+HC_S5_CANDLES 6 (enabled 6, with a flame in frame 6)
+HC_FLAME_RIGID S5 flame 1 at 2.6 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.08 m, lean 22 deg PASS
+HC_FLAME_RIGID S5 flame 2 at 2.7 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 22 deg PASS
+HC_FLAME_RIGID S5 flame 3 at 2.7 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.08 m, lean 22 deg PASS
+HC_FLAME_RIGID S5 flame 4 at 3.0 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 22 deg PASS
+HC_FLAME_RIGID S5 flame 5 at 3.0 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 22 deg PASS
+HC_FLAME_RIGID S5 summary: 5 nearest flames PASS (365 flames in the scene)
+HC_SCALE_REFERENCE hidden (scripted run)
+HC_COUNT_RIM scale=0.35 hunt=False
+HC_CAPTURE S6 framing countHeadTop=(0.57,0.75) countFeet=(0.57,0.25) figureTop=(0.43,0.61) figureFeet=(0.43,0.25) headTopY=2.43
+HC_CAPTURE S6_lord_sheet 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S6_lord_sheet.png
+HC_DOC_UI fonts_complete=True fell=True belle=True courier=True paper=True
+HC_DOC_OPEN kind=Ledger title="Ledger: the steward" kicker="BLOOD LEDGER" heading="The steward" lines=5 visible=14 scrollable=False fonts_complete=True
+HC_CAPTURE S8_journal_ledger 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/S8_journal_ledger.png
+HC_WARNING false=False escalated=False length=5.9 threatFrom=Disturbance dread=0.0
+HC_TORCH_PLAN hunt roll=0.22 at=11.6s
+HC_HUNT_START t=6 phase=Hunt noTell=False from=Warning escalated=False threatFrom=Disturbance dread=0.2 felt=0.0 runDreadMin=49.1 huntSeconds=35.6 breaker=False hunts=1
+HC_HUNT_TELL kind=warning lead_s=6.0 t=6 hunts=1 phase=Hunt first=True cold=False gate=off firstDocAt=-1
+HC_COUNT_CLIP_SKULL mode=8 clip=GrabDrop frames=97 start=4.38 peak=4.38@0.00s end=1.70
+HC_COUNT_CLIP_SKULL mode=12 clip=CountClaudeGrabDropSpin frames=115 start=4.38 peak=4.38@0.00s end=1.78
+HC_GRAB_SIDE_MAP sideL_start=(2.88, 1.54, 0.11) sideR_start=(-2.88, 1.54, 0.11) swapped=False (a start on his right is on her left)
+HC_COUNT_MEMORY stale=none when=hunt start
+HC_COUNT_HEARD rejected (0.03, 1.85, 18.30) reason=other floor
+HC_COUNT_HEARD rejected (0.04, 1.85, 18.44) reason=other floor
+HC_COUNT_HEARD guess=(-1.77, 0.05, 14.71) offset=2.0 hidden=False position=(3.22, 4.25, 20.51) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=1 mode=0
+HC_HUNT_SPAWN hostileReturn=False noTell=False keptPerch=False position=(3.22, 4.25, 20.51) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=1 mode=0
+HC_CAPTURE hunt phase=Hunt position=(3.22, 4.25, 20.51) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=1 mode=0
+HC_COUNT_DREAD seen +15 dread=15.2 position=(3.22, 4.25, 20.51) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=1 mode=0
+HC_COUNT_AI t=0.0 state=Perched pos=(3.22, 4.25, 20.51) player=(0.00, 0.00, 15.60) los=True seen=False dist=7.1 angle=112 hidden=False torch=True memory=(-1.77, 0.05, 14.71) route=0/0 attacked=False why=outside the sight cone
+HC_LEAN_CHECK auto candle 1 at 2.7 m: wick screen position before lean (5011.3,-6116.4) after (5011.3,-6116.4) moved 0.00 px; rendered flame tip is tilted 7 deg on screen from its candle axis, tip distance from wick 11 px (unleaned 9 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=2.7 _LeanDir=(0.67,0.22,0.71)
+HC_LEAN_CHECK auto candle 2 at 2.9 m: wick screen position before lean (13866.0,-15601.3) after (13866.0,-15601.3) moved 0.00 px; rendered flame tip is tilted 18 deg on screen from its candle axis, tip distance from wick 26 px (unleaned 16 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=2.1 _LeanDir=(0.72,0.22,0.66)
+HC_LEAN_CHECK auto candle 3 at 2.8 m: wick screen position before lean (-2612.9,5315.4) after (-2612.9,5315.4) moved 0.00 px; rendered flame tip is tilted 16 deg on screen from its candle axis, tip distance from wick 76 px (unleaned 102 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=4.1 _LeanDir=(0.73,0.24,0.64)
+HC_FLAME_RIGID auto flame 1 at 2.7 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 3 deg PASS
+HC_FLAME_RIGID auto flame 2 at 2.8 m: core enabled=True, halo centre to core centre 0.001 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.03 m, lean 4 deg PASS
+HC_FLAME_RIGID auto flame 3 at 2.9 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 2 deg PASS
+HC_FLAME_RIGID auto flame 4 at 2.9 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.08 m, lean 5 deg PASS
+HC_FLAME_RIGID auto flame 5 at 3.1 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 1 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_COUNT_AI t=1.0 state=Perched pos=(3.22, 4.25, 20.51) player=(0.00, 0.00, 15.60) los=True seen=True dist=7.1 angle=48 hidden=False torch=True memory=(0.00, 0.00, 15.60) route=0/0 attacked=False why=sees you, tell 0.4s
+HC_GRAB_VARIANT plan=drop mode=8 scores=[drop=1.07 spin=n/a(she faces him) side=n/a(she faces him) crawl=-4.24] ceiling=9.00 ring=9.00 roomAt=her bearing=23 facing=True deck=[8:6 9:7 10:0 11:0 12:1]
+HC_COUNT_DIVE style=high reason=plan drop ceiling=9.00
+HC_COUNT_DIVE position=(3.22, 4.25, 20.51) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=0
+HC_VOICE_GATE held id=cc_hunt_run reason=beyond 6 m for a hunt line (6.3) t=1.5
+HC_COUNT_RIM scale=1.10 hunt=True
+HC_COUNT_DIVE_LAST eta=1.00 distance=5.59 speed=3.4 position=(3.01, 4.49, 20.31) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+HC_TORCH_FAIL source=dive eta=1.00 roll=0.21
+HC_COUNT_AI t=2.0 state=Chase pos=(2.65, 4.32, 19.03) player=(0.00, 0.00, 15.60) los=True seen=True dist=6.3 angle=53 hidden=False torch=True memory=(0.00, 0.00, 15.60) route=0/1 attacked=True why=chasing (capture hold)
+HC_COUNT_POSE pitch=43 target=49 mode=3 state=Chase speed=4.9
+HC_LEAN_CHECK auto candle 1 at 2.8 m: wick screen position before lean (4805.0,-5853.3) after (4805.0,-5853.3) moved 0.00 px; rendered flame tip is tilted 21 deg on screen from its candle axis, tip distance from wick 20 px (unleaned 8 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=17.5 _LeanDir=(0.88,0.20,0.44)
+HC_LEAN_CHECK auto candle 2 at 2.9 m: wick screen position before lean (-2597.4,5543.2) after (-2597.4,5543.2) moved 0.00 px; rendered flame tip is tilted 105 deg on screen from its candle axis, tip distance from wick 89 px (unleaned 106 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=18.0 _LeanDir=(0.93,0.21,0.31)
+HC_LEAN_CHECK auto candle 3 at 2.8 m: wick screen position before lean (-598.6,1761.6) after (-598.6,1761.6) moved 0.00 px; rendered flame tip is tilted 40 deg on screen from its candle axis, tip distance from wick 59 px (unleaned 75 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=16.2 _LeanDir=(0.92,0.36,0.14)
+HC_FLAME_RIGID auto flame 1 at 2.8 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 18 deg PASS
+HC_FLAME_RIGID auto flame 2 at 2.8 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.08 m, lean 16 deg PASS
+HC_FLAME_RIGID auto flame 3 at 2.9 m: core enabled=True, halo centre to core centre 0.001 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.03 m, lean 18 deg PASS
+HC_FLAME_RIGID auto flame 4 at 3.0 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 16 deg PASS
+HC_FLAME_RIGID auto flame 5 at 3.2 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 13 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_COUNT_AI t=3.0 state=Chase pos=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) los=True seen=True dist=4.7 angle=53 hidden=False torch=True memory=(0.00, 0.00, 15.60) route=0/1 attacked=True why=chasing (capture hold)
+HC_COUNT_AI t=4.0 state=Chase pos=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) los=True seen=True dist=4.7 angle=53 hidden=False torch=True memory=(0.00, 0.00, 15.60) route=0/1 attacked=True why=chasing (capture hold)
+HC_COUNT_WINGS leg=perch loudness=1.0 hunt=True
+HC_COUNT_FEINT position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=False flight=Travel perch=1 mode=3
+HC_COUNT_DIVE miss=True reason=abandoned: the dive ended, now Travel (capture feint) distance=2.78 vertical=3.54 plan=drop t=2.6 position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=False flight=Travel perch=1 mode=3
+HC_COUNT_RIM scale=0.35 hunt=True
+HC_COUNT_DIVE close_s=none from=7.25 closest=4.50 reason=dive ended before grab range
+HC_GRAB_VARIANT plan=drop-spin mode=12 scores=[drop=0.81 spin=1.59 side=n/a(L flank closed (flank line blocked); R flank closed (flank line blocked)) crawl=-4.14] ceiling=9.00 ring=9.00 roomAt=her bearing=48 facing=False spinBearing=100 approach=direct deck=[8:6 9:7 10:0 11:0 12:1]
+HC_COUNT_DIVE style=high reason=plan drop-spin ceiling=9.00
+HC_COUNT_DIVE position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+HC_COUNT_VOICE id=cc_hunt_run from=head dist=3.9 occluded=False
+HC_VOICE_GATE spoke id=cc_hunt_run from=head asked=False huntLines=1 t=4.1 position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+HC_COUNT_RIM scale=1.10 hunt=True
+HC_GRAB_VARIANT locked=drop-spin point=(2.08, 0.00, 14.84) bearing=48
+HC_COUNT_DIVE_LAST eta=0.56 distance=2.78 speed=0.0 position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+HC_TORCH_FAIL source=dive eta=0.56 roll=0.14
+HC_COUNT_AI t=5.0 state=Chase pos=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) los=True seen=True dist=4.7 angle=53 hidden=False torch=True memory=(0.00, 0.00, 15.60) route=0/0 attacked=True why=chasing (capture hold)
+HC_COUNT_WINGS leg=perch loudness=0.0 hunt=True
+HC_COUNT_FEINT position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=False flight=Travel perch=1 mode=3
+HC_COUNT_DIVE miss=True reason=abandoned: the dive ended, now Travel (capture feint) distance=2.78 vertical=3.54 plan=drop-spin t=1.6 position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=False flight=Travel perch=1 mode=3
+HC_COUNT_RIM scale=0.35 hunt=True
+HC_COUNT_DIVE close_s=none from=4.50 closest=4.50 reason=dive ended before grab range
+HC_GRAB_VARIANT plan=drop-spin mode=12 scores=[drop=1.01 spin=1.33 side=n/a(L flank closed (flank line blocked); R flank closed (flank line blocked)) crawl=-4.20] ceiling=9.00 ring=9.00 roomAt=her bearing=48 facing=False spinBearing=100 approach=direct deck=[8:6 9:7 10:0 11:0 12:1]
+HC_COUNT_DIVE style=high reason=plan drop-spin ceiling=9.00
+HC_COUNT_DIVE position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+HC_VOICE_GATE held id=cc_hunt_run reason=one line per hunt t=5.7
+HC_COUNT_RIM scale=1.10 hunt=True
+HC_GRAB_VARIANT locked=drop-spin point=(2.08, 0.00, 14.84) bearing=48
+HC_COUNT_DIVE_LAST eta=0.56 distance=2.78 speed=0.0 position=(2.36, 3.54, 17.06) player=(0.00, 0.00, 15.60) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=1 mode=3
+HC_TORCH_SKIP source=dive roll=0.97
+HC_CAPTURE hunt interference waited 2.9 s
+HC_COUNT_CAPTURE grab mode=8 standOff=2.22 glideEndDistance=7.0
+HC_COUNT_CAPTURE begin perch=1 feet=(3.22, 4.25, 20.51) glideEnd=(1.23, 2.20, 22.49) hold=(0.39, 0.00, 17.78) holdDistance=2.80 eye=(0.00, 1.64, 15.60)
+HC_CAPTURE choreography begin=True
+HC_COUNT_RIM scale=1.00 hunt=True
+HC_COUNT_CAPTURE phase=Perch clock=0.01 mode=0 pos=(3.22, 4.25, 20.51) distance=6.89
+HC_CAPTURE H01_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H01_hunt_dive.png
+HC_CAPTURE H02_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H02_hunt_dive.png
+HC_CAPTURE H03_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H03_hunt_dive.png
+HC_RULES t=16 phase=Hunt dread=15.6 event=15.0 felt=4.2 runDreadMin=49.1 grace=0 relief=1 governor=1.00 huntShare=1.000 hunts=1
+HC_COUNT_POSE pitch=40 capture=True phase=Glide
+HC_COUNT_CAPTURE phase=Glide clock=3.50 mode=1 pos=(3.22, 4.25, 20.51) distance=6.89
+HC_CAPTURE H04_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H04_hunt_dive.png
+HC_CAPTURE H05_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H05_hunt_dive.png
+HC_LEAN_CHECK H05 candle 1 at 2.8 m: wick screen position before lean (-236.6,2591.1) after (-236.6,2591.1) moved 0.00 px; rendered flame tip is tilted 2 deg on screen from its candle axis, tip distance from wick 141 px (unleaned 132 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=4.3 _LeanDir=(0.49,0.23,0.84)
+HC_LEAN_CHECK H05 candle 2 at 2.9 m: wick screen position before lean (-302.2,1128.2) after (-302.2,1128.2) moved 0.00 px; rendered flame tip is tilted 9 deg on screen from its candle axis, tip distance from wick 73 px (unleaned 66 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=7.6 _LeanDir=(0.62,0.36,0.69)
+HC_LEAN_CHECK H05 candle 3 at 2.8 m: wick screen position before lean (181.4,1570.5) after (181.4,1570.5) moved 0.00 px; rendered flame tip is tilted 10 deg on screen from its candle axis, tip distance from wick 69 px (unleaned 63 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=7.9 _LeanDir=(0.52,0.25,0.82)
+HC_FLAME_RIGID H05 flame 1 at 2.8 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 8 deg PASS
+HC_FLAME_RIGID H05 flame 2 at 2.8 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.07 m, lean 4 deg PASS
+HC_FLAME_RIGID H05 flame 3 at 2.9 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 8 deg PASS
+HC_FLAME_RIGID H05 flame 4 at 3.0 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 5 deg PASS
+HC_FLAME_RIGID H05 flame 5 at 3.1 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.08 m, lean 11 deg PASS
+HC_FLAME_RIGID H05 summary: 5 nearest flames PASS (402 flames in the scene)
+HC_TORCH_FAIL source=hunt t=18 dive=false
+HC_CAPTURE H06_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H06_hunt_dive.png
+HC_COUNT_POSE pitch=48 capture=True phase=Dive
+HC_COUNT_CAPTURE phase=Dive clock=6.50 mode=3 pos=(1.23, 2.20, 22.49) distance=7.17
+HC_CAPTURE H07_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H07_hunt_dive.png
+HC_CAPTURE_CAMERA_PUSHED by 0.10 position=(0.40, 0.02, 17.83) player=(-0.03, 0.00, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=1 mode=3
+HC_COUNT_DIVE close_s=1.00 from=7.10 to=2.31 capture=True grabMode=8
+HC_COUNT_CAPTURE phase=Grab clock=7.50 mode=8 pos=(0.39, 0.00, 17.78) distance=2.40
+HC_CAPTURE_CAMERA_PUSHED by 0.10 position=(0.39, 0.00, 17.78) player=(-0.05, 0.00, 15.41) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=1 mode=8
+HC_CAPTURE_CAMERA_PUSHED by 0.10 position=(0.39, 0.00, 17.78) player=(-0.08, 0.00, 15.31) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=1 mode=8
+HC_CAPTURE_CAMERA_PUSHED by 0.10 position=(0.39, 0.00, 17.78) player=(-0.10, 0.00, 15.21) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=1 mode=8
+HC_CAPTURE H08_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H08_hunt_dive.png
+HC_LEAN_CHECK H08 candle 1 at 2.7 m: wick screen position before lean (-11276.1,18927.1) after (-11276.1,18927.1) moved 0.00 px; rendered flame tip is tilted 7 deg on screen from its candle axis, tip distance from wick 846 px (unleaned 327 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=19.1 _LeanDir=(0.48,-0.65,0.59)
+HC_LEAN_CHECK H08 candle 2 at 2.9 m: wick screen position before lean (-1910.8,4101.4) after (-1910.8,4101.4) moved 0.00 px; rendered flame tip is tilted 63 deg on screen from its candle axis, tip distance from wick 135 px (unleaned 59 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=19.6 _LeanDir=(0.55,-0.67,0.50)
+HC_LEAN_CHECK H08 candle 3 at 2.7 m: wick screen position before lean (-429.7,2639.0) after (-429.7,2639.0) moved 0.00 px; rendered flame tip is tilted 66 deg on screen from its candle axis, tip distance from wick 68 px (unleaned 72 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=20.9 _LeanDir=(0.48,-0.73,0.49)
+HC_FLAME_RIGID H08 flame 1 at 2.7 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 21 deg PASS
+HC_FLAME_RIGID H08 flame 2 at 2.7 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.01 m, lean 19 deg PASS
+HC_FLAME_RIGID H08 flame 3 at 2.9 m: core enabled=True, halo centre to core centre 0.002 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.04 m, lean 20 deg PASS
+HC_FLAME_RIGID H08 flame 4 at 3.1 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 21 deg PASS
+HC_FLAME_RIGID H08 flame 5 at 3.1 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.07 m, lean 20 deg PASS
+HC_FLAME_RIGID H08 summary: 5 nearest flames PASS (402 flames in the scene)
+HC_CAPTURE H09_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H09_hunt_dive.png
+HC_CAPTURE H10_hunt_dive 1920x1080 /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms/H10_hunt_dive.png
+HC_COUNT_CAPTURE end clock=10.00
+HC_CAPTURE FRAMETIME hunt_dive frames=862 mean=11.14ms p95=11.19ms p99=11.62ms max=16.03ms
+HC_CAPTURE FRAMETIME hunt_dive_raw frames=880 mean=12.21ms p95=11.27ms p99=110.36ms max=122.18ms
+HC_CAPTURE FRAMETIME hunt_dive capture_frames_excluded=18 of 880 (the screenshot frame and the frame after it, for each of the H shots taken)
+HC_CAPTURE DONE 22 entries
+HC_COUNT_RIM scale=0.35 hunt=True
+HC_COUNT_DIVE close_s=none from=4.50 closest=4.50 reason=dive ended before grab range
+HC_COUNT_DIVE miss=True reason=abandoned: the dive ended, now Perched distance=2.61 vertical=0.00 plan=drop-spin t=0.4 position=(0.39, 0.00, 17.78) player=(-0.10, 0.00, 15.21) enabled=False nav=False path=none destination=none seen=True memory=True flight=Perched perch=1 mode=0
+HC_APP_QUIT t=42.7 map=Castle started=True paused=False
+HC_VOICE_SUMMARY lines=1 spatial=1 dropped=0 from_head=1 from_other=0 refused_other=0 evp_textures=0
+Thread 0x170c9f000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16ea6b000 may have been prematurely finalized

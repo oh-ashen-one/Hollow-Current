@@ -1,0 +1,2 @@
+17_grabcam_hideopen_t0.01.png	t=0.01 path=hideopen visible=True blend=turning kill=False mode=9 skull_px=(2015,1209) skull_in_central60=False claw_px_proj=0 claw_ok=False eyeToSkull=1.48 headAboveEye=-0.43
+18_grabcam_hideopen_t0.16.png	t=0.16 path=hideopen visible=True blend=done kill=False mode=9 skull_px=(1278,574) skull_in_central60=True claw_px_proj=205 claw_ok=True eyeToSkull=1.44 headAboveEye=-0.47

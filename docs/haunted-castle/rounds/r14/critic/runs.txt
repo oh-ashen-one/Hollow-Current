@@ -1,0 +1,57 @@
+start 11:05:01 natural1 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/natural1 natural
+end 11:13:51 natural1 rc=0
+start 11:13:55 natural2 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/natural2 natural
+end 11:22:53 natural2 rc=0
+start 11:22:53 natural3 -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/natural3 natural
+end 11:31:39 natural3 rc=0
+start 11:31:39 siegeheld -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/siegeheld siege -hc-hold-dread 60
+end 11:47:02 siegeheld rc=0
+start 11:47:02 huntcam -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/huntcam huntcam
+end 11:49:52 huntcam rc=0
+start 11:49:52 cold -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cold cold
+end 11:53:01 cold rc=0
+start 11:53:01 siege -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/siege siege
+end 11:56:59 siege rc=0
+start 11:56:59 fear -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/fear fear
+end 12:02:30 fear rc=0
+start 12:02:30 escape -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/escape escape
+end 12:04:13 escape rc=0
+start 12:04:13 kill -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/kill kill
+end 12:06:16 kill rc=0
+start 12:06:16 longnight -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/longnight escape -hc-long-night
+end 12:07:43 longnight rc=0
+start 12:07:43 death -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/death death
+end 12:08:16 death rc=0
+start 12:08:16 doorproof -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/doorproof doorproof
+end 12:08:54 doorproof rc=0
+start 12:08:54 settings -hc-playtest /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/settings settings
+end 12:09:06 settings rc=0
+start 12:09:06 verify -hc-verify
+end 12:16:10 verify rc=0
+NOQUIT verify (attempt 1)
+start 12:16:10 verify_retry -hc-verify
+end 12:23:14 verify_retry rc=0
+NOQUIT verify_retry (attempt 2)
+start 12:23:14 cap_rooms -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms -hc-capture-size 1920x1080
+end 12:23:58 cap_rooms rc=0
+start 12:23:58 cap_rooms_lantern -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_rooms_lantern -hc-capture-size 1920x1080 -hc-capture-lantern on
+end 12:24:43 cap_rooms_lantern rc=0
+start 12:24:43 cap_title -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/cap_title -hc-capture-title
+end 12:24:54 cap_title rc=0
+start 12:24:54 art_props -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_props -hc-capture-size 1920x1080 -hc-capture-art props
+end 12:25:24 art_props rc=0
+start 12:25:24 art_exterior -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_exterior -hc-capture-size 1920x1080 -hc-capture-art exterior
+end 12:25:53 art_exterior rc=0
+start 12:25:53 art_doors -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_doors -hc-capture-size 1920x1080 -hc-capture-art doors
+end 12:26:14 art_doors rc=0
+start 12:26:14 art_kit -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_kit -hc-capture-size 1920x1080 -hc-capture-art kit
+end 12:26:30 art_kit rc=0
+start 12:26:30 art_layout_off -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_off -hc-capture-size 1920x1080 -hc-capture-art layout -hc-capture-lantern off
+end 12:26:58 art_layout_off rc=0
+start 12:26:58 art_layout_on -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_layout_on -hc-capture-size 1920x1080 -hc-capture-art layout -hc-capture-lantern on
+end 12:27:26 art_layout_on rc=0
+start 12:27:26 art_instruments_on -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_instruments_on -hc-capture-size 1920x1080 -hc-capture-art instruments -hc-capture-lantern on
+end 12:27:42 art_instruments_on rc=0
+start 12:27:42 art_instruments_off -hc-capture /Users/midir/hollow-current-haunted-castle/docs/haunted-castle/rounds/r14/critic/art_instruments_off -hc-capture-size 1920x1080 -hc-capture-art instruments -hc-capture-lantern off
+end 12:27:59 art_instruments_off rc=0
+QUEUE DONE 12:27:59

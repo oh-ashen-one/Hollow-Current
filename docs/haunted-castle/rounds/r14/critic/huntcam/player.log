@@ -1,0 +1,329 @@
+Mono path[0] = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.20f1 (c9ba695d4f07)
+[Subsystems] Discovering subsystems at path /Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+ preferred device: Apple M3 Ultra (high power)
+Metal devices available: 1
+0: Apple M3 Ultra (high power)
+Using device Apple M3 Ultra (high power)
+Initializing Metal device caps: Apple M3 Ultra
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.052 seconds
+- Finished resetting the current domain, in  0.001 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+UnloadTime: 0.322083 ms
+HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad (TestInput only); window 1920x1080, owner window 1920x1080 restored on quit
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+HC_STARTUP_READY
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_PLAY phase=switch_to_castle from=Bellwether
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 4.543875 ms
+HC_RUN_PLAN band=Mid firstHunt=110-150 burstStart=False cold=False coldCap=150 history=M,L,L
+HC_RULES Castle dread=0 runDreadMin=39.4 felt=0.0
+HC_CASTLE_MIX heartbeat=True wind=True windows=17 rareLine=False
+HC_AUDIO_READY 94 authored clips including intelligible voice takes
+HC_COMPASS_DIAL dial_shader=HollowCurrent/CastleSprite rim_shader=HollowCurrent/CastleEmissive dial_level=0.68 glass_dome=False (fc-art2: translucent veil removed)
+HC_INSTRUMENTS map=castle compass=1277 trumpet=1026 period=True lantern=1150 radio=1105 (max 3000)
+HC_COUNT_REACH receipt grab=1.385 drop=1.615 crawl=1.729 standOff drop=2.22 crawl=2.33 sideL=2.20 sideR=2.21 spin=2.21 spinWindow=0.50-1.15s/120deg
+HC_COUNT_GORE applied Castle gore / Membrane/CountClaude / albedo/Castle gore / Flesh
+HC_COUNT_HANDS vertices=930 groups=2
+HC_COUNT_RIG wingExt=10 arms=True
+HC_COUNT_SKIN_BOUNDS live renderers=1
+HC_SCARE_CLOCK start=lull first_in=90
+HC_THROWABLES director=38
+[CastleLightTuning] tuned 60 lights
+HC_EXTERIOR_FILL_MASK stage=build interior_layer=27 moved=1037 outer_face_kept=597 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_DEEP_INTERIOR_DOORS gate=0 gatehouse_exits=4
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_FLAME_CHECK scene material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | runtime material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | queue=3001 | lean shader property _LeanAmount present | one-quad flame mesh in use
+HC_HIDE_SPOTS source=runtime name="Hall armoire" kind=Hide center=(4.77, 1.00, 21.00) size=(0.28, 2.00, 1.10) face=(4.87, 1.00, 21.00) stand=(3.67, 0.00, 21.00) standClear=False first=Hall armoire@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Dining armoire" kind=Hide center=(-12.50, 1.00, 11.23) size=(1.10, 2.00, 0.28) face=(-12.50, 1.00, 11.13) stand=(-12.50, 0.00, 12.33) standClear=True first=Dining armoire@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Kitchen larder" kind=Hide center=(-7.50, 1.00, 1.38) size=(1.10, 2.00, 0.28) face=(-7.50, 1.00, 1.28) stand=(-7.50, 0.00, 2.48) standClear=True first=Kitchen larder@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Confessional" kind=Hide center=(7.30, 1.00, 11.77) size=(1.10, 2.00, 0.28) face=(7.30, 1.00, 11.87) stand=(7.30, 0.00, 10.67) standClear=True first=Confessional@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Vestibule press" kind=Hide center=(12.62, 1.00, 16.00) size=(0.28, 2.00, 1.10) face=(12.72, 1.00, 16.00) stand=(11.52, 0.00, 16.00) standClear=True first=Vestibule press@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Library cabinet" kind=Hide center=(-7.23, 4.20, 19.80) size=(0.28, 2.00, 1.10) face=(-7.13, 4.20, 19.80) stand=(-8.33, 3.20, 19.80) standClear=True first=Library cabinet@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Count's wardrobe" kind=Hide center=(-7.70, 4.20, 1.38) size=(1.10, 2.00, 0.28) face=(-7.70, 4.20, 1.28) stand=(-7.70, 3.20, 2.48) standClear=True first=Count's wardrobe@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Ossuary niche" kind=Hide center=(4.77, -2.20, 17.60) size=(0.28, 2.00, 1.10) face=(4.87, -2.20, 17.60) stand=(3.67, -3.20, 17.60) standClear=True first=Ossuary niche@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS_SUMMARY source=runtime audited=8 focusable=8 failed=[] proud=0.20
+HC_ONBOARD_START equipped=True phase=Survey plan=Mid hides=8/8
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 814 unused Assets to reduce memory usage. Loaded Objects now: 15334.
+Total: 3.619333 ms (FindLiveObjects: 0.283250 ms CreateObjectMapping: 0.036500 ms MarkObjects: 2.595792 ms  DeleteObjects: 0.703625 ms)
+
+[CastleAtmosphere] upgraded 571 world and 877 prop material slots
+HC_STARTUP_READY
+HC_FEAR_CANDLES lights=43 chapelFire=True
+HC_COUNT_RIM scale=0.35 hunt=False
+HC_WATCHED_CLOCK first_at=16.6
+HC_OBJECTIVE t=0.0 step=letter initial=true text="Read the gate keeper's letter on the gatehouse table [E]."
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:1.0 1:1.0 2:1.0 3:1.0 4:1.0 5:1.0] favouriteFloor=-1 share=0.00 chosen=2
+HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=24.4 viewAngle=14 occluded=True watches=1 favourite=-1 phase=Survey
+HC_COUNT_GRAB_STATE mode=0 Perch=True
+HC_COUNT_GRAB_STATE mode=1 Glide=True
+HC_COUNT_GRAB_STATE mode=2 Search=True
+HC_COUNT_GRAB_STATE mode=3 Dive=True
+HC_COUNT_GRAB_STATE mode=4 Stagger=True
+HC_COUNT_GRAB_STATE mode=5 Death=True
+HC_COUNT_GRAB_STATE mode=6 Grab=True
+HC_COUNT_GRAB_STATE mode=7 Crawl=True
+HC_COUNT_GRAB_STATE mode=8 GrabDrop=True
+HC_COUNT_GRAB_STATE mode=9 GrabCrawl=True
+HC_COUNT_GRAB_STATE mode=10 GrabSideL=True
+HC_COUNT_GRAB_STATE mode=11 GrabSideR=True
+HC_COUNT_GRAB_STATE mode=12 GrabDropSpin=True
+HC_COUNT_MODES bound=0:Perch=1 1:Glide=1 2:Search=1 3:Dive=1 4:Stagger=1 5:Death=1 6:Grab=1 7:Crawl=1 8:GrabDrop=1 9:GrabCrawl=1 10:GrabSideL=1 11:GrabSideR=1 12:GrabDropSpin=1 frames=[0,0,0,0,0,0,0,0,0,0,0,0,0]
+HC_COUNT_GRAB light=lantern-excluded layer=29 renderers=1 uvLight=True gate=always (no layer switch at the commit; the grave-ash lantern never recolours him)
+HC_LEAN_CHECK auto candle 1 at 17.7 m: wick screen position before lean (953.0,758.4) after (953.0,758.4) moved 0.00 px; rendered flame tip is tilted 3 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=2.9 _LeanDir=(0.02,-0.01,1.00)
+HC_LEAN_CHECK auto candle 2 at 17.8 m: wick screen position before lean (924.0,757.4) after (924.0,757.4) moved 0.00 px; rendered flame tip is tilted 3 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=3.3 _LeanDir=(0.12,-0.01,0.99)
+HC_LEAN_CHECK auto candle 3 at 16.7 m: wick screen position before lean (1012.8,737.2) after (1012.8,737.2) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.1 _LeanDir=(-0.15,0.08,0.99)
+HC_FLAME_RIGID auto flame 1 at 3.0 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 3.0 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 4.6 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 4.6 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 4.8 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_PLAY phase=begin_huntcam t=1.1 case=Survey dread=0.0 hunts=0 evidence=0 notes=0 survived=False relics=0 sword=False hits=0 blockedDeaths=0 rules=Castle
+HC_NOTICE text="The rack is empty. You already carry the instruments."
+HC_COUNT_FLOORS seconds=[0,0,0,0] favourite=-1
+HC_DOC_UI fonts_complete=True fell=True belle=True courier=True paper=True
+HC_DOC_OPEN kind=Letter title="Gate keeper's letter" kicker="GATE KEEPER'S LETTER" heading="The Margrave's gate" lines=7 visible=12 scrollable=False fonts_complete=True
+HC_OBJECTIVE t=1.4 step=ledger from=letter n=1 text="Find the Blood Ledger pages (0/3): the dining hall (west wing), the portrait hall (upstairs, east wing), the chapel (east of the courtyard)." tracker="RECORDS 0/3   LEDGER 0/3   RELICS 0/3"
+HC_LEAN_CHECK auto candle 1 at 10.8 m: wick screen position before lean (244.3,1038.6) after (244.3,1038.6) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 8 px (unleaned 8 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.0 _LeanDir=(0.90,0.29,0.32)
+HC_LEAN_CHECK auto candle 2 at 10.8 m: wick screen position before lean (282.3,1033.6) after (282.3,1033.6) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 6 px (unleaned 6 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.1 _LeanDir=(0.89,0.29,0.34)
+HC_LEAN_CHECK auto candle 3 at 10.9 m: wick screen position before lean (295.3,1067.0) after (295.3,1067.0) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 7 px (unleaned 7 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.4 _LeanDir=(0.90,0.26,0.36)
+HC_FLAME_RIGID auto flame 1 at 2.2 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 2.2 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 2.4 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 2.5 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 2.7 m: core enabled=True, halo centre to core centre 0.003 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.06 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_PLAY phase=evidence_Induction t=4.6 case=Disturbance dread=0.1 hunts=0 evidence=1 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 COMPASS  5 / 5 · HOLD STEADY TO RECORD
+HC_LEAN_CHECK auto candle 1 at 20.6 m: wick screen position before lean (423.8,547.8) after (423.8,547.8) moved 0.00 px; rendered flame tip is tilted 4 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=3.4 _LeanDir=(0.12,-0.02,0.99)
+HC_LEAN_CHECK auto candle 2 at 20.7 m: wick screen position before lean (459.2,551.2) after (459.2,551.2) moved 0.00 px; rendered flame tip is tilted 3 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=2.5 _LeanDir=(0.02,-0.01,1.00)
+HC_LEAN_CHECK auto candle 3 at 20.9 m: wick screen position before lean (533.9,584.1) after (533.9,584.1) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.2 _LeanDir=(-0.17,0.08,0.98)
+HC_FLAME_RIGID auto flame 1 at 3.5 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 3.6 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 3.7 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 3.7 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 3.8 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_EXTERIOR_FILL_MASK stage=later interior_layer=27 moved=44 outer_face_kept=605 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_PLAY phase=evidence_Handprint t=7.8 case=Disturbance dread=0.2 hunts=0 evidence=2 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 GRAVE-ASH · CLAW-SCORES · HOLD TO RECORD
+HC_PLAY phase=opened t=8.0 case=Disturbance dread=0.2 hunts=0 evidence=2 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 runDreadMin=39.4
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:x(current) 3:1.0 4:1.0 5:1.0] favouriteFloor=-1 share=0.00 chosen=5
+HC_COUNT_PERCH moved perch=5 feet=(0.00, 8.10, 19.50) playerDist=9.0 viewAngle=99 occluded=False watches=1 favourite=-1 phase=Disturbance
+HC_WATCHED kind=ear_breath t=16.6 n=1 budget=1/3 apparitions=0 hunts=0 clip=castle_hide_breath_0 side=left
+HC_DUCK seconds=9.9 depth=0.10
+HC_SCARE_CASTLE silence seconds=9.9 duck=wired felt=0 dread=0 pick=tick silence_roll chance=0.15 budget=1/8 gap=90 since=-
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:3.0 3:1.0 4:1.0 5:x(current)] favouriteFloor=1 share=0.81 chosen=2
+HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=12.7 viewAngle=127 occluded=False watches=1 favourite=1 phase=Disturbance
+HC_SCARE_SKIP reason=rhythm canSurprise=False age=24
+HC_SCARE_CASTLE knife_stick pick=weighted w=1.25/6.25 rank=1 budget=1/4 gap=90 since=-
+HC_RULES t=30 phase=Disturbance dread=0.9 event=0.0 felt=0.0 runDreadMin=39.4 grace=0 relief=1 governor=1.00 huntShare=0.000 hunts=0
+HC_COUNT_FLOORS seconds=[0,27,3,0] favourite=1
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:x(current) 3:1.0 4:1.0 5:3.2] favouriteFloor=1 share=0.89 chosen=5
+HC_COUNT_PERCH moved perch=5 feet=(0.00, 8.10, 19.50) playerDist=9.0 viewAngle=99 occluded=False watches=1 favourite=1 phase=Disturbance
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:3.3 3:1.0 4:1.0 5:x(current)] favouriteFloor=1 share=0.92 chosen=2
+HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=12.7 viewAngle=127 occluded=False watches=1 favourite=1 phase=Disturbance
+HC_WATCHED kind=door_slam t=43.1 n=2 budget=1/4 apparitions=0 hunts=0 at=(-6.0, 1.1, 3.0) distance=13.9 occluded=True
+HC_SCARE_SKIP reason=rhythm canSurprise=True age=44
+HC_LIE kind=false_candle at=(6.0, 1.0, 16.0)
+HC_SCARE_CASTLE false_candle_tell pick=direct budget=1/5 gap=90 since=-
+HC_LIE kind=false_candle decoy=True dread=1
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:x(current) 3:1.0 4:1.0 5:3.3] favouriteFloor=1 share=0.93 chosen=3
+HC_COUNT_WINGS leg=perch loudness=0.5 hunt=False
+HC_COUNT_PERCH flight unseen=True audible=True roll=0.20 from=2 to=3 wings=0.5 position=(0.00, 5.45, 27.00) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=2 mode=0
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=2.9
+HC_COUNT_LEG blocked=wall fix=crawl hit=ColumnGreat collision at=(-3.45, 6.67, 24.43) state=Travel
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=3.0
+HC_DOOR_STATE name="Door / Library balcony door" side=-z swing=away angle=-155 by=auto positive=55 negative=155 pivot=(-6.32, 3.20, 15.25)
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=3.0
+HC_COUNT_PERCH landed perch=3 position=(-10.00, 5.60, 16.00) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=3 mode=0
+HC_RULES t=60 phase=Disturbance dread=1.8 event=0.0 felt=0.0 runDreadMin=39.4 grace=0 relief=1 governor=1.00 huntShare=0.000 hunts=0
+HC_ONBOARD reason=t60 t=60.0 phase=Disturbance firstCue=16.6 cues=2 cuesBeforeFirstHunt=2 firstHunt=none firstObjectiveChange=1.4 objectiveChanges=1 step=ledger nudges=0 briefingAfter1s=False plan=Mid firstHuntDeadline=134.0 hideSpots=8/8 kinds=[door_slam:1,ear_breath:1]
+HC_COUNT_FLOORS seconds=[0,57,3,0] favourite=1
+HC_NOTICE text="A ledger page is still waiting in the dining hall (west wing). Pages lie open on tables and lecterns."
+HC_NUDGE t=61.5 step=ledger n=1 text="A ledger page is still waiting in the dining hall (west wing). Pages lie open on tables and lecterns."
+HC_SCARE_SKIP reason=rhythm canSurprise=True age=69
+HC_SCARE_CASTLE bell_single pick=weighted w=1.25/5.00 rank=3 budget=1/2 gap=240 since=-
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:3.4 3:x(current) 4:1.0 5:3.4] favouriteFloor=1 share=0.95 chosen=2
+HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=12.7 viewAngle=127 occluded=False watches=1 favourite=1 phase=Disturbance
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:x(current) 3:1.0 4:1.0 5:3.4] favouriteFloor=1 share=0.96 chosen=3
+HC_COUNT_PERCH moved perch=3 feet=(-10.00, 5.60, 16.00) playerDist=11.4 viewAngle=45 occluded=True watches=2 favourite=1 phase=Disturbance
+HC_LIE kind=footsteps_behind at=(4.0, 0.0, 16.4) distance=4.1 decoy=True dread=2 pick=direct budget=1/6 gap=90 since=-
+HC_WATCHED kind=footsteps_behind t=84.2 n=3 budget=1/3 apparitions=0 hunts=0 via=castle_scares
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:3.4 3:x(current) 4:1.0 5:3.4] favouriteFloor=1 share=0.96 chosen=2
+HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=12.7 viewAngle=127 occluded=False watches=1 favourite=1 phase=Disturbance
+HC_RULES t=90 phase=Disturbance dread=2.7 event=0.0 felt=0.0 runDreadMin=39.4 grace=0 relief=1 governor=1.00 huntShare=0.000 hunts=0
+HC_SCARE_CLOCK next_in=37 lull=False rescheduled=0 diceHold=30
+HC_ESCALATE near=3.3 escalated=False reason=first_apparition phase=Disturbance grace=0 chance=0.00 dark=False apparitions=1 lastHuntEscalated=False substitute=none
+HC_SCARE visible=1 basement=False rush=False t=90 escalate=false reason=first_apparition
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:3.4 3:1.0 4:1.0 5:3.4] favouriteFloor=1 share=0.96 chosen=2
+HC_COUNT_PERCH moved perch=2 feet=(0.00, 5.45, 27.00) playerDist=12.7 viewAngle=124 occluded=False watches=1 favourite=1 phase=Disturbance
+HC_COUNT_FLOORS seconds=[0,87,3,0] favourite=1
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:x(current) 3:1.0 4:1.0 5:3.4] favouriteFloor=1 share=0.97 chosen=4
+HC_COUNT_PERCH moved perch=4 feet=(10.46, 9.20, 25.46) playerDist=17.1 viewAngle=140 occluded=True watches=3 favourite=1 phase=Disturbance
+HC_SCARE_SKIP reason=rhythm canSurprise=False age=103
+HC_SCARE_CASTLE window_silhouette pick=tick budget=1/8 gap=90 since=-
+HC_WATCHED kind=ear_whisper t=107.3 n=4 budget=1/2 apparitions=1 hunts=0 clip=castle_hide_whisper side=right verbal=False
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:3.4 3:1.0 4:x(current) 5:3.4] favouriteFloor=1 share=0.97 chosen=5
+HC_COUNT_WINGS leg=perch loudness=1.0 hunt=False
+HC_COUNT_PERCH flight unseen=True audible=True roll=0.00 from=4 to=5 wings=1.0 position=(10.46, 9.20, 25.46) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=4 mode=0
+HC_COUNT_LEG blocked=wall fix=land hit=Slab / wall at=(5.15, 9.20, 21.72) state=Land
+HC_COUNT_PERCH landed perch=5 position=(0.00, 8.10, 19.50) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=5 mode=0
+HC_SCARE_SKIP reason=rhythm canSurprise=False age=119
+HC_SCARE_CASTLE candle_gutter pick=weighted w=1.25/4.10 rank=2 budget=1/6 gap=90 since=-
+HC_RULES t=120 phase=Disturbance dread=6.8 event=3.1 felt=16.8 runDreadMin=39.4 grace=0 relief=1 governor=1.00 huntShare=0.000 hunts=0
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:x(near 7.3m) 1:x(near 7.3m) 2:3.4 3:1.0 4:1.0 5:x(current)] favouriteFloor=1 share=0.97 chosen=4
+HC_COUNT_WINGS leg=perch loudness=0.0 hunt=False
+HC_COUNT_PERCH flight observed=False showcase=timeout view=none waited=90 tries=1 from=5 to=4 position=(0.00, 8.10, 19.50) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=5 mode=0
+HC_COUNT_FLOORS seconds=[0,117,3,0] favourite=1
+HC_COUNT_POSE pitch=65 target=68 mode=1 state=Travel speed=4.3
+HC_COUNT_LEG blocked=wall fix=crawl hit=ColumnGreat collision at=(3.45, 5.11, 21.44) state=Travel
+HC_DOOR_STATE name="Door / Portrait balcony door" side=+z swing=away angle=155 by=auto positive=155 negative=55 pivot=(6.32, 3.20, 15.25)
+HC_APPARITION_GATE deferred=apparition reason=planned_hunt huntIn=6.4 phase=Disturbance t=127.6
+HC_SCARE_SKIP reason=rhythm canSurprise=True age=128
+HC_COUNT_POSE pitch=38 target=38 mode=1 state=Travel speed=3.0
+HC_WARNING false=False escalated=False length=11.2 threatFrom=Disturbance dread=4.1
+HC_OBJECTIVE t=134.2 step=warning from=ledger n=2 text="BREAK LINE OF SIGHT · hide [E] · lantern off [F] · stay quiet" tracker="RECORDS 2/3   LEDGER 0/3   RELICS 0/3"
+HC_COUNT_LEG blocked=wall fix=land hit=Orrery collision at=(10.19, 8.53, 25.50) state=Land
+HC_COUNT_PERCH landed perch=4 position=(10.46, 9.20, 25.46) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Perched perch=4 mode=0
+HC_COUNT_PERCH showcase landed perch=4 seen=False done=False
+HC_WATCHED kind=ear_breath t=137.6 n=5 budget=2/3 apparitions=1 hunts=0 clip=castle_hide_breath_1 side=right
+HC_SCARE_CASTLE knife_stick pick=ambient weighted w=0.43/2.93 rank=3 budget=2/4 gap=90 since=118
+HC_AMBIENT phase=Warning beat=knife_stick
+HC_TORCH_PLAN hunt roll=0.91 at=none
+HC_HUNT_START t=145 phase=Hunt noTell=False from=Warning escalated=False threatFrom=Disturbance dread=4.8 felt=3.9 runDreadMin=39.4 huntSeconds=27.6 breaker=False hunts=1
+HC_HUNT_TELL kind=warning lead_s=11.2 t=145 hunts=1 phase=Hunt first=True cold=False gate=off firstDocAt=1
+HC_COUNT_CLIP_SKULL mode=8 clip=GrabDrop frames=97 start=4.38 peak=4.38@0.00s end=1.70
+HC_COUNT_CLIP_SKULL mode=12 clip=CountClaudeGrabDropSpin frames=115 start=4.38 peak=4.38@0.00s end=1.78
+HC_GRAB_SIDE_MAP sideL_start=(2.88, 1.54, 0.11) sideR_start=(-2.88, 1.54, 0.11) swapped=False (a start on his right is on her left)
+HC_COUNT_MEMORY stale=none when=hunt start
+HC_COUNT_HEARD rejected (1.00, 0.05, 16.60) reason=snapped to 1.49 m < 1.5
+HC_COUNT_HEARD guess=(2.42, 0.05, 13.40) offset=3.2 hidden=False position=(10.46, 9.20, 25.46) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=4 mode=0
+HC_HUNT_SPAWN hostileReturn=False noTell=False keptPerch=True position=(10.46, 9.20, 25.46) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=4 mode=0
+HC_COUNT_AI t=0.0 state=Perched pos=(10.46, 9.20, 25.46) player=(0.00, 0.05, 15.50) los=False seen=False dist=16.9 angle=7 hidden=False torch=True memory=(2.42, 0.05, 13.40) route=0/0 attacked=False why=line of sight blocked by Orrery collision
+HC_ONBOARD reason=first_hunt t=145.2 phase=Hunt firstCue=16.6 cues=5 cuesBeforeFirstHunt=5 firstHunt=145.2 firstObjectiveChange=1.4 objectiveChanges=2 step=warning nudges=1 briefingAfter1s=False plan=Mid firstHuntDeadline=134.0 hideSpots=8/8 kinds=[door_slam:1,footsteps_behind:1,ear_breath:2,ear_whisper:1]
+HC_SCARE_CASTLE balustrade_shape pick=direct budget=1/3 gap=180 since=-
+HC_OBJECTIVE t=145.4 step=ledger from=warning n=3 text="Find the Blood Ledger pages (0/3): the dining hall (west wing), the portrait hall (upstairs, east wing), the chapel (east of the courtyard)." tracker="RECORDS 2/3   LEDGER 0/3   RELICS 0/3"
+HC_COUNT_AI t=1.0 state=Perched pos=(10.46, 9.20, 25.46) player=(0.00, 0.05, 15.50) los=False seen=False dist=16.9 angle=7 hidden=False torch=True memory=(2.42, 0.05, 13.40) route=0/0 attacked=False why=line of sight blocked by Orrery collision
+HC_COUNT_SEARCH to=(2.42, 0.05, 13.40) waypoints=2 position=(10.46, 9.20, 25.46) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=True flight=Perched perch=4 mode=0
+HC_COUNT_WINGS leg=search loudness=0.5 hunt=True
+HC_COUNT_AI t=2.0 state=Travel pos=(9.78, 9.21, 24.78) player=(0.00, 0.05, 15.50) los=False seen=False dist=16.4 angle=35 hidden=False torch=True memory=(2.42, 0.05, 13.40) route=0/2 attacked=False why=line of sight blocked by Orrery collision
+HC_COUNT_AI t=3.0 state=Travel pos=(8.07, 9.25, 23.07) player=(0.00, 0.05, 15.50) los=False seen=False dist=14.5 angle=40 hidden=False torch=True memory=(2.42, 0.05, 13.40) route=0/2 attacked=False why=line of sight blocked by Wall
+HC_COUNT_POSE pitch=57 target=60 mode=1 state=Travel speed=4.3
+HC_COUNT_AI t=4.0 state=Travel pos=(6.65, 7.40, 20.73) player=(0.00, 0.05, 15.50) los=False seen=False dist=11.3 angle=46 hidden=False torch=True memory=(2.42, 0.05, 13.40) route=1/2 attacked=False why=line of sight blocked by Wall
+HC_COUNT_LEG blocked=wall fix=replan hit=Wall at=(6.30, 7.24, 20.13) state=Travel
+HC_RULES t=150 phase=Hunt dread=5.0 event=0.0 felt=9.5 runDreadMin=39.4 grace=0 relief=1 governor=1.00 huntShare=0.106 hunts=1
+HC_COUNT_AI t=5.0 state=Travel pos=(8.54, 7.14, 20.89) player=(0.00, 0.05, 15.50) los=False seen=False dist=12.5 angle=142 hidden=False torch=True memory=(2.42, 0.05, 13.40) route=0/16 attacked=False why=outside the sight cone
+HC_COUNT_AI t=6.0 state=Travel pos=(11.41, 7.44, 21.84) player=(0.00, 0.05, 15.50) los=False seen=False dist=15.1 angle=148 hidden=False torch=True memory=(2.42, 0.05, 13.40) route=0/16 attacked=False why=outside the sight cone
+HC_COUNT_FLOORS seconds=[0,147,3,0] favourite=1
+HC_COUNT_AI t=7.0 state=Travel pos=(12.50, 6.46, 23.84) player=(0.00, 0.05, 15.50) los=False seen=False dist=16.4 angle=121 hidden=False torch=True memory=none route=1/16 attacked=False why=outside the sight cone
+HC_COUNT_AI t=8.0 state=Travel pos=(12.50, 4.78, 26.35) player=(0.00, 0.05, 15.50) los=False seen=False dist=17.3 angle=129 hidden=False torch=True memory=none route=1/16 attacked=False why=outside the sight cone
+HC_COUNT_AI t=9.0 state=Travel pos=(10.80, 3.75, 26.20) player=(0.00, 0.05, 15.50) los=False seen=False dist=15.7 angle=20 hidden=False torch=True memory=none route=4/16 attacked=False why=line of sight blocked by Wall
+HC_SCARE_CASTLE balustrade_shape_gone
+HC_COUNT_AI t=10.0 state=Travel pos=(8.08, 3.75, 24.60) player=(0.00, 0.05, 15.50) los=False seen=False dist=12.8 angle=25 hidden=False torch=True memory=none route=4/16 attacked=False why=line of sight blocked by Wall
+HC_COUNT_AI t=11.0 state=Travel pos=(7.33, 2.58, 21.48) player=(0.00, 0.05, 15.50) los=False seen=False dist=9.9 angle=46 hidden=False torch=True memory=none route=6/16 attacked=False why=line of sight blocked by Wall
+HC_COUNT_AI t=12.0 state=Travel pos=(6.95, 1.36, 18.54) player=(0.00, 0.05, 15.50) los=False seen=False dist=7.7 angle=60 hidden=False torch=True memory=none route=6/16 attacked=False why=line of sight blocked by Wall
+HC_COUNT_HEARD guess=(-1.70, 0.05, 17.26) offset=2.4 hidden=False position=(6.81, 0.91, 17.47) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=4 mode=1
+HC_COUNT_SEARCH to=(-1.70, 0.05, 17.26) waypoints=8 position=(6.81, 0.91, 17.47) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=True flight=Travel perch=4 mode=1
+HC_COUNT_WINGS leg=search loudness=0.5 hunt=True
+HC_GRAB_VARIANT plan=drop mode=8 scores=[drop=2.71 spin=0.69 side=n/a(L detour 5 legs 6.4 m (straight 5.3); R flank closed (flank line blocked)) crawl=-4.20] ceiling=8.95 ring=8.95 roomAt=her bearing=-7 facing=False deck=[8:2 9:6 10:0 11:0 12:1]
+HC_COUNT_DIVE style=high reason=plan drop ceiling=8.95
+HC_COUNT_DIVE position=(6.78, 0.80, 17.20) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=4 mode=1
+HC_VOICE_GATE held id=cc_hunt_run reason=beyond 6 m for a hunt line (6.7) t=12.6
+HC_PLAY huntcam dive_start t=157.9 threatFrom=Disturbance noTell=False hunts=1 position=(6.78, 0.80, 17.20) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=4 mode=1
+HC_PLAY huntcam frame=1 t_since_dive=0.10 distance=7.03 phase=Hunt mode=1
+HC_COUNT_RIM scale=1.10 hunt=True
+HC_DOOR_STATE name="Door / Vestibule hall door" side=+z swing=away angle=155 by=auto positive=155 negative=55 pivot=(6.32, 0.00, 15.25)
+HC_COUNT_DIVE_LAST eta=0.97 distance=6.82 speed=4.8 position=(6.71, 0.60, 16.71) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=4 mode=3
+HC_TORCH_SKIP source=dive roll=0.71
+HC_COUNT_LEG blocked=door fix=wait hit=Vestibule hall door at=(6.57, 0.90, 16.47) state=Chase
+HC_PLAY huntcam frame=2 t_since_dive=0.40 distance=6.45 phase=Hunt mode=3
+HC_COUNT_DREAD seen +15 dread=20.2 position=(5.82, 0.55, 16.40) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=True flight=Chase perch=4 mode=7
+HC_COUNT_VOICE id=cc_hunt_found from=head dist=5.1 occluded=False
+HC_VOICE_GATE spoke id=cc_hunt_found from=head asked=False huntLines=1 t=13.0 position=(5.62, 0.55, 16.40) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=4 mode=3
+HC_COUNT_AI t=13.1 state=Chase pos=(5.40, 0.55, 16.40) player=(0.00, 0.05, 15.50) los=True seen=True dist=5.5 angle=12 hidden=False torch=True memory=(0.00, 0.05, 15.50) route=0/4 attacked=True why=chasing
+HC_PLAY huntcam frame=3 t_since_dive=0.70 distance=4.99 phase=Hunt mode=3
+HC_PLAY huntcam frame=4 t_since_dive=1.01 distance=3.47 phase=Hunt mode=3
+HC_COUNT_POSE pitch=29 target=24 mode=3 state=Chase speed=3.8
+HC_PLAY huntcam frame=5 t_since_dive=1.32 distance=2.88 phase=Hunt mode=3
+HC_COUNT_GRAB mode=8 height=1.77 reason=high dive, drop (bearing -4) dropHeight=1.77 hideEntrance=False witnessed=False position=(2.45, 1.82, 15.42) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=4 mode=3
+HC_COUNT_GRAB from=above dy=3.08 ceiling=8.95 (the GrabDrop clip falls from 4.72 m)
+HC_COUNT_GRAB clip_start_t=0.40 mode=8 clip=GrabDrop skullFrom=3.05 skullClip=2.95
+HC_COUNT_GRAB root=matched mode=8 clip=GrabDrop headNow=3.10 clipHead=2.95 originY=0.15 floor=0.05 skullDelta=0.00 fromLastDiveSample=0.60 blend=0.15s from=above
+HC_COUNT_DIVE end=commit mode=8 planned=drop t=1.4
+HC_COUNT_GRABCAM begin path=dive hide=False position=(2.45, 0.15, 15.42) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=True memory=True flight=Chase perch=4 mode=8
+HC_GRAB_COMMIT mode=8 path=dive hide=False return=False headroom=True headroomAt=her ceilingMax=8.95 planned=drop clip_start_t=0.40 deck=[8:3 9:6 10:0 11:0 12:1]
+HC_GRAB_MODE_HIST grabs=1 m6=0 m7=0 m8=1 m9=0 m10=0 m11=0 m12=0 hide=0 return=0 openHeadroom=1 openHeadroomDrops=1 dropShareHeadroom=100% deck=[8:3 9:6 10:0 11:0 12:1]
+HC_GRAB_LIGHT torch=on rim=1.10 layer=29 gate=always mode=8
+HC_GRAB_SEAT gap=0.45 offset=(-0.18, 0.00, -0.41) seconds=0.35 mode=8 path=dive note=reseated 0.06 (raw gap 0.51)
+HC_GRAB_LINE props=254
+HC_GRAB_FIRSTFRAME skull_px=(1428,259) visible=True inFrame=True lineClear=True snapDeg=0 cut=False eyeToSkull=2.53 seatGap=0.45 mode=8 path=dive
+HC_COUNT_GRABCAM t=0.01 path=dive visible=True pos=(2.24, 0.15, 14.95) blend=turning kill=False mode=8 skull_px=(1428,259) skull_in_central60=False claw_px_proj=204 claw_ok=True hands=[L=204(66pts,66in,16/16clear,dBone=0.31) R=195(67pts,67in,16/16clear,dBone=0.31)] eyeToSkull=2.53 headAboveEye=1.41
+HC_UI grab_hidden=true
+HC_PLAY_GRABSHOT 11_grabcam_dive_t0.01.png t=0.01 path=dive visible=True blend=turning kill=False mode=8 skull_px=(1428,259) skull_in_central60=False claw_px_proj=204 claw_ok=True eyeToSkull=2.53 headAboveEye=1.41
+HC_COUNT_AI t=14.1 state=Chase pos=(2.24, 0.15, 14.95) player=(0.00, 0.05, 15.50) los=True seen=True dist=2.3 angle=14 hidden=False torch=True memory=(0.00, 0.05, 15.50) route=0/1 attacked=True why=chasing
+HC_PLAY huntcam frame=6 t_since_dive=1.66 distance=2.31 phase=Hunt mode=8
+HC_COUNT_RIM scale=0.35 hunt=False
+HC_COUNT_GRAB_PRESENTATION mode=8 standOff=2.22 position=(2.29, 0.07, 15.05) player=(0.00, 0.05, 15.50) enabled=False nav=False path=none destination=none seen=False memory=False flight=Chase perch=4 mode=8
+HC_VOICE_SUMMARY lines=1 spatial=1 dropped=0 from_head=1 from_other=0 refused_other=0 evp_textures=0
+HC_COUNT_GRAB root=landed y=0.05 t=0.16
+HC_COUNT_GRABCAM t=0.16 path=dive visible=True pos=(2.32, 0.05, 15.12) blend=done kill=True mode=8 skull_px=(1264,643) skull_in_central60=True claw_px_proj=240 claw_ok=True hands=[L=240(66pts,66in,16/16clear,dBone=0.31) R=238(67pts,67in,16/16clear,dBone=0.31)] eyeToSkull=2.04 headAboveEye=0.34
+HC_PLAY_GRABSHOT 13_grabcam_dive_t0.16.png t=0.16 path=dive visible=True blend=done kill=True mode=8 skull_px=(1264,643) skull_in_central60=True claw_px_proj=240 claw_ok=True eyeToSkull=2.04 headAboveEye=0.34
+HC_PLAY huntcam frame=7 t_since_dive=1.97 distance=2.33 phase=Dead mode=8
+HC_OBJECTIVE t=159.5 step=dead from=ledger n=4 text="THE COUNT FEEDS" tracker="RECORDS 2/3   LEDGER 0/3   RELICS 0/3"
+HC_COUNT_GRABCAM t=0.30 path=dive visible=True pos=(2.24, 0.05, 15.35) blend=done kill=True mode=8 skull_px=(1265,639) skull_in_central60=True claw_px_proj=325 claw_ok=True hands=[L=325(66pts,66in,16/16clear,dBone=0.31) R=315(67pts,67in,16/16clear,dBone=0.31)] eyeToSkull=1.73 headAboveEye=0.16
+HC_PLAY_GRABSHOT 15_grabcam_dive_t0.30.png t=0.30 path=dive visible=True blend=done kill=True mode=8 skull_px=(1265,639) skull_in_central60=True claw_px_proj=325 claw_ok=True eyeToSkull=1.73 headAboveEye=0.16
+HC_PLAY huntcam frame=8 t_since_dive=2.28 distance=2.20 phase=Dead mode=8
+HC_COUNT_GRABCAM t=0.46 path=dive visible=True pos=(2.06, 0.05, 15.38) blend=done kill=True mode=8 skull_px=(1256,615) skull_in_central60=True claw_px_proj=509 claw_ok=True hands=[L=351(66pts,54in,14/14clear,dBone=0.31,first=outside (0.56,-0.14)) R=509(67pts,55in,14/14clear,dBone=0.31,first=outside (0.52,-0.03))] eyeToSkull=1.46 headAboveEye=0.14
+HC_PLAY_GRABSHOT 17_grabcam_dive_t0.46.png t=0.46 path=dive visible=True blend=done kill=True mode=8 skull_px=(1256,615) skull_in_central60=True claw_px_proj=509 claw_ok=True eyeToSkull=1.46 headAboveEye=0.14
+HC_PLAY huntcam frame=9 t_since_dive=2.58 distance=2.01 phase=Dead mode=8
+HC_COUNT_GRABCAM t=0.60 path=dive visible=True pos=(1.90, 0.05, 15.39) blend=done kill=True mode=8 skull_px=(1252,594) skull_in_central60=True claw_px_proj=545 claw_ok=True hands=[L=349(66pts,38in,10/10clear,dBone=0.31,first=outside (0.57,-0.43)) R=545(67pts,29in,8/8clear,dBone=0.31,first=outside (0.48,-0.01))] eyeToSkull=1.25 headAboveEye=0.13
+HC_PLAY_GRABSHOT 19_grabcam_dive_t0.60.png t=0.60 path=dive visible=True blend=done kill=True mode=8 skull_px=(1252,594) skull_in_central60=True claw_px_proj=545 claw_ok=True eyeToSkull=1.25 headAboveEye=0.13
+HC_PLAY huntcam frame=10 t_since_dive=2.88 distance=1.87 phase=Dead mode=8
+HC_COUNT_GRABCAM t=0.76 path=dive visible=True pos=(1.82, 0.05, 15.40) blend=done kill=True mode=8 skull_px=(1249,585) skull_in_central60=True claw_px_proj=379 claw_ok=True hands=[L=372(66pts,26in,7/7clear,dBone=0.31,first=outside (0.60,-0.71)) R=379(67pts,18in,5/5clear,dBone=0.31,first=outside (0.48,-0.07))] eyeToSkull=1.13 headAboveEye=0.10
+HC_PLAY_GRABSHOT 21_grabcam_dive_t0.76.png t=0.76 path=dive visible=True blend=done kill=True mode=8 skull_px=(1249,585) skull_in_central60=True claw_px_proj=379 claw_ok=True eyeToSkull=1.13 headAboveEye=0.10
+HC_COUNT_GRABCAM t=0.90 path=dive visible=True pos=(1.79, 0.05, 15.40) blend=done kill=True mode=8 skull_px=(1247,583) skull_in_central60=True claw_px_proj=399 claw_ok=True hands=[L=360(66pts,21in,6/6clear,dBone=0.31,first=outside (0.63,-0.88)) R=399(67pts,15in,4/4clear,dBone=0.31,first=outside (0.48,-0.09))] eyeToSkull=1.09 headAboveEye=0.09
+HC_PLAY_GRABSHOT 22_grabcam_dive_t0.90.png t=0.90 path=dive visible=True blend=done kill=True mode=8 skull_px=(1247,583) skull_in_central60=True claw_px_proj=399 claw_ok=True eyeToSkull=1.09 headAboveEye=0.09
+HC_COUNT_GRABCAM t=1.00 path=dive visible=True pos=(1.79, 0.05, 15.40) blend=done kill=True mode=8 skull_px=(1247,584) skull_in_central60=True claw_px_proj=406 claw_ok=True hands=[L=264(66pts,19in,5/5clear,dBone=0.31,first=outside (0.65,-0.96)) R=406(67pts,15in,4/4clear,dBone=0.31,first=outside (0.48,-0.09))] eyeToSkull=1.08 headAboveEye=0.08
+HC_PLAY_GRABSHOT 23_grabcam_dive_t1.00.png t=1.00 path=dive visible=True blend=done kill=True mode=8 skull_px=(1247,584) skull_in_central60=True claw_px_proj=406 claw_ok=True eyeToSkull=1.08 headAboveEye=0.08
+HC_GRAB_CAMDIST min=1.06 at_t=1.20 ok=True frames=82 lineClear=82/82 blockers=[] pushes=0 hiddenProps=[] mode=8 path=dive when=clip end
+HC_PLAY_GRAB_CONTINUITY n=1 mode=8 frames=83 commit_gap=0.00 commit_ok=True fall_ok=True against=none step_ok=True crawl_ok=n/a max_step=0.30 max_dt=0.033 pop=none min_eye_skull=1.06 line_blocked=0/83 pass=True legacy_pass=True legacy_pop=none
+HC_GRAB_HUD pixels=0 draws=0 frames=160 captionsHeld=0 fadeFrames=140 end=presentation over
+HC_DOC_PANEL card=1448x1426
+HC_DOC_LAYOUT screen=ending_lost overlaps=0 frames=1 texts=13 scale=0.28 pad=8 x=117
+HC_PLAY phase=lost_card t=163.6 case=Dead dread=20.3 hunts=1 evidence=2 notes=1 survived=False relics=0 sword=False hits=0 blockedDeaths=0 logged=True
+HC_PLAY_RESULT mode=huntcam won=False dead=True hunts=1 blockers=0
+HC_APP_QUIT t=168.6 map=Castle started=True paused=False
+HC_VOICE_SUMMARY lines=1 spatial=1 dropped=0 from_head=1 from_other=0 refused_other=0 evp_textures=0
+HC_ONBOARD reason=quit t=159.5 phase=Dead firstCue=16.6 cues=5 cuesBeforeFirstHunt=5 firstHunt=145.2 firstObjectiveChange=1.4 objectiveChanges=4 step=dead nudges=1 briefingAfter1s=False plan=Mid firstHuntDeadline=134.0 hideSpots=8/8 kinds=[door_slam:1,footsteps_behind:1,ear_breath:2,ear_whisper:1]
+HC_GRAB_MODE_HIST final grabs=1 m6=0 m7=0 m8=1 m9=0 m10=0 m11=0 m12=0 hide=0 return=0 open=1 openHeadroom=1 openHeadroomDrops=1 dropShareHeadroom=100%
+HC_GRAB_SUMMARY grabs=1 continuity=1/1 continuity20=1/1 firstFrameVisible=1/1 camDistOk=1/1 camDistMin=1.06 lineAllClear=1/1 hudZero=1/1 teleportsDuringGrab=0 dives=1 diveCommits=1 diveMisses=0 diveUnresolved=0
+Thread 0x16eccb000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16cb23000 may have been prematurely finalized

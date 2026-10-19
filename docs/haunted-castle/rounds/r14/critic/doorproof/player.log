@@ -1,0 +1,218 @@
+Mono path[0] = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.20f1 (c9ba695d4f07)
+[Subsystems] Discovering subsystems at path /Users/midir/hollow-current-haunted-castle/Builds/macOS/Hollow Current.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+ preferred device: Apple M3 Ultra (high power)
+Metal devices available: 1
+0: Apple M3 Ultra (high power)
+Using device Apple M3 Ultra (high power)
+Initializing Metal device caps: Apple M3 Ultra
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.053 seconds
+- Finished resetting the current domain, in  0.001 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+UnloadTime: 0.319042 ms
+HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad (TestInput only); window 1920x1080, owner window 1920x1080 restored on quit
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+HC_STARTUP_READY
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_PLAY phase=switch_to_castle from=Bellwether
+Unloading 6 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 5.032584 ms
+HC_RUN_PLAN band=Early firstHunt=60-100 burstStart=True cold=False coldCap=150 history=E,M,B
+HC_RULES Castle dread=0 runDreadMin=31.1 felt=6.2
+HC_CASTLE_MIX heartbeat=True wind=True windows=17 rareLine=False
+HC_AUDIO_READY 94 authored clips including intelligible voice takes
+HC_COMPASS_DIAL dial_shader=HollowCurrent/CastleSprite rim_shader=HollowCurrent/CastleEmissive dial_level=0.68 glass_dome=False (fc-art2: translucent veil removed)
+HC_INSTRUMENTS map=castle compass=1277 trumpet=1026 period=True lantern=1150 radio=1105 (max 3000)
+HC_COUNT_REACH receipt grab=1.385 drop=1.615 crawl=1.729 standOff drop=2.22 crawl=2.33 sideL=2.20 sideR=2.21 spin=2.21 spinWindow=0.50-1.15s/120deg
+HC_COUNT_GORE applied Castle gore / Membrane/CountClaude / albedo/Castle gore / Flesh
+HC_COUNT_HANDS vertices=930 groups=2
+HC_COUNT_RIG wingExt=10 arms=True
+HC_COUNT_SKIN_BOUNDS live renderers=1
+HC_SCARE_CLOCK start=burst first_in=34
+HC_THROWABLES director=38
+[CastleLightTuning] tuned 60 lights
+HC_EXTERIOR_FILL_MASK stage=build interior_layer=27 moved=1037 outer_face_kept=597 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_DEEP_INTERIOR_DOORS gate=0 gatehouse_exits=4
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_FLAME_CHECK scene material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | runtime material: shader=HollowCurrent/CastleFlame tex=Surreal_FlameHalo 128x128 RGBA32 readable=False | queue=3001 | lean shader property _LeanAmount present | one-quad flame mesh in use
+HC_HIDE_SPOTS source=runtime name="Hall armoire" kind=Hide center=(4.77, 1.00, 21.00) size=(0.28, 2.00, 1.10) face=(4.87, 1.00, 21.00) stand=(3.67, 0.00, 21.00) standClear=False first=Hall armoire@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Dining armoire" kind=Hide center=(-12.50, 1.00, 11.23) size=(1.10, 2.00, 0.28) face=(-12.50, 1.00, 11.13) stand=(-12.50, 0.00, 12.33) standClear=True first=Dining armoire@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Kitchen larder" kind=Hide center=(-7.50, 1.00, 1.38) size=(1.10, 2.00, 0.28) face=(-7.50, 1.00, 1.28) stand=(-7.50, 0.00, 2.48) standClear=True first=Kitchen larder@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Confessional" kind=Hide center=(7.30, 1.00, 11.77) size=(1.10, 2.00, 0.28) face=(7.30, 1.00, 11.87) stand=(7.30, 0.00, 10.67) standClear=True first=Confessional@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Vestibule press" kind=Hide center=(12.62, 1.00, 16.00) size=(0.28, 2.00, 1.10) face=(12.72, 1.00, 16.00) stand=(11.52, 0.00, 16.00) standClear=True first=Vestibule press@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Library cabinet" kind=Hide center=(-7.23, 4.20, 19.80) size=(0.28, 2.00, 1.10) face=(-7.13, 4.20, 19.80) stand=(-8.33, 3.20, 19.80) standClear=True first=Library cabinet@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Count's wardrobe" kind=Hide center=(-7.70, 4.20, 1.38) size=(1.10, 2.00, 0.28) face=(-7.70, 4.20, 1.28) stand=(-7.70, 3.20, 2.48) standClear=True first=Count's wardrobe@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS source=runtime name="Ossuary niche" kind=Hide center=(4.77, -2.20, 17.60) size=(0.28, 2.00, 1.10) face=(4.87, -2.20, 17.60) stand=(3.67, -3.20, 17.60) standClear=True first=Ossuary niche@1.11 focusCentre=True focusEye=True focusLow=True pass=True
+HC_HIDE_SPOTS_SUMMARY source=runtime audited=8 focusable=8 failed=[] proud=0.20
+HC_ONBOARD_START equipped=True phase=Survey plan=Early hides=8/8
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 814 unused Assets to reduce memory usage. Loaded Objects now: 15334.
+Total: 3.744583 ms (FindLiveObjects: 0.303291 ms CreateObjectMapping: 0.040250 ms MarkObjects: 2.686834 ms  DeleteObjects: 0.714208 ms)
+
+[CastleAtmosphere] upgraded 571 world and 877 prop material slots
+HC_STARTUP_READY
+HC_FEAR_CANDLES lights=43 chapelFire=True
+HC_COUNT_RIM scale=0.35 hunt=False
+HC_WATCHED_CLOCK first_at=6.2
+HC_OBJECTIVE t=0.0 step=letter initial=true text="Read the gate keeper's letter on the gatehouse table [E]."
+HC_COUNT_PERCH_CHOICE reason=x(current|near|same-floor|in-view) weights=[0:1.0 1:1.0 2:1.0 3:1.0 4:1.0 5:1.0] favouriteFloor=-1 share=0.00 chosen=4
+HC_COUNT_WINGS leg=perch loudness=0.5 hunt=False
+HC_COUNT_PERCH flight unseen=True audible=True roll=0.04 from=-1 to=4 wings=0.5 position=(0.00, 0.05, 0.00) player=(0.00, 0.08, 3.20) enabled=False nav=False path=none destination=none seen=False memory=False flight=Travel perch=-1 mode=0
+HC_PLAY phase=begin_doorproof t=1.1 case=Survey dread=0.0 hunts=0 evidence=0 notes=0 survived=False relics=0 sword=False hits=0 blockedDeaths=0 rules=Castle
+HC_DOORPROOF plan=Late (driver) t=1.0
+HC_DOORPROOF begin leaves=4 doors=Great door / Hall great doors (left),Great door / Hall great doors (right),Door / Dining hall door,Door / Vestibule hall door
+HC_COUNT_FLOORS seconds=[0,0,0,0] favourite=-1
+HC_DOOR_STATE name="Great door / Hall great doors (left)" side=-z swing=away angle=-155 by=player positive=55 negative=155 pivot=(-1.50, 0.00, 14.32)
+HC_LEAN_CHECK auto candle 1 at 6.5 m: wick screen position before lean (1484.0,312.4) after (1484.0,312.4) moved 0.00 px; rendered flame tip is tilted 9 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=7.8 _LeanDir=(0.88,0.14,-0.45)
+HC_LEAN_CHECK auto candle 2 at 6.4 m: wick screen position before lean (1514.4,366.7) after (1514.4,366.7) moved 0.00 px; rendered flame tip is tilted 7 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=6.1 _LeanDir=(0.85,0.19,-0.48)
+HC_LEAN_CHECK auto candle 3 at 6.4 m: wick screen position before lean (1543.3,368.0) after (1543.3,368.0) moved 0.00 px; rendered flame tip is tilted 6 deg on screen from its candle axis, tip distance from wick 0 px (unleaned 0 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=5.2 _LeanDir=(0.86,0.19,-0.48)
+HC_FLAME_RIGID auto flame 1 at 3.5 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 3.9 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 3.9 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 3.9 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 4.2 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_DOORPROOF name="Great door / Hall great doors (left)" side=-z swing=away angle=-155 chosen=away leafSide=1 playerSide=-1 focus=True by=player leafRot=283 player=(-0.8, 0.1, 12.8) t=2
+HC_DOOR_STATE name="Great door / Gatehouse great doors (right)" side=-z swing=away angle=-55 by=auto positive=155 negative=55 pivot=(1.50, 0.00, 6.32)
+HC_DOORPROOF close=direct name="Great door / Hall great doors (left)"
+HC_LEAN_CHECK auto candle 1 at 5.3 m: wick screen position before lean (3687.4,-2693.9) after (3687.4,-2693.9) moved 0.00 px; rendered flame tip is tilted 1 deg on screen from its candle axis, tip distance from wick 154 px (unleaned 163 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=2.9 _LeanDir=(0.18,0.59,-0.78)
+HC_LEAN_CHECK auto candle 2 at 5.3 m: wick screen position before lean (3235.6,-2802.4) after (3235.6,-2802.4) moved 0.00 px; rendered flame tip is tilted 0 deg on screen from its candle axis, tip distance from wick 148 px (unleaned 152 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=1.2 _LeanDir=(0.23,0.60,-0.76)
+HC_LEAN_CHECK auto candle 3 at 5.2 m: wick screen position before lean (-5361.3,1018.3) after (-5361.3,1018.3) moved 0.00 px; rendered flame tip is tilted 96 deg on screen from its candle axis, tip distance from wick 2 px (unleaned 6 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=22.0 _LeanDir=(-0.18,0.39,-0.90)
+HC_FLAME_RIGID auto flame 1 at 3.5 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 3.9 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 3.9 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.10 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 3.9 m: core enabled=True, halo centre to core centre 0.005 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.11 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 4.3 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.09 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_DOOR_STATE name="Great door / Chapel great doors (right)" side=-z swing=away angle=-55 by=auto positive=155 negative=55 pivot=(5.68, 0.00, 10.50)
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 1.50, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 1.50, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 1.50, 10.12) state=Travel
+HC_DOOR_STATE name="Great door / Hall great doors (left)" side=+z swing=away angle=55 by=player positive=55 negative=155 pivot=(-1.50, 0.00, 14.32)
+HC_COUNT_LEG stall=0.5 moved=0.00 fix=crawl state=Travel pos=(6.14, 1.15, 10.12)
+HC_DOORPROOF name="Great door / Hall great doors (left)" side=+z swing=away angle=55 chosen=away leafSide=-1 playerSide=1 focus=True by=player leafRot=55 player=(-1.0, 0.1, 15.8) t=6
+HC_WATCHED kind=ear_breath t=6.2 n=1 budget=1/3 apparitions=0 hunts=0 clip=castle_hide_breath_1 side=right
+HC_LEAN_CHECK auto candle 1 at 4.5 m: wick screen position before lean (8676.8,1317.8) after (8676.8,1317.8) moved 0.00 px; rendered flame tip is tilted 1 deg on screen from its candle axis, tip distance from wick 11 px (unleaned 10 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=1.7 _LeanDir=(0.38,0.08,-0.92)
+HC_LEAN_CHECK auto candle 2 at 4.6 m: wick screen position before lean (5143.3,837.8) after (5143.3,837.8) moved 0.00 px; rendered flame tip is tilted 1 deg on screen from its candle axis, tip distance from wick 3 px (unleaned 3 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.6 _LeanDir=(0.37,0.08,-0.93)
+HC_LEAN_CHECK auto candle 3 at 4.4 m: wick screen position before lean (6062.0,994.2) after (6062.0,994.2) moved 0.00 px; rendered flame tip is tilted 1 deg on screen from its candle axis, tip distance from wick 5 px (unleaned 5 px); shader HollowCurrent/CastleFlame, property block _LeanAmount=0.9 _LeanDir=(0.40,0.08,-0.91)
+HC_FLAME_RIGID auto flame 1 at 2.3 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 2 at 2.3 m: core enabled=True, halo centre to core centre 0.002 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.05 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 3 at 2.4 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 4 at 2.4 m: core enabled=True, halo centre to core centre 0.000 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.00 m, lean 0 deg PASS
+HC_FLAME_RIGID auto flame 5 at 2.5 m: core enabled=True, halo centre to core centre 0.004 m (limit 0.05), wick drift 0.000 m, quad offset from its wick 0.000 m, flame height 0.08 m, lean 0 deg PASS
+HC_FLAME_RIGID auto summary: 5 nearest flames PASS (402 flames in the scene)
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF close=direct name="Great door / Hall great doors (left)"
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_EXTERIOR_FILL_MASK stage=later interior_layer=27 moved=55 outer_face_kept=594 collider_kept=539 (outside fills do not light InteriorLayer)
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOOR_STATE name="Great door / Hall great doors (right)" side=-z swing=away angle=-55 by=player positive=155 negative=55 pivot=(1.50, 0.00, 14.32)
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF name="Great door / Hall great doors (right)" side=-z swing=away angle=-55 chosen=away leafSide=1 playerSide=-1 focus=True by=player leafRot=125 player=(1.2, 0.1, 15.8) t=10
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF close=direct name="Great door / Hall great doors (right)"
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOOR_STATE name="Great door / Hall great doors (right)" side=+z swing=away angle=155 by=player positive=155 negative=55 pivot=(1.50, 0.00, 14.32)
+HC_DOORPROOF name="Great door / Hall great doors (right)" side=+z swing=away angle=155 chosen=away leafSide=-1 playerSide=1 focus=True by=player leafRot=257 player=(0.7, 0.1, 12.8) t=13
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF close=direct name="Great door / Hall great doors (right)"
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF stand name="Door / Dining hall door" lateral=0.8 (straight-out line blocked)
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOOR_STATE name="Door / Dining hall door" side=-z swing=away angle=-155 by=player positive=55 negative=155 pivot=(-6.32, 0.00, 15.25)
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF name="Door / Dining hall door" side=-z swing=away angle=-155 chosen=away leafSide=1 playerSide=-1 focus=True by=player leafRot=193 player=(-4.9, 0.1, 16.4) t=17
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF close=direct name="Door / Dining hall door"
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOOR_STATE name="Door / Dining hall door" side=+z swing=away angle=55 by=player positive=55 negative=155 pivot=(-6.32, 0.00, 15.25)
+HC_DOORPROOF name="Door / Dining hall door" side=+z swing=away angle=55 chosen=away leafSide=-1 playerSide=1 focus=True by=player leafRot=325 player=(-7.8, 0.3, 16.0) t=21
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF close=direct name="Door / Dining hall door"
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOOR_STATE name="Door / Vestibule hall door" side=-z swing=away angle=-55 by=player positive=155 negative=55 pivot=(6.32, 0.00, 15.25)
+HC_SCARE_SKIP reason=rhythm canSurprise=False age=24
+HC_DUCK seconds=8.6 depth=0.10
+HC_SCARE_CASTLE silence seconds=8.6 duck=wired felt=0 dread=1 pick=tick silence_roll chance=0.15 budget=1/8 gap=90 since=-
+HC_DOORPROOF name="Door / Vestibule hall door" side=-z swing=away angle=-55 chosen=away leafSide=1 playerSide=-1 focus=True by=player leafRot=215 player=(7.8, 0.1, 16.0) t=24
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF close=direct name="Door / Vestibule hall door"
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF stand name="Door / Vestibule hall door" lateral=0.8 (straight-out line blocked)
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOOR_STATE name="Door / Vestibule hall door" side=+z swing=away angle=155 by=player positive=155 negative=55 pivot=(6.32, 0.00, 15.25)
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF name="Door / Vestibule hall door" side=+z swing=away angle=155 chosen=away leafSide=-1 playerSide=1 focus=True by=player leafRot=347 player=(4.9, 0.1, 16.4) t=28
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_DOORPROOF close=direct name="Door / Vestibule hall door"
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_RULES t=30 phase=Survey dread=0.9 event=0.0 felt=0.0 runDreadMin=31.1 grace=0 relief=1 governor=1.00 huntShare=0.000 hunts=0
+HC_DOORPROOF toward=0 toggles=8 unfocused=0 leaves=4 PASS
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_FLOORS seconds=[0,30,0,0] favourite=1
+HC_PLAY phase=not_won t=31.9 case=Survey dread=0.9 hunts=0 evidence=0 notes=0 survived=False relics=0 sword=False hits=0 blockedDeaths=0 goal=Follow his residue. Record what the instruments reveal. Compare it with the Blood Ledger.
+HC_PLAY_SUMMARY HC_LIE=0 HC_DUCK=1 HC_SCARE_CASTLE_silence=1 HC_COUNT_WITNESSED=0 HC_COUNT_NEARMISS_open=True=0 HC_COUNT_RETURN_SWOOP=0 HC_COUNT_DIVE_LAST=0 HC_RECOVERY=0 HC_NAIL_HIDES=0 HC_COUNT_PERCH_flight_observed=True=0 HC_THROW_SKIP=0 HC_MISSING_ART=0 HC_THROW=0 HC_THROW_poltergeist=0 HC_SCARE_CASTLE=1 HC_COUNT_PERCH_moved=0 HC_COUNT_PERCH_landed=0 HC_COUNT_NEARMISS_begin=0 HC_COUNT_NEARMISS_hold=0 HC_WARNING=0 HC_FALSE_WARNING=0 HC_HUNT_START=0 HC_HUNT_SPAWN_hostileReturn=True=0 HC_COUNT_GATEHOUSE_landed=0 HC_COUNT_VOICE=0 HC_EVP=0 HC_COUNT_GAMBLE=0 HC_TORCH_FAIL=0 HC_COUNT_DREAD=0 HC_COUNT_GRAB=0 HC_COUNT_LEARNED=0 HC_ESCALATE=0 HC_RARE_LINE=0 HC_DOOR_HELD=0 dread=0.9 hunts=0
+HC_PLAY_STATS mode=doorproof huntsNonReturn=0 withinScare10s=0 pctWithinScare10s=n/a apparitions=0 apparitionCV=n/a apparitionTimes=[] firstHunt=none huntShare=0.000 longestGap=31 grabContinuity=0/0 grabContinuity20=0/0 hiddenHunts=0 hiddenSurvived=0 hiddenSurvivalPct=n/a runSeconds=32 onboard: firstCue=6.2 cues=1 cuesBeforeFirstHunt=1 firstHunt=none firstObjectiveChange=none objectiveChanges=0 step=letter nudges=0 briefingAfter1s=False plan=Early firstHuntDeadline=173.3 hideSpots=8/8 kinds=[ear_breath:1]
+HC_GRAB_MODE_HIST final grabs=0 m6=0 m7=0 m8=0 m9=0 m10=0 m11=0 m12=0 hide=0 return=0 open=0 openHeadroom=0 openHeadroomDrops=0 dropShareHeadroom=n/a
+HC_GRAB_SUMMARY grabs=0 continuity=0/0 continuity20=0/0 firstFrameVisible=0/0 camDistOk=0/0 camDistMin=n/a lineAllClear=0/0 hudZero=0/0 teleportsDuringGrab=0 dives=0 diveCommits=0 diveMisses=0 diveUnresolved=0
+HC_PLAY_RESULT mode=doorproof won=False slain=False blockedDeaths=0 blockers=0
+HC_COUNT_LEG blocked=door fix=crawl hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_COUNT_LEG blocked=door fix=wait hit=Chapel great doors at=(6.14, 0.40, 10.12) state=Travel
+HC_APP_QUIT t=36.9 map=Castle started=True paused=False
+HC_ONBOARD reason=quit t=32.9 phase=Survey firstCue=6.2 cues=1 cuesBeforeFirstHunt=1 firstHunt=none firstObjectiveChange=none objectiveChanges=0 step=letter nudges=0 briefingAfter1s=False plan=Early firstHuntDeadline=173.3 hideSpots=8/8 kinds=[ear_breath:1]
+Thread 0x16f0a7000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x16cf8b000 may have been prematurely finalized
