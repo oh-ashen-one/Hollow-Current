@@ -1,0 +1,40 @@
+{
+  "name": "LanternCart",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), LanternCart.glb",
+  "sha256": "b4355ebb759ffa8efe74c9f3d1a179453e4dc04e89982f86ee516f9451ed46f3",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 10641,
+      "triangles": 5998
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.87,
+      0.87,
+      -0.025,
+      1.3,
+      -0.645,
+      0.46
+    ],
+    "mode": "uniform",
+    "yaw": 180.0,
+    "sourceTriangles": 1862883
+  }
+}

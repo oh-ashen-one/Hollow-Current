@@ -1,0 +1,40 @@
+{
+  "name": "ReadingTable",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), ReadingTable.glb",
+  "sha256": "d8c099a5d422ed962a202b4bdd46a4a4079dc6c7a1a46bf1be222e5d058807e3",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 6807,
+      "triangles": 3999
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -1.0,
+      1.0,
+      0.0,
+      0.9,
+      -0.5,
+      0.5
+    ],
+    "mode": "stretch",
+    "yaw": 0.0,
+    "sourceTriangles": 1878931
+  }
+}

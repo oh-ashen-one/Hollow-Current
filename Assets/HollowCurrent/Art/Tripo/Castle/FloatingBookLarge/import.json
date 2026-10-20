@@ -1,0 +1,40 @@
+{
+  "name": "FloatingBookLarge",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), TripoBookOpen.glb",
+  "sha256": "7f490cf67f7ea50342796a189d1614f52c0843b9a8adf7969bc1a72d92da4819",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 3192,
+      "triangles": 1799
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.276,
+      0.276,
+      -0.029,
+      0.175,
+      -0.193,
+      0.273
+    ],
+    "mode": "uniform",
+    "yaw": 90.0,
+    "sourceTriangles": 1976105
+  }
+}

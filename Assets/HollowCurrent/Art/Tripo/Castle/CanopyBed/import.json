@@ -1,0 +1,40 @@
+{
+  "name": "CanopyBed",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), CanopyBed.glb",
+  "sha256": "77450ba6f32d9a4fc341910181f6b8997481b88d15cac4dddaea265f6b0ff824",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 15027,
+      "triangles": 8998
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -1.2,
+      1.2,
+      0.0,
+      2.8,
+      -1.3,
+      1.3
+    ],
+    "mode": "stretch",
+    "yaw": 0.0,
+    "sourceTriangles": 1897776
+  }
+}

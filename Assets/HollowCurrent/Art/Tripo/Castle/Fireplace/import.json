@@ -1,0 +1,40 @@
+{
+  "name": "Fireplace",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), Fireplace.glb",
+  "sha256": "c9c5ee625ec7d84b41d775a6252767c500c7b2a0cfe0d53f576ef9c6a29d813c",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 12305,
+      "triangles": 6000
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -1.34,
+      1.34,
+      0.0,
+      2.625,
+      -0.45,
+      0.6
+    ],
+    "mode": "stretch",
+    "yaw": 90.0,
+    "sourceTriangles": 1852046
+  }
+}

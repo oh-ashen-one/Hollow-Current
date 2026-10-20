@@ -1,0 +1,40 @@
+{
+  "name": "Cauldron",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), Cauldron.glb",
+  "sha256": "5d73f5c26304461ee39df65a96b8f5f51af8fe030449b245137d6b74bf0b6eac",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 5385,
+      "triangles": 4000
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.52,
+      0.52,
+      -0.01,
+      1.015,
+      -0.495,
+      0.495
+    ],
+    "mode": "uniform",
+    "yaw": 0.0,
+    "sourceTriangles": 1966546
+  }
+}

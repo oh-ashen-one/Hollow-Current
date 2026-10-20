@@ -1,0 +1,40 @@
+{
+  "name": "Sconce",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), Sconce.glb",
+  "sha256": "2eaf1e956fef06af9fb9843f55067c4cf973d17ec03048e9567e45b85501f848",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 2680,
+      "triangles": 1500
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.052,
+      0.052,
+      -0.14,
+      0.045,
+      -0.17,
+      0.052
+    ],
+    "mode": "uniform",
+    "yaw": 180.0,
+    "sourceTriangles": 1940312
+  }
+}

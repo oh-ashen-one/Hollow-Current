@@ -1,0 +1,66 @@
+{
+  "name": "LongTable",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), LongTable.glb",
+  "sha256": "8eabd237a5b8dd6c13a68378ec28487c7f9138fc28ffd927646b25f8f5f63810",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 19794,
+      "triangles": 14000
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -1.65,
+      1.65,
+      0.0,
+      1.3,
+      -0.65,
+      0.65
+    ],
+    "mode": "stretch",
+    "yaw": 0.0,
+    "sourceTriangles": 1873096
+  },
+  "anchors": [
+    -0.2648,
+    1.2215,
+    -0.001,
+    -1.155,
+    1.2195,
+    0.0077,
+    -0.7031,
+    1.2153,
+    0.002,
+    1.3499,
+    1.2016,
+    -0.001,
+    0.9441,
+    1.1979,
+    -0.0072,
+    0.5767,
+    1.1937,
+    -0.0408,
+    0.136,
+    1.1679,
+    0.0175,
+    -1.4817,
+    0.9353,
+    0.0034
+  ]
+}

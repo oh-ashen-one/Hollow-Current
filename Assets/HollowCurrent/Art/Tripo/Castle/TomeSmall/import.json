@@ -1,0 +1,40 @@
+{
+  "name": "TomeSmall",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), Tome.glb",
+  "sha256": "9275081dc10c4ac46fa5da9959053314f7d53798be2f053f453d4c870f0b7bcb",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 2037,
+      "triangles": 800
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.079,
+      0.108,
+      -0.002,
+      0.056,
+      -0.108,
+      0.108
+    ],
+    "mode": "uniform",
+    "yaw": 0.0,
+    "sourceTriangles": 1930318
+  }
+}

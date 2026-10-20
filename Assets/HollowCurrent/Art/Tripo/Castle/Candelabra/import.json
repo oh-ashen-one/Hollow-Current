@@ -1,0 +1,57 @@
+{
+  "name": "Candelabra",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), TripoCandelabra.glb",
+  "sha256": "7db74102c8b97de7725784f9ee1114bc7d4dcedb7b4d7c9770280e43aa40bbc5",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 5722,
+      "triangles": 5000
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.244,
+      0.244,
+      0.0,
+      1.546,
+      -0.242,
+      0.242
+    ],
+    "mode": "height",
+    "yaw": 0.0,
+    "sourceTriangles": 1893576
+  },
+  "anchors": [
+    -0.0024,
+    1.546,
+    0.2038,
+    0.0025,
+    1.5323,
+    -0.2022,
+    0.3126,
+    1.5272,
+    0.0032,
+    -0.3144,
+    1.5272,
+    0.0068,
+    -0.1545,
+    1.5068,
+    -0.0003
+  ]
+}

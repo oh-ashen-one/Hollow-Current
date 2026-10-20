@@ -1,0 +1,40 @@
+{
+  "name": "ButcherBlock",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), ButcherBlock.glb",
+  "sha256": "5ddebd804fba46b66bede3ca0887a23c1ce5674d56a7755670ebd74f01932cc6",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 7531,
+      "triangles": 3000
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.7,
+      0.7,
+      0.0,
+      0.94,
+      -0.5,
+      0.5
+    ],
+    "mode": "stretch",
+    "yaw": 0.0,
+    "sourceTriangles": 1934988
+  }
+}

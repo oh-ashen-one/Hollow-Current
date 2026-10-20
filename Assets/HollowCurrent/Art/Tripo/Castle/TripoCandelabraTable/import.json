@@ -1,0 +1,57 @@
+{
+  "name": "TripoCandelabraTable",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), TripoCandelabraTable.glb",
+  "sha256": "a72c5416572721a1a18f8ef0d004443c07a3840ea9aaea326b382b9198fbbf39",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 5067,
+      "triangles": 3998
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.33,
+      0.33,
+      -0.42,
+      0.46,
+      -0.33,
+      0.33
+    ],
+    "mode": "uniform",
+    "yaw": 0.0,
+    "sourceTriangles": 1978252
+  },
+  "anchors": [
+    -0.0014,
+    0.46,
+    -0.0082,
+    0.2333,
+    0.296,
+    0.2224,
+    -0.2406,
+    0.2801,
+    -0.2379,
+    -0.2012,
+    0.28,
+    0.2247,
+    0.1894,
+    0.2776,
+    -0.2196
+  ]
+}

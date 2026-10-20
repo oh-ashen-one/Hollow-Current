@@ -1,0 +1,40 @@
+{
+  "name": "Winch",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), Winch.glb",
+  "sha256": "6dbfa35c6760d4838ff0a2d8dc746eeeb0783d867445611b3cdd7e6e78637025",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 9540,
+      "triangles": 4999
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.5,
+      0.625,
+      0.0,
+      1.59,
+      -0.4,
+      0.4
+    ],
+    "mode": "stretch",
+    "yaw": 0.0,
+    "sourceTriangles": 1959995
+  }
+}
