@@ -78,10 +78,45 @@ def gravel(i):
     add(buf,mix(heel(r,.06,150,700,60,.25),bp(noise(r,int(.08*SR)),1500,5000,2)*env(int(.08*SR),.008,40)*.12),.20+.02*i)
     buf=hall(buf,7400+i,.10)
     return buf[:n]
+# Bellwether (owner, 2026-10-19: "remove the little beeps you make when walking"): the shipped step_wood_* / step_tile_* carry the same tonal
+# ding (check_audio_quality.py WARN), so the house gets noise-only sets too, written over Resources/Audio/step_{wood,tile,carpet}_* (their .meta
+# files and guids stay). Domestic room, no hall tail; louder than the castle's careful walk (Bellwether plays steps at 0.22).
+HOUSE=A.ROOT/'Assets/HollowCurrent/Resources/Audio';HOUSE_PEAK=-9.0
+def wood(i):
+    r=R(7500+i);n=int(.70*SR);buf=np.zeros(n);lift=[.03,.04,.035,.045][i]
+    add(buf,heel(r,.12,[60,70,55,65][i],[300,340,280,320][i],[30,34,28,32][i],1.0),lift)          # hollow board thud, low band only
+    add(buf,scuff(r,.10,[700,800,650,750][i],[2600,2400,2800,2500][i],[30,34,28,32][i],.012,.22),lift+.008)
+    add(buf,cloth(r,.26,280,1900,10,.25),lift+.02)
+    add(buf,mix(heel(r,.06,90,380,50,.30),scuff(r,.06,900,2400,40,.008,.10)),lift+[.13,.11,.15,.12][i])
+    return A.room(buf,.35,.10,7600+i,lp_hz=3500)[:n]
+def tile(i):
+    r=R(7700+i);n=int(.70*SR);buf=np.zeros(n);lift=[.03,.035,.04,.03][i]
+    add(buf,heel(r,.06,[120,140,110,130][i],[900,1000,850,950][i],[70,76,66,72][i],.8),lift)        # short hard heel, broad noise band
+    add(buf,scuff(r,.08,[1800,1600,2000,1700][i],[6000,5600,6400,5800][i],[45,50,42,48][i],.006,.35),lift+.004)
+    add(buf,cloth(r,.22,300,2200,11,.22),lift+.02)
+    add(buf,mix(heel(r,.04,200,900,80,.25),scuff(r,.05,2000,5200,55,.005,.14)),lift+[.12,.10,.14,.11][i])
+    return A.room(buf,.45,.12,7800+i,lp_hz=5000)[:n]
+def carpet(i):
+    r=R(7900+i);n=int(.60*SR);buf=np.zeros(n);lift=[.03,.04,.035,.03][i]
+    add(buf,heel(r,.10,50,220,34,.8),lift)
+    add(buf,cloth(r,.24,300,1600,12,.45),lift+.01)
+    add(buf,scuff(r,.12,500,1800,26,.03,.18),lift+.02)
+    return buf
+def finish_house(name,x):
+    x=np.asarray(x,dtype=np.float64);x=hp(x-np.mean(x),45,2);x*=10**((HOUSE_PEAK-A.peak_db(x))/20)
+    idx=np.nonzero(np.abs(x)>10**(-50/20))[0];x=x[:min(len(x),idx[-1]+int(.08*SR))].copy();A.fade_out(x,.08)
+    pcm=np.clip(np.round(x*32767),-32768,32767).astype('<i2')
+    import wave
+    with wave.open(str(HOUSE/(name+'.wav')),'wb') as w:w.setnchannels(1);w.setsampwidth(2);w.setframerate(SR);w.writeframes(pcm.tobytes())
+    print(f'{name}: {len(x)/SR:.2f}s peak {A.peak_db(x):.1f} dBFS (Bellwether, Resources/Audio)')
 SETS={'stone':stone,'gravel':gravel}
+HOUSE_SETS={'wood':wood,'tile':tile,'carpet':carpet}
 def main():
     args=sys.argv[1:] or list(SETS)
     for s in args:
-        if s not in SETS:raise SystemExit('unknown set '+s+' (stone, gravel)')
+        if s in HOUSE_SETS:
+            for i in range(4):finish_house(f'step_{s}_{i}',HOUSE_SETS[s](i))
+            continue
+        if s not in SETS:raise SystemExit('unknown set '+s+' (stone, gravel, wood, tile, carpet)')
         for i in range(4):finish_step(f'step_{s}_{i}',SETS[s](i))
 if __name__=='__main__':main()

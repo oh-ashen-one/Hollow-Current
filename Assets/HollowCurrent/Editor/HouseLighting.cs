@@ -80,7 +80,7 @@ namespace HollowCurrent.Editor
                 {
                     var renderer=filter.GetComponent<MeshRenderer>();if(!renderer||!renderer.enabled||filter.GetComponent<TextMesh>())continue;
                     if(Movable(filter.transform,map))continue;
-                    if(renderer.sharedMaterials.Any(m=>m&&m.renderQueue>=(int)RenderQueue.Transparent))
+                    if(renderer.sharedMaterials.Any(m=>m&&m.renderQueue>=(int)RenderQueue.Transparent)||ProbeLit(filter))
                     {
                         GameObjectUtility.SetStaticEditorFlags(filter.gameObject,GameObjectUtility.GetStaticEditorFlags(filter.gameObject)&~StaticEditorFlags.ContributeGI);
                         renderer.receiveGI=ReceiveGI.LightProbes;renderer.lightProbeUsage=LightProbeUsage.BlendProbes;continue;
@@ -133,6 +133,14 @@ namespace HollowCurrent.Editor
             var receipt=new BakeReceipt{sceneDependencies=AssetDatabase.GetAssetDependencyHash(info.ScenePath).ToString(),sourceHash=SourceHash(map),utc=DateTime.UtcNow.ToString("O"),map=map.ToString(),hashScope=HashScope(map),lightmaps=LightmapSettings.lightmaps.Length,lightProbes=LightmapSettings.lightProbes?LightmapSettings.lightProbes.count:0,reflections=layout.GetComponentsInChildren<ReflectionProbe>().Length};
             File.WriteAllText(info.BakeReceiptPath,JsonUtility.ToJson(receipt,true));AssetDatabase.ImportAsset(info.BakeReceiptPath);
             ValidatePreparedScene(map);Debug.Log("HC_LIGHTING_BAKED map="+map+" maps="+receipt.lightmaps+" probes="+receipt.lightProbes+" reflections="+receipt.reflections);
+        }
+        // Dense generated meshes lit by probes, not lightmaps: auto lightmap UVs (GenerateSecondaryUVSet) on an 18k-triangle bed cut the bedding
+        // into hundreds of tiny charts, which baked into blotches and seams (owner 2026-10-19: "the bed mesh is glitching"). The Bellwether beds
+        // and every castle Tripo prop (Art/Tripo/Castle) take the blended probes instead.
+        static bool ProbeLit(MeshFilter filter)
+        {
+            foreach(var parent in filter.GetComponentsInParent<Transform>())if(parent.name=="Original crafted ParentsBed"||parent.name=="Original crafted ChildBed")return true;
+            return filter.sharedMesh&&AssetDatabase.GetAssetPath(filter.sharedMesh).Contains("/Art/Tripo/Castle/");
         }
         static bool Movable(Transform transform,MapId map)
         {

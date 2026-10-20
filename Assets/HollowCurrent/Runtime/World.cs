@@ -319,9 +319,12 @@ namespace HollowCurrent
             SplitWall(-4.8f,0,8.15f,6.4f,"sage"); SplitWall(-4.8f,3.2f,7,6.4f,"sage");
             SplitWall(5.3f,3.2f,8.3f,5.4f,"cream");
             Living(); Dining(); Kitchen(); Upstairs(); Basement(); Exterior(); Van();
-            Interact("Foyer letter",new Vector3(.85f,.85f,1.15f),new Vector3(.42f,.04f,.3f),"paper",InteractKind.Note,"Arrival note",
+            // Lies on the console table (top at .72+.06=.78; the 4 cm sheet's centre at .80). It hovered 5 cm above it (owner, 2026-10-19).
+            Interact("Foyer letter",new Vector3(.88f,.80f,1.18f),new Vector3(.42f,.04f,.3f),"paper",InteractKind.Note,"Arrival note",
                 "14 BELLWETHER LANE\n\nThe Harrows left in a hurry. They reported footsteps above an empty dining room and a child's toy playing below the furnace.\n\nScout the wardrobe, linen cupboard and basement locker. She can follow you back to the van. Never hide while it is watching you.");
             Box("Console table",new Vector3(.9f,.72f,1.2f),new Vector3(.65f,.12f,.5f),"wood");
+            foreach(var leg in new[]{new Vector2(-.28f,-.2f),new Vector2(.28f,-.2f),new Vector2(-.28f,.2f),new Vector2(.28f,.2f)})
+                Box("Console table leg",new Vector3(.9f+leg.x,.33f,1.2f+leg.y),new Vector3(.05f,.66f,.05f),"wood",false);
             Hide("Hall coat cupboard",new Vector3(.2f,0,13.05f),0);
             Hide("Upstairs linen cupboard",new Vector3(.2f,3.2f,13.05f),0);
             Hide("Basement steel locker",new Vector3(-6.8f,-3.2f,12.8f),0);

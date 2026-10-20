@@ -387,9 +387,6 @@ namespace HollowCurrent
         {
             Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);
             if(FieldMessages.ShowCard(value)){Subtitle=value;SubtitleTime=FieldMessages.CardSeconds(value);}
-            if(Sound==null)return;
-            if(value.Contains(Book.ArrivalCue))BellwetherSpeak("arrival");
-            else if(value.Contains(Book.KitCue))BellwetherSpeak("kit");
         }
         public void ToggleCircuit(Light lamp,Vector3 switchPosition)
         {
