@@ -299,3 +299,55 @@ CC BY 4.0 (code MIT).
 
 `Castle_ClawScoresProcedural.png` is a fallback only: `World.CastleTrace` loads Codex's generated `Castle/ClawScores.png` first (branch
 `hc/wallart-art`, not merged when this was written), then this one, then the Bellwether handprint.
+
+## Owner playtest 2026-10-19: Tripo props replace the procedural castle props (`hc/tripo-fixes`)
+
+Owner request: "use Tripo 3D via Chrome on the Studio, remake the most important 3D assets ... replace all these floating candles, books and
+objects". Generated in the owner's Tripo Studio web account (studio.tripo3d.ai, the existing Chrome tab, driven by AppleScript page
+JavaScript), one concept image per asset with Tripo's free GPT Image 2.5 image step (1:1, "isolated single game prop ... dark gothic vampire
+castle style"), then **HD Model, H3.1 Best Quality, Geometry & Texture, 55 web credits each** (web-app credits; the Tripo API balance was 0
+and was not used). Total **36 models, 1980 credits**. The viewer's PBR GLB (`tripo_pbr_model_*_meshopt.glb`, about 1.9 M triangles,
+4k textures) is converted headlessly by `tools/tripo_castle_convert.py` (Blender CPU: weld, collapse-decimate to a per-prop budget, fit to
+the replaced asset's measured Unity bounds and contract front, flame anchors at the wick tips, 512-2048 px PNG maps), then
+`Editor/TripoImport.Prepare` writes `Resources/Castle/<name>.prefab` from `Art/Tripo/Castle/<name>/`. The replaced `Resources/Castle/*.fbx`
+were removed so `CastleArt.Place` loads the prefabs; the procedural meshes in `SurrealProps` stay as fallbacks. Source GLBs and concept
+PNGs are not committed (60 MB each; regenerate from the task ids). Licence: Tripo paid plan, as for `Art/Tripo/` (`ASSET_LICENSES.md`).
+
+| Generation | Concept image id | Model task id | Credits | Ships as |
+|---|---|---|---|---|
+| TripoCandle | `5ed018d2-929f-4cb4-be0d-851fe5a5ef80` | `d5a96dcb-a379-48ef-bd36-c8dc0d03aa63` | 55 | `TripoCandle` |
+| TripoCandelabra | `9e74496b-6a31-4333-bbbc-0d9f65e94e66` | `97c4b2aa-8433-4848-a928-c283630275a0` | 55 | `Candelabra` |
+| TripoBookOpen | `1aebfc44-7926-4f0c-a28d-42363f5276ad` | `4c77c91c-3a06-4db5-9658-28bcffc640ef` | 55 | `FloatingBook`, `FloatingBookSmall`, `FloatingBookLarge` |
+| BookClosed | `34dc14be-047a-48f2-a923-269b80a1d0f2` | `7fd2b6f4-0e48-479a-9d7b-9ff34fbab1ce` | 55 | `BookClosed`, `BookClosedSmall`, `BookClosedLarge` |
+| Tome | `0dde0d27-3788-4fde-94c8-58921bf26c1b` | `a9400b4d-d369-4954-ad1e-9e4f322b3085` | 55 | `Tome`, `TomeSmall`, `TomeLarge` |
+| Chandelier | `b06b31c3-a475-484c-8374-1486d2639ca3` | `352a6c60-6bf1-476f-8533-bd2ecc42b759` | 55 | `Chandelier` |
+| LongTable | `748126fc-1af2-4935-b7d6-dc9dcb7e3e5b` | `477d9737-44c3-4ce2-9ee4-cbd8027078c1` | 55 | `LongTable` |
+| HighBackChair | `bf2c2ca9-6c56-4b9a-b7e2-26c863040af7` | `eccf5b1f-de2c-40ec-b5ee-ac70fd71de11` | 55 | `HighBackChair` |
+| Throne | `ada4ffcf-e1e8-4240-a414-0c78e339caae` | `e48bce1b-72e9-483e-a026-9775fcc5c66e` | 55 | `Throne` |
+| Bookshelf | `b1004747-1588-454b-a476-80614f76594f` | `530a93c3-373a-43eb-a293-fb2e7da291f2` | 55 | `Bookshelf` |
+| Fireplace | `6a670610-0fad-4cce-b24f-bd3cc003914f` | `307c2d1f-2fbd-4bad-84d5-d2dd9a2359f8` | 55 | `Fireplace` |
+| Pew | `1d8a5d62-4959-4ffe-956b-f60ff3f682e7` | `c64ced01-4c26-49d9-aef5-ef31dc45d634` | 55 | `Pew` |
+| Altar | `ba3f6e04-ee54-430f-8729-f5dbd2a2b2ee` | `b28815b9-1c82-4618-a254-75d9b86e1db4` | 55 | `Altar` |
+| CanopyBed | `632aa018-9820-4ba6-8136-d8be49a8efbc` | `5c511af8-6862-48b0-90d2-29ab38ee34d0` | 55 | `CanopyBed` |
+| DiningTable | `cd3557ee-e889-4d8d-9089-71904de415bd` | `fbe42f7f-497c-4f76-bfae-442fcb838b54` | 55 | `DiningTable` |
+| Sideboard | `2bb867ac-0f5a-454d-b6b4-eb854c91f862` | `b7cb3f04-2292-43b0-8d4d-3a6c11e999c5` | 55 | `Sideboard` |
+| KitchenHearth | `c6dfd6f4-e142-4cc6-b21d-4026c8dc6ab2` | `3de194d7-067b-4cc2-8301-f291f2666c01` | 55 | `KitchenHearth` |
+| Cauldron | `173cbf97-a033-4f55-9dc7-f6c8b19a17dc` | `26cac452-9bfc-49ff-b867-7de5692a3681` | 55 | `Cauldron` |
+| ButcherBlock | `04985ef7-e763-4644-85c5-178e5473d456` | `97f40a96-ecba-41c3-954f-d7885a6c96f8` | 55 | `ButcherBlock` |
+| ReadingTable | `1ddccd32-9613-4667-8325-0fb93166a01e` | `627a5eea-137b-43a5-a7b5-618f7f90cf45` | 55 | `ReadingTable` |
+| Lectern | `0e1451bc-939a-4eb9-9daf-485fbf89652d` | `01b4a694-8612-406e-be8e-62139d145678` | 55 | `Lectern` |
+| Sarcophagus | `a060fd99-90de-4bd6-86f6-31f0dd104fe6` | `ddd53504-a208-4e8f-9d66-9e605f478585` | 55 | `Sarcophagus` |
+| Orrery | `7fc54d64-ee52-4f35-85df-17cd506ca1f4` | `c70ffd90-59ed-4cd4-9182-0f772d64841e` | 55 | not shipped (procedural kept: its socket/pose coordinates are measured on the old mesh) |
+| Telescope | `496dbdcc-43b4-4944-b3d6-217237ad7c80` | `181a3e93-1cfc-4cbe-9e1c-bc2d0c875709` | 55 | not shipped (procedural kept: its socket/pose coordinates are measured on the old mesh) |
+| ChapelBell | `706db91c-86f8-49ae-a964-81fd441510ee` | `686f5607-a0d5-44c4-9c80-6f9cdc31bed5` | 55 | `ChapelBell` |
+| StoneFont | `ded61bc5-93f7-4945-9b58-90c9273bbdc7` | `1cbd0f35-aa94-439e-b7d2-c32e98f35feb` | 55 | `StoneFont` |
+| Pedestal | `90d19032-4601-4a7a-a98d-e91a6fc44548` | `d926b2f5-4558-42f4-ac33-f3e5d8fbffef` | 55 | `Pedestal` |
+| ReliquaryBox | `3b0385ff-d1be-4d21-99b2-3aa71241cf7d` | `2ccecf2d-d9c7-4c3a-a920-055058ca1043` | 55 | `ReliquaryBox` |
+| Fountain | `1a6da287-cd94-4ccc-946b-a1b5f4f7b91c` | `6bd3cd02-3204-470e-aca5-e0b0eeb51040` | 55 | `Fountain` |
+| DeadTree | `77e54739-c51b-4846-841a-a3a398629839` | `2d8027fd-42c3-4df8-91bc-648b1eabc21d` | 55 | `DeadTree` |
+| Winch | `7ba2f338-c98b-4c5d-8561-3726bd7e0263` | `8f8c0fe4-3a75-4766-91fb-6724985b0575` | 55 | `Winch` |
+| LanternCart | `7520b8c3-e39d-42f0-9b74-b38b16c21009` | `3a7479bb-265e-45d6-8201-55dc44d30a15` | 55 | `LanternCart` |
+| Candlestick | `12718219-c449-4637-b796-854606e8df02` | `193ff1e4-fa9b-4253-90f3-014d8c87e513` | 55 | `Candlestick` |
+| Sconce | `af83267d-ff5a-4b98-b22f-6f84dc877971` | `3383a617-ed97-402e-a66b-70179e0c4355` | 55 | `Sconce` |
+| Knife | `ab543f2d-ddc8-4bab-8abe-5d60501c7ea7` | `287fae50-42c5-49df-a896-2299f1891b84` | 55 | `Knife` |
+| TripoCandelabraTable | `8e27044f-03ef-4618-b7d1-707e2523cf05` | `9ca42c50-cfa4-498b-9034-4803d88c1e74` | 55 | `TripoCandelabraTable` |
