@@ -351,3 +351,10 @@ PNGs are not committed (60 MB each; regenerate from the task ids). Licence: Trip
 | Sconce | `af83267d-ff5a-4b98-b22f-6f84dc877971` | `3383a617-ed97-402e-a66b-70179e0c4355` | 55 | `Sconce` |
 | Knife | `ab543f2d-ddc8-4bab-8abe-5d60501c7ea7` | `287fae50-42c5-49df-a896-2299f1891b84` | 55 | `Knife` |
 | TripoCandelabraTable | `8e27044f-03ef-4618-b7d1-707e2523cf05` | `9ca42c50-cfa4-498b-9034-4803d88c1e74` | 55 | `TripoCandelabraTable` |
+
+## Castle card UI, smoked glass (owner-approved variant A, 2026-10-20, `hc/tripo-fixes`)
+
+Higgsfield CLI `gpt_image_2` (2k, 16:9), three mockups (A smoked glass, B ghost parchment, C floating whispers); the owner chose **A**
+(job `051eee91-10db-4f56-aadf-e3673e6c4f31`). Committed: `docs/haunted-castle/art/ui_smoked_glass/variant_A_approved.png` (1600 wide) and the gold ornaments keyed out of
+it (`corner.png`, `crest.png`). `python3 tools/ui_smoked_glass.py` composes `Resources/UI/BloodLedger/{Panel,PanelCard,Dialogue,Warning}.png`
+and `Resources/UI/Documents/DocGlass.png` (translucent glass, double gold hairline, ornaments). Licence: the Higgsfield grant in `ASSET_LICENSES.md`.

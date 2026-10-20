@@ -21,7 +21,9 @@ namespace HollowCurrent
         const float AscFell = .905f, AscBelle = 1.077f, AscCourier = .781f;
 
         Font fell, fellItalic, belle, courier, courierBold, cinzel, fallback;
-        Texture2D ledgerPaper, letterPaper, fieldPaper;
+        Texture2D ledgerPaper, letterPaper, fieldPaper, glassPaper;
+        // owner 2026-10-20 (approved variant A): castle documents read on smoked glass at GlassScale of the screen, the room visible around it
+        const float GlassScale = .8f;
         bool loaded;
         public bool FontsComplete { get; private set; }
         public bool Ready => loaded && ledgerPaper && letterPaper && fieldPaper;
@@ -52,9 +54,10 @@ namespace HollowCurrent
         readonly GUIContent probe = new GUIContent();
 
         // Ink colours (sRGB). tools/docui_paper.py --check measures the contrast of exactly these against each sheet.
-        static readonly Color VellumInk = new Color(.17f, .11f, .075f), VellumRed = new Color(.36f, .05f, .045f), VellumKicker = new Color(.31f, .10f, .07f);
+        // castle ink on smoked glass (was vellum: ink .17/.11/.075, red .36/.05/.045, kicker .31/.10/.07)
+        static readonly Color VellumInk = new Color(.92f, .88f, .81f), VellumRed = new Color(.82f, .30f, .26f), VellumKicker = new Color(.78f, .63f, .38f);
         static readonly Color FieldInk = new Color(.10f, .11f, .16f), FieldRed = new Color(.50f, .08f, .08f), FieldKicker = new Color(.22f, .24f, .30f);
-        static readonly Color VellumRule = new Color(.36f, .25f, .16f, .24f), VellumMargin = new Color(.50f, .10f, .08f, .60f);
+        static readonly Color VellumRule = new Color(.78f, .63f, .38f, .16f), VellumMargin = new Color(.70f, .16f, .13f, .45f);
         static readonly Color FieldRule = new Color(.33f, .47f, .72f, .30f), FieldMargin = new Color(.80f, .28f, .28f, .50f);
 
         // Idempotent. `serif` is the interface's dynamic serif, the last fallback.
@@ -78,6 +81,7 @@ namespace HollowCurrent
             ledgerPaper = Resources.Load<Texture2D>(PaperFolder + "DocLedger");
             letterPaper = Resources.Load<Texture2D>(PaperFolder + "DocLetter");
             fieldPaper = Resources.Load<Texture2D>(PaperFolder + "DocField");
+            glassPaper = Resources.Load<Texture2D>(PaperFolder + "DocGlass");
             Debug.Log("HC_DOC_UI fonts_complete=" + FontsComplete + " fell=" + (Resources.Load<Font>(FontFolder + "IMFellEnglish-Regular") != null) + " belle=" + (Resources.Load<Font>(FontFolder + "LaBelleAurore-Regular") != null) +
                       " courier=" + (Resources.Load<Font>(FontFolder + "CourierPrime-Regular") != null) + " paper=" + (ledgerPaper != null && letterPaper != null && fieldPaper != null));
         }
@@ -214,6 +218,7 @@ namespace HollowCurrent
             var oldMatrix = GUI.matrix;
             GUI.matrix = Matrix4x4.identity;
             s = Mathf.Min(Screen.width / 1600f, Screen.height / 900f);
+            if (castle && glassPaper) s *= GlassScale;
             ox = (Screen.width - 1600 * s) * .5f; oy = (Screen.height - 900 * s) * .5f;
 
             string docId = (castle ? "c|" : "b|") + title + "|" + (body ?? "").GetHashCode();
@@ -266,6 +271,12 @@ namespace HollowCurrent
         {
             Texture2D tex = kind == DocKind.FieldReport ? fieldPaper : kind == DocKind.Letter || kind == DocKind.Tally ? letterPaper : ledgerPaper;
             if (Event.current.type != EventType.Repaint) return;
+            if (kind != DocKind.FieldReport && glassPaper)
+            {
+                material.SetColor("_Tint", Color.white.linear);
+                Graphics.DrawTexture(R(-30, -24, 1660, 948), glassPaper, material);
+                return;
+            }
             float factor = Mathf.Max(Screen.width / (float)tex.width, Screen.height / (float)tex.height);
             var draw = new Rect(Screen.width * .5f - tex.width * factor * .5f, Screen.height * .5f - tex.height * factor * .5f, tex.width * factor, tex.height * factor);
             // inscriptions read as a cooler stone rubbing on the same vellum
@@ -428,7 +439,7 @@ namespace HollowCurrent
         // One recovered-document row in the field journal, in the document faces. Design-space rect; the caller owns hit testing.
         // Dark ink for the castle journal card (fd-journal): the card's paper is darker than the vellum sheets, so the journal rows and
         // kicker use a near-black oxblood / ink that hold >= 7:1 on it. `onCard` is false everywhere else (Bellwether keeps its faces).
-        static readonly Color JournalRed = new Color32(32, 4, 4, 255), JournalInk = new Color32(20, 13, 12, 255);
+        static readonly Color JournalRed = new Color32(214, 92, 80, 255), JournalInk = new Color32(234, 224, 206, 255);   // castle journal on glass
         public void JournalRow(Rect r, string title, bool filed, bool lit, bool castle, bool onCard = false)
         {
             if (!loaded) return;
