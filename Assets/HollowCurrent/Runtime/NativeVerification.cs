@@ -424,6 +424,12 @@ namespace HollowCurrent
             // Allow the real title/loading presentation to settle before the
             // gameplay measurement begins; initial loading is not gameplay.
             yield return new WaitForSecondsRealtime(1);
+            float readyDeadline=Time.realtimeSinceStartup+30;
+            while(!FindFirstObjectByType<Game>()||FindFirstObjectByType<Game>().Loading)
+            {
+                if(Time.realtimeSinceStartup>readyDeadline)throw new Exception("Initial game loading did not finish within 30 seconds");
+                yield return null;
+            }
             if(UIOnly){yield return UIRoute();yield break;}
             Bind();
             Require(Screen.width==1920&&Screen.height==1080,"Native 1920x1080 output");

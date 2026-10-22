@@ -1,4 +1,10 @@
-# Fish Audio integration — blocked on native launch verification
+# Resume status — owner cleared desktop gate
+
+Owner explicitly confirmed no pending dialog and instructed continuing. A fresh two-map headless build succeeded. The first Bellwether verification exposed an initial-loading race in NativeVerification; the harness now waits for Game.Loading to clear, and the corrected build also succeeded. Source compilation and 1,615 assertions pass. Sequential native suite is running/queued through the live `~/.cache/gpu-slot` coordinator. This live namespace supersedes the historical coordinator path below for rendered checks: current Roblox/Godot sessions hold its slots. No foreign process was changed.
+
+---
+
+# Fish Audio integration — native verification in progress
 
 ## Verified source state
 
