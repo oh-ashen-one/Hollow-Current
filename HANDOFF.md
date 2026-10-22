@@ -1,8 +1,8 @@
-# Fish Audio integration checkpoint — 2026-10-22
+# Fish Audio integration — completed automated delivery, 2026-10-22
 
-Current task branch: `fish-audio-integration`. All 28 dialogue lines and discrete vocal effects have been integrated as offline Drama 3 audio; source, content and audio checks pass. Owner cleared the desktop gate. A fresh two-map build succeeded; the corrected native-verification harness is now running its sequential playback suite. Read `docs/audio/fish-integration/HANDOFF.md` first for the exact state, limitations and remaining goal requirements. No merge into main or owner acceptance is claimed.
+Branch `fish-audio-integration`: all 28 dialogue lines and discrete vocal effects integrated; fresh two-map macOS app built; Bellwether and Castle escape/fear/kill routes pass offline. User preferences restored, task engines closed and slots released. Read `docs/audio/fish-integration/HANDOFF.md` for deliverables, evidence and limitations. Owner listening/playtest acceptance remains pending; no main merge was authorized.
 
-The earlier handoffs below describe prior builds and must not be treated as proof that those builds contain the Fish Audio replacements.
+Earlier handoffs below describe historical builds.
 
 ---
 

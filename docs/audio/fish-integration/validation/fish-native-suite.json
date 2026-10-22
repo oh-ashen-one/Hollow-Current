@@ -14,5 +14,21 @@
     "exit_code": 0,
     "route_pass": true,
     "log": "evidence/fish-castle-escape-final-player.log"
+  },
+  {
+    "run": "castle-fear",
+    "evidence_folder": "evidence/fish-castle-fear-final",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-castle-fear-final-player.log"
+  },
+  {
+    "run": "castle-kill",
+    "evidence_folder": "evidence/fish-castle-kill-final",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-castle-kill-final-player.log"
   }
 ]

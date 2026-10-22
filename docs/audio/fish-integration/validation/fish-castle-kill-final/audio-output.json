@@ -1,0 +1,8 @@
+{
+    "samples": 545280,
+    "nonzero": 542760,
+    "activeVoiceObservations": 1606,
+    "clippedSamples": 0,
+    "peak": 0.10375791788101196,
+    "outputDeviceEvidence": "AudioListener.GetOutputData; not a human listening review"
+}

@@ -1,0 +1,17 @@
+{
+  "restored": true,
+  "restoration_details": {
+    "com.bellwether.hollowcurrent": {
+      "changed_keys": [
+        "hc.castle.grabdeck"
+      ],
+      "test_added_keys": [
+        "hc.castle.grabdeck"
+      ]
+    },
+    "unity.Bellwether Field Office.Hollow Current": {
+      "changed_keys": [],
+      "test_added_keys": []
+    }
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "passed": true,
+  "runs": [
+    {
+      "run": "bellwether2",
+      "route_pass": true,
+      "offline_network_denial_verified": true,
+      "decoded_voice_metadata_matches": true,
+      "observed_vocal_clips": [
+        "breath_hidden",
+        "breath_presence",
+        "voice_arrival",
+        "voice_contain",
+        "voice_ending",
+        "voice_evp",
+        "voice_hint_signal",
+        "voice_kit",
+        "voice_return",
+        "voice_warning"
+      ],
+      "listener_output": {
+        "samples": 2122240,
+        "nonzero": 2115701,
+        "activeVoiceObservations": 5237,
+        "clippedSamples": 0,
+        "peak": 0.15989477932453156,
+        "outputDeviceEvidence": "AudioListener.GetOutputData; not a human listening review"
+      },
+      "scope": "scripted native playback; no human listening acceptance",
+      "native_assertions_pass": true,
+      "performance_pass": false,
+      "performance_reason": "engine_cost_over_16ms=8(max 32.5 ms)"
+    },
+    {
+      "run": "castle-escape",
+      "route_pass": true,
+      "offline_network_denial_verified": true,
+      "decoded_voice_metadata_matches": true,
+      "observed_vocal_clips": [
+        "breath_hidden",
+        "breath_presence",
+        "castle_hide_whisper",
+        "voice_arrival",
+        "voice_cc_hunt_smell_b"
+      ],
+      "listener_output": {
+        "samples": 474624,
+        "nonzero": 470885,
+        "activeVoiceObservations": 1379,
+        "clippedSamples": 0,
+        "peak": 0.15974487364292145,
+        "outputDeviceEvidence": "AudioListener.GetOutputData; not a human listening review"
+      },
+      "scope": "scripted native playback; no human listening acceptance",
+      "castle_voice_summary": [
+        "HC_VOICE_SUMMARY lines=1 spatial=1 dropped=0 from_head=1 from_other=0 refused_other=0 evp_textures=1",
+        "HC_VOICE_SUMMARY lines=1 spatial=1 dropped=0 from_head=1 from_other=0 refused_other=0 evp_textures=1"
+      ]
+    },
+    {
+      "run": "castle-fear",
+      "route_pass": true,
+      "offline_network_denial_verified": true,
+      "decoded_voice_metadata_matches": true,
+      "observed_vocal_clips": [
+        "breath_hidden",
+        "breath_presence",
+        "castle_hide_breath_1",
+        "castle_hide_whisper",
+        "voice_arrival",
+        "voice_cc_bargain",
+        "voice_cc_hunt_found_b",
+        "voice_cc_hunt_smell",
+        "voice_cc_stay"
+      ],
+      "listener_output": {
+        "samples": 1634816,
+        "nonzero": 1630258,
+        "activeVoiceObservations": 4365,
+        "clippedSamples": 0,
+        "peak": 0.15114061534404755,
+        "outputDeviceEvidence": "AudioListener.GetOutputData; not a human listening review"
+      },
+      "scope": "scripted native playback; no human listening acceptance",
+      "castle_voice_summary": [
+        "HC_VOICE_SUMMARY lines=4 spatial=4 dropped=0 from_head=4 from_other=0 refused_other=0 evp_textures=1",
+        "HC_VOICE_SUMMARY lines=4 spatial=4 dropped=0 from_head=4 from_other=0 refused_other=0 evp_textures=1"
+      ]
+    },
+    {
+      "run": "castle-kill",
+      "route_pass": true,
+      "offline_network_denial_verified": true,
+      "decoded_voice_metadata_matches": true,
+      "observed_vocal_clips": [
+        "breath_hidden",
+        "breath_presence",
+        "castle_hide_whisper",
+        "death_wail_sunrise",
+        "stagger_screech",
+        "voice_arrival"
+      ],
+      "listener_output": {
+        "samples": 545280,
+        "nonzero": 542760,
+        "activeVoiceObservations": 1606,
+        "clippedSamples": 0,
+        "peak": 0.10375791788101196,
+        "outputDeviceEvidence": "AudioListener.GetOutputData; not a human listening review"
+      },
+      "scope": "scripted native playback; no human listening acceptance",
+      "castle_voice_summary": [
+        "HC_VOICE_SUMMARY lines=0 spatial=0 dropped=0 from_head=0 from_other=0 refused_other=0 evp_textures=1"
+      ]
+    }
+  ],
+  "notes": [
+    "Source isPlaying observations include muted loops; Bellwether native route separately checks breathing and ducking activity.",
+    "GPU capture slots are shared, not exclusive performance measurements.",
+    "Dialogue taste and in-world listening remain the owner acceptance step."
+  ]
+}

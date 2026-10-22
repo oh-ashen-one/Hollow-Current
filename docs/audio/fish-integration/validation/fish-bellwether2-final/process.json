@@ -1,0 +1,25 @@
+{
+  "pid": 33267,
+  "command": [
+    "/usr/bin/sandbox-exec",
+    "-p",
+    "(version 1) (allow default) (deny network*)",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/Builds/macOS/Hollow Current.app/Contents/MacOS/Hollow Current",
+    "-screen-width",
+    "1920",
+    "-screen-height",
+    "1080",
+    "-screen-fullscreen",
+    "0",
+    "-hc-verify",
+    "-hc-evidence",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/evidence/fish-bellwether2-final",
+    "-hc-audio-proof",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/evidence/fish-bellwether2-final/audio",
+    "-logFile",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/evidence/fish-bellwether2-final-player.log"
+  ],
+  "started_utc": "2026-10-22T18:37:57Z",
+  "exit_code": 0,
+  "elapsed_seconds": 426.7
+}

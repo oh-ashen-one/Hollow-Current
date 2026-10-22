@@ -1,0 +1,17 @@
+{
+  "built_from_commit": "a037d55",
+  "additional_source": "tools/run_owned_process.py (supervision only, not included in game)",
+  "maps": [
+    "Bellwether",
+    "Castle"
+  ],
+  "build_method": "HollowCurrent.Editor.NativeBuild.BuildPreparedMacAll",
+  "graphics_device": "Null",
+  "unity": "6000.3.20f1",
+  "app": "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/outputs/Hollow Current.app",
+  "native_playback_status": "all four offline routes passed",
+  "binary_sha256": "25bfc6a12662e123f331a0f507f0e149fa3b347003a52b4a8a6a417d6dbd606b",
+  "build_log": "evidence/fish-native-build3.log",
+  "bytes": 1131654341,
+  "archive": "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/outputs/Hollow-Current-Fish-Audio-macOS.zip"
+}

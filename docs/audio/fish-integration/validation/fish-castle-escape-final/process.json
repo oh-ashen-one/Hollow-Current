@@ -1,0 +1,25 @@
+{
+  "pid": 56980,
+  "command": [
+    "/usr/bin/sandbox-exec",
+    "-p",
+    "(version 1) (allow default) (deny network*)",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/Builds/macOS/Hollow Current.app/Contents/MacOS/Hollow Current",
+    "-screen-width",
+    "1920",
+    "-screen-height",
+    "1080",
+    "-screen-fullscreen",
+    "0",
+    "-hc-playtest",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/evidence/fish-castle-escape-final",
+    "escape",
+    "-hc-audio-proof",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/evidence/fish-castle-escape-final/audio",
+    "-logFile",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/evidence/fish-castle-escape-final-player.log"
+  ],
+  "started_utc": "2026-10-22T18:49:40Z",
+  "exit_code": 0,
+  "elapsed_seconds": 99.74
+}
