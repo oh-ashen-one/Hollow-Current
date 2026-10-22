@@ -92,3 +92,9 @@ This is a clean public source snapshot. Private history, local account/credentia
 ## Branch policy
 
 The owner approved the initial public `main` snapshot and, on 2026-10-13, approved merging the completed cabinet-visibility, scare-pacing, caption and research work. Future changes should use feature branches; subsequent merges into `main` require owner approval.
+
+## Fish Audio voices (2026-10-22)
+
+Both maps use offline Fish Audio Drama 3 voice assets on `fish-audio-integration`. Read `docs/audio/fish-integration/HANDOFF.md` for acceptance and build status. `python3 tools/check_fish_integration.py` checks complete voice coverage, masters, transcripts and installed hashes; `python3 tools/fish_audio_integrate.py` reprocesses the cached takes without generating paid audio. New paid requests require explicit `--generate` and a private key outside the repo. Do not run the legacy eSpeak/Kokoro generators over the Fish masters.
+
+An explicitly requested native verification run can add `-hc-audio-proof <evidence-directory>` to log real decoded vocal-clip playback and sample the listener's output. This passive instrumentation is inactive in normal play and does not prove a human listening verdict.

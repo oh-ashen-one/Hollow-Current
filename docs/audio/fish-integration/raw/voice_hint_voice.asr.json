@@ -1,0 +1,5 @@
+{
+  "text": "<|speaker:0|> The recorder needs a quiet room. Ask once, then listen.",
+  "audio_sha256": "e424fc7027706b0d6516644d45e51c6b3c1fefe2777089be91aa264a57f45866",
+  "model": "transcribe-1-pro"
+}

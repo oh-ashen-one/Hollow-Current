@@ -8,6 +8,59 @@ using UnityEngine.AI;
 
 namespace HollowCurrent
 {
+    // Opt-in passive audio evidence for either map. It never plays a clip,
+    // moves a source, changes a mixer level, or runs in an ordinary launch.
+    public sealed class NativeAudioProof : MonoBehaviour
+    {
+        [Serializable] sealed class Report
+        {
+            public int samples,nonzero,activeVoiceObservations,clippedSamples;
+            public float peak;
+            public string outputDeviceEvidence="AudioListener.GetOutputData; not a human listening review";
+        }
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Install()
+        {
+            var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,"-hc-audio-proof");
+            if(i<0||i+1>=args.Length)return;
+            var go=new GameObject("Task-owned passive audio proof");DontDestroyOnLoad(go);
+            var proof=go.AddComponent<NativeAudioProof>();proof.folder=args[i+1];
+            Directory.CreateDirectory(proof.folder);
+            Debug.Log("HC_AUDIO_PROOF enabled=true passive=true");
+        }
+        string folder;float next,nextWrite;
+        readonly float[] buffer=new float[512];readonly Report report=new Report();
+        readonly Dictionary<int,string> active=new Dictionary<int,string>();
+        void Update()
+        {
+            if(folder==null||Time.unscaledTime<next)return;next=Time.unscaledTime+.1f;
+            if(FindFirstObjectByType<AudioListener>()!=null)
+            {
+                AudioListener.GetOutputData(buffer,0);
+                foreach(float v in buffer){float a=Mathf.Abs(v);report.samples++;if(a>.00001f)report.nonzero++;if(a>=.999f)report.clippedSamples++;report.peak=Mathf.Max(report.peak,a);}
+            }
+            var seen=new HashSet<int>();
+            foreach(var a in FindObjectsByType<AudioSource>(FindObjectsSortMode.None))
+            {
+                if(!a.isPlaying||!a.clip)continue;
+                string name=a.clip.name;
+                if(!(name.StartsWith("voice_",StringComparison.Ordinal)||name.Contains("breath")||name=="castle_hide_whisper"||name=="stagger_screech"||name=="death_wail_sunrise"))continue;
+                report.activeVoiceObservations++;int id=a.GetInstanceID();seen.Add(id);
+                if(!active.TryGetValue(id,out string previous)||previous!=name)
+                {
+                    active[id]=name;
+                    string line="HC_AUDIO_PLAY clip="+name+" samples="+a.clip.samples+" hz="+a.clip.frequency+" channels="+a.clip.channels+" seconds="+a.clip.length.ToString("F3",CultureInfo.InvariantCulture)+" spatial="+a.spatialBlend+" loop="+a.loop+" time="+Time.unscaledTime.ToString("F2",CultureInfo.InvariantCulture);
+                    File.AppendAllText(Path.Combine(folder,"playback.log"),line+"\n");Debug.Log(line);
+                }
+            }
+            var ended=new List<int>();foreach(var pair in active)if(!seen.Contains(pair.Key))ended.Add(pair.Key);
+            foreach(int id in ended)active.Remove(id);
+            if(Time.unscaledTime>=nextWrite){nextWrite=Time.unscaledTime+2;Save();}
+        }
+        void Save(){if(folder!=null)File.WriteAllText(Path.Combine(folder,"audio-output.json"),JsonUtility.ToJson(report,true));}
+        void OnApplicationQuit(){Save();Debug.Log("HC_AUDIO_OUTPUT samples="+report.samples+" nonzero="+report.nonzero+" peak="+report.peak+" clipped="+report.clippedSamples);}
+    }
+
     // Deliberate local native integration test. No provider, OS automation or network.
     // Traverses with the real CharacterController and the same equipment code.
     public sealed class NativeVerification : MonoBehaviour

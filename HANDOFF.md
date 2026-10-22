@@ -1,3 +1,11 @@
+# Fish Audio integration checkpoint — 2026-10-22
+
+Current task branch: `fish-audio-integration`. All 28 dialogue lines and discrete vocal effects have been integrated as offline Drama 3 audio; source, content and audio checks pass. Native build/runtime verification is still pending an unattended desktop safety gate. Read `docs/audio/fish-integration/HANDOFF.md` first for the exact state, limitations and remaining goal requirements. No merge into main or owner acceptance is claimed.
+
+The earlier handoffs below describe prior builds and must not be treated as proof that those builds contain the Fish Audio replacements.
+
+---
+
 # HANDOFF: session close. Wave FG integrated, two r15 fixes, built and proved (fg-integ). Read this section first.
 
 Branch `haunted-castle` = `hc/integ-fg`, pushed. Integrator: Opus 5.5 (piece fg-integ), main clone, 2026-10-19. **This closes the session**: no piece branch is open, nothing of mine is running, the GPU slot table is 0/2.

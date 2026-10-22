@@ -1,0 +1,10 @@
+{
+  "model": "drama-3",
+  "text": "[a very old man recalling a terrible secret, low and precise, clearly intelligible unhurried speech] Eleventh night. No dawn. I hid the silver blade among the dead beneath the chapel, in a box that opens only to the marks of his claws. He will not look where he sleeps in blood.",
+  "reference_sha256": "a1c7b4cab5574c336c36f78742f8a2638c98dccb37ff29200a9b28fe4e78eeb3",
+  "reference_text": "I can hear your heart. It is very loud, in my house. Stay a little longer. We have all the time in the world.",
+  "format": "wav",
+  "sample_rate": 44100,
+  "temperature": 0.7,
+  "latency": "normal"
+}

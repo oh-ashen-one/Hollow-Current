@@ -2,6 +2,12 @@
 
 Review date: 2026-10-13. This project contains AI-assisted media; output uniqueness and copyright protection are not guaranteed. These grants cover only rights held by the project owner, and do not grant provider trademarks or model/software weights.
 
+## Fish Audio vocal replacement (2026-10-22)
+
+Current provenance supersedes the historical eSpeak/Kokoro and Higgsfield vocal entries below for the files listed in `docs/audio/fish-integration/integration.json`, plus `Resources/Audio/breath.wav`. The 28 dialogue takes and discrete character vocal effects were generated through Fish Audio Drama 3 using original character references created with Fish Voice Design. No real person's voice recording or provider model weights are included. Reference recordings, prompts, raw masters, request metadata, content checks and processed-file hashes are retained under `docs/audio/`. Credit the generation source as Fish Audio. The project's grant extends only to rights held by the owner.
+
+`CastleAudio/death_wail_sunrise.wav` is a composite: a Fish-generated dying vocal followed by the original Higgsfield musical ending. The original music samples after 4.45 seconds are preserved exactly; the pre-existing Higgsfield attribution and no-training restriction still apply to that component. Unchanged ambience (including the candle whisper bed), music, footsteps, doors and nonvocal scares retain their existing provenance and permissions.
+
 ## Project asset grant
 
 Except for the Higgsfield recordings and third-party software described below, the owner licenses the included project artwork, textures, models, animations and audio under **Creative Commons Attribution 4.0 International (CC BY 4.0)**, to the extent the owner holds copyright or related rights. Credit “Hollow Current by Ashen” and preserve the relevant provider credits below when redistributing these assets. See the [license text](https://creativecommons.org/licenses/by/4.0/legalcode.en).

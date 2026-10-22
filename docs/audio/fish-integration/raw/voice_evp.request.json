@@ -1,0 +1,11 @@
+{
+  "model": "drama-3",
+  "text": "[an old woman quietly pleading, speaking through shallow breath, each thought difficult to release] Her chair. [short pause] Do not put it away. <whisper>Keep the house warm.</whisper>",
+  "reference_sha256": "fe248ff07e3f8ff50c9dc9acafe2d0de0e44fc628b0820bab6b9e59017da01da",
+  "reference_text": "Her chair. Do not put it away. Keep the house warm. I waited downstairs for so long. You left me there.",
+  "format": "wav",
+  "sample_rate": 44100,
+  "temperature": 0.7,
+  "latency": "normal",
+  "reused_audition": "house_evp"
+}

@@ -1,0 +1,386 @@
+{
+  "cap_usd": 5,
+  "reserved_ceiling_usd": 0.64155,
+  "observed_balance_delta": 0.05635,
+  "requests": [
+    {
+      "id": "tts:voice_arrival",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:17Z"
+    },
+    {
+      "id": "asr:voice_arrival",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:18Z"
+    },
+    {
+      "id": "tts:voice_kit",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:19Z"
+    },
+    {
+      "id": "asr:voice_kit",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:20Z"
+    },
+    {
+      "id": "tts:voice_hint_signal",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:21Z"
+    },
+    {
+      "id": "asr:voice_hint_signal",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:22Z"
+    },
+    {
+      "id": "tts:voice_hint_trace",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:23Z"
+    },
+    {
+      "id": "asr:voice_hint_trace",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:24Z"
+    },
+    {
+      "id": "tts:voice_hint_voice",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:25Z"
+    },
+    {
+      "id": "asr:voice_hint_voice",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:25Z"
+    },
+    {
+      "id": "asr:voice_warning",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:26Z"
+    },
+    {
+      "id": "tts:voice_return",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:27Z"
+    },
+    {
+      "id": "asr:voice_return",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:28Z"
+    },
+    {
+      "id": "tts:voice_ending",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:29Z"
+    },
+    {
+      "id": "asr:voice_ending",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:30Z"
+    },
+    {
+      "id": "asr:voice_evp",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:30Z"
+    },
+    {
+      "id": "asr:voice_whisper",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:31Z"
+    },
+    {
+      "id": "tts:voice_contain",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:32Z"
+    },
+    {
+      "id": "asr:voice_contain",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:33Z"
+    },
+    {
+      "id": "tts:voice_cc_bargain",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:34Z"
+    },
+    {
+      "id": "asr:voice_cc_bargain",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:35Z"
+    },
+    {
+      "id": "tts:voice_cc_steward",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:36Z"
+    },
+    {
+      "id": "asr:voice_cc_steward",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:37Z"
+    },
+    {
+      "id": "tts:voice_cc_relic_blade",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:38Z"
+    },
+    {
+      "id": "asr:voice_cc_relic_blade",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:39Z"
+    },
+    {
+      "id": "tts:voice_cc_relic_hilt",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:40Z"
+    },
+    {
+      "id": "asr:voice_cc_relic_hilt",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:42Z"
+    },
+    {
+      "id": "tts:voice_cc_relic_moon",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:43Z"
+    },
+    {
+      "id": "asr:voice_cc_relic_moon",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:44Z"
+    },
+    {
+      "id": "asr:voice_cc_listen",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:45Z"
+    },
+    {
+      "id": "tts:voice_cc_stay",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:46Z"
+    },
+    {
+      "id": "asr:voice_cc_stay",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:47Z"
+    },
+    {
+      "id": "tts:voice_cc_ledger_steward",
+      "ceiling_usd": 0.0139,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:48Z"
+    },
+    {
+      "id": "asr:voice_cc_ledger_steward",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:51Z"
+    },
+    {
+      "id": "tts:voice_cc_ledger_orrery",
+      "ceiling_usd": 0.01445,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:52Z"
+    },
+    {
+      "id": "asr:voice_cc_ledger_orrery",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:55Z"
+    },
+    {
+      "id": "tts:voice_cc_ledger_portrait",
+      "ceiling_usd": 0.0132,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:56Z"
+    },
+    {
+      "id": "asr:voice_cc_ledger_portrait",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:28:59Z"
+    },
+    {
+      "id": "tts:voice_cc_hunt_smell",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:00Z"
+    },
+    {
+      "id": "asr:voice_cc_hunt_smell",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:00Z"
+    },
+    {
+      "id": "tts:voice_cc_hunt_run",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:01Z"
+    },
+    {
+      "id": "asr:voice_cc_hunt_run",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:02Z"
+    },
+    {
+      "id": "asr:voice_cc_hunt_found",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:03Z"
+    },
+    {
+      "id": "tts:voice_cc_hunt_found_b",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:03Z"
+    },
+    {
+      "id": "asr:voice_cc_hunt_found_b",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:04Z"
+    },
+    {
+      "id": "tts:voice_cc_hunt_found_c",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:05Z"
+    },
+    {
+      "id": "asr:voice_cc_hunt_found_c",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:05Z"
+    },
+    {
+      "id": "tts:voice_cc_hunt_smell_b",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:06Z"
+    },
+    {
+      "id": "asr:voice_cc_hunt_smell_b",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:06Z"
+    },
+    {
+      "id": "asr:voice_cc_hunt_run_b",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:07Z"
+    },
+    {
+      "id": "asr:player_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:08Z"
+    },
+    {
+      "id": "tts:house_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:08Z"
+    },
+    {
+      "id": "asr:house_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:09Z"
+    },
+    {
+      "id": "asr:count_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:10Z"
+    },
+    {
+      "id": "asr:hide_breath_0",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:11Z"
+    },
+    {
+      "id": "tts:hide_breath_1",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:11Z"
+    },
+    {
+      "id": "asr:hide_breath_1",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:12Z"
+    },
+    {
+      "id": "tts:hide_exhale",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:13Z"
+    },
+    {
+      "id": "asr:hide_exhale",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:13Z"
+    },
+    {
+      "id": "tts:stagger",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:14Z"
+    },
+    {
+      "id": "asr:stagger",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:14Z"
+    },
+    {
+      "id": "tts:death",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:15Z"
+    },
+    {
+      "id": "asr:death",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-22T06:29:16Z"
+    }
+  ],
+  "note": "Balance may post late or include other account activity; ceiling uses list TTS price and rounded ASR duration."
+}

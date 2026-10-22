@@ -1,0 +1,370 @@
+[
+  {
+    "id": "voice_arrival",
+    "voice": "dispatch",
+    "text": "Bellwether Field Office. The Harrows are clear. Find what stayed behind. Call when you need me.",
+    "prompt": "[human protective British field operator, grounded natural speech] Bellwether Field Office. The Harrows are clear. Find what stayed behind. Call when you need me.",
+    "fx": "radio",
+    "target": "Audio/voice_arrival.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_kit",
+    "voice": "dispatch",
+    "text": "Check your instruments. Read the family notes. Find a hiding place before you need one.",
+    "prompt": "[human protective British field operator, grounded natural speech] Check your instruments. Read the family notes. Find a hiding place before you need one.",
+    "fx": "radio",
+    "target": "Audio/voice_kit.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_hint_signal",
+    "voice": "dispatch",
+    "text": "Start with the rooms they used most. Follow the meter. An echo is not always the source.",
+    "prompt": "[human protective British field operator, grounded natural speech] Start with the rooms they used most. Follow the meter. An echo is not always the source.",
+    "fx": "radio",
+    "target": "Audio/voice_hint_signal.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_hint_trace",
+    "voice": "dispatch",
+    "text": "Look at what the family left behind. Ultraviolet may show you what they could not see.",
+    "prompt": "[human protective British field operator, grounded natural speech] Look at what the family left behind. Ultraviolet may show you what they could not see.",
+    "fx": "radio",
+    "target": "Audio/voice_hint_trace.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_hint_voice",
+    "voice": "dispatch",
+    "text": "The recorder needs a quiet room. Ask once, then listen.",
+    "prompt": "[human protective British field operator, grounded natural speech] The recorder needs a quiet room. Ask once, then listen.",
+    "fx": "radio",
+    "target": "Audio/voice_hint_voice.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_warning",
+    "voice": "dispatch",
+    "text": "That is not interference. Find cover. Light off. Stay quiet.",
+    "prompt": "[an emergency operator suddenly realizing the danger, urgently trying to keep her voice steady] That is not interference. [short pause] Find cover. Light off. <soft>Stay quiet.</soft>",
+    "fx": "radio",
+    "target": "Audio/voice_warning.wav",
+    "lufs": -24.2,
+    "audition": "dispatch_warning"
+  },
+  {
+    "id": "voice_return",
+    "voice": "dispatch",
+    "text": "I can hear the rain again. Come back to the van.",
+    "prompt": "[quiet urgent reassurance, steady clear words] I can hear the rain again. Come back to the van.",
+    "fx": "radio",
+    "target": "Audio/voice_return.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_ending",
+    "voice": "dispatch",
+    "text": "The line is clear. You did it. We are going home.",
+    "prompt": "[a protective human operator finally releasing her held breath, fragile genuine relief] The line is clear. You did it. We are going home.",
+    "fx": "radio",
+    "target": "Audio/voice_ending.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_evp",
+    "voice": "house",
+    "text": "Her chair. Do not put it away. Keep the house warm.",
+    "prompt": "[an old woman quietly pleading, speaking through shallow breath, each thought difficult to release] Her chair. [short pause] Do not put it away. <whisper>Keep the house warm.</whisper>",
+    "fx": "evp",
+    "target": "Audio/voice_evp.wav",
+    "lufs": -28,
+    "audition": "house_evp"
+  },
+  {
+    "id": "voice_whisper",
+    "voice": "house",
+    "text": "You left her downstairs.",
+    "prompt": "[a frail woman's barely audible whisper, accusing through restrained grief, almost touching the listener's ear] You left her downstairs.",
+    "fx": "evp",
+    "target": "Audio/voice_whisper.wav",
+    "lufs": -28,
+    "audition": "house_whisper"
+  },
+  {
+    "id": "voice_contain",
+    "voice": "dispatch",
+    "text": "Keep it quiet. Let the last note end.",
+    "prompt": "[quiet urgent reassurance, steady clear words] Keep it quiet. Let the last note end.",
+    "fx": "radio",
+    "target": "Audio/voice_contain.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_bargain",
+    "voice": "count",
+    "text": "I begged for a night that would never end. Something under the stones said yes.",
+    "prompt": "[a low intimate confession, exhausted regret beneath menace, speak every word clearly] I begged for a night that would never end. Something under the stones said yes.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_bargain.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_steward",
+    "voice": "count",
+    "text": "The steward hid them. Faithful fool. He thought I would forget.",
+    "prompt": "[intimate low controlled menace, deliberate clear speech, no theatrical announcer voice] The steward hid them. Faithful fool. He thought I would forget.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_steward.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_relic_blade",
+    "voice": "count",
+    "text": "Silver, cold, in the dark. Where the dead keep what they cannot spend.",
+    "prompt": "[intimate low controlled menace, deliberate clear speech, no theatrical announcer voice] Silver, cold, in the dark. Where the dead keep what they cannot spend.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_relic_blade.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_relic_hilt",
+    "voice": "count",
+    "text": "A hilt raised to the stars. The wanderer's socket waits, empty.",
+    "prompt": "[intimate low controlled menace, deliberate clear speech, no theatrical announcer voice] A hilt raised to the stars. The wanderer's socket waits, empty.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_relic_hilt.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_relic_moon",
+    "voice": "count",
+    "text": "A moon behind a painted face. Some doors are only faces.",
+    "prompt": "[intimate low controlled menace, deliberate clear speech, no theatrical announcer voice] A moon behind a painted face. Some doors are only faces.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_relic_moon.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_listen",
+    "voice": "count",
+    "text": "I can hear your heart. It is very loud, in my house.",
+    "prompt": "[very quiet and intimate, a patient predator savoring the discovery, slow cultured British speech] I can hear your heart. [short pause] It is very loud, <whisper>in my house.</whisper>",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_listen.wav",
+    "lufs": -24.2,
+    "audition": "count_stalking"
+  },
+  {
+    "id": "voice_cc_stay",
+    "voice": "count",
+    "text": "Stay. Everyone stays. The drawbridge is only a memory of leaving.",
+    "prompt": "[intimate low controlled menace, deliberate clear speech, no theatrical announcer voice] Stay. Everyone stays. The drawbridge is only a memory of leaving.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_stay.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_ledger_steward",
+    "voice": "count",
+    "text": "Eleventh night. No dawn. I hid the silver blade among the dead beneath the chapel, in a box that opens only to the marks of his claws. He will not look where he sleeps in blood.",
+    "prompt": "[a very old man recalling a terrible secret, low and precise, clearly intelligible unhurried speech] Eleventh night. No dawn. I hid the silver blade among the dead beneath the chapel, in a box that opens only to the marks of his claws. He will not look where he sleeps in blood.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_ledger_steward.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_ledger_orrery",
+    "voice": "count",
+    "text": "Thirteenth night. The Count's orrery carries a planet that does not exist, and its socket stands empty. I set the hallowed hilt there, where the brass wanders and the third moon should be.",
+    "prompt": "[a very old man recalling a terrible secret, low and precise, clearly intelligible unhurried speech] Thirteenth night. The Count's orrery carries a planet that does not exist, and its socket stands empty. I set the hallowed hilt there, where the brass wanders and the third moon should be.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_ledger_orrery.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_ledger_portrait",
+    "voice": "count",
+    "text": "Fifteenth night. The portraits watch me write. One of them is a door. Behind its face I set the moonstone. If I do not return, forge all three at the chapel altar.",
+    "prompt": "[a very old man recalling a terrible secret, low and precise, clearly intelligible unhurried speech] Fifteenth night. The portraits watch me write. One of them is a door. Behind its face I set the moonstone. If I do not return, forge all three at the chapel altar.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_ledger_portrait.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_hunt_smell",
+    "voice": "count",
+    "text": "I can smell your lamp oil.",
+    "prompt": "[quiet predatory delight, close and threatening, clear words, restrained rough breath] I can smell your lamp oil.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_hunt_smell.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_hunt_run",
+    "voice": "count",
+    "text": "Run. The hall is very long.",
+    "prompt": "[quiet predatory delight, close and threatening, clear words, restrained rough breath] Run. The hall is very long.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_hunt_run.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_hunt_found",
+    "voice": "count",
+    "text": "There you are.",
+    "prompt": "[a low close whisper, delighted recognition, a tiny sinister smile, absolutely no shouting] There you are.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_hunt_found.wav",
+    "lufs": -24.2,
+    "audition": "count_found"
+  },
+  {
+    "id": "voice_cc_hunt_found_b",
+    "voice": "count",
+    "text": "Ah. Found you.",
+    "prompt": "[quiet predatory delight, close and threatening, clear words, restrained rough breath] Ah. Found you.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_hunt_found_b.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_hunt_found_c",
+    "voice": "count",
+    "text": "Hello again, little lamp.",
+    "prompt": "[quiet predatory delight, close and threatening, clear words, restrained rough breath] Hello again, little lamp.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_hunt_found_c.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_hunt_smell_b",
+    "voice": "count",
+    "text": "You breathe so loudly in there.",
+    "prompt": "[quiet predatory delight, close and threatening, clear words, restrained rough breath] You breathe so loudly in there.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_hunt_smell_b.wav",
+    "lufs": -24.2,
+    "audition": null
+  },
+  {
+    "id": "voice_cc_hunt_run_b",
+    "voice": "count",
+    "text": "Yes. Run. I like it when they run.",
+    "prompt": "[breathless predatory excitement, the civilized mask cracking into a harsh commanding voice] Yes. <forceful>Run.</forceful> [a low breathy chuckle, then threateningly quiet] I like it when they run.",
+    "fx": "stone",
+    "target": "CastleAudio/voice_cc_hunt_run_b.wav",
+    "lufs": -24.2,
+    "audition": "count_hunt"
+  },
+  {
+    "id": "player_breath",
+    "voice": "player",
+    "prompt": "[gasp] [panting] [panting] [sigh]",
+    "text": "",
+    "fx": "dry",
+    "lufs": -30,
+    "target": "HiggsfieldAudio/breath_hidden.wav",
+    "audition": "player_hidden_breath",
+    "loop": true
+  },
+  {
+    "id": "house_breath",
+    "voice": "house",
+    "prompt": "[inhale] [shaky exhale] [sigh]",
+    "text": "",
+    "fx": "house",
+    "lufs": -30,
+    "target": "HiggsfieldAudio/breath_presence.wav",
+    "audition": null,
+    "loop": false
+  },
+  {
+    "id": "count_breath",
+    "voice": "count",
+    "prompt": "[inhale] [exhale] [inhale] [exhale] [sigh]",
+    "text": "",
+    "fx": "stone",
+    "lufs": -30,
+    "target": "CastleAudio/breath_presence.wav",
+    "audition": "count_door_breath",
+    "loop": false
+  },
+  {
+    "id": "hide_breath_0",
+    "voice": "count",
+    "prompt": "[inhale] [exhale] [inhale] [exhale] [sigh]",
+    "text": "",
+    "fx": "stone",
+    "lufs": -28,
+    "target": "CastleAudio/castle_hide_breath_0.wav",
+    "audition": "count_door_breath",
+    "loop": false
+  },
+  {
+    "id": "hide_breath_1",
+    "voice": "count",
+    "prompt": "[gasp] [low groan] [exhale] [sigh]",
+    "text": "",
+    "fx": "stone",
+    "lufs": -28,
+    "target": "CastleAudio/castle_hide_breath_1.wav",
+    "audition": null,
+    "loop": false
+  },
+  {
+    "id": "hide_exhale",
+    "voice": "count",
+    "prompt": "[exhale] [sigh]",
+    "text": "",
+    "fx": "dry",
+    "lufs": -28,
+    "target": "CastleAudio/castle_hide_whisper.wav",
+    "audition": null,
+    "loop": false
+  },
+  {
+    "id": "stagger",
+    "voice": "count",
+    "prompt": "[scream] [groan]",
+    "text": "",
+    "fx": "stone",
+    "lufs": -28,
+    "target": "CastleAudio/stagger_screech.wav",
+    "audition": null,
+    "loop": false
+  },
+  {
+    "id": "death",
+    "voice": "count",
+    "prompt": "[screaming] [groaning] [exhale]",
+    "text": "",
+    "fx": "stone",
+    "lufs": -29,
+    "target": "CastleAudio/death_wail_sunrise.wav",
+    "audition": null,
+    "loop": false
+  }
+]

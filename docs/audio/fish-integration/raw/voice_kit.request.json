@@ -1,0 +1,10 @@
+{
+  "model": "drama-3",
+  "text": "[human protective British field operator, grounded natural speech] Check your instruments. Read the family notes. Find a hiding place before you need one.",
+  "reference_sha256": "daa3b50e596047fcc88940c28f811791c67045af76d4501116498aed4756c11e",
+  "reference_text": "Bellwether Field Office. I am still here. Listen carefully. Find cover, turn your light off, and stay quiet until I tell you.",
+  "format": "wav",
+  "sample_rate": 44100,
+  "temperature": 0.7,
+  "latency": "normal"
+}
