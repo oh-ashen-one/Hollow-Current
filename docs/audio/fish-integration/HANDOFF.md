@@ -1,4 +1,4 @@
-# Fish Audio integration — active, native verification pending
+# Fish Audio integration — blocked on native launch verification
 
 ## Verified source state
 
@@ -60,3 +60,9 @@ The $5 goal cap covers all NEW requests. `usage.json` contains conservative requ
 Verified remote branch still matches the integration checkpoint and the checkout is clean. Recomputed the exact lighting source-hash algorithm: Castle (99 source/shader files) and Bellwether (51 files) both match their existing bake receipts. Unity still must verify scene-dependency hashes; this is not a native build pass. A baseline-to-HEAD audit confirms exactly 37 resource WAVs changed, no unrelated audio changed, and every existing audio .meta is unchanged. The only new .meta is the Castle presence override. Native playback overlap/cutoff checks remain pending rather than inferred from source checks.
 
 The same protected notification processes remain resident. This is the second consecutive goal turn encountering the same launch-verification gate; no engine or slot was started, and no repeated paid generation occurred.
+
+## Blocked audit — third consecutive goal turn
+
+The same live processes remain: CoreServicesUIAgent PID 746 and UserNotificationCenter PID 67511; no Unity/Hollow Current process is running, and the shared coordinator has no holders or waiters. The current source and audio work is pushed. All remaining required work depends on a fresh Unity build and native runs. No additional safe source change is needed merely to keep this task busy.
+
+Goal status: blocked, not complete. Resume after the owner confirms the Studio has no pending firewall, permission, or crash dialog (or handles any such dialog). Process existence alone is not proof of an active dialog, and these helpers must not be killed just to clear a heuristic. The tool's protected-app inspection restriction must not be bypassed. After a confirmed desktop state, recheck ownership/slots and execute the remaining build/runtime checklist above.

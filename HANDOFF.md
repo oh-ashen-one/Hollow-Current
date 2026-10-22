@@ -1,6 +1,6 @@
 # Fish Audio integration checkpoint — 2026-10-22
 
-Current task branch: `fish-audio-integration`. All 28 dialogue lines and discrete vocal effects have been integrated as offline Drama 3 audio; source, content and audio checks pass. Native build/runtime verification is still pending an unattended desktop safety gate. Read `docs/audio/fish-integration/HANDOFF.md` first for the exact state, limitations and remaining goal requirements. No merge into main or owner acceptance is claimed.
+Current task branch: `fish-audio-integration`. All 28 dialogue lines and discrete vocal effects have been integrated as offline Drama 3 audio; source, content and audio checks pass. Native build/runtime verification is blocked on the unattended desktop notification/dialog verification gate after three consecutive checks. Read `docs/audio/fish-integration/HANDOFF.md` first for the exact state, limitations and remaining goal requirements. No merge into main or owner acceptance is claimed.
 
 The earlier handoffs below describe prior builds and must not be treated as proof that those builds contain the Fish Audio replacements.
 
