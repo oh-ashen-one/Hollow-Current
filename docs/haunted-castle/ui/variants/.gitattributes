@@ -1,0 +1,4 @@
+# Preserve upstream licence bytes (some use CRLF/trailing spaces) for hash verification.
+**/OFL.txt -text -whitespace
+*.ttf binary
+*.png binary
