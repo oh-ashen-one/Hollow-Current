@@ -54,3 +54,9 @@ The $5 goal cap covers all NEW requests. `usage.json` contains conservative requ
 3. Hide quietly; listen through two player-breath loop boundaries for clicks or obvious repetition.
 4. Castle: hear a stalking line and hunt taunt from the Count, move behind a wall and away to verify direction/occlusion/distance.
 5. Trigger a hiding-place breath and the fight ending; judge the vocal intensity and preserved sunrise music. Mark any line that feels theatrical, repetitive, too quiet/loud, or insufficiently frightening.
+
+## Continuation audit — 2026-10-22
+
+Verified remote branch still matches the integration checkpoint and the checkout is clean. Recomputed the exact lighting source-hash algorithm: Castle (99 source/shader files) and Bellwether (51 files) both match their existing bake receipts. Unity still must verify scene-dependency hashes; this is not a native build pass. A baseline-to-HEAD audit confirms exactly 37 resource WAVs changed, no unrelated audio changed, and every existing audio .meta is unchanged. The only new .meta is the Castle presence override. Native playback overlap/cutoff checks remain pending rather than inferred from source checks.
+
+The same protected notification processes remain resident. This is the second consecutive goal turn encountering the same launch-verification gate; no engine or slot was started, and no repeated paid generation occurred.

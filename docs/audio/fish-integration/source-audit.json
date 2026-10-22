@@ -1,0 +1,36 @@
+{
+  "base": "67a004c",
+  "current_commit": "53aa49ddb45a56b4744599e1e94610e4599fe035",
+  "changed_resource_audio": 37,
+  "unrelated_audio_changed": false,
+  "existing_meta_files_changed": false,
+  "new_meta_files": [
+    "Assets/HollowCurrent/Resources/CastleAudio/breath_presence.wav.meta"
+  ],
+  "all_installed_hashes_verified": true,
+  "bake_source_preflight": [
+    {
+      "map": "Castle",
+      "source_files": 99,
+      "source_hash_matches_existing_receipt": true,
+      "scene_dependency_hash_verified": false
+    },
+    {
+      "map": "Bellwether",
+      "source_files": 51,
+      "source_hash_matches_existing_receipt": true,
+      "scene_dependency_hash_verified": false
+    }
+  ],
+  "build": {
+    "status": "not_run",
+    "reason": "Unattended notification/dialog inspection gate unresolved"
+  },
+  "runtime_audio": {
+    "status": "not_run"
+  },
+  "listening": {
+    "status": "unavailable",
+    "owner_acceptance": false
+  }
+}
