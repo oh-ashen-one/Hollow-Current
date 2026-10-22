@@ -30,6 +30,8 @@ def main():
         require(actual==expected or phonation,item['id']+' unexpected spoken text')
         info=sf.info(target)
         require(info.samplerate==48000 and info.channels==1 and info.subtype=='PCM_16',item['id']+' format')
+        if item['id'] in ('house_breath','count_breath'):
+            require(info.duration/.90<3.6,item['id']+' overlaps the 3.6-second cadence at low pitch')
         meta=Path(str(target)+'.meta').read_text();guid=next(l.split(': ',1)[1] for l in meta.splitlines() if l.startswith('guid: '))
         require(guid not in guids,item['id']+' duplicate GUID');guids.add(guid)
     require((RES/'Audio/breath.wav').read_bytes()==(RES/'HiggsfieldAudio/breath_presence.wav').read_bytes(),'legacy breath is Fish too')

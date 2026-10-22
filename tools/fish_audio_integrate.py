@@ -133,6 +133,12 @@ def prepare(item,src):
     A.normalize(tmp,dest,item['lufs'])
     # Cut only silence below -50 dBFS after normalization, preserving natural decays.
     x,_=sf.read(dest);idx=np.flatnonzero(np.abs(x)>10**(-50/20))
+    if item['id'] in ('house_breath','count_breath') and len(x)>int(2.9*SR):
+        # Presence requests these every 3.6 seconds, including pitch jitter.
+        # A complete short breath with a soft release must end before the next
+        # request; long hide-spot breath variants have a separate cooldown.
+        x=x[:int(2.9*SR)].copy();n=int(.18*SR);x[-n:]*=np.linspace(1,0,n)
+        idx=np.flatnonzero(np.abs(x)>10**(-50/20))
     if not item.get('loop') and len(idx):
         x=x[:min(len(x),idx[-1]+int(.075*SR))];n=min(int(.02*SR),len(x)//4);x[-n:]*=np.linspace(1,0,n)
     if item.get('loop'):

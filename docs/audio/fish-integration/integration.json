@@ -234,17 +234,17 @@
   {
     "id": "house_breath",
     "target": "HiggsfieldAudio/breath_presence.wav",
-    "sha256": "60ec31f4fe7f4061b41b712ce435571802fee407bd2f78b9dfc678bc99ad2e84",
+    "sha256": "e53f722156e693994b0f6b9f186a04e420d90b849e0f7f8e25e09be3e3777748",
     "raw_sha256": "05003ae71a1882fecab1fd0fc497cebebf77d47b35cc14a2d6679b0c2cbc532f",
-    "seconds": 3.92,
+    "seconds": 2.358,
     "loop": false
   },
   {
     "id": "count_breath",
     "target": "CastleAudio/breath_presence.wav",
-    "sha256": "44405cd6e73a27a876da0573154093a6ca1309e84ece5bb54595249b4e3af71c",
+    "sha256": "ee9f860abb4516e34d06820b2d963f7382ed3448c1951af5bf72e65a88aaac86",
     "raw_sha256": "642d268ac96e270772f6848da5530c36d9a8ce7c81f3bdaae6299771cc42ba82",
-    "seconds": 4.992,
+    "seconds": 2.9,
     "loop": false
   },
   {
