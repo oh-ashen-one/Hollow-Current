@@ -1,0 +1,74 @@
+[
+  {
+    "file": "count_door_breath_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 6.244,
+    "lufs": -28.0,
+    "true_peak_dbfs": -8.78,
+    "pass": true
+  },
+  {
+    "file": "count_found_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 2.668,
+    "lufs": -24.19,
+    "true_peak_dbfs": -7.24,
+    "pass": true
+  },
+  {
+    "file": "count_hunt_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 5.78,
+    "lufs": -24.27,
+    "true_peak_dbfs": -4.49,
+    "pass": true
+  },
+  {
+    "file": "count_stalking_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 7.777,
+    "lufs": -24.21,
+    "true_peak_dbfs": -4.94,
+    "pass": true
+  },
+  {
+    "file": "dispatch_warning_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 5.201,
+    "lufs": -24.21,
+    "true_peak_dbfs": -3.48,
+    "pass": true
+  },
+  {
+    "file": "house_evp_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 6.714,
+    "lufs": -24.21,
+    "true_peak_dbfs": -6.65,
+    "pass": true
+  },
+  {
+    "file": "house_whisper_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 2.442,
+    "lufs": -24.2,
+    "true_peak_dbfs": -7.9,
+    "pass": true
+  },
+  {
+    "file": "player_hidden_breath_new.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "duration_seconds": 6.362,
+    "lufs": -28.0,
+    "true_peak_dbfs": -13.64,
+    "pass": true
+  }
+]

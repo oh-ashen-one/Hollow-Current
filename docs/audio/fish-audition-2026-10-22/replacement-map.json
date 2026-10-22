@@ -1,0 +1,270 @@
+{
+  "scripted_lines": [
+    {
+      "id": "arrival",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "Bellwether Field Office. The Harrows are clear. Find what stayed behind. Call when you need me.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "kit",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "Check your instruments. Read the family notes. Find a hiding place before you need one.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "hint_signal",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "Start with the rooms they used most. Follow the meter. An echo is not always the source.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "hint_trace",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "Look at what the family left behind. Ultraviolet may show you what they could not see.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "hint_voice",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "The recorder needs a quiet room. Ask once, then listen.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "warning",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "That is not interference. Find cover. Light off. Stay quiet.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "return",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "I can hear the rain again. Come back to the van.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "ending",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "The line is clear. You did it. We are going home.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "evp",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "House presence",
+      "text": "Her chair. Do not put it away. Keep the house warm.",
+      "delivery": "fragile close whisper; grief and accusation"
+    },
+    {
+      "id": "whisper",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "House presence",
+      "text": "You left her downstairs.",
+      "delivery": "fragile close whisper; grief and accusation"
+    },
+    {
+      "id": "contain",
+      "map": "Bellwether",
+      "current_source": "eSpeak NG with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Bellwether dispatch",
+      "text": "Keep it quiet. Let the last note end.",
+      "delivery": "human protective operator; fear rises only with danger"
+    },
+    {
+      "id": "cc_bargain",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "I begged for a night that would never end. Something under the stones said yes.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_steward",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "The steward hid them. Faithful fool. He thought I would forget.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_relic_blade",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Silver, cold, in the dark. Where the dead keep what they cannot spend.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_relic_hilt",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "A hilt raised to the stars. The wanderer's socket waits, empty.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_relic_moon",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "A moon behind a painted face. Some doors are only faces.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_listen",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "I can hear your heart. It is very loud, in my house.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_stay",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Stay. Everyone stays. The drawbridge is only a memory of leaving.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_ledger_steward",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Eleventh night. No dawn. I hid the silver blade among the dead beneath the chapel, in a box that opens only to the marks of his claws. He will not look where he sleeps in blood.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_ledger_orrery",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Thirteenth night. The Count's orrery carries a planet that does not exist, and its socket stands empty. I set the hallowed hilt there, where the brass wanders and the third moon should be.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_ledger_portrait",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Fifteenth night. The portraits watch me write. One of them is a door. Behind its face I set the moonstone. If I do not return, forge all three at the chapel altar.",
+      "delivery": "intimate controlled menace"
+    },
+    {
+      "id": "cc_hunt_smell",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "I can smell your lamp oil.",
+      "delivery": "predatory pursuit, varied restrained and aggressive takes"
+    },
+    {
+      "id": "cc_hunt_run",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Run. The hall is very long.",
+      "delivery": "predatory pursuit, varied restrained and aggressive takes"
+    },
+    {
+      "id": "cc_hunt_found",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "There you are.",
+      "delivery": "predatory pursuit, varied restrained and aggressive takes"
+    },
+    {
+      "id": "cc_hunt_found_b",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Ah. Found you.",
+      "delivery": "predatory pursuit, varied restrained and aggressive takes"
+    },
+    {
+      "id": "cc_hunt_found_c",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Hello again, little lamp.",
+      "delivery": "predatory pursuit, varied restrained and aggressive takes"
+    },
+    {
+      "id": "cc_hunt_smell_b",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "You breathe so loudly in there.",
+      "delivery": "predatory pursuit, varied restrained and aggressive takes"
+    },
+    {
+      "id": "cc_hunt_run_b",
+      "map": "Haunted Castle",
+      "current_source": "Kokoro with effects",
+      "proposed_source": "Fish Audio Drama 3",
+      "role": "Count",
+      "text": "Yes. Run. I like it when they run.",
+      "delivery": "predatory pursuit, varied restrained and aggressive takes"
+    }
+  ],
+  "vocal_effects": [
+    "player hidden breathing",
+    "presence breathing",
+    "castle hiding-place breaths",
+    "wordless sibilant exhale"
+  ],
+  "scope_exclusions": [
+    "ambience",
+    "footsteps",
+    "doors",
+    "music",
+    "nonvocal scare effects"
+  ],
+  "integration_status": "auditions only"
+}

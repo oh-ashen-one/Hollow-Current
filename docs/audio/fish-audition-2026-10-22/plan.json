@@ -1,0 +1,80 @@
+{
+  "voices": {
+    "count": {
+      "instruction": "An original male horror character, an elderly English aristocrat with a resonant low baritone. Precise cultured British consonants, intimate chest resonance, dry age-worn texture, a hint of breath. He sounds dangerously real, intelligent and quietly amused, never a cartoon vampire or trailer announcer. Slow deliberate speech with clear words. Dry solo voice, no music, no echo.",
+      "reference_text": "I can hear your heart. It is very loud, in my house. Stay a little longer. We have all the time in the world."
+    },
+    "dispatch": {
+      "instruction": "An original British woman in her forties, a real emergency field operator. Warm low alto, steady grounded diction, slightly tired and rough from long night shifts. A protective human presence with contained fear beneath professional control. Natural conversational delivery, not a presenter or synthetic assistant. Dry solo voice with no radio effect, no music.",
+      "reference_text": "Bellwether Field Office. I am still here. Listen carefully. Find cover, turn your light off, and stay quiet until I tell you."
+    },
+    "house": {
+      "instruction": "An original elderly female ghost with a delicate low voice and a faded English accent. Intimate, grief-stricken and unsettlingly calm, with audible fragile breath and slightly uneven pauses. Sounds like a real person speaking inches from a microphone. Understandable words, restrained pain, no theatrical witch cackle. Dry voice, no echo, no music.",
+      "reference_text": "Her chair. Do not put it away. Keep the house warm. I waited downstairs for so long. You left me there."
+    },
+    "player": {
+      "instruction": "An original young adult woman, a frightened but determined investigator. Natural middle register, close microphone, unpolished human voice with breath catching between words. Tense and vulnerable, never seductive or theatrical. Dry solo voice without music or effects.",
+      "reference_text": "Stay quiet. Just breathe slowly. Do not let him hear you. Wait until the footsteps stop. I can get out of here."
+    }
+  },
+  "takes": [
+    {
+      "id": "count_stalking",
+      "voice": "count",
+      "old": "CastleAudio/voice_cc_listen.wav",
+      "fx": "stone",
+      "text": "[very quiet and intimate, a patient predator savoring the discovery, slow cultured British speech] I can hear your heart. [short pause] It is very loud, <whisper>in my house.</whisper>"
+    },
+    {
+      "id": "count_found",
+      "voice": "count",
+      "old": "CastleAudio/voice_cc_hunt_found.wav",
+      "fx": "stone",
+      "text": "[a low close whisper, delighted recognition, a tiny sinister smile, absolutely no shouting] There you are."
+    },
+    {
+      "id": "count_hunt",
+      "voice": "count",
+      "old": "CastleAudio/voice_cc_hunt_run_b.wav",
+      "fx": "stone",
+      "text": "[breathless predatory excitement, the civilized mask cracking into a harsh commanding voice] Yes. <forceful>Run.</forceful> [a low breathy chuckle, then threateningly quiet] I like it when they run."
+    },
+    {
+      "id": "dispatch_warning",
+      "voice": "dispatch",
+      "old": "Audio/voice_warning.wav",
+      "fx": "radio",
+      "text": "[an emergency operator suddenly realizing the danger, urgently trying to keep her voice steady] That is not interference. [short pause] Find cover. Light off. <soft>Stay quiet.</soft>"
+    },
+    {
+      "id": "house_whisper",
+      "voice": "house",
+      "old": "Audio/voice_whisper.wav",
+      "fx": "house",
+      "text": "[a frail woman's barely audible whisper, accusing through restrained grief, almost touching the listener's ear] You left her downstairs."
+    },
+    {
+      "id": "house_evp",
+      "voice": "house",
+      "old": "Audio/voice_evp.wav",
+      "fx": "evp",
+      "text": "[an old woman quietly pleading, speaking through shallow breath, each thought difficult to release] Her chair. [short pause] Do not put it away. <whisper>Keep the house warm.</whisper>"
+    },
+    {
+      "id": "player_hidden_breath",
+      "voice": "player",
+      "old": "CastleAudio/breath_hidden.wav",
+      "fx": "dry",
+      "text": "[gasp] [panting] [panting] [sigh]"
+    },
+    {
+      "id": "count_door_breath",
+      "voice": "count",
+      "old": "CastleAudio/castle_hide_breath_0.wav",
+      "fx": "stone",
+      "text": "[inhale] [exhale] [inhale] [exhale] [sigh]"
+    }
+  ],
+  "tts_model": "drama-3",
+  "scope": "Both maps: voices and vocal sounds only; auditions, not integrated"
+}

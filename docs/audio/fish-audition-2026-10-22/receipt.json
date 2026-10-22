@@ -1,0 +1,82 @@
+[
+  {
+    "id": "count_stalking",
+    "model": "drama-3",
+    "replacement_for": "CastleAudio/voice_cc_listen.wav",
+    "new_seconds": 7.777,
+    "peak_dbfs": -4.94,
+    "sha256": "58ce84148b9a406dfde71ba5c8907faa59eef99cf53e6d274aed5016a86b0ce2",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  },
+  {
+    "id": "count_found",
+    "model": "drama-3",
+    "replacement_for": "CastleAudio/voice_cc_hunt_found.wav",
+    "new_seconds": 2.668,
+    "peak_dbfs": -7.25,
+    "sha256": "3a342038dea8fce7f2f02f486604f7d1987cca2986bcd469ab8a46a552c0d67d",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  },
+  {
+    "id": "count_hunt",
+    "model": "drama-3",
+    "replacement_for": "CastleAudio/voice_cc_hunt_run_b.wav",
+    "new_seconds": 5.78,
+    "peak_dbfs": -4.51,
+    "sha256": "332ddc3e27567ce96222533b661cdc061b1593f03dae0a2e2a878353f59a0b5c",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  },
+  {
+    "id": "dispatch_warning",
+    "model": "drama-3",
+    "replacement_for": "Audio/voice_warning.wav",
+    "new_seconds": 5.201,
+    "peak_dbfs": -3.48,
+    "sha256": "36cd95a5bde08d6076c5ae08ab46b1cdf3dde2d217a533cee093c4925d98f676",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  },
+  {
+    "id": "house_whisper",
+    "model": "drama-3",
+    "replacement_for": "Audio/voice_whisper.wav",
+    "new_seconds": 2.442,
+    "peak_dbfs": -7.91,
+    "sha256": "e1be99de1456bcdeb14f22925c50f49f416fe88d4ea48f7d3f034148e6cbf3d3",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  },
+  {
+    "id": "house_evp",
+    "model": "drama-3",
+    "replacement_for": "Audio/voice_evp.wav",
+    "new_seconds": 6.714,
+    "peak_dbfs": -6.82,
+    "sha256": "7ee9aa1343f496710962972dde5e6ea8843bd3381bf27b2c176c13251bb7618c",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  },
+  {
+    "id": "player_hidden_breath",
+    "model": "drama-3",
+    "replacement_for": "CastleAudio/breath_hidden.wav",
+    "new_seconds": 6.362,
+    "peak_dbfs": -13.64,
+    "sha256": "904f5421a2d701f718b1672e176a394c5baff12fe0b3efce124ffaa440f96917",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  },
+  {
+    "id": "count_door_breath",
+    "model": "drama-3",
+    "replacement_for": "CastleAudio/castle_hide_breath_0.wav",
+    "new_seconds": 6.244,
+    "peak_dbfs": -8.79,
+    "sha256": "293b5732a5c1e6966099f9225ec6df8c7fbb039661682de28aaabc647f3108dc",
+    "comparison_order": "current, 1.2 seconds silence, proposed",
+    "runtime_verified": false
+  }
+]

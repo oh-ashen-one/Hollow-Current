@@ -1,0 +1,42 @@
+[
+  {
+    "id": "count_stalking",
+    "transcript": "<|speaker:0|> [low voice] I can hear your heart. It is very loud [pause] in my house.",
+    "note": "ASR checks content only, not subjective vocal quality."
+  },
+  {
+    "id": "count_found",
+    "transcript": "<|speaker:0|> There you are.",
+    "note": "ASR checks content only, not subjective vocal quality."
+  },
+  {
+    "id": "count_hunt",
+    "transcript": "<|speaker:0|> Yes. [angry] [shouting] Run! [calm] I like it when they run.",
+    "note": "ASR checks content only, not subjective vocal quality."
+  },
+  {
+    "id": "dispatch_warning",
+    "transcript": "<|speaker:0|> That is not interference. Find cover, light off, stay quiet.",
+    "note": "ASR checks content only, not subjective vocal quality."
+  },
+  {
+    "id": "house_whisper",
+    "transcript": "<|speaker:0|> You left her downstairs.",
+    "note": "ASR checks content only, not subjective vocal quality."
+  },
+  {
+    "id": "house_evp",
+    "transcript": "<|speaker:0|> [whisper] Her chair. Do not put it away. Keep the house warm.",
+    "note": "ASR checks content only, not subjective vocal quality."
+  },
+  {
+    "id": "player_hidden_breath",
+    "transcript": "<|speaker:0|>[5\u79d2\u7d9a\u304f\uff1a\u8352\u3044\u606f\u9063\u3044]",
+    "note": "ASR checks content only, not subjective quality."
+  },
+  {
+    "id": "count_door_breath",
+    "transcript": "<|speaker:0|>[3\u79d2\u7d9a\u304f:\u305f\u3081\u606f]",
+    "note": "ASR checks content only, not subjective quality."
+  }
+]
