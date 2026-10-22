@@ -1,0 +1,18 @@
+{
+  "pid": 14621,
+  "command": [
+    "/Applications/Unity/Hub/Editor/6000.3.20f1/Unity.app/Contents/MacOS/Unity",
+    "-batchmode",
+    "-nographics",
+    "-quit",
+    "-projectPath",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current",
+    "-executeMethod",
+    "HollowCurrent.Editor.NativeBuild.BuildPreparedMacAll",
+    "-logFile",
+    "evidence/fish-native-build3.log"
+  ],
+  "started_utc": "2026-10-22T18:28:35Z",
+  "exit_code": 0,
+  "elapsed_seconds": 21.79
+}

@@ -16,6 +16,8 @@ def main():
     for run in runs:
         name=run['run'];text=(ROOT/run['log']).read_text(errors='replace')
         folder=ROOT/run.get('evidence_folder','evidence/fish-'+name)
+        process=json.loads(Path(str(folder)+'-process.json').read_text())
+        assert run.get('network_denied') and process['command'][0]=='/usr/bin/sandbox-exec' and '(deny network*)' in process['command'][2],name+' offline policy not proven'
         output=json.loads((folder/'audio/audio-output.json').read_text())
         clips=[]
         for line in text.splitlines():
@@ -30,7 +32,7 @@ def main():
         assert run['exit_code']==0 and run['route_pass'],name+' route failed'
         assert output['nonzero']>5000 and output['clippedSamples']==0,name+' output failed'
         assert clips,name+' no vocal observations'
-        result={'run':name,'route_pass':True,'decoded_voice_metadata_matches':True,'observed_vocal_clips':sorted(set(clips)),'listener_output':output,'scope':'scripted native playback; no human listening acceptance'}
+        result={'run':name,'route_pass':True,'offline_network_denial_verified':True,'decoded_voice_metadata_matches':True,'observed_vocal_clips':sorted(set(clips)),'listener_output':output,'scope':'scripted native playback; no human listening acceptance'}
         if name=='bellwether2':
             native=json.loads((folder/'native-report.json').read_text());result['native_assertions_pass']=native['passed'];result['performance_pass']=native['performance_pass'];result['performance_reason']=native['performance_reason']
             assert native['passed'] and native['breathing_frames']>50 and native['speech_takes']>0
@@ -38,6 +40,11 @@ def main():
             result['castle_voice_summary']=[l for l in text.splitlines() if l.startswith('HC_VOICE_SUMMARY')]
             assert all('from_other=0' in l for l in result['castle_voice_summary'])
         results.append(result)
+    castle_clips={c for r in results if r['run'].startswith('castle-') for c in r['observed_vocal_clips']}
+    bell_clips=set(next(r for r in results if r['run']=='bellwether2')['observed_vocal_clips'])
+    assert any(c.startswith('voice_cc_') for c in castle_clips),'No Count dialogue observed'
+    assert {'voice_evp','voice_warning','voice_ending','breath_hidden','breath_presence'}<=bell_clips,'Bellwether vocal coverage incomplete'
+    assert {'stagger_screech','death_wail_sunrise','breath_presence','breath_hidden'}<=castle_clips,'Castle vocal coverage incomplete'
     out={'passed':True,'runs':results,'notes':['Source isPlaying observations include muted loops; Bellwether native route separately checks breathing and ducking activity.','GPU capture slots are shared, not exclusive performance measurements.','Dialogue taste and in-world listening remain the owner acceptance step.']}
     (E/'fish-native-audio-validation.json').write_text(json.dumps(out,indent=2)+'\n')
     print(json.dumps(out,indent=2))

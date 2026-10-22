@@ -1,0 +1,292 @@
+Mono path[0] = '/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/Builds/macOS/Hollow Current.app/Contents/Resources/Data/Managed'
+Mono config path = '/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/Builds/macOS/Hollow Current.app/Contents/MonoBleedingEdge/etc'
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Initialize engine version: 6000.3.20f1 (c9ba695d4f07)
+[Subsystems] Discovering subsystems at path /Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-current/Builds/macOS/Hollow Current.app/Contents/Resources/Data/UnitySubsystems
+GfxDevice: creating device client; kGfxThreadingModeThreaded
+ preferred device: Apple M3 Ultra (high power)
+Metal devices available: 1
+0: Apple M3 Ultra (high power)
+Using device Apple M3 Ultra (high power)
+Initializing Metal device caps: Apple M3 Ultra
+Mac GPU Family: 2
+Apple GPU Family: 9
+MSL Version: 3.0
+Has Float MSAA: 1
+Has Float Filtering: 1
+ReadWrite Texture Tier: 2
+Begin MonoManager ReloadAssembly
+- Loaded All Assemblies, in  0.074 seconds
+- Finished resetting the current domain, in  0.001 seconds
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+UnloadTime: 0.515708 ms
+HC_INPUT scripted=true devices_ignored=keyboard,mouse,gamepad (TestInput only); window 1920x1080, owner window 1920x1080 restored on quit
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_AUDIO_PROOF enabled=true passive=true
+HC_PERF engine_cost_source=FrameTimingManager target_fps=90 vsync=0
+HC_AUDIO_PLAY clip=breath_hidden samples=288368 hz=48000 channels=1 seconds=6.008 spatial=0 loop=True time=2.21
+HC_AUDIO_PLAY clip=voice_arrival samples=269513 hz=48000 channels=1 seconds=5.615 spatial=0 loop=False time=2.21
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+HC_WINDOWED switched=False mode=Windowed fullScreen=False size=1920x1080 display=3440x1440
+HC_STARTUP_READY
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_VERIFY PASS Native 1920x1080 output
+HC_VERIFY PASS Saved authored house scene loaded
+HC_VERIFY PASS Raycast focus Equipment rack
+HC_VERIFY PASS Kit collected through interaction
+HC_VERIFY PASS Actual original reader and flashlight meshes mounted
+HC_VERIFY PASS Physical induction display starts at zero in the van
+HC_AUDIO_PLAY clip=breath_hidden samples=288368 hz=48000 channels=1 seconds=6.008 spatial=0 loop=True time=3.33
+HC_AUDIO_PLAY clip=voice_kit samples=225941 hz=48000 channels=1 seconds=4.707 spatial=0 loop=False time=3.33
+HC_VERIFY Capture tool-01-induction
+HC_VERIFY PASS UV operates independently with flashlight off
+HC_VERIFY PASS Actual UV lamp mesh selected
+HC_VERIFY Capture tool-02-uv
+HC_VERIFY PASS Recorder selection does not switch flashlight on
+HC_VERIFY PASS Actual EVP recorder mesh selected
+HC_VERIFY Capture tool-03-recorder
+HC_AUDIO_PLAY clip=voice_hint_signal samples=273636 hz=48000 channels=1 seconds=5.701 spatial=0 loop=False time=4.26
+HC_VERIFY PASS Radio call raises original radio mesh
+HC_VERIFY Capture tool-04-radio
+HC_VERIFY PASS Radio lowers back to selected tool
+HC_VERIFY PASS Independent flashlight restores
+HC_VERIFY Capture 01-van
+HC_VERIFY Walk to (5.50, 0.00, -5.80)
+HC_VERIFY Capture detail-field-van
+HC_VERIFY Walk to (0.00, 0.00, -7.30)
+HC_VERIFY Capture detail-exterior
+HC_VERIFY Walk to (0.00, 0.00, -3.00)
+HC_VERIFY Capture 02-porch
+HC_VERIFY Walk to (0.00, 0.00, 2.00)
+HC_DOOR_STATE name="Front door hinge" side=-z swing=away angle=-105 by=player positive=105 negative=105 pivot=(-0.80, 0.00, 0.02)
+HC_VERIFY Phase Survey
+HC_VERIFY PASS Raycast focus Foyer letter
+HC_DOC_UI fonts_complete=True fell=True belle=True courier=True paper=True
+HC_DOC_OPEN kind=FieldReport title="Arrival note" kicker="EXHIBIT" heading="Arrival note" lines=6 visible=14 scrollable=False fonts_complete=True
+HC_VERIFY PASS Note opens and pauses
+HC_VERIFY Walk to (-4.40, 0.00, 5.60)
+HC_VERIFY Capture art-living
+HC_VERIFY Walk to (4.80, 0.00, 10.00)
+HC_DOOR_STATE name="Interior door hinge" side=-z swing=toward angle=115 by=player positive=115 negative=30 pivot=(-5.60, 0.00, 8.15)
+HC_VERIFY Capture art-kitchen
+HC_VERIFY Capture detail-kitchen
+HC_VERIFY Walk to (0.20, 0.00, 11.85)
+HC_VERIFY PASS Raycast focus Hall coat cupboard
+HC_VERIFY PASS Enter Hall coat cupboard
+HC_VERIFY PASS Exit Hall coat cupboard
+HC_VERIFY Walk to (0.00, 3.20, 10.00)
+HC_VERIFY Walk to (0.20, 3.20, 11.85)
+HC_VERIFY PASS Raycast focus Upstairs linen cupboard
+HC_VERIFY PASS Enter Upstairs linen cupboard
+HC_VERIFY PASS Exit Upstairs linen cupboard
+HC_VERIFY Walk to (-5.65, 0.00, 11.80)
+HC_VERIFY PASS Raycast focus Family photograph
+HC_DOC_OPEN kind=FieldReport title="Family photograph" kicker="EXHIBIT" heading="Family photograph" lines=5 visible=14 scrollable=False fonts_complete=True
+HC_VERIFY PASS Context note opens: Family photograph
+HC_VERIFY Walk to (-4.30, 3.20, 9.00)
+HC_VERIFY Capture art-parents
+HC_VERIFY Walk to (-6.70, 3.20, 8.55)
+HC_VERIFY Capture detail-bedside
+HC_VERIFY Walk to (5.00, 3.20, 11.00)
+HC_VERIFY Capture art-bath
+HC_VERIFY Capture detail-vanity
+HC_VERIFY Capture detail-toilet
+HC_VERIFY Walk to (5.00, 3.20, 5.00)
+HC_DOOR_STATE name="Interior door hinge" side=+z swing=toward angle=-175 by=player positive=55 negative=175 pivot=(4.50, 3.20, 8.60)
+HC_VERIFY Capture art-wardrobe
+HC_VERIFY Walk to (-4.70, 3.20, 4.80)
+HC_VERIFY Capture 03-child-room
+HC_VERIFY Capture detail-toy-chest
+HC_VERIFY Walk to (-5.70, 3.20, 5.00)
+HC_VERIFY PASS Raycast focus Child's drawing
+HC_DOC_OPEN kind=FieldReport title="Child's drawing" kicker="EXHIBIT" heading="Child's drawing" lines=6 visible=14 scrollable=False fonts_complete=True
+HC_VERIFY PASS Context note opens: Child's drawing
+HC_VERIFY Walk to (0.00, -3.20, 10.00)
+HC_SCARE visible=1 basement=True rush=False
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=92.84
+HC_VERIFY Walk to (-6.80, -3.20, 11.60)
+HC_VERIFY PASS Raycast focus Basement steel locker
+HC_VERIFY PASS Enter Basement steel locker
+HC_VERIFY PASS Exit Basement steel locker
+HC_VERIFY Walk to (4.80, -3.20, 3.00)
+HC_VERIFY Capture art-laundry
+HC_VERIFY Walk to (-5.60, -3.20, 7.60)
+HC_VERIFY Capture detail-workbench
+HC_VERIFY Walk to (-5.10, -3.20, 4.60)
+HC_VERIFY Capture detail-storage
+HC_VERIFY Walk to (4.80, -3.20, 9.50)
+HC_VERIFY Capture 04-basement
+HC_VERIFY Walk to (-5.30, 0.00, 8.65)
+HC_VERIFY Capture 05-dining
+HC_VERIFY Phase Disturbance
+HC_VERIFY PASS Induction captured by aim and hold
+HC_VERIFY Capture 10-first-apparition
+HC_VERIFY PASS Real manifestations occurred without automatic death
+HC_VERIFY PASS Apparition rig retains its intended scale while upright or hunched
+HC_VERIFY Walk to (-7.15, 3.20, 3.80)
+HC_VERIFY PASS UV trace captured by aim and hold
+HC_VERIFY Walk to (0.20, 3.20, 11.85)
+HC_DOOR_STATE name="Interior door hinge" side=-z swing=away angle=-115 by=player positive=50 negative=115 pivot=(-5.60, 3.20, 7.00)
+HC_VERIFY Phase Warning
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=226.60
+HC_AUDIO_PLAY clip=voice_warning samples=240940 hz=48000 channels=1 seconds=5.020 spatial=0 loop=False time=226.60
+HC_VERIFY Capture 06-warning
+HC_VERIFY PASS Raycast focus Upstairs linen cupboard
+HC_HUNT_SPAWN position=(5.00, -3.20, 9.50) player=(0.20, 3.20, 13.05) enabled=True nav=True path=PathComplete destination=(5.00, -3.20, 9.50) seen=False memory=False
+HC_VERIFY Phase Hunt
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=235.64
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=239.20
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=242.86
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=246.42
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=249.99
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=253.63
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=257.27
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=260.83
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=264.45
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=268.09
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=271.63
+HC_VERIFY Phase Recovery
+HC_VERIFY PASS Natural hunt survived by breaking sight and hiding
+HC_VERIFY PASS Sparse natural activity occurred; basement surprise never repeats
+HC_VERIFY Walk to (5.70, -3.20, 10.00)
+HC_AUDIO_PLAY clip=voice_evp samples=299359 hz=48000 channels=1 seconds=6.237 spatial=1 loop=False time=293.98
+HC_VERIFY PASS EVP response captured while still
+HC_VERIFY PASS Instrument records alone leave the family mystery incomplete
+HC_VERIFY Walk to (-5.60, -3.20, 7.60)
+HC_VERIFY PASS Raycast focus Basement diary
+HC_DOC_OPEN kind=FieldReport title="Furnace diary" kicker="EXHIBIT" heading="Furnace diary" lines=8 visible=14 scrollable=False fonts_complete=True
+HC_VERIFY PASS Context note opens: Basement diary
+HC_VERIFY PASS Evidence and three family clues support reconstruction
+HC_VERIFY PASS Wrong anchor remains recoverable
+HC_VERIFY PASS Unsupported closure remains recoverable
+HC_VERIFY Phase Containment
+HC_VERIFY PASS Supported reconstruction unlocks containment
+HC_VERIFY Walk to (6.70, -3.20, 7.90)
+HC_AUDIO_PLAY clip=voice_contain samples=162422 hz=48000 channels=1 seconds=3.384 spatial=0 loop=False time=299.43
+HC_VERIFY PASS Raycast focus Fuse cabinet
+HC_VERIFY PASS Breaker restored through interaction
+HC_VERIFY Walk to (5.70, -3.20, 10.00)
+HC_VERIFY Phase Return
+HC_AUDIO_PLAY clip=voice_return samples=129461 hz=48000 channels=1 seconds=2.697 spatial=0 loop=False time=317.96
+HC_VERIFY PASS Anchor sealed through aimed hold
+HC_VERIFY Walk to (0.00, 0.10, -11.40)
+HC_VERIFY PASS Raycast focus Case terminal
+HC_VERIFY Phase Won
+HC_VERIFY PASS Return terminal closes case
+HC_AUDIO_PLAY clip=voice_ending samples=178164 hz=48000 channels=1 seconds=3.712 spatial=0 loop=False time=334.11
+HC_VERIFY Capture 07-ending
+HC_VERIFY Native loading screen presented before scene activation
+Unloading 5 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 3.349750 ms
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 251 unused Assets to reduce memory usage. Loaded Objects now: 8479.
+Total: 3.339875 ms (FindLiveObjects: 0.260167 ms CreateObjectMapping: 0.021541 ms MarkObjects: 2.958000 ms  DeleteObjects: 0.100084 ms)
+
+HC_WINDOWED switched=False mode=Windowed fullScreen=False size=1920x1080 display=3440x1440
+HC_STARTUP_READY
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_VERIFY PASS Retry resets evidence and kit
+HC_VERIFY PASS Raycast focus Equipment rack
+HC_AUDIO_PLAY clip=voice_kit samples=225941 hz=48000 channels=1 seconds=4.707 spatial=0 loop=False time=334.71
+HC_AUDIO_PLAY clip=breath_hidden samples=288368 hz=48000 channels=1 seconds=6.008 spatial=0 loop=True time=334.71
+HC_VERIFY Walk to (0.20, 3.20, 11.85)
+HC_DOOR_STATE name="Front door hinge" side=-z swing=away angle=-105 by=player positive=105 negative=105 pivot=(-0.80, 0.00, 0.02)
+HC_VERIFY Phase Survey
+HC_VERIFY PASS Raycast focus Upstairs linen cupboard
+HC_VERIFY PASS Quiet hiding scenario has torch off
+HC_VERIFY Forced warning for separate quiet-hiding scenario; first case used natural progression
+HC_VERIFY Phase Warning
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=345.23
+HC_AUDIO_PLAY clip=voice_warning samples=240940 hz=48000 channels=1 seconds=5.020 spatial=0 loop=False time=345.23
+HC_HUNT_SPAWN position=(5.00, -3.20, 9.50) player=(0.20, 3.20, 13.05) enabled=True nav=True path=PathComplete destination=(5.00, -3.20, 9.50) seen=False memory=False
+HC_VERIFY Phase Hunt
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=354.22
+HC_VERIFY PASS Concealed unobserved player is not visible
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=357.75
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=361.40
+HC_VERIFY PASS Creature has no hidden-position observation without a signal
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=365.05
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=368.60
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=372.22
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=375.85
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=379.41
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=383.05
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=386.60
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=390.27
+HC_VERIFY Phase Recovery
+HC_VERIFY PASS Quiet hiding survives an entire hunt
+HC_VERIFY PASS Can leave cupboard after hunt
+HC_VERIFY Native loading screen presented before scene activation
+Unloading 4 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.482250 ms
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 238 unused Assets to reduce memory usage. Loaded Objects now: 8485.
+Total: 3.440125 ms (FindLiveObjects: 0.243583 ms CreateObjectMapping: 0.021750 ms MarkObjects: 2.846709 ms  DeleteObjects: 0.328042 ms)
+
+HC_WINDOWED switched=False mode=Windowed fullScreen=False size=1920x1080 display=3440x1440
+HC_STARTUP_READY
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_VERIFY PASS Raycast focus Equipment rack
+HC_VERIFY Walk to (5.00, -3.20, 8.30)
+HC_AUDIO_PLAY clip=breath_hidden samples=288368 hz=48000 channels=1 seconds=6.008 spatial=0 loop=True time=392.42
+HC_AUDIO_PLAY clip=voice_kit samples=225941 hz=48000 channels=1 seconds=4.707 spatial=0 loop=False time=392.42
+HC_DOOR_STATE name="Front door hinge" side=-z swing=away angle=-105 by=player positive=105 negative=105 pivot=(-0.80, 0.00, 0.02)
+HC_VERIFY Phase Survey
+HC_VERIFY Forced warning for separate death/retry test; first case used natural progression
+HC_VERIFY Phase Warning
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=407.37
+HC_AUDIO_PLAY clip=voice_warning samples=240940 hz=48000 channels=1 seconds=5.020 spatial=0 loop=False time=407.37
+HC_HUNT_SPAWN position=(5.00, -3.20, 9.50) player=(4.87, -3.12, 8.13) enabled=True nav=True path=PathComplete destination=(5.00, -3.20, 9.50) seen=False memory=False
+HC_VERIFY Phase Hunt
+HC_AUDIO_PLAY clip=breath_presence samples=113186 hz=48000 channels=1 seconds=2.358 spatial=1 loop=False time=416.40
+HC_HEARD (4.87, -3.12, 8.13) position=(4.79, -3.20, 9.54) player=(4.87, -3.12, 8.13) enabled=True nav=True path=PathComplete destination=(0.00, -3.20, 10.50) seen=False memory=True
+HC_AUDIO_PLAY clip=voice_warning samples=240940 hz=48000 channels=1 seconds=5.020 spatial=0 loop=False time=416.60
+HC_VERIFY Capture 08-hunt
+HC_VERIFY Phase Dead
+HC_VERIFY PASS Observed exposed player caught
+HC_VERIFY PASS Capture animation advances while gameplay time is stopped
+HC_VERIFY Capture 08-capture-reach
+HC_VERIFY Capture 09-death
+HC_VERIFY Native loading screen presented before scene activation
+Unloading 4 Unused Serialized files (Serialized files now loaded: 0)
+UnloadTime: 1.858417 ms
+HC_AUDIO_READY 49 authored clips including intelligible voice takes
+HC_READY source-generated house; runtime route remains subject to playtest.
+HC_CURSOR free (scripted run: cursor never locked or hidden; no real mouse/keyboard input read)
+HC_UI_READY live cinematic interface; font=Georgia artwork=True
+Unloading 238 unused Assets to reduce memory usage. Loaded Objects now: 8491.
+Total: 3.159209 ms (FindLiveObjects: 0.209083 ms CreateObjectMapping: 0.026750 ms MarkObjects: 2.831292 ms  DeleteObjects: 0.091875 ms)
+
+HC_WINDOWED switched=False mode=Windowed fullScreen=False size=1920x1080 display=3440x1440
+HC_STARTUP_READY
+HC_TITLE_FONT cinzel=True path=UI/Fonts/Cinzel-Medium
+HC_VERIFY PASS Death retry creates fresh playable case
+HC_VERIFY PASS Generated effects and all three music states executed
+HC_VERIFY PASS Hiding breath and speech ducking executed
+HC_VERIFY PASS Native output contains audio below the -3 dBFS sample-peak ceiling
+HC_VERIFY PASS Native controller/tool route, ending, forced death scenario and retry passed. Human input and first-time pacing remain separate.
+HC_PERF pass=False reason=engine_cost_over_16ms=8(max 32.5 ms) frames_over_16ms=9 p99=12.0 floor=60 frames=37296 engine_cost_over_16ms=8 engine_cost_p99=11.2 engine_cost_samples=37087 present_wait_mean_ms=0.94 present_wait_max_ms=13.95 present_wait_frames=37087 ui_frames_over_16ms=1 harness_excluded_frames=86
+HC_NATIVE_ROUTE_PASS
+HC_AUDIO_OUTPUT samples=2122240 nonzero=2115701 peak=0.1598948 clipped=0
+Thread 0x173173000 may have been prematurely finalized
+[Physics::Module] Cleanup current backend.
+[Physics::Module] Id: 0xf2b8ea05
+Input System module state changed to: ShutdownInProgress.
+Input System polling thread exited.
+Input System module state changed to: Shutdown.
+Thread 0x170f3f000 may have been prematurely finalized

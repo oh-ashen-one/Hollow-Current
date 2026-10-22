@@ -26,13 +26,16 @@ def main():
         if out.exists():raise RuntimeError('Evidence already exists; inspect before rerunning '+name)
         opts=flags if name=='bellwether2' else ['-hc-playtest',str(out),*flags]
         if name=='bellwether2':opts+=['-hc-evidence',str(out)]
-        cmd=[str(SLOT),'capture','--label','hc-fish-'+label,'--timeout','1800','--json',str(E/('fish-'+label+'-slot.json')),'--',sys.executable,str(ROOT/'tools/run_owned_process.py'),'--timeout',str(timeout),'--receipt',str(E/('fish-'+label+'-process.json')),'--',str(APP),'-screen-width','1920','-screen-height','1080','-screen-fullscreen','0',*opts,'-hc-audio-proof',str(out/'audio'),'-logFile',str(log)]
+        # A per-process network denial verifies that the shipped voices and
+        # gameplay need no provider connection. It changes no system settings.
+        launch=['/usr/bin/sandbox-exec','-p','(version 1) (allow default) (deny network*)',str(APP)]
+        cmd=[str(SLOT),'capture','--label','hc-fish-'+label,'--timeout','1800','--json',str(E/('fish-'+label+'-slot.json')),'--',sys.executable,str(ROOT/'tools/run_owned_process.py'),'--timeout',str(timeout),'--receipt',str(E/('fish-'+label+'-process.json')),'--',*launch,'-screen-width','1920','-screen-height','1080','-screen-fullscreen','0',*opts,'-hc-audio-proof',str(out/'audio'),'-logFile',str(log)]
         print('QUEUED',name,flush=True)
         rc=subprocess.call(cmd,cwd=ROOT)
         text=log.read_text(errors='replace') if log.exists() else ''
         if name=='bellwether2':passed='HC_NATIVE_ROUTE_PASS' in text
         else:passed=any('HC_PLAY_RESULT mode='+flags[0] in l and 'blockers=0' in l and 'won=True' in l for l in text.splitlines())
-        result={'run':name,'evidence_folder':str(out.relative_to(ROOT)),'exit_code':rc,'route_pass':passed,'log':str(log.relative_to(ROOT))}
+        result={'run':name,'evidence_folder':str(out.relative_to(ROOT)),'network_denied':True,'exit_code':rc,'route_pass':passed,'log':str(log.relative_to(ROOT))}
         results.append(result);(E/'fish-native-suite.json').write_text(json.dumps(results,indent=2)+'\n')
         print('RESULT',json.dumps(result),flush=True)
         if rc or not passed:raise SystemExit(2)

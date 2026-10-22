@@ -1,0 +1,96 @@
+Tests/RulesTests.cs(1364,69): warning CS0219: The variable 'resched' is assigned but its value is never used
+Tests/RulesTests.cs(1128,524): warning CS0649: Field 'RulesTests.SessionResult.LeadNone' is never assigned to, and will always have its default value 0
+WAVE_G low-Dread sessions=400 with_hunt_in_10min=1.000 mean_wait_s=69.5
+WAVE_G hunt_s min=25.0 median=38.0 max=50.0  recovery_s min=10.0 median=32.0 max=40.0
+WAVE_G recovery_interrupted_at_dread90=0.513 of 600
+WAVE_H recovery_interrupted_at_dread79=0.290
+WAVE_G felt_at_dread50 min=38.0 max=62.0 max_step_per_s=4.90
+WAVE_H containment sessions=300 hunted_in_10min=0.723 mean_wait_s=273.1
+WAVE_H warning_s min=5.0 median=9.0 max=14.0
+WAVE_H dice warnings false=377 median=8.72 told=1243 median=9.08
+WAVE_H felt_episodes_in_100min=15 per_10min=1.50
+WAVE_I off(pre-wave-I) share_after_first_hunt mean=0.546 p10=0.427 p50=0.549 p90=0.661 | HuntShare_10min p50=0.452 p90=0.545 | gaps n=12547 p10=6 p50=25 p90=71 max=298 cv_pooled=0.96 cv_seed_median=0.70 | hunts/run=6.2 starts_below_boundary=3131/14547 dread>=95 s/run=136.3
+WAVE_I castle lit share_after_first_hunt mean=0.262 p10=0.203 p50=0.264 p90=0.317 | HuntShare_10min p50=0.216 p90=0.261 | gaps n=4632 p10=51 p50=128 p90=200 max=408 cv_pooled=0.44 cv_seed_median=0.44 | hunts/run=3.0 starts_below_boundary=5940/6632 dread>=95 s/run=0.0
+WAVE_I castle 25% dark share_after_first_hunt mean=0.262 p10=0.202 p50=0.264 p90=0.317 | HuntShare_10min p50=0.217 p90=0.261 | gaps n=4645 p10=51 p50=128 p90=199 max=408 cv_pooled=0.44 cv_seed_median=0.44 | hunts/run=3.0 starts_below_boundary=5831/6645 dread>=95 s/run=0.0
+WAVE_J immortal_open HuntShare_10min mean=0.282 p10=0.242 p50=0.282 p90=0.325 max=0.404 runs_under_3_hunts=0 min_hunts=3 | governor off p50=0.384 p90=0.431
+WAVE_I castle lit (wave J governor) share_after_first_hunt mean=0.262 p10=0.203 p50=0.264 p90=0.317 | HuntShare_10min p50=0.216 p90=0.261 | gaps n=4632 p10=51 p50=128 p90=200 max=408 cv_pooled=0.44 cv_seed_median=0.44 | hunts/run=3.0 starts_below_boundary=5940/6632 dread>=95 s/run=0.0
+WAVE_J mortal share_after_first_hunt p90=0.317 cv_seed_median=0.44 (governor off 0.43) cv_pooled=0.44
+WAVE_K mortal share(warning+hunt+return / 600 s) mean=0.215 p50=0.216 p90=0.261 | runs with a quiet stretch >=120 s after the first hunt=1.000 (max quiet p50=172 s) | Dread@480 p50=23.8 p90=50.0 max=100.0 | no-tell hunts 2316/5924, runs with a no-tell hunt below Dread 70=0.742 | escalations 96/4173 close apparitions (0.05 per run) | first hunt after 2nd record p10=12 p50=62 p90=187 s
+WAVE_K r11 driver (immortal, open) share(warning+hunt+return / 600 s) mean=0.225 p50=0.227 p90=0.269 | runs with a quiet stretch >=120 s after the first hunt=1.000 (max quiet p50=164 s) | Dread@480 p50=65.1 p90=85.5 max=100.0 | no-tell hunts 2466/6259, runs with a no-tell hunt below Dread 70=0.730 | escalations 76/4385 close apparitions (0.04 per run) | first hunt after 2nd record p10=12 p50=62 p90=182 s
+WAVE_L CastleInterval 10k mean=114.1 CV=0.738 min=45.0 p10=47 p50=53 p90=252 max=299.9
+WAVE_L2 12-sample CV of the pure draw: P(CV>=0.5)=0.978 p10=0.58 p50=0.71
+WAVE_L critic route, close 1/3 hunts starting <=10 s after an apparition=0.000 (0/5920) | apparition inter-arrival n=10719 mean=86 CV=0.66 | 3-run pooled sets (mean 16.1 intervals) with CV>=0.5=0.935 | first hunt p10=74 p50=104 p90=170 s, 3-run sets spanning >=45 s=1.000 | share mean=0.214 p10=0.163 p90=0.259 | runs with a >=120 s gap=1.000 | escalations/run=0.05
+WAVE_L critic route, all close hunts starting <=10 s after an apparition=0.000 (0/6010) | apparition inter-arrival n=10725 mean=86 CV=0.66 | 3-run pooled sets (mean 16.1 intervals) with CV>=0.5=0.928 | first hunt p10=74 p50=104 p90=170 s, 3-run sets spanning >=45 s=1.000 | share mean=0.216 p10=0.168 p90=0.259 | runs with a >=120 s gap=1.000 | escalations/run=0.14
+WAVE_L slow investigator, close 1/3 hunts starting <=10 s after an apparition=0.000 (0/5924) | apparition inter-arrival n=10646 mean=86 CV=0.65 | 3-run pooled sets (mean 16.0 intervals) with CV>=0.5=0.925 | first hunt p10=74 p50=104 p90=170 s, 3-run sets spanning >=45 s=1.000 | share mean=0.215 p10=0.161 p90=0.261 | runs with a >=120 s gap=1.000 | escalations/run=0.05
+WAVE_L slow investigator, all close hunts starting <=10 s after an apparition=0.000 (0/6004) | apparition inter-arrival n=10665 mean=86 CV=0.65 | 3-run pooled sets (mean 16.0 intervals) with CV>=0.5=0.913 | first hunt p10=74 p50=104 p90=170 s, 3-run sets spanning >=45 s=1.000 | share mean=0.216 p10=0.166 p90=0.262 | runs with a >=120 s gap=1.000 | escalations/run=0.14
+WAVE_L3 critic route, 1 in 3 close | 3-run pooled apparition CV p10=0.56 p50=0.69, sets with CV>=0.5=0.982 (apparitions/run 6.4) | first hunt p10/p50/p90=76/136/192 s, consecutive 3-run windows spanning >=45 s=1.000 | runs with a >=120 s gap after the first hunt=1.0000 (min longest gap 121 s) | share mean=0.211 p10=0.166 p90=0.253 | hunts <=10 s after an apparition=0.000 | apparitions in the first 480 s p10/p50=4/5, runs with >=4=0.997
+WAVE_L3 critic route, all close | 3-run pooled apparition CV p10=0.56 p50=0.69, sets with CV>=0.5=0.980 (apparitions/run 6.4) | first hunt p10/p50/p90=76/136/192 s, consecutive 3-run windows spanning >=45 s=1.000 | runs with a >=120 s gap after the first hunt=1.0000 (min longest gap 121 s) | share mean=0.213 p10=0.168 p90=0.253 | hunts <=10 s after an apparition=0.000 | apparitions in the first 480 s p10/p50=4/5, runs with >=4=0.997
+WAVE_FD near-miss open dice long-run rate=0.391 longest closed run=6
+WAVE_FD siege_held x3 (6 visits each) with an open within 2 visits of a previous open=0.903
+WAVE_FD runs with >= 4 apparitions in 480 s: 0.997 / 0.997, hunts <= 10 s after an apparition 0.000 / 0.000
+WAVE_L3 wave FE, 1 in 3 close (cached) | 3-run pooled apparition CV p10=0.56 p50=0.69, sets with CV>=0.5=0.982 (apparitions/run 6.4) | first hunt p10/p50/p90=76/136/192 s, consecutive 3-run windows spanning >=45 s=1.000 | runs with a >=120 s gap after the first hunt=1.0000 (min longest gap 121 s) | share mean=0.211 p10=0.166 p90=0.253 | hunts <=10 s after an apparition=0.000 | apparitions in the first 480 s p10/p50=4/5, runs with >=4=0.997
+WAVE_L3 wave FE, all close (cached) | 3-run pooled apparition CV p10=0.56 p50=0.69, sets with CV>=0.5=0.980 (apparitions/run 6.4) | first hunt p10/p50/p90=76/136/192 s, consecutive 3-run windows spanning >=45 s=1.000 | runs with a >=120 s gap after the first hunt=1.0000 (min longest gap 121 s) | share mean=0.213 p10=0.168 p90=0.253 | hunts <=10 s after an apparition=0.000 | apparitions in the first 480 s p10/p50=4/5, runs with >=4=0.997
+WAVE_FE runs under share 0.15: all 0.039 Early 0.028 Mid 0.062 Late 0.025 | hunts <=10 s after an apparition 0.000 / 0.000
+WAVE_FE2 siege_held x3 model: mean hidden survival=0.726 pooled<=85% in 0.892 of sets, quick re-open in 0.818
+FE3_GRAB mirrored side plans=98 of 100 m10=50 m11=48 feasible L/R=95/95 no side=2 commit fails (frame gate)=0 | FE2 view-bearing gate would refuse m10 0 / m11 0 of these commits
+WAVE_FF clock 2000 runs: leads per 3-run set=7.5 (sets with >= 7: 0.809) pooled 25-60 s=0.196 10-20 s=0.497 <=10 s=0.004 | sets passing (>= 7 leads)=0.991 (all sets 0.991) | lead histogram (10 s bins) 0:0 10:2468 20:333 30:341 40:242 50:201 60:231 70:234 80:214 90:175 100:140 110:83 120+:321
+WAVE_FF clock (low-Dread regime) 2000 runs: leads per 3-run set=7.4 (sets with >= 7: 0.772) pooled 25-60 s=0.197 10-20 s=0.495 <=10 s=0.003 | sets passing (>= 7 leads)=0.990 (all sets 0.988) | lead histogram (10 s bins) 0:0 10:2440 20:384 30:312 40:240 50:192 60:229 70:251 80:210 90:197 100:124 110:87 120+:283
+WAVE_FF grab mix model (5-run sets, 15 dives): crawl share mean=0.332 sets passing (crawl <= 40 %, side >= 1)=0.834 (crawl over 40 % 0.137, no side 0.046)
+WAVE_FF voice pools (natural x3 + siege_held, 27 lines): sets with no clip over 25 % = 1.000 worst share 0.185
+WAVE_FG slide rule: 2000/2000 random grabs with travel <= 0.45 m or a cut (778 cuts); FF fear case 0.93 -> 0.43 m
+WAVE_FG side scenes (72 scene x facing, mirrored, torch left): mirror mismatches=0 solid-torch closures left=5 right=0 feasible L/R=36/41 | facing 0: corridor off 0: L shut R shut; gallery off 0: L shut R shut; hall floor off 0: L open R open; chapel aisle off 0: L open R open; corridor off 0.5: L shut R shut; gallery off 0.5: L shut R shut; hall floor off 0.5: L open R open; chapel aisle off 0.5: L open R open; corridor off -0.5: L shut R shut; gallery off -0.5: L shut R shut; hall floor off -0.5: L open R open; chapel aisle off -0.5: L open R open
+WAVE_FG side mix model (natural x3 + cold x2 + huntcam + fear, 19 dives, FF feasibility L/R/both .075/.075/.05): sets with m10 >= 1 and m11 >= 1 0.562 -> 0.687, crawl over 40 % 0.280 -> 0.210
+WAVE_FG follow-ups 1002 runs: drawn/run=1.20 owed=767 adopted=561 fired=917 cancelled=149 (0.124) | 3-run sets with >= 2 leads at 10-20 s=0.952 pooled 10-20=0.478 25-60=0.210 <=10=0.003 | share mean=0.212 runs in 15-30 %=0.955 runs with a >= 120 s gap=1.000
+WAVE_FG follow-ups (FF rule) 1002 runs: drawn/run=1.43 owed=0 adopted=0 fired=414 cancelled=974 (0.681) | 3-run sets with >= 2 leads at 10-20 s=0.817 pooled 10-20=0.356 25-60=0.271 <=10=0.005 | share mean=0.201 runs in 15-30 %=0.938 runs with a >= 120 s gap=1.000
+PASS 1615 deterministic gameplay assertions; no Unity runtime launched.
+Assets/HollowCurrent/Runtime/Castle/CastleScares.cs(216,39): warning CS0162: Unreachable code detected
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,65): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,96): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_crawl_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,66): warning CS0649: Field 'CountClaudeProfile.Variant.name' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,108): warning CS0649: Field 'CountClaudeProfile.Variant.claw_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,149): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_spin_yaw_deg' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,115): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_spin_start_s' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,204): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_variants' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,167): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_side_start_x_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,78): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_drop_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,100): warning CS0649: Field 'CountClaudeProfile.Variant.seconds' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,121): warning CS0649: Field 'CountClaudeProfile.Variant.top_m_max' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,82): warning CS0649: Field 'CountClaudeProfile.Variant.mode' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,133): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_spin_end_s' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CastleScares.cs(216,39): warning CS0162: Unreachable code detected
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,66): warning CS0649: Field 'CountClaudeProfile.Variant.name' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,204): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_variants' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,100): warning CS0649: Field 'CountClaudeProfile.Variant.seconds' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,78): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_drop_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,121): warning CS0649: Field 'CountClaudeProfile.Variant.top_m_max' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,96): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_crawl_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,149): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_spin_yaw_deg' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,133): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_spin_end_s' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,82): warning CS0649: Field 'CountClaudeProfile.Variant.mode' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(318,108): warning CS0649: Field 'CountClaudeProfile.Variant.claw_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,115): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_spin_start_s' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,65): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Runtime/Castle/CountClaudeProfile.cs(319,167): warning CS0649: Field 'CountClaudeProfile.Receipt.grab_side_start_x_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(16,79): warning CS0649: Field 'ControllerReleaseBuild.Receipt.reflections' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(16,57): warning CS0649: Field 'ControllerReleaseBuild.Receipt.lightmaps' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(16,67): warning CS0649: Field 'ControllerReleaseBuild.Receipt.lightProbes' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,196): warning CS0649: Field 'CountClaudeImport.Receipt.body_tris' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,89): warning CS0649: Field 'CountClaudeImport.Receipt.grab_drop_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(15,58): warning CS0649: Field 'ControllerReleaseBuild.Proof.baseline' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,176): warning CS0649: Field 'CountClaudeImport.Receipt.bones' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,62): warning CS0649: Field 'CountClaudeImport.Receipt.mesh_height_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,126): warning CS0649: Field 'CountClaudeImport.Receipt.shoulder_width_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,166): warning CS0649: Field 'CountClaudeImport.Receipt.triangles' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,107): warning CS0649: Field 'CountClaudeImport.Receipt.grab_crawl_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,51): warning CS0649: Field 'CountClaudeImport.Receipt.head_top_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,220): warning CS0649: Field 'CountClaudeImport.Receipt.flesh_tris' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(14,63): warning CS0649: Field 'ControllerReleaseBuild.Entry.sha256' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,182): warning CS0649: Field 'CountClaudeImport.Receipt.wing_vertices' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(14,58): warning CS0649: Field 'ControllerReleaseBuild.Entry.path' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,244): warning CS0649: Field 'CountClaudeImport.Receipt.modes' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(15,106): warning CS0649: Field 'ControllerReleaseBuild.Proof.files' is never assigned to, and will always have its default value null
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,206): warning CS0649: Field 'CountClaudeImport.Receipt.membrane_tris' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,143): warning CS0649: Field 'CountClaudeImport.Receipt.rest_span_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/CountClaudeImport.cs(35,76): warning CS0649: Field 'CountClaudeImport.Receipt.grab_reach_m' is never assigned to, and will always have its default value 0
+Assets/HollowCurrent/Editor/ControllerReleaseBuild.cs(15,67): warning CS0649: Field 'ControllerReleaseBuild.Proof.original_receipt_sha256' is never assigned to, and will always have its default value null
+PASS runtime C# against installed macOS Mono player and editor assemblies; editor C# also compiled. This check does not launch or validate graphics.

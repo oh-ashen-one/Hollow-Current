@@ -1,0 +1,18 @@
+[
+  {
+    "run": "bellwether2",
+    "evidence_folder": "evidence/fish-bellwether2-final",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-bellwether2-final-player.log"
+  },
+  {
+    "run": "castle-escape",
+    "evidence_folder": "evidence/fish-castle-escape-final",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-castle-escape-final-player.log"
+  }
+]

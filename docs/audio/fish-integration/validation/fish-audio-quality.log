@@ -1,0 +1,14 @@
+103 clips (Audio 39, HiggsfieldAudio 10, CastleAudio 54); Bellwether voice median -24.13 LUFS over 9 clips; 12 loops
+WARN (shipped Bellwether, not edited): Audio/step_tile_0: tonal peak 21.6 dB over its neighbours in 150-600 Hz (> 12.0): a ding
+WARN (shipped Bellwether, not edited): Audio/step_tile_0: 150-600 Hz band spectral flatness 0.07 < 0.35 (tonal)
+WARN (shipped Bellwether, not edited): Audio/step_tile_1: tonal peak 20.2 dB over its neighbours in 150-600 Hz (> 12.0): a ding
+WARN (shipped Bellwether, not edited): Audio/step_tile_1: 150-600 Hz band spectral flatness 0.08 < 0.35 (tonal)
+WARN (shipped Bellwether, not edited): Audio/step_tile_2: tonal peak 22.9 dB over its neighbours in 150-600 Hz (> 12.0): a ding
+WARN (shipped Bellwether, not edited): Audio/step_tile_2: 150-600 Hz band spectral flatness 0.07 < 0.35 (tonal)
+WARN (shipped Bellwether, not edited): Audio/step_tile_3: tonal peak 19.8 dB over its neighbours in 150-600 Hz (> 12.0): a ding
+WARN (shipped Bellwether, not edited): Audio/step_tile_3: 150-600 Hz band spectral flatness 0.08 < 0.35 (tonal)
+WARN (shipped Bellwether, not edited): Audio/step_wood_2: 150-600 Hz band spectral flatness 0.29 < 0.35 (tonal)
+WARN (shipped Bellwether, not edited): Audio/step_wood_3: tonal peak 12.2 dB over its neighbours in 150-600 Hz (> 12.0): a ding
+WARN (shipped Bellwether, not edited): Audio/step_wood_3: 150-600 Hz band spectral flatness 0.26 < 0.35 (tonal)
+WARN (shipped Bellwether, not edited): HiggsfieldAudio/ui_paper: trailing silence 0.51 s > 0.3
+OK: no peak above -1 dBFS, no loop seam above 0.01, every voice within 1.5 dB of the median, no trailing silence above 0.3 s, no tonal peak in any castle footstep
