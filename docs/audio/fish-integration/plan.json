@@ -285,7 +285,7 @@
     "prompt": "[scared] [gasp] [panting] [panting] [gasp]",
     "text": "",
     "fx": "dry",
-    "lufs": -32,
+    "lufs": -28,
     "target": "HiggsfieldAudio/breath_hidden.wav",
     "audition": null,
     "loop": true,

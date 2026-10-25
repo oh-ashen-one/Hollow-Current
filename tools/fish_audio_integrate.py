@@ -93,7 +93,7 @@ def plan():
         if reuse:prompt=takes[reuse]['text']
         items.append(dict(id='voice_'+name,voice=role,text=spec['text'],prompt=prompt,fx='stone' if castle else 'evp' if role=='house' else 'radio',target=('CastleAudio' if castle else 'Audio')+'/voice_'+name+'.wav',lufs=-28 if role=='house' else -24.2,audition=reuse))
     effects=[
-        ('player_breath','player','[scared] [gasp] [panting] [panting] [gasp]','HiggsfieldAudio/breath_hidden.wav','dry',-32,None,True),
+        ('player_breath','player','[scared] [gasp] [panting] [panting] [gasp]','HiggsfieldAudio/breath_hidden.wav','dry',-28,None,True),
         ('house_breath','house','[scared] [inhale] [exhale] [gasp]','HiggsfieldAudio/breath_presence.wav','house',-30,None,False),
         ('count_breath','count','[inhale] [exhale] [inhale] [exhale]','CastleAudio/breath_presence.wav','stone',-30,None,False),
         ('hide_breath_0','count','[inhale] [exhale] [inhale] [exhale]','CastleAudio/castle_hide_breath_0.wav','stone',-30,None,False),
