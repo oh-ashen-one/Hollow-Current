@@ -23,6 +23,8 @@ def main():
         require(request['model']=='drama-3',item['id']+' model')
         require(hashlib.sha256(raw.read_bytes()).hexdigest()==receipt['raw_sha256'],item['id']+' raw master')
         require(hashlib.sha256(target.read_bytes()).hexdigest()==receipt['sha256'],item['id']+' installed hash')
+        if item.get('approved_master'):
+            require(target.read_bytes()==(OUT/item['approved_master']).read_bytes(),item['id']+' differs from owner-approved audition')
         transcript=json.loads((OUT/'raw'/(item['id']+'.asr.json')).read_text())
         require(transcript['audio_sha256']==receipt['raw_sha256'],item['id']+' ASR provenance')
         actual=words(transcript['text']);expected=words(item['text'])

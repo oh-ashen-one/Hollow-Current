@@ -103,17 +103,19 @@ def plan():
         ('death','count','[screaming] [groaning] [exhale]','CastleAudio/death_wail_sunrise.wav','stone',-29,None,False),
     ]
     for name,voice,prompt,target,fx,lufs,reuse,loop in effects:
-        items.append(dict(id=name,voice=voice,prompt=prompt,text='',fx=fx,lufs=lufs,target=target,audition=reuse,loop=loop,unvoiced_breath=name not in ('stagger','death')))
+        items.append(dict(id=name,voice=voice,prompt=prompt,text='',fx=fx,lufs=lufs,target=target,audition=reuse,loop=loop))
+    next(x for x in items if x['id']=='player_breath')['approved_master']='breath-revision-2026-10-25/approved-player-hiding-breath.wav'
     return items
 
 
 def prepare(item,src):
+    if item.get('approved_master'):
+        approved=OUT/item['approved_master'];dest=RES/item['target']
+        shutil.copy2(approved,dest)
+        return {'id':item['id'],'target':item['target'],'sha256':sha(dest),'raw_sha256':sha(src),'seconds':round(sf.info(dest).duration,3),'loop':item.get('loop',False),'approved_master_sha256':sha(approved)}
     staging=ROOT/'evidence/fish-mix';staging.mkdir(parents=True,exist_ok=True)
     tmp=staging/(item['id']+'.wav');A.mono48(src,tmp);x,_=sf.read(tmp)
     if not .2<len(x)/SR<45 or np.max(np.abs(x))<.001:raise RuntimeError('Invalid audio '+item['id'])
-    if item.get('unvoiced_breath'):
-        from fish_breath_texture import unvoiced_breath
-        x=unvoiced_breath(x,SR,loop=item.get('loop',False))
     death_tail=None
     if item['id']=='death':
         original=OUT/'original-death-music.wav'

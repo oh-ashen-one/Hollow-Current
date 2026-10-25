@@ -27,10 +27,10 @@ def main():
         for suffix in ['.wav','.request.json','.asr.json']:
             shutil.copy2(F.RAW/(item['id']+suffix),original_raw/(item['id']+suffix))
         receipts[item['id']]=F.prepare(item,F.RAW/(item['id']+'.wav'))
-        receipts[item['id']]['processing']='six-band unvoiced noise carrier; Fish temporal energy only'
+        receipts[item['id']]['processing']='owner-approved exact master' if item.get('approved_master') else 'natural Fish breath; normal level and room mix'
         plan[item['id']]=item
     shutil.copy2(F.RES/'HiggsfieldAudio/breath_presence.wav',F.RES/'Audio/breath.wav')
     F.dump(F.OUT/'integration.json',list(receipts.values()));F.dump(F.OUT/'plan.json',list(plan.values()))
     end=client.balance();F.dump(REV/'usage.json',{'cap_usd':.30,'reserved_ceiling_usd':sum(x['ceiling_usd'] for x in client.state['reservations']),'observed_balance_delta':client.state['initial_balance']-end,'requests':client.state['reservations']})
-    print('INSTALLED',len(items),'unvoiced breathing replacements',flush=True)
+    print('INSTALLED',len(items),'natural breathing replacements',flush=True)
 if __name__=='__main__':main()

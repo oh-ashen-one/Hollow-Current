@@ -121,3 +121,7 @@ winch, pews, altar, sarcophagus, bell, font, pedestal, fountain, cauldron, dead 
 paid Tripo Studio account from the owner's own prompts (concept images by Tripo's image step), decimated and fitted locally by
 `tools/tripo_castle_convert.py`. Same basis as `Art/Tripo/` above ([Tripo terms §5.2.2](https://www.tripo3d.ai/terms)). Task ids and costs:
 `docs/haunted-castle/ASSET_LOG.md`.
+
+### Fish breathing correction (2026-10-25)
+
+The six breathing masters were regenerated with Fish Audio Drama 3 without sigh/groan directions. The owner-selected natural player audition is installed byte-for-byte as the shared hiding loop; the other breath performances retain their natural audio with normal level/room mixing. The rejected noise-vocoder experiment is removed. Requests, raw masters, transcripts and the approved master: `docs/audio/fish-integration/breath-revision-2026-10-25/`. Dialogue, pain/death voices and the original death-music tail are unchanged by this correction.
