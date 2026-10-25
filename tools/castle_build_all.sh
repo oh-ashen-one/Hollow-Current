@@ -1,8 +1,10 @@
 #!/bin/sh
-# Regenerate every Haunted Castle art asset headlessly (no Unity, no GPU engine) and verify the result.
+# Rebuild procedural Castle art, preserving authoritative Tripo prefabs.
+# Run through the shared GPU slot coordinator (Blender processes run sequentially).
 set -e
 cd "$(dirname "$0")/.."
 BLENDER="${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}"
+python3 tools/castle_replacements.py
 python3 tools/castle_textures.py
 python3 tools/castle_sky.py 2048
 "$BLENDER" -b -P tools/castle_architecture.py
@@ -14,3 +16,4 @@ python3 tools/castle_r12_textures.py
 python3 tools/castle_hall_textures.py
 "$BLENDER" -b -P tools/castle_hall_kit.py
 "$BLENDER" -b -P tools/castle_verify.py
+python3 tools/castle_replacements.py

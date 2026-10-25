@@ -307,6 +307,11 @@ class Builder:
 
 def export_asset(builder, budget=None, spec=None):
     """Build, assert budget/spec, export Resources/Castle/<name>.fbx, clean the scene."""
+    from castle_replacements import tripo_replacement
+    replacement = tripo_replacement(builder.name, cc.ROOT)
+    if replacement:
+        print("HC_ASSET_SKIP %s authoritative Tripo prefab" % builder.name, flush=True)
+        return {"tris": sum(p["triangles"] for p in replacement["primitives"]), "replacement": "Tripo"}
     objs, info = builder.finish()
     name = builder.name
     if budget is not None:

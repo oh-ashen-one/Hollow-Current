@@ -14,6 +14,8 @@ import castle_common as cc
 manifest = {}
 for p in sorted((cc.ROOT / "docs/haunted-castle/art").glob("manifest_*.json")):
     manifest.update(json.loads(p.read_text()))
+from castle_replacements import check_replacements
+replacements = set(check_replacements(cc.ROOT))
 fails = []
 rows = []
 
@@ -99,7 +101,7 @@ for r in rows:
     print("HC_VERIFY %-17s %-26s %6d %5d %9d  %s %s" % (r[0], "%.2f x %.2f x %.2f" % tuple(r[1]), r[2], r[3], r[4], ",".join(x[7:] for x in r[5]), r[6]))
 (cc.ROOT / "docs/haunted-castle/art/verify.json").write_text(json.dumps(
     {r[0]: dict(size=r[1], tris=r[2], parts=r[3], bytes=r[4]) for r in rows}, indent=1, sort_keys=True) + "\n")
-missing = [n for n in manifest if not (cc.CASTLE / (n + ".fbx")).exists()]
+missing = [n for n in manifest if n not in replacements and not (cc.CASTLE / (n + ".fbx")).exists()]
 fails += ["missing fbx " + n for n in missing]
 print("HC_VERIFY_%s assets=%d fails=%d" % ("FAIL" if fails else "PASS", len(rows), len(fails)))
 for x in fails: print("  FAIL", x)

@@ -545,11 +545,14 @@ BUILDERS = [
 def write_fbx_meta(name):
     """New FBX files get a .meta cloned from Pew.fbx.meta (same importer settings) with a path-derived guid. generateSecondaryUV is switched on for
     every asset of this kit (existing metas keep their guid, only that flag changes): the bake then always finds a valid second UV set."""
+    from castle_replacements import tripo_replacement
+    if tripo_replacement(name, cc.ROOT):
+        return
     meta = cc.CASTLE / (name + ".fbx.meta")
     if meta.exists():
         text = meta.read_text()
     else:
-        tmpl = (cc.ROOT / "Assets/HollowCurrent/Resources/Castle/Pew.fbx.meta").read_text().splitlines()
+        tmpl = (cc.ROOT / "Assets/HollowCurrent/Resources/Castle/HallColumn.fbx.meta").read_text().splitlines()
         tmpl[1] = "guid: " + cc.guid(cc.rel_to_project(cc.CASTLE / (name + ".fbx")))
         text = "\n".join(tmpl) + "\n"
     text = text.replace("generateSecondaryUV: 0", "generateSecondaryUV: 1")
