@@ -1,5 +1,5 @@
 {
-  "text": "<|speaker:0|>[3\u79d2\u9593\u3001\u305f\u3081\u606f\u3092\u3064\u304f]",
-  "audio_sha256": "642d268ac96e270772f6848da5530c36d9a8ce7c81f3bdaae6299771cc42ba82",
+  "text": "<|speaker:0|> [sigh]",
+  "audio_sha256": "ea9d29ed8133a1893df36c24f7c094ac7c1137d708913772fd7168ac4dce71fb",
   "model": "transcribe-1-pro"
 }

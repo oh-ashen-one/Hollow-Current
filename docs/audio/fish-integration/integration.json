@@ -226,50 +226,56 @@
   {
     "id": "player_breath",
     "target": "HiggsfieldAudio/breath_hidden.wav",
-    "sha256": "71408ae6610420650ea65c7c7199d5dc06295c9da4aa8f6b3dd8348b20e906b0",
-    "raw_sha256": "be002117de5bfc7310282b52ae5ff289181fcdd0c4427f644281a70b24000d55",
-    "seconds": 6.008,
-    "loop": true
+    "sha256": "12a8e7c9dd95e24601a87760bddcd9fc06134b5d87555c0792810326118f5d72",
+    "raw_sha256": "1f73da435974e5ff839a7070c2620eca90714e8d1787007c7e727bd70ccc079b",
+    "seconds": 2.854,
+    "loop": true,
+    "processing": "six-band unvoiced noise carrier; Fish temporal energy only"
   },
   {
     "id": "house_breath",
     "target": "HiggsfieldAudio/breath_presence.wav",
-    "sha256": "e53f722156e693994b0f6b9f186a04e420d90b849e0f7f8e25e09be3e3777748",
-    "raw_sha256": "05003ae71a1882fecab1fd0fc497cebebf77d47b35cc14a2d6679b0c2cbc532f",
-    "seconds": 2.358,
-    "loop": false
+    "sha256": "6112a1dc8eb5261b1bee0c84b53f88fbf3659c29d4146617f3fdffa3b4c5c209",
+    "raw_sha256": "dd952bd185b0af5bcda77a34b7a097d1b01109abc4f4d3a7c97aabe18932e683",
+    "seconds": 2.521,
+    "loop": false,
+    "processing": "six-band unvoiced noise carrier; Fish temporal energy only"
   },
   {
     "id": "count_breath",
     "target": "CastleAudio/breath_presence.wav",
-    "sha256": "ee9f860abb4516e34d06820b2d963f7382ed3448c1951af5bf72e65a88aaac86",
-    "raw_sha256": "642d268ac96e270772f6848da5530c36d9a8ce7c81f3bdaae6299771cc42ba82",
+    "sha256": "c36d629f37932cf4966aa288e3f595c3459fe5f42b0752f0e0f97892d158ad4e",
+    "raw_sha256": "1c88dc79142f9e5531348bcdce204b942a2ef4e2f9764789dbe2852e9c12b672",
     "seconds": 2.9,
-    "loop": false
+    "loop": false,
+    "processing": "six-band unvoiced noise carrier; Fish temporal energy only"
   },
   {
     "id": "hide_breath_0",
     "target": "CastleAudio/castle_hide_breath_0.wav",
-    "sha256": "5a952140277319d3c99b909189b3a8e20d259467e6e707cf66ef6f1388389c01",
-    "raw_sha256": "642d268ac96e270772f6848da5530c36d9a8ce7c81f3bdaae6299771cc42ba82",
-    "seconds": 4.992,
-    "loop": false
+    "sha256": "e4bac5a6abaabbd76c0f6d95af10752de3935a35db2d1ae5cb0ee4065abfd180",
+    "raw_sha256": "ea9d29ed8133a1893df36c24f7c094ac7c1137d708913772fd7168ac4dce71fb",
+    "seconds": 3.914,
+    "loop": false,
+    "processing": "six-band unvoiced noise carrier; Fish temporal energy only"
   },
   {
     "id": "hide_breath_1",
     "target": "CastleAudio/castle_hide_breath_1.wav",
-    "sha256": "eafff43d7ee51095ea9d5d75c7e7e225c6168a361f1245d1ed99b8e734802ae3",
-    "raw_sha256": "8b35d98becf879d59bd1f765922e04beced501fc580c088722ec3fb7925cce1e",
-    "seconds": 4.022,
-    "loop": false
+    "sha256": "5395bbfc7a4d1461c9a8eca88e1b1d085a74c8660d8ba6dfe3238ea729a758d3",
+    "raw_sha256": "55c98b80fc00008fda77a48d155a15f68549a84dbccd5c12908d0482a6d7c32c",
+    "seconds": 5.099,
+    "loop": false,
+    "processing": "six-band unvoiced noise carrier; Fish temporal energy only"
   },
   {
     "id": "hide_exhale",
     "target": "CastleAudio/castle_hide_whisper.wav",
-    "sha256": "f5d17acc4f3b95c06a903f4e7aa85d941e910d3c1a732fee80793a7bedbb5d5f",
-    "raw_sha256": "0149a0eb59b4b0cc3f7ae06f13be4961e66fdb393553e4dc4641c9c3e0337b54",
-    "seconds": 1.959,
-    "loop": false
+    "sha256": "19df61f3ab2afee02790024d98dc4f50e8afa791ad2e1c99b2e4c2c7b52b715f",
+    "raw_sha256": "2b78671febe10c65eb7d7983c0d82f95f116372b9ee5dcd6c97f7ebf396f9871",
+    "seconds": 2.317,
+    "loop": false,
+    "processing": "six-band unvoiced noise carrier; Fish temporal energy only"
   },
   {
     "id": "stagger",

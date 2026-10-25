@@ -1,11 +1,10 @@
 {
   "model": "drama-3",
-  "text": "[gasp] [panting] [panting] [sigh]",
+  "text": "[scared] [gasp] [panting] [panting] [gasp]",
   "reference_sha256": "12e6c1c00c2b89d42e3b0683b772081d184311edcf7ce461cc2135f154492661",
   "reference_text": "Stay quiet. Just breathe slowly. Do not let him hear you. Wait until the footsteps stop. I can get out of here.",
   "format": "wav",
   "sample_rate": 44100,
   "temperature": 0.7,
-  "latency": "normal",
-  "reused_audition": "player_hidden_breath"
+  "latency": "normal"
 }

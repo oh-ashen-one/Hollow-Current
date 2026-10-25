@@ -1,0 +1,79 @@
+{
+  "cap_usd": 0.3,
+  "reserved_ceiling_usd": 0.12,
+  "observed_balance_delta": 0.0,
+  "requests": [
+    {
+      "id": "tts:player_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:17Z"
+    },
+    {
+      "id": "asr:player_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:19Z"
+    },
+    {
+      "id": "tts:house_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:19Z"
+    },
+    {
+      "id": "asr:house_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:20Z"
+    },
+    {
+      "id": "tts:count_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:21Z"
+    },
+    {
+      "id": "asr:count_breath",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:22Z"
+    },
+    {
+      "id": "tts:hide_breath_0",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:22Z"
+    },
+    {
+      "id": "asr:hide_breath_0",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:23Z"
+    },
+    {
+      "id": "tts:hide_breath_1",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:23Z"
+    },
+    {
+      "id": "asr:hide_breath_1",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:24Z"
+    },
+    {
+      "id": "tts:hide_exhale",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:25Z"
+    },
+    {
+      "id": "asr:hide_exhale",
+      "ceiling_usd": 0.01,
+      "status": "complete",
+      "utc": "2026-10-25T17:37:25Z"
+    }
+  ]
+}

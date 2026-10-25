@@ -93,17 +93,17 @@ def plan():
         if reuse:prompt=takes[reuse]['text']
         items.append(dict(id='voice_'+name,voice=role,text=spec['text'],prompt=prompt,fx='stone' if castle else 'evp' if role=='house' else 'radio',target=('CastleAudio' if castle else 'Audio')+'/voice_'+name+'.wav',lufs=-28 if role=='house' else -24.2,audition=reuse))
     effects=[
-        ('player_breath','player','[gasp] [panting] [panting] [sigh]','HiggsfieldAudio/breath_hidden.wav','dry',-30,'player_hidden_breath',True),
-        ('house_breath','house','[inhale] [shaky exhale] [sigh]','HiggsfieldAudio/breath_presence.wav','house',-30,None,False),
-        ('count_breath','count','[inhale] [exhale] [inhale] [exhale] [sigh]','CastleAudio/breath_presence.wav','stone',-30,'count_door_breath',False),
-        ('hide_breath_0','count','[inhale] [exhale] [inhale] [exhale] [sigh]','CastleAudio/castle_hide_breath_0.wav','stone',-28,'count_door_breath',False),
-        ('hide_breath_1','count','[gasp] [low groan] [exhale] [sigh]','CastleAudio/castle_hide_breath_1.wav','stone',-28,None,False),
-        ('hide_exhale','count','[exhale] [sigh]','CastleAudio/castle_hide_whisper.wav','dry',-28,None,False),
+        ('player_breath','player','[scared] [gasp] [panting] [panting] [gasp]','HiggsfieldAudio/breath_hidden.wav','dry',-32,None,True),
+        ('house_breath','house','[scared] [inhale] [exhale] [gasp]','HiggsfieldAudio/breath_presence.wav','house',-30,None,False),
+        ('count_breath','count','[inhale] [exhale] [inhale] [exhale]','CastleAudio/breath_presence.wav','stone',-30,None,False),
+        ('hide_breath_0','count','[inhale] [exhale] [inhale] [exhale]','CastleAudio/castle_hide_breath_0.wav','stone',-30,None,False),
+        ('hide_breath_1','count','[gasp] [inhale] [exhale] [gasp]','CastleAudio/castle_hide_breath_1.wav','stone',-28,None,False),
+        ('hide_exhale','count','[inhale] [exhale]','CastleAudio/castle_hide_whisper.wav','dry',-28,None,False),
         ('stagger','count','[scream] [groan]','CastleAudio/stagger_screech.wav','stone',-28,None,False),
         ('death','count','[screaming] [groaning] [exhale]','CastleAudio/death_wail_sunrise.wav','stone',-29,None,False),
     ]
     for name,voice,prompt,target,fx,lufs,reuse,loop in effects:
-        items.append(dict(id=name,voice=voice,prompt=prompt,text='',fx=fx,lufs=lufs,target=target,audition=reuse,loop=loop))
+        items.append(dict(id=name,voice=voice,prompt=prompt,text='',fx=fx,lufs=lufs,target=target,audition=reuse,loop=loop,unvoiced_breath=name not in ('stagger','death')))
     return items
 
 
@@ -111,6 +111,9 @@ def prepare(item,src):
     staging=ROOT/'evidence/fish-mix';staging.mkdir(parents=True,exist_ok=True)
     tmp=staging/(item['id']+'.wav');A.mono48(src,tmp);x,_=sf.read(tmp)
     if not .2<len(x)/SR<45 or np.max(np.abs(x))<.001:raise RuntimeError('Invalid audio '+item['id'])
+    if item.get('unvoiced_breath'):
+        from fish_breath_texture import unvoiced_breath
+        x=unvoiced_breath(x,SR,loop=item.get('loop',False))
     death_tail=None
     if item['id']=='death':
         original=OUT/'original-death-music.wav'

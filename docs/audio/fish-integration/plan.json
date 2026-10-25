@@ -282,68 +282,74 @@
   {
     "id": "player_breath",
     "voice": "player",
-    "prompt": "[gasp] [panting] [panting] [sigh]",
+    "prompt": "[scared] [gasp] [panting] [panting] [gasp]",
     "text": "",
     "fx": "dry",
-    "lufs": -30,
+    "lufs": -32,
     "target": "HiggsfieldAudio/breath_hidden.wav",
-    "audition": "player_hidden_breath",
-    "loop": true
+    "audition": null,
+    "loop": true,
+    "unvoiced_breath": true
   },
   {
     "id": "house_breath",
     "voice": "house",
-    "prompt": "[inhale] [shaky exhale] [sigh]",
+    "prompt": "[scared] [inhale] [exhale] [gasp]",
     "text": "",
     "fx": "house",
     "lufs": -30,
     "target": "HiggsfieldAudio/breath_presence.wav",
     "audition": null,
-    "loop": false
+    "loop": false,
+    "unvoiced_breath": true
   },
   {
     "id": "count_breath",
     "voice": "count",
-    "prompt": "[inhale] [exhale] [inhale] [exhale] [sigh]",
+    "prompt": "[inhale] [exhale] [inhale] [exhale]",
     "text": "",
     "fx": "stone",
     "lufs": -30,
     "target": "CastleAudio/breath_presence.wav",
-    "audition": "count_door_breath",
-    "loop": false
+    "audition": null,
+    "loop": false,
+    "unvoiced_breath": true
   },
   {
     "id": "hide_breath_0",
     "voice": "count",
-    "prompt": "[inhale] [exhale] [inhale] [exhale] [sigh]",
+    "prompt": "[inhale] [exhale] [inhale] [exhale]",
     "text": "",
     "fx": "stone",
-    "lufs": -28,
+    "lufs": -30,
     "target": "CastleAudio/castle_hide_breath_0.wav",
-    "audition": "count_door_breath",
-    "loop": false
+    "audition": null,
+    "loop": false,
+    "unvoiced_breath": true
   },
   {
     "id": "hide_breath_1",
     "voice": "count",
-    "prompt": "[gasp] [low groan] [exhale] [sigh]",
+    "prompt": "[gasp] [inhale] [exhale] [gasp]",
     "text": "",
     "fx": "stone",
     "lufs": -28,
     "target": "CastleAudio/castle_hide_breath_1.wav",
     "audition": null,
-    "loop": false
+    "loop": false,
+    "unvoiced_breath": true
   },
   {
     "id": "hide_exhale",
     "voice": "count",
-    "prompt": "[exhale] [sigh]",
+    "prompt": "[inhale] [exhale]",
     "text": "",
     "fx": "dry",
     "lufs": -28,
     "target": "CastleAudio/castle_hide_whisper.wav",
     "audition": null,
-    "loop": false
+    "loop": false,
+    "unvoiced_breath": true
   },
   {
     "id": "stagger",
