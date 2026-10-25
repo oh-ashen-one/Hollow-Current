@@ -1,6 +1,6 @@
-# Combined Fish + Tripo integration — 2026-10-25
+# Combined Fish + Tripo release — 2026-10-25
 
-Owner authorized merging both branches into main and delivering one combined macOS build. Integration branch `integrate/fish-tripo-main`; validation in progress. Both historical handoffs retained below.
+Owner-authorized main merge; both-map macOS build passed all four offline native routes. Includes the prop rebuild repair and exact owner-approved natural hiding breath. Read `docs/integration/2026-10-25/README.md` for results, delivery and remaining validation limits. Prior handoffs below are historical.
 
 # Fish Audio integration — completed automated delivery, 2026-10-22
 

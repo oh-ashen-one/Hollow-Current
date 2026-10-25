@@ -1,0 +1,165 @@
+{
+  "passed": true,
+  "assets": [
+    {
+      "name": "Altar",
+      "triangles": 4999
+    },
+    {
+      "name": "BookClosed",
+      "triangles": 900
+    },
+    {
+      "name": "BookClosedLarge",
+      "triangles": 1100
+    },
+    {
+      "name": "BookClosedSmall",
+      "triangles": 700
+    },
+    {
+      "name": "Bookshelf",
+      "triangles": 8999
+    },
+    {
+      "name": "ButcherBlock",
+      "triangles": 3000
+    },
+    {
+      "name": "Candelabra",
+      "triangles": 5000
+    },
+    {
+      "name": "Candlestick",
+      "triangles": 1198
+    },
+    {
+      "name": "CanopyBed",
+      "triangles": 8998
+    },
+    {
+      "name": "Cauldron",
+      "triangles": 4000
+    },
+    {
+      "name": "Chandelier",
+      "triangles": 7998
+    },
+    {
+      "name": "ChapelBell",
+      "triangles": 5000
+    },
+    {
+      "name": "DeadTree",
+      "triangles": 8999
+    },
+    {
+      "name": "DiningTable",
+      "triangles": 6000
+    },
+    {
+      "name": "Fireplace",
+      "triangles": 6000
+    },
+    {
+      "name": "FloatingBook",
+      "triangles": 1499
+    },
+    {
+      "name": "FloatingBookLarge",
+      "triangles": 1799
+    },
+    {
+      "name": "FloatingBookSmall",
+      "triangles": 1199
+    },
+    {
+      "name": "Fountain",
+      "triangles": 7998
+    },
+    {
+      "name": "HighBackChair",
+      "triangles": 3000
+    },
+    {
+      "name": "KitchenHearth",
+      "triangles": 6000
+    },
+    {
+      "name": "Knife",
+      "triangles": 798
+    },
+    {
+      "name": "LanternCart",
+      "triangles": 5998
+    },
+    {
+      "name": "Lectern",
+      "triangles": 2999
+    },
+    {
+      "name": "LongTable",
+      "triangles": 14000
+    },
+    {
+      "name": "Pedestal",
+      "triangles": 1998
+    },
+    {
+      "name": "Pew",
+      "triangles": 3999
+    },
+    {
+      "name": "ReadingTable",
+      "triangles": 3999
+    },
+    {
+      "name": "ReliquaryBox",
+      "triangles": 3999
+    },
+    {
+      "name": "Sarcophagus",
+      "triangles": 6000
+    },
+    {
+      "name": "Sconce",
+      "triangles": 1500
+    },
+    {
+      "name": "Sideboard",
+      "triangles": 5000
+    },
+    {
+      "name": "StoneFont",
+      "triangles": 4000
+    },
+    {
+      "name": "Throne",
+      "triangles": 5999
+    },
+    {
+      "name": "Tome",
+      "triangles": 1000
+    },
+    {
+      "name": "TomeLarge",
+      "triangles": 1200
+    },
+    {
+      "name": "TomeSmall",
+      "triangles": 800
+    },
+    {
+      "name": "TripoCandelabraTable",
+      "triangles": 3998
+    },
+    {
+      "name": "TripoCandle",
+      "triangles": 898
+    },
+    {
+      "name": "Winch",
+      "triangles": 4999
+    }
+  ]
+}

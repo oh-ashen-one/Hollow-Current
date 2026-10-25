@@ -1,0 +1,19 @@
+{
+  "pid": 55759,
+  "command": [
+    "/Applications/Unity/Hub/Editor/6000.3.20f1/Unity.app/Contents/MacOS/Unity",
+    "-batchmode",
+    "-nographics",
+    "-quit",
+    "-projectPath",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-combined",
+    "-executeMethod",
+    "HollowCurrent.Editor.NativeBuild.BuildPreparedMacAll",
+    "-logFile",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-combined/evidence/approved-build.log"
+  ],
+  "existing_renderers": [],
+  "started_utc": "2026-10-25T17:45:12Z",
+  "exit_code": 0,
+  "elapsed_seconds": 18.14
+}

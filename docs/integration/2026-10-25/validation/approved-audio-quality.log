@@ -1,0 +1,3 @@
+103 clips (Audio 39, HiggsfieldAudio 10, CastleAudio 54); Bellwether voice median -24.13 LUFS over 9 clips; 12 loops
+WARN (shipped Bellwether, not edited): HiggsfieldAudio/ui_paper: trailing silence 0.51 s > 0.3
+OK: no peak above -1 dBFS, no loop seam above 0.01, every voice within 1.5 dB of the median, no trailing silence above 0.3 s, no tonal peak in any castle footstep

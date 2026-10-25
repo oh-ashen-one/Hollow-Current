@@ -1,0 +1,34 @@
+[
+  {
+    "run": "bellwether2",
+    "evidence_folder": "evidence/fish-bellwether2-approved",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-bellwether2-approved-player.log"
+  },
+  {
+    "run": "castle-escape",
+    "evidence_folder": "evidence/fish-castle-escape-approved",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-castle-escape-approved-player.log"
+  },
+  {
+    "run": "castle-fear",
+    "evidence_folder": "evidence/fish-castle-fear-approved",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-castle-fear-approved-player.log"
+  },
+  {
+    "run": "castle-kill",
+    "evidence_folder": "evidence/fish-castle-kill-approved",
+    "network_denied": true,
+    "exit_code": 0,
+    "route_pass": true,
+    "log": "evidence/fish-castle-kill-approved-player.log"
+  }
+]

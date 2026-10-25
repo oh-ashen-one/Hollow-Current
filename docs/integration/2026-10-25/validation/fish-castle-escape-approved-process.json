@@ -1,0 +1,32 @@
+{
+  "pid": 60549,
+  "command": [
+    "/usr/bin/sandbox-exec",
+    "-p",
+    "(version 1) (allow default) (deny network*)",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-combined/Builds/macOS/Hollow Current.app/Contents/MacOS/Hollow Current",
+    "-screen-width",
+    "1920",
+    "-screen-height",
+    "1080",
+    "-screen-fullscreen",
+    "0",
+    "-hc-playtest",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-combined/evidence/fish-castle-escape-approved",
+    "escape",
+    "-hc-audio-proof",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-combined/evidence/fish-castle-escape-approved/audio",
+    "-logFile",
+    "/Users/midir/Documents/Codex/2026-10-22/hey-buddy-pull-up-the-hollow/work/hollow-combined/evidence/fish-castle-escape-approved-player.log"
+  ],
+  "existing_renderers": [
+    {
+      "pid": 48195,
+      "state": "U",
+      "executable": "/Users/Shared/Epic Games/UE_5.8/Engine/Binaries/Mac/UnrealEditor.app/Contents/MacOS/UnrealEditor"
+    }
+  ],
+  "started_utc": "2026-10-25T17:52:52Z",
+  "exit_code": 0,
+  "elapsed_seconds": 77.97
+}
