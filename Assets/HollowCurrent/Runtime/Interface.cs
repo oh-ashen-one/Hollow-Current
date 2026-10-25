@@ -14,9 +14,11 @@ namespace HollowCurrent
         readonly Dictionary<GUIStyle,GUIStyle> paperStyles=new Dictionary<GUIStyle,GUIStyle>();
         readonly Color paperInk=new Color(.105f,.074f,.065f),oxblood=new Color(.38f,.12f,.13f);
         // Castle journal / end card (fd-journal): all text on the paper is held to >= 7:1 against the darkest 5 % of the paper, so near-black ink and oxblood replace the lighter ones there.
-        readonly Color castleKicker=new Color32(32,4,4,255),castleInk=new Color32(20,13,12,255);bool castleCards;
+        // owner 2026-10-20 (approved variant A, smoked glass with a gold outline): castle cards are translucent black glass, so their ink is
+        // bone white with antique-gold kickers (was oxblood 32,4,4 / ink 20,13,12 on the old vellum).
+        readonly Color castleKicker=new Color32(200,162,98,255),castleInk=new Color32(234,224,206,255);bool castleCards;
         // fe-ui: label / rule colour of a disabled control on the castle card (dark umber; contrast measured by tools/docui_journal_mock.py).
-        readonly Color castleDisabled=new Color32(60,32,24,255);
+        readonly Color castleDisabled=new Color32(126,108,92,255);
         string cachedSubtitle,dialogueSpeaker,dialogueBody;
         // Field Settings pages: 0 controls & audio, 1 dialogue display, 2 castle night (castle only).
         int settingsPage;
@@ -650,15 +652,17 @@ namespace HollowCurrent
         {
             TextureFrame(rect,danger?warningCard:dialogueCard,new Color(1,1,1,Game.CardOpacity*fade));
             var old=GUI.color;GUI.color=new Color(1,1,1,fade);
-            var oldKicker=kicker.normal.textColor;kicker.normal.textColor=danger?new Color(.82f,.39f,.34f):paperInk;
-            float left=rect.x+rect.width*.17f;
+            bool glass=Game.Map==MapId.Castle;
+            var oldKicker=kicker.normal.textColor;kicker.normal.textColor=danger?new Color(.86f,.36f,.31f):glass?castleKicker:paperInk;
+            float left=rect.x+rect.width*(glass?.08f:.17f),textW=rect.width*(glass?.84f:.72f);
             GUI.Label(new Rect(left,rect.y+rect.height*.13f,rect.width*.74f,25),speaker,kicker);kicker.normal.textColor=oldKicker;
-            Panel(new Rect(left,rect.y+rect.height*.29f,Mathf.Min(155,rect.width*.3f),1),danger?new Color(.7f,.2f,.2f):oxblood);
-            dialogueText.fontSize=Game.Map==MapId.Castle&&dialogueFont>0?dialogueFont:Mathf.RoundToInt(24*Game.SubtitleScale);dialogueText.normal.textColor=danger?ink:paperInk;
-            GUI.Label(new Rect(left,rect.y+rect.height*.35f,rect.width*.72f,rect.height*(Game.Map==MapId.Castle?.47f:.53f)),text,dialogueText);
+            Panel(new Rect(left,rect.y+rect.height*.29f,Mathf.Min(155,rect.width*.3f),1),danger?new Color(.7f,.2f,.2f):glass?new Color(.78f,.63f,.38f,.7f):oxblood);
+            dialogueText.fontSize=glass&&dialogueFont>0?dialogueFont:Mathf.RoundToInt(24*Game.SubtitleScale);dialogueText.normal.textColor=danger?ink:glass?castleInk:paperInk;
+            GUI.Label(new Rect(left,rect.y+rect.height*.35f,textW,rect.height*(glass?.52f:.53f)),text,dialogueText);
             GUI.color=old;
         }
         int dialogueFont; // castle subtitle-card font after fitting (0 = default)
+        const float CastleCardW=520;
         void SubtitleCard()
         {
             if(cachedSubtitle!=Game.Subtitle)
@@ -677,14 +681,16 @@ namespace HollowCurrent
                 // Castle (r12 critic: a 3-line dispatch ran over the torn edge): measure at the real text width (72 % of the card)
                 // and keep the text in the top 45 % band below the kicker, clear of the torn bottom edge; above 285 px the font steps
                 // down (to 18 px) instead of the card growing further.
-                int size=dialogueText.fontSize;float textHeight=dialogueText.CalcHeight(new GUIContent(dialogueBody),610*.72f);
-                while(textHeight/.45f>285&&size>18){size--;dialogueText.fontSize=size;textHeight=dialogueText.CalcHeight(new GUIContent(dialogueBody),610*.72f);}
-                dialogueFont=size;height=Mathf.Clamp(textHeight/.45f,125,285);
+                // owner 2026-10-20: smaller glass card (520 px, text across 84 %), font 18-22, height 110-230.
+                int size=Mathf.Min(dialogueText.fontSize,22);dialogueText.fontSize=size;float textHeight=dialogueText.CalcHeight(new GUIContent(dialogueBody),CastleCardW*.84f);
+                while(textHeight/.5f>230&&size>17){size--;dialogueText.fontSize=size;textHeight=dialogueText.CalcHeight(new GUIContent(dialogueBody),CastleCardW*.84f);}
+                dialogueFont=size;height=Mathf.Clamp(textHeight/.5f,110,230);
             }
             // Castle (critic r10 #14): cards do not turn to danger styling for a hunt; only a Warning or real interference does.
             bool danger=Game.Map==MapId.Castle?Game.Case.Phase==Phase.Warning||Game.Scares.Interference:Game.Case.Phase==Phase.Warning||Game.Case.Phase==Phase.Hunt||Game.Scares.Interference;
             float fade=Mathf.Clamp01(Game.SubtitleTime/.4f);
-            Dialogue(new Rect(495,858-height,610,height),dialogueSpeaker,dialogueBody,danger,fade);dialogueFont=0;
+            float cw=Game.Map==MapId.Castle?CastleCardW:610;
+            Dialogue(new Rect(800-cw*.5f,858-height,cw,height),dialogueSpeaker,dialogueBody,danger,fade);dialogueFont=0;
         }
         void KeyPill(float x,float y,string key,string text)
         {

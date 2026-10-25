@@ -1,0 +1,40 @@
+{
+  "name": "HighBackChair",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), HighBackChair.glb",
+  "sha256": "d8ce4da4abea50f56af4119d84645f786c9590af8d2ae546c9320a3bb0f68650",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 6443,
+      "triangles": 3000
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.255,
+      0.255,
+      0.0,
+      1.3,
+      -0.255,
+      0.25
+    ],
+    "mode": "stretch",
+    "yaw": 90.0,
+    "sourceTriangles": 1931298
+  }
+}

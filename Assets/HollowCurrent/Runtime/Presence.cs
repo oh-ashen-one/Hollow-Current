@@ -1651,12 +1651,19 @@ namespace HollowCurrent
         }
         float blockedFor;int blockedLogs;
         // The same segment test as the playtest driver's wall-crossing count (0.35 m above his origin), excluding himself and her.
+        // Owner 2026-10-19 ("the ghost villain is just glitching through the entire wall"): a step also tests chest height (1.3 m) whenever he is
+        // upright (not on foot, not crawling under a lintel), the same band the route planner's Clear() sweeps, so the 0.35 m line can no longer
+        // slide under a wall edge while his body passes through it.
         bool LegBlocked(Vector3 from,Vector3 to,out RaycastHit hit)
         {
             hit=default;if((to-from).sqrMagnitude<1e-6f)return false;
-            if(!Physics.Linecast(from+Vector3.up*.35f,to+Vector3.up*.35f,out hit,FlightMask,QueryTriggerInteraction.Ignore))return false;
-            var t=hit.collider.transform;
-            return !t.IsChildOf(transform)&&!hit.collider.GetComponentInParent<Investigator>();
+            if(StepHit(from,to,.35f,out hit))return true;
+            return !OnFoot&&!MustCrawl(from)&&StepHit(from,to,1.3f,out hit);
+        }
+        bool StepHit(Vector3 from,Vector3 to,float height,out RaycastHit hit)
+        {
+            if(!Physics.Linecast(from+Vector3.up*height,to+Vector3.up*height,out hit,FlightMask,QueryTriggerInteraction.Ignore))return false;
+            return !hit.collider.transform.IsChildOf(transform)&&!hit.collider.GetComponentInParent<Investigator>();
         }
         // r11 (hostile Return hung mid-air on wall tops ~3 s): a door is opened and waited for up to DoorWaitSeconds; anything else,
         // or a longer door wait, re-routes at once; if the new route is blocked too he lands and crawls the NavMesh (GoOnFoot).
@@ -2046,10 +2053,43 @@ namespace HollowCurrent
             var rot=Quaternion.Euler(pitch,0,0);var pivot=Vector3.up*count.FlightPitchPivot;
             silhouette.localRotation=rot;silhouette.localPosition=pivot-rot*pivot;
         }
+        // Owner 2026-10-19: "you should never be seeing him unless he's jumpscaring you, running after you, or killing you". He keeps every
+        // behaviour (perches, flights, watching, hunts); only his renderers, shadows and rim light are gated. Shown: apparitions / staged
+        // scares / captures, a chase or dive, a grab, the near-miss and return swoops, the sword fight (stagger, retreat with the sword out) and
+        // his death. While unseen and watching her from a perch he breathes (spatial), so "never hide while he is watching" stays readable.
+        Renderer[] countRenderers;bool countShown=true;float watchBreathAt;
+        bool CountShouldShow()
+        {
+            if(flight==Flight.Dead||flight==Flight.Stagger)return true;
+            if(presentationRemaining>0||staged||choreo||capturePresentation||fakeRush||CaptureMode.Requested)return true;
+            if(!huntOn)return false;
+            if(flight==Flight.Chase||flight==Flight.NearMiss||swooping||GrabInProgress||contact>0||grabCam)return true;
+            return Game.Castle&&Game.Castle.Forge.HasSword&&(flight==Flight.Retreat||flight==Flight.Land);
+        }
+        void CountVisibilityGate(float dt)
+        {
+            bool recached=countRenderers==null||System.Array.Exists(countRenderers,r=>!r);
+            if(recached)countRenderers=silhouette.GetComponentsInChildren<Renderer>(true);
+            bool show=CountShouldShow();
+            if(show!=countShown||recached)
+            {
+                countShown=show;
+                foreach(var r in countRenderers)if(r)r.forceRenderingOff=!show;   // leaves each part's own enabled state alone (eyes, gore, lantern)
+                Debug.Log("HC_COUNT_VISIBLE shown="+show+" "+DiagnosticState);
+            }
+            if(rimLight)rimLight.enabled=show&&rimScale>0;
+            if(!show&&!huntOn&&flight==Flight.Perched&&CanSeePlayer&&Time.time>=watchBreathAt)
+            {
+                watchBreathAt=Time.time+Random.Range(6f,10f);
+                Game.Sound.Cue(Random.value<.5f?"castle_hide_breath_0":"castle_hide_breath_1",HeadPosition,.55f);
+                Debug.Log("HC_COUNT_WATCH_TELL breath at="+HeadPosition+" "+DiagnosticState);
+            }
+        }
         void LateUpdate()
         {
             if(count==null||!silhouette||!silhouette.gameObject.activeInHierarchy||!actor)return;
             float dt=Time.deltaTime;
+            CountVisibilityGate(dt);
             if(!modesLogged&&actor.Animator&&actor.Animator.isActiveAndEnabled&&actor.Animator.runtimeAnimatorController)
             {
                 modesLogged=true;string[] names={"Perch","Glide","Search","Dive","Stagger","Death","Grab","Crawl","GrabDrop","GrabCrawl","GrabSideL","GrabSideR","GrabDropSpin"};var b=new System.Text.StringBuilder();

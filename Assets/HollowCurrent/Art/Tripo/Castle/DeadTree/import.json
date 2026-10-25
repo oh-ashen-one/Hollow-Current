@@ -1,0 +1,40 @@
+{
+  "name": "DeadTree",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), DeadTree.glb",
+  "sha256": "220077160dfbb2e282fb35e6e9473b82546a9c49a7b8ef5ba8f1a657956856a8",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 11971,
+      "triangles": 8999
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -1.8,
+      1.8,
+      -0.044,
+      3.6,
+      -1.8,
+      1.8
+    ],
+    "mode": "height",
+    "yaw": 0.0,
+    "sourceTriangles": 1882521
+  }
+}

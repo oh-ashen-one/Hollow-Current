@@ -1,3 +1,7 @@
+# Combined Fish + Tripo integration — 2026-10-25
+
+Owner authorized merging both branches into main and delivering one combined macOS build. Integration branch `integrate/fish-tripo-main`; validation in progress. Both historical handoffs retained below.
+
 # Fish Audio integration — completed automated delivery, 2026-10-22
 
 Branch `fish-audio-integration`: all 28 dialogue lines and discrete vocal effects integrated; fresh two-map macOS app built; Bellwether and Castle escape/fear/kill routes pass offline. User preferences restored, task engines closed and slots released. Read `docs/audio/fish-integration/HANDOFF.md` for deliverables, evidence and limitations. Owner listening/playtest acceptance remains pending; no main merge was authorized.
@@ -5,6 +9,28 @@ Branch `fish-audio-integration`: all 28 dialogue lines and discrete vocal effect
 Earlier handoffs below describe historical builds.
 
 ---
+
+# HANDOFF: owner playtest fixes + Tripo castle props (`hc/tripo-fixes`, 2026-10-19). Read this section first.
+
+Branch `hc/tripo-fixes` (from `haunted-castle` `0e2c1d6`), pushed. `main` and `haunted-castle` untouched; merging needs the owner.
+Builder: Devin. Studio clone `~/hc-tripo` (own clone), laptop clone `~/hollow-current`.
+
+- **Fixes:** courtyard tree moved to the NE corner with a trunk-only collider (the 2.4 m Prop box blocked the Dining courtyard door);
+  Count hidden unless apparition/staged scare, chase/dive, grab, near-miss/return swoop, sword fight or death (`Presence.CountVisibilityGate`,
+  `forceRenderingOff`, rim light gated, `HC_COUNT_VISIBLE`), breathes while unseen and watching (`HC_COUNT_WATCH_TELL`), step test adds a
+  1.3 m line (`LegBlocked`); castle darker (`CastleLightTuning`, `CastleAtmosphere`: candles .26, lantern 1.15 / 11 m / 72 deg, lantern glow
+  .75 / 3.2 m, ambient .45, fills and moonlight lower) - the old exposure bands (35-55 / 12-25 % near-black) are superseded by the owner's
+  "more darkness"; Bellwether: no dispatch voice on arrival/kit, noise-only `step_{wood,tile,carpet}_*` (`tools/audio_castle_steps.py wood tile carpet`),
+  arrival note on a console table with legs, beds probe-lit (`HouseLighting.ProbeLit`; bed glitch cause inferred, not seen in a capture).
+- **Tripo props:** 36 Tripo Studio web generations (owner account, existing Chrome tab, 55 credits each, 1,980 total; task ids in
+  `docs/haunted-castle/ASSET_LOG.md`) -> `tools/tripo_castle_convert.py` (spec: bounds, fit, yaw, budget, anchors per prop) ->
+  `Art/Tripo/Castle/<name>` -> `TripoImport.Prepare` -> 40 `Resources/Castle/<name>.prefab`. 35 replaced FBX removed. `SurrealProps` uses
+  `TripoCandle`, `TripoCandelabraTable`, `FloatingBook`, `Tome`, `Chandelier`, `Sconce`, `Knife` with procedural fallbacks. Orrery and
+  Telescope were generated but not shipped (socket/pose coordinates measured on the old meshes). Source GLBs: Studio `~/hc-tripo-work/glb`.
+- **Verified:** `check_source.py` PASS (1615); castle prepare `HC_KIT_AXIS_SUMMARY problems=0`, `HC_CANDLES floating=0 PASS`, 7 known portrait
+  `HC_MISSING_ART`; both maps baked (Castle 7/197/17, Bellwether 4/124/9); `BuildPreparedMacAll` Success; `-hc-capture-art layout|kit`
+  captures inspected (hall, chapel). Not verified: a played run (Count visibility in a real hunt, courtyard exit, bed in the house).
+- **Rebuild note:** `tools/castle_build_all.sh` would regenerate the removed FBX; delete them again (or skip those names) so the prefabs load.
 
 # HANDOFF: session close. Wave FG integrated, two r15 fixes, built and proved (fg-integ). Read this section first.
 

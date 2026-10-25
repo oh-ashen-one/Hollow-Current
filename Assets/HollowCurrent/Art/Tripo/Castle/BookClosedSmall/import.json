@@ -1,0 +1,40 @@
+{
+  "name": "BookClosedSmall",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), BookClosed.glb",
+  "sha256": "d4c7bf52cf27a5e6fe4693a6e8b9c982cc18dcb8dbe16bdc1b248d3dfd6aebe2",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 1847,
+      "triangles": 700
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -0.072,
+      0.087,
+      -0.002,
+      0.027,
+      -0.05,
+      0.05
+    ],
+    "mode": "uniform",
+    "yaw": 0.0,
+    "sourceTriangles": 1939082
+  }
+}

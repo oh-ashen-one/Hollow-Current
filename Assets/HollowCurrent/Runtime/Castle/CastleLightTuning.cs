@@ -26,7 +26,7 @@ namespace HollowCurrent
 
         [Header("Candles (realtime point lights)")]
         public Color CandleColor = new Color(1.0f, 0.77f, 0.55f);   // less saturated than r4 (S1 was 15% warm, ref 1.6%)
-        public float CandleIntensityScale = 0.40f;   // integ-fb: .53 left the hall 25 % near-black (target 35-55); was .82 before wave FB
+        public float CandleIntensityScale = 0.26f;   // owner 2026-10-19 ("way too light, we need more darkness") .40 -> .26; integ-fb: .53 left the hall 25 % near-black (target 35-55); was .82 before wave FB
         public float CandleRangeScale = 1.3f;
         public float CandleMinRange = 6.5f;
         public float CandleMaxRange = 10f;
@@ -36,18 +36,18 @@ namespace HollowCurrent
         // stands (r14: table median luma 8.7 lantern off, 22 lantern on). Range 3.5 keeps the pool on the table, its chairs and the dais.
         // ff-integ (one tuning pass, -hc-hall-table sweep): .7 -> 1.2 (S1 table px at luma >= 14: 7.6k -> 10.8k; 1.6 / 2.2 gave 12.3k / 12.8k, so the
         // 15k bar is out of reach by light alone: the far end of the table is dark wood seen edge-on).
-        public float TableCandleIntensity = 1.2f;
+        public float TableCandleIntensity = .8f;     // owner 2026-10-19: 1.2 -> .8
         public float TableCandleRange = 3.5f;
 
         [Header("Moonlight (cold blue; must stay dimmer than the candles)")]
         public Color MoonColor = new Color(.36f, .51f, .75f);
         public float WindowMoonlightCrypt = .34f;    // was .43 (r6; .17 originally) (FloorY < 0): the crypt only loses 20 %, its fog profile stays
-        public float WindowMoonlightFloor = .48f;    // was .80 (-40 %)
-        public float WindowMoonlightRose = .50f;     // integ-fb .66 -> .50; was 1.10 (the shadowed rose window)
+        public float WindowMoonlightFloor = .36f;    // owner 2026-10-19 .48 -> .36; was .80 (-40 %)
+        public float WindowMoonlightRose = .38f;     // owner 2026-10-19 .50 -> .38; integ-fb .66 -> .50; was 1.10 (the shadowed rose window)
         // fc-light: non-rose window spots that sit in the great hall (clerestories, the north lancets; castle-local |x| <= 6.8,
         // z 13.5-29, y 0-9.5). Default = WindowMoonlightFloor, i.e. no change this round; it is the integrator's hall-only fallback knob
         // (BAKED: re-bake the castle after editing it). Chapel, courtyard and crypt windows keep WindowMoonlightFloor / WindowMoonlightCrypt.
-        public float HallWindowMoonlight = .30f;    // integ-fc fallback (fc-light table, S1 off 30.3 % < 31): .48 -> .30
+        public float HallWindowMoonlight = .22f;    // owner 2026-10-19 .30 -> .22; integ-fc fallback (fc-light table, S1 off 30.3 % < 31): .48 -> .30
         // fe-exterior (r13 open item 5, hall lantern-off from_doors 32.6 / skeleton_head 31.8 / side_east 30.4 / S1 30.4 against 35-55; the
         // HallWindowMoonlight knob above measured no change in integ-fc): the other row of fc-light's fallback table, the castle bake ambient.
         // Linear multiplier on HouseLighting's castle trilight (x0.68 of hc/look3), applied in Tune(root) below, the castle-only bake hook, so
@@ -63,7 +63,7 @@ namespace HollowCurrent
         public Color ChapelMoonColor = new Color(.42f, .56f, .90f);
         public float ChapelMoonIntensity = .95f;      // was 1.1: the cold light pouring through the sun window above the altar stays the chapel's landmark
         public Vector3 ChapelMoonPosition = new Vector3(13.1f, 3.3f, 6.5f);
-        public float ChapelCandleIntensity = .75f;    // integ-fb .6 -> .75 (offsets the lower CandleIntensityScale; chapel was in band); was 1.0: two warm pools at the altar, one over the nave
+        public float ChapelCandleIntensity = .50f;    // owner 2026-10-19 .75 -> .50; integ-fb .6 -> .75 (offsets the lower CandleIntensityScale; chapel was in band); was 1.0: two warm pools at the altar, one over the nave
         public Vector3 ChapelCandleA = new Vector3(12.5f, 1.5f, 4.8f);
         public Vector3 ChapelCandleB = new Vector3(12.5f, 1.5f, 8.2f);
         public Vector3 ChapelNaveFill = new Vector3(9.0f, 2.6f, 6.5f);
@@ -75,9 +75,9 @@ namespace HollowCurrent
         // fc-light2 (director on fc2: "lantern on floods everything", S1 7.4 / S2 9.4 / S3 7.6 % near-black against 12-25, the hall lit flat to
         // the far wall). fc-light made the lantern reach every surface (ForcePixel), so the FB compensation (scale 2.4, wide 100 deg cone, 18 m)
         // now floods the room. A lantern is a POOL: lower, narrower, shorter, softer edge, warmer.
-        public float TorchIntensityScale = 1.8f;      // fc-light2 2.4 -> 1.8 (r2 1.7 / 75 deg / 15 m: hall on 17-23 % in band, chapel 32-43 too dark; r1 1.2 with 65 deg / 13 m: S1/S2/S3 on 28.9/38.7/31.3 % near-black, almost the lantern-off frame); integ-fb 1.35 -> 2.4 (2.04 absolute): at 1.35 the lantern moved S1-S3 near-black by under 3 points
-        public float TorchRange = 15f;               // fc-light2 18 -> 15 (r1 13) (the far half of the 14 m hall falls back to dark); integ-fc 24 -> 18; integ-fb 0 (keep 20) -> 24
-        public float TorchSpotAngle = 88f;           // fc-light2 100 -> 88 (r1 65, r2 75: the chapel pews and side walls fell outside the cone); fc-light 80 -> 100; integ-fb: 80 (Bellwether keeps 52); 0 keeps the shared angle
+        public float TorchIntensityScale = 1.15f;     // owner 2026-10-19 ("the lantern and surrounding lights are way too light") 1.8 -> 1.15; fc-light2 2.4 -> 1.8 (r2 1.7 / 75 deg / 15 m: hall on 17-23 % in band, chapel 32-43 too dark; r1 1.2 with 65 deg / 13 m: S1/S2/S3 on 28.9/38.7/31.3 % near-black, almost the lantern-off frame); integ-fb 1.35 -> 2.4 (2.04 absolute): at 1.35 the lantern moved S1-S3 near-black by under 3 points
+        public float TorchRange = 11f;               // owner 2026-10-19 15 -> 11; fc-light2 18 -> 15 (r1 13) (the far half of the 14 m hall falls back to dark); integ-fc 24 -> 18; integ-fb 0 (keep 20) -> 24
+        public float TorchSpotAngle = 72f;           // owner 2026-10-19 88 -> 72; fc-light2 100 -> 88 (r1 65, r2 75: the chapel pews and side walls fell outside the cone); fc-light 80 -> 100; integ-fb: 80 (Bellwether keeps 52); 0 keeps the shared angle
         public float TorchInnerFraction = .35f;      // fc-light2: inner/outer angle (was .6) for a soft pool edge (used where the pipeline reads innerSpotAngle)
         public Color TorchColor = new Color(1f, .80f, .58f);   // fc-light2: a little warmer than the shared torch (1, .89, .72); castle only
         // fc-light: the torch is an Auto light, so in forward rendering it only reaches objects where it ranks among the Ultra tier's 4 pixel
@@ -85,18 +85,22 @@ namespace HollowCurrent
         // walls, skeleton, chapel floor, pews or altar (those objects already carry the ForcePixel fills plus nearer candles). ForcePixel makes
         // the lantern light every surface in its cone (castle only; Bellwether's torch keeps Auto).
         public bool TorchForcePixel = true;
+        // owner 2026-10-19: the warm glow around the lantern in her hand lit the whole room (Investigator default 1.6 / 5.5 m). The Count's hide
+        // presentation still raises it to CountClaudeProfile.HideLanternGlow for its frames.
+        public float LanternGlowIntensity = .75f;
+        public float LanternGlowRange = 3.2f;
 
         [Header("Extra fill lights (castle-local positions; realtime, no shadows)")]
         public bool AddFillLights = true;
         public Color VaultFillColor = new Color(.42f, .55f, .90f);
-        public float VaultFillIntensity = .05f;       // integ-fb .10 -> .05; was .32: faint cold light under the great-hall vault so the ribs and ceiling just read
+        public float VaultFillIntensity = .03f;       // owner 2026-10-19 .05 -> .03; integ-fb .10 -> .05; was .32: faint cold light under the great-hall vault so the ribs and ceiling just read
         public Vector3 VaultFillPosition = new Vector3(0f, 7.6f, 21f);
         public float VaultFillRange = 12f;
         public Color CryptCandleColor = new Color(1.0f, .66f, .38f);
         public float CryptCandleIntensity = .6f;      // was .85; ONE warm pool on the west curb (r5: four pools at 1.6 = 4.2% near-black and 16% warm; r6: four at 0.65 = 41.9%)
         public float CryptCandleRange = 5f;
         public Color CryptColdColor = new Color(.34f, .44f, .80f);
-        public float CryptColdIntensity = .32f;       // integ-fb .42 -> .32 (S3 32 % near-black); was .55: cold base so the room reads blue with one warm accent
+        public float CryptColdIntensity = .22f;       // owner 2026-10-19 .32 -> .22; integ-fb .42 -> .32 (S3 32 % near-black); was .55: cold base so the room reads blue with one warm accent
         public Vector3 CryptColdPosition = new Vector3(0f, -1.3f, 22.5f);
         public Color CryptRuneColor = new Color(.60f, .32f, .90f);
         public float CryptRuneIntensity = .9f;       // violet rune glow over the sarcophagus
@@ -105,11 +109,11 @@ namespace HollowCurrent
 
         [Header("Warm fills for the dark shots (round 5)")]
         public Color WarmFillColor = new Color(1.0f, .70f, .45f);
-        public float CourtyardFillIntensity = 1.3f;   // was 2.6: two candle pools by the courtyard/gatehouse where S6 stands the Count
+        public float CourtyardFillIntensity = .7f;    // owner 2026-10-19 1.3 -> .7; was 2.6: two candle pools by the courtyard/gatehouse where S6 stands the Count
         public float CourtyardFillRange = 9f;
         public Vector3 CourtyardFillA = new Vector3(-4.6f, 2.0f, 9.5f);
         public Vector3 CourtyardFillB = new Vector3(-1.5f, 2.0f, 12.5f);
-        public float BalconyFillIntensity = .7f;       // was 1.4: warm rim on the perch above the hall for S5 and the hunt's first frames
+        public float BalconyFillIntensity = .4f;       // owner 2026-10-19 .7 -> .4; was 1.4: warm rim on the perch above the hall for S5 and the hunt's first frames
         public float BalconyFillRange = 8f;
         public Vector3 BalconyFillPosition = new Vector3(-3.5f, 4.9f, 19.5f);
         public Vector3 BalconyFillPositionB = new Vector3(-5.2f, 4.8f, 22.5f);   // second candle pool by the rose-window ledge
@@ -261,6 +265,7 @@ namespace HollowCurrent
             if (TorchSpotAngle > 0 && player.Torch) { player.Torch.spotAngle = TorchSpotAngle; player.Torch.innerSpotAngle = TorchSpotAngle * TorchInnerFraction; }
             if (player.Torch && TorchColor.maxColorComponent > 0) player.Torch.color = TorchColor;
             if (TorchForcePixel && player.Torch) player.Torch.renderMode = LightRenderMode.ForcePixel;
+            player.LanternGlowIntensity = LanternGlowIntensity; player.LanternGlowRange = LanternGlowRange;
         }
 
         // Editor/bake entry point: tune every light under the castle root with the default values.

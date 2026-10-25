@@ -223,11 +223,13 @@ namespace HollowCurrent
             {
                 case FloaterKind.Candelabra:
                 {
-                    NewRenderer("Candelabra",t,Vector3.zero,Quaternion.identity,CandelabraMesh,CandelabraMaterials,true);
-                    var flames=new Transform[CandlePositions.Length];
+                    bool art=Tripo("TripoCandelabraTable",out var cm,out var cmats,out var tips)&&tips.Length>0;
+                    NewRenderer("Candelabra",t,Vector3.zero,Quaternion.identity,art?cm:CandelabraMesh,art?cmats:CandelabraMaterials,true);
+                    var spots=art?tips:CandlePositions;
+                    var flames=new Transform[spots.Length];
                     for(int i=0;i<flames.Length;i++)
                     {
-                        var flame=MakeCandleFlame(t,CandlePositions[i],FlameHeight,i<lightedFlames,"Flame "+i,.12f);   // round 13: 6 cm flame sprite, the size agreed with hc/props-l
+                        var flame=MakeCandleFlame(t,spots[i],FlameHeight,i<lightedFlames,"Flame "+i,.12f);   // round 13: 6 cm flame sprite, the size agreed with hc/props-l
                         flames[i]=flame.transform;
                     }
                     floater.flames=flames;
@@ -235,7 +237,9 @@ namespace HollowCurrent
                     break;
                 }
                 default:
-                    NewRenderer("Book",t,Vector3.zero,Quaternion.identity,kind==FloaterKind.OpenBook?OpenBookMesh:ClosedBookMesh,BookMaterials,true);
+                    bool open=kind==FloaterKind.OpenBook;
+                    if(Tripo(open?"FloatingBook":"Tome",out var bm,out var bmats,out _))NewRenderer("Book",t,Vector3.zero,Quaternion.identity,bm,bmats,true);
+                    else NewRenderer("Book",t,Vector3.zero,Quaternion.identity,open?OpenBookMesh:ClosedBookMesh,BookMaterials,true);
                     floater.tiltDegrees=7;floater.bobAmplitude=.16f;floater.yawDegreesPerSecond=6;floater.bobHertz=.17f;
                     break;
             }
@@ -328,7 +332,7 @@ namespace HollowCurrent
             var list=new Transform[knives];
             for(int i=0;i<knives;i++)
             {
-                var r=NewRenderer("Knife "+i,t,Vector3.zero,Quaternion.identity,KnifeMesh,KnifeMaterials,true);
+                var r=Tripo("Knife",out var km,out var kmats,out _)?NewRenderer("Knife "+i,t,Vector3.zero,Quaternion.identity,km,kmats,true):NewRenderer("Knife "+i,t,Vector3.zero,Quaternion.identity,KnifeMesh,KnifeMaterials,true);
                 r.transform.localScale=Vector3.one*knifeScale;
                 list[i]=r.transform;
             }
@@ -368,13 +372,14 @@ namespace HollowCurrent
             floater.bobAmplitude=.06f+.05f*Mathf.Repeat(seed*.381966f,1);
             floater.bobHertz=.1f+.08f*Mathf.Repeat(seed*.754877f,1);
             floater.driftRadius=.05f;floater.tiltDegrees=2f;floater.yawDegreesPerSecond=1.5f;
-            NewRenderer("Candle",t,Vector3.zero,Quaternion.identity,CandleMesh,CandleMaterials,false);
+            bool tripoCandle=Tripo("TripoCandle",out var candleMesh,out var candleMats,out var wick);
+            NewRenderer("Candle",t,Vector3.zero,Quaternion.identity,tripoCandle?candleMesh:CandleMesh,tripoCandle?candleMats:CandleMaterials,false);
             if(lit)
             {
                 // ~0.11 x 0.22 m teardrop plus a soft warm halo; the hero candle burns bigger and brighter. No point lights.
                 // round 13: the old 0.22 m teardrop (0.4 m quad with its halo) was bigger than the candle. Now the flame is 6 cm tall
                 // (a little over real so it still reads at 6 m; 0.11 m quad with halo), the hero 9 cm.
-                var flame=MakeCandleFlame(t,Vector3.up*.175f,hero?.09f:.06f,false,"Flame",hero?.55f:.24f);
+                var flame=MakeCandleFlame(t,tripoCandle&&wick.Length>0?wick[0]+Vector3.up*.006f:Vector3.up*.175f,hero?.09f:.06f,false,"Flame",hero?.55f:.24f);
                 floater.flames=new[]{flame.transform};
             }
             return floater;
@@ -391,7 +396,8 @@ namespace HollowCurrent
             floater.name="Wall candle (lit)";
             floater.bobAmplitude=0;floater.driftRadius=0;floater.tiltDegrees=0;floater.yawDegreesPerSecond=0;
             outward.y=0;if(outward.sqrMagnitude<1e-6f)outward=Vector3.forward;
-            var sconce=NewRenderer("Wall sconce",floater.transform,Vector3.zero,Quaternion.identity,SconceMesh,SconceMaterials,false);
+            bool tripoSconce=Tripo("Sconce",out var sm,out var smats,out _);
+            var sconce=NewRenderer("Wall sconce",floater.transform,Vector3.zero,Quaternion.identity,tripoSconce?sm:SconceMesh,tripoSconce?smats:SconceMaterials,false);
             var parentRot=parent?parent.rotation:Quaternion.identity;
             sconce.transform.position=parent?parent.TransformPoint(socketTop):socketTop;
             sconce.transform.rotation=parentRot*Quaternion.LookRotation(outward.normalized,Vector3.up);
@@ -478,9 +484,16 @@ namespace HollowCurrent
             var floater=t.gameObject.AddComponent<Floater>();
             floater.phase=Mathf.Repeat(seed*.6180339f,1);
             floater.bobAmplitude=.04f;floater.bobHertz=.08f;floater.driftRadius=.03f;floater.tiltDegrees=1.2f;floater.yawDegreesPerSecond=1.5f;
-            NewRenderer("Chandelier body",t,Vector3.zero,Quaternion.identity,ChandelierMesh,ChandelierMaterials,true);
-            var flames=new Transform[ChandelierCandles];
-            for(int i=0;i<ChandelierCandles;i++)flames[i]=MakeCandleFlame(t,ChandelierFlameBase(i),FlameHeight,false,"Flame "+i,.2f).transform;
+            bool tripoBody=Tripo("Chandelier",out var chm,out var chmats,out var chtips)&&chtips.Length>0;
+            if(tripoBody)
+            {
+                NewRenderer("Chandelier body",t,Vector3.zero,Quaternion.identity,chm,chmats,true);
+                NewRenderer("Chandelier chains",t,Vector3.zero,Quaternion.identity,ChandelierChainsMesh,new[]{ChandelierMaterials[0]},true);
+            }
+            else NewRenderer("Chandelier body",t,Vector3.zero,Quaternion.identity,ChandelierMesh,ChandelierMaterials,true);
+            int flameCount=tripoBody?chtips.Length:ChandelierCandles;
+            var flames=new Transform[flameCount];
+            for(int i=0;i<flameCount;i++)flames[i]=MakeCandleFlame(t,tripoBody?chtips[i]:ChandelierFlameBase(i),FlameHeight,false,"Flame "+i,.2f).transform;
             floater.flames=flames;
             return floater;
         }

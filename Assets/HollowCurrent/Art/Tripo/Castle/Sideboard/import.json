@@ -1,0 +1,40 @@
+{
+  "name": "Sideboard",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), Sideboard.glb",
+  "sha256": "22fcb4aee33eb59f88178343d4de2c049a8c56382153df9d84fcca03d32e3bb4",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 9533,
+      "triangles": 5000
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -1.3,
+      1.3,
+      0.0,
+      1.1,
+      -0.28,
+      0.325
+    ],
+    "mode": "stretch",
+    "yaw": 90.0,
+    "sourceTriangles": 1829924
+  }
+}

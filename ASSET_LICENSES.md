@@ -112,3 +112,12 @@ procedurally in `tools/castle_props_r12.py` (headless Blender, no downloaded ass
 `Castle_BookPages`, `Castle_GiltWorn`, `Castle_RootBark`, `Castle_RootFlesh`, `Castle_BoneGrime`, `Castle_NicheStone`) and their textures are generated
 by `tools/castle_r12_textures.py` (numpy and Pillow, drawn designs and noise only). Original project work, CC BY 4.0. One Customuse Tripo v3.1 hand
 mesh was generated from the owner's own `crypt.png` concept (see `docs/haunted-castle/ASSET_LOG.md`), rejected and not shipped or committed.
+
+## Tripo castle props (added 2026-10-19, `hc/tripo-fixes`)
+
+`Assets/HollowCurrent/Art/Tripo/Castle/` and the `Resources/Castle/<name>.prefab` files `TripoImport` builds from it (candles, candelabras,
+chandelier, sconce, knife, books and tomes, tables, chairs, throne, bookshelf, fireplace, hearth, sideboard, canopy bed, lectern, reliquary,
+winch, pews, altar, sarcophagus, bell, font, pedestal, fountain, cauldron, dead tree, lantern cart) are original generations in the owner's
+paid Tripo Studio account from the owner's own prompts (concept images by Tripo's image step), decimated and fitted locally by
+`tools/tripo_castle_convert.py`. Same basis as `Art/Tripo/` above ([Tripo terms §5.2.2](https://www.tripo3d.ai/terms)). Task ids and costs:
+`docs/haunted-castle/ASSET_LOG.md`.

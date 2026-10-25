@@ -1,0 +1,40 @@
+{
+  "name": "Altar",
+  "output": "Castle",
+  "source": "Tripo Studio H3.1 (owner web account), Altar.glb",
+  "sha256": "ab38dce092e02fa2f880886280ac0dd353de2ed48376d036f79445bb97154494",
+  "materials": [
+    {
+      "stem": "material-0",
+      "colorFactor": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "hasNormal": true,
+      "hasMetal": true
+    }
+  ],
+  "primitives": [
+    {
+      "file": "mesh-0-0.bytes",
+      "material": 0,
+      "vertices": 9194,
+      "triangles": 4999
+    }
+  ],
+  "fit": {
+    "bounds": [
+      -1.19,
+      1.19,
+      0.0,
+      1.106,
+      -0.53,
+      0.65
+    ],
+    "mode": "stretch",
+    "yaw": 90.0,
+    "sourceTriangles": 1846261
+  }
+}

@@ -9,7 +9,9 @@ namespace HollowCurrent.Editor
     #pragma warning disable 0649 // Manifest fields are filled by JsonUtility.
     public static class TripoImport
     {
-        [Serializable] class Manifest { public string name; public Surface[] materials; public Primitive[] primitives; }
+        // output "Castle": a castle prop (tools/tripo_castle_convert.py) -> Resources/Castle/<name>.prefab, loaded by CastleArt.Place / SurrealProps;
+        // anchors: flattened x,y,z of candle tips -> empty children "Flame anchor <i>" (the flame billboards sit there).
+        [Serializable] class Manifest { public string name; public string output; public float[] anchors; public Surface[] materials; public Primitive[] primitives; }
         [Serializable] class Surface { public string stem; public float[] colorFactor; public bool hasNormal; public bool hasMetal; }
         [Serializable] class Primitive { public string file; public int material; public int vertices; public int triangles; }
         public static void Prepare()
@@ -74,7 +76,11 @@ namespace HollowCurrent.Editor
                     var child=new GameObject("Crafted surface");child.transform.SetParent(root.transform,false);child.AddComponent<MeshFilter>().sharedMesh=mesh;
                     child.AddComponent<MeshRenderer>().sharedMaterial=materials[part.material];
                 }
-                PrefabUtility.SaveAsPrefabAsset(root,"Assets/HollowCurrent/Resources/Furniture/"+manifest.name+".prefab");
+                bool castle=manifest.output=="Castle";
+                if(castle&&manifest.anchors!=null)
+                    for(int a=0;a+2<manifest.anchors.Length;a+=3)
+                    {var anchor=new GameObject("Flame anchor "+(a/3));anchor.transform.SetParent(root.transform,false);anchor.transform.localPosition=new Vector3(manifest.anchors[a],manifest.anchors[a+1],manifest.anchors[a+2]);}
+                PrefabUtility.SaveAsPrefabAsset(root,"Assets/HollowCurrent/Resources/"+(castle?"Castle/":"Furniture/")+manifest.name+".prefab");
                 UnityEngine.Object.DestroyImmediate(root);Debug.Log("HC_TRIPO_IMPORTED "+manifest.name);
             }
             AssetDatabase.SaveAssets();

@@ -810,6 +810,9 @@ namespace HollowCurrent
                     var b = r.bounds; spots.Add(stand.InverseTransformPoint(new Vector3(b.center.x, b.min.y, b.center.z)));
                     r.enabled = false;
                 }
+            // Tripo props (Editor/TripoImport, output Castle) carry empty "Flame anchor <i>" children at their wick tips instead of mesh flames
+            foreach (var t in art.GetComponentsInChildren<Transform>())
+                if (t.name.StartsWith("Flame anchor", System.StringComparison.Ordinal)) spots.Add(stand.InverseTransformPoint(t.position));
             if (spots.Count == 0) return;
             var flames = new Transform[spots.Count];
             for (int i = 0; i < spots.Count; i++) flames[i] = SurrealProps.MakeCandleFlame(stand, spots[i], SurrealProps.FlameHeight, false, "Flame " + i, .14f).transform;   // round 13: 6 cm flame (hc/props-l size)
@@ -903,14 +906,18 @@ namespace HollowCurrent
             Interact("Drawbridge winch", WinchLocal, new Vector3(.9f, 1.6f, .7f), "metal", InteractKind.Van, "Drawbridge winch", "", false);
             Box("Gatehouse table", new Vector3(-1.4f, .4f, 5.3f), new Vector3(1.4f, .8f, .7f), "wood");
             Note("Gate keeper's letter", new Vector3(-1.4f, .82f, 5.3f), "Gate keeper's letter",
-                "THE MARGRAVE'S GATE\n\nThe last steward bolted the great doors behind him and swore the night would not end for any of us. He was right. The sun has not come over the wall since.\n\nThe drawbridge winch is behind you. Crossing is the only way out, and the bridge will not lower for anyone who has not read the Blood Ledger and survived the hunt.\n\nSomething sleeps in the crypt. Do not let it find you.");
+                "THE MARGRAVE'S GATE\n\nThe last steward bolted the great doors behind him and swore the night would not end for any of us. He was right. The sun has not come over the wall since.\n\nThe drawbridge winch is behind you. Crossing is the only way out, and the bridge will not lower for anyone who has not read the Blood Ledger and survived the hunt.\n\nSomething sleeps in the crypt. Do not let it find you. You will not see him until he comes for you. When he watches, the candle flames lean toward him and you will hear him breathe.");
         }
 
         void Courtyard()
         {
             Prop(Art.Fountain, new Vector3(0, 0, 10f), 0);
-            Prop(Art.DeadTree, new Vector3(-4.2f, 0, 12.4f), 20);
-            Prop(Art.DeadTree, new Vector3(4.2f, 0, 7.6f), -50);
+            // owner playtest 2026-10-19: the tree at (-4.2, 12.4) stood in front of the Dining courtyard door (x -6, z 12) and trapped her.
+            // One tree, in the north-east corner, crown leaning into the corner: clear of all five courtyard doors and of the walls. Only the
+            // trunk collides (Prop's 2.4 x 4.5 x 2.4 m ArtSize box was the invisible wall that blocked the doorway).
+            var treeAt = new Vector3(3.8f, 0, 12.0f);
+            Prop(Art.DeadTree, treeAt, 0, false);
+            Proxy("DeadTree trunk collision", treeAt + new Vector3(0, 1.25f, 0), new Vector3(.55f, 2.5f, .55f));
         }
 
         void GreatHall()
