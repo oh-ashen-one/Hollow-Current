@@ -187,6 +187,11 @@ namespace HollowCurrent
         bool OnPaper(Vector2 point){foreach(var r in paperRegions)if(r.Contains(point))return true;return false;}
         void Label(float x,float y,float w,float h,string text,GUIStyle style=null)
         {
+            if(PadInput.Active&&text!=null&&text.IndexOf('[')>=0)
+            {
+                bool ps=PadInput.Current.PlayStation;
+                text=text.Replace("[E]",ps?"[×]":"[A]").Replace("[F]",ps?"[□]":"[X]").Replace("[J]",ps?"[△]":"[Y]").Replace("[LMB]",ps?"[R2]":"[RT]").Replace("[R]",ps?"[L2]":"[LT]");
+            }
             CountHudDraw();
             style=style??body;
             if(OnPaper(new Vector2(x+5,y+5)))

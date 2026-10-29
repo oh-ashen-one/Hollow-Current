@@ -133,7 +133,7 @@ namespace HollowCurrent
         }
         public void AltarHint()
         {
-            if(Forge.HasSword){Game.Notice("Sword ready. Ring the chapel bell, then strike with R2 / left mouse.",5);return;}
+            if(Forge.HasSword){Game.Notice("Sword ready. Ring the chapel bell, then face him and strike up close.",5);return;}
             if(Forge.RelicCount<3){var missing=new System.Collections.Generic.List<string>();for(int i=0;i<3;i++)if(!Forge.HasRelic((Relic)i))missing.Add(Game.Book.RelicNames[i]);Game.Notice("Still needed: "+string.Join(", ",missing),5);}
             else Game.Notice("Hold interact at the altar to forge · 3 seconds",3);
         }
