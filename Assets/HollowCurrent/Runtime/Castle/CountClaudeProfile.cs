@@ -43,7 +43,7 @@ namespace HollowCurrent
         public float FlightPitchMin=38f, FlightPitchMax=68f, FlightPitchPivot=1.2f, FlightPitchRate=6f, FlightPitchMinSpeed=1.2f, DiveArmReach=.8f;
         // Dive: closing speed once Chase begins (>= the 4.6 m/s design dive), with its own acceleration. Service-door crawl
         // keeps LandedWalkSpeed.
-        public float DiveSpeed=5.2f, DiveAcceleration=16f;
+        public float DiveSpeed=4.1f, DiveAcceleration=10f;
         // Grab choice (heights are his origin above her feet, max of now and the recent decaying approach height):
         // hide entrance -> GrabDrop; she is crouched or he comes in under GrabCrawlBelow -> GrabCrawl; Mode 6 wing-wrap only
         // within GrabWrapDistance at <= GrabWrapMaxHeight; anything higher -> GrabDrop.
@@ -207,7 +207,7 @@ namespace HollowCurrent
         // Perches (CastleWorld.Points.PerchPoints): idle and search stations.
         public float PerchMinSeconds=6f, PerchMaxSeconds=14f;  // between hunts (scripted appearances)
         public float HuntPerchMinSeconds=2.5f, HuntPerchMaxSeconds=5f;
-        public float PerchTellSeconds=.9f;                     // watches you this long from a perch before the dive
+        public float PerchTellSeconds=1.6f;                     // watches you this long from a perch before the dive
         // Round 10 (playtest: no attack in two runs): the hunt starts with 1-2 s on the perch, then he glides to where the bell
         // told him you are (a point HeardOffset m from you, never the exact cupboard). Until he has dived, he hears you again
         // every AttackGuaranteeSeconds, so every hunt has at least one attack attempt.
@@ -222,7 +222,7 @@ namespace HollowCurrent
 
         // Fight.
         public int HitsToKill=3;
-        public float StaggerRetreatSeconds=20f;                // retreat to a perch for 20 s, return lower and angrier (Fight.RetreatSeconds)
+        public float StaggerRetreatSeconds=Fight.RetreatSeconds;                // retreat to a perch for 20 s, return lower and angrier (Fight.RetreatSeconds)
 
         // Grab presentation: the Grab clip reaches 1.39 m ahead of his origin (receipt grab_reach_m);
         // keep the camera at least CameraClearance outside it.
@@ -353,7 +353,7 @@ namespace HollowCurrent
             // The nav agent is never enabled for the Count (he flies kinematically along NavMesh corners); these keep
             // the agent component sane if anything inspects it.
             Speed=GlideTightSpeed;AgentRadius=.30f;AgentHeight=2.6f;Acceleration=10f;AngularSpeed=250f;
-            GrabDistance=1.05f;
+            GrabDistance=.95f;GrabSeconds=1.1f;GrabGraceSeconds=5f;
             Search=SearchRoute.PerchPoints;
             HuntSpawn=null;                                    // CastleWorld.Points.HunterSpawn; the hunt starts on the nearest perch
             ModeIdle=ModePerch;ModeMove=ModeGlide;ModeSearch=ModeSearchGlide;ModeReach=ModeDive;ModeStagger=ModeStaggerId;ModeDeath=ModeDeathId;

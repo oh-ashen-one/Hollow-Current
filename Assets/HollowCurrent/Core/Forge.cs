@@ -27,7 +27,7 @@ namespace HollowCurrent
     // Pure deterministic relic and forging rules: no scene, provider, clock or random dependency.
     public sealed class Forge
     {
-        public const float CraftSeconds = 9f;
+        public const float CraftSeconds = 3f;
         readonly HashSet<Relic> found = new HashSet<Relic>();
         readonly HashSet<Relic> hinted = new HashSet<Relic>();
         public bool AtAltar { get; set; }
@@ -45,6 +45,13 @@ namespace HollowCurrent
             RelicFound?.Invoke(relic); return true;
         }
         public bool HasRelic(Relic relic) => found.Contains(relic);
+        public int RelicMask { get { int mask=0;foreach(var relic in found)mask|=1<<(int)relic;return mask; } }
+        public void Restore(int mask,bool sword)
+        {
+            found.Clear();for(int i=0;i<3;i++)if((mask&(1<<i))!=0)found.Add((Relic)i);
+            HasSword=sword&&found.Count==3;CraftProgress01=HasSword?1:0;AtAltar=false;
+            if(HasSword)Crafted?.Invoke();
+        }
 
         // Reading a ledger entry reveals the matching relic's hiding place. Returns true on first reveal.
         public bool ReadLedger(string entryId) => LedgerHints.TryRelicFor(entryId, out var relic) && hinted.Add(relic);
@@ -73,9 +80,9 @@ namespace HollowCurrent
     // the player-side code calls RegisterHit on a clean strike and PlayerGrabbed when he catches you.
     public sealed class Fight
     {
-        public const int HitsToKill = 3;
-        public const float StaggerSeconds = 2.5f;
-        public const float RetreatSeconds = 20f;
+        public const int HitsToKill = 2;
+        public const float StaggerSeconds = .75f;
+        public const float RetreatSeconds = 4.25f; // five seconds total from hit to renewed approach
         static readonly float[] Speeds = { 1.0f, 1.15f, 1.3f };
 
         public bool Active { get; private set; }

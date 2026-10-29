@@ -549,8 +549,11 @@ namespace HollowCurrent
 
         void Balcony()
         {
-            Slab(-5.7f, -3.0f, 14.3f, 27.7f, 3.2f, "darkwood"); Slab(3.0f, 5.7f, 14.3f, 27.7f, 3.2f, "darkwood"); Slab(-3.0f, 3.0f, 26.0f, 27.7f, 3.2f, "darkwood");
-            Rail(-3.0f, 14.3f, -3.0f, 26.0f, 3.2f, true); Rail(3.0f, 14.3f, 3.0f, 26.0f, 3.2f, true); Rail(-3.0f, 26.0f, 3.0f, 26.0f, 3.2f, true);
+            Slab(-5.7f, -3.0f, 14.3f, 27.7f, 3.2f, "darkwood"); Slab(3.0f, 5.7f, 14.3f, 27.7f, 3.2f, "darkwood", new[]{new Area(3.0f,3.8f,18.2f,20.4f)}); Slab(-3.0f, 3.0f, 26.0f, 27.7f, 3.2f, "darkwood");
+            Rail(-3.0f, 14.3f, -3.0f, 26.0f, 3.2f, true); // Broken east gallery: a 2.2 m opening and missing edge boards lead to the clear hall floor.
+            Rail(3.0f,14.3f,3.0f,18.2f,3.2f,true);Rail(3.0f,20.4f,3.0f,26.0f,3.2f,true);
+            Box("Broken balcony edge north",new Vector3(3.75f,3.25f,20.45f),new Vector3(.8f,.10f,.13f),"darkwood");
+            Box("Broken balcony edge south",new Vector3(3.75f,3.25f,18.15f),new Vector3(.8f,.10f,.13f),"darkwood"); Rail(-3.0f, 26.0f, 3.0f, 26.0f, 3.2f, true);
             // rose-window ledge: a stone shelf at the sill, perch for the Count
             Box("Rose window ledge", new Vector3(0, 5.3f, 27.35f), new Vector3(4.0f, .3f, .9f), "stone");
             // hall rafter
@@ -904,8 +907,9 @@ namespace HollowCurrent
                 "Field kit · hollow compass, grave-ash lantern, vellum ear-trumpet", "");
             Prop(Art.Winch, new Vector3(WinchLocal.x, 0, WinchLocal.z), 0, false);
             Interact("Drawbridge winch", WinchLocal, new Vector3(.9f, 1.6f, .7f), "metal", InteractKind.Van, "Drawbridge winch", "", false);
-            Box("Gatehouse table", new Vector3(-1.4f, .4f, 5.3f), new Vector3(1.4f, .8f, .7f), "wood");
-            Note("Gate keeper's letter", new Vector3(-1.4f, .82f, 5.3f), "Gate keeper's letter",
+            Prop(Art.Sideboard,new Vector3(-.9f,0,5.0f),180);
+            Prop("Candlestick",new Vector3(-1.5f,1.12f,5.0f),0,false);
+            Note("Gate keeper's letter", new Vector3(-.9f, 1.13f, 5.0f), "Gate keeper's letter",
                 "THE MARGRAVE'S GATE\n\nThe last steward bolted the great doors behind him and swore the night would not end for any of us. He was right. The sun has not come over the wall since.\n\nThe drawbridge winch is behind you. Crossing is the only way out, and the bridge will not lower for anyone who has not read the Blood Ledger and survived the hunt.\n\nSomething sleeps in the crypt. Do not let it find you. You will not see him until he comes for you. When he watches, the candle flames lean toward him and you will hear him breathe.");
         }
 
@@ -1808,7 +1812,7 @@ namespace HollowCurrent
         {
             var frame = Prop(Art.Portrait, new Vector3(x, 3.2f + 1.0f, z), yaw, false);
             Paint(frame, id);
-            SurrealProps.AttachPupils(frame, new Vector3(0, .65f, 0), .66f, 1.06f);   // optional: animated pupils over the painted eyes
+            SurrealProps.AttachPupils(frame, new Vector3(0, .65f, 0), .66f, 1.06f, portraitId:id);   // optional: animated pupils over the painted eyes
         }
         // Gives every Castle_Canvas slot under `art` its own material with Resources/Castle/Portraits/Portrait_<id>. A missing file leaves
         // the shared Resources/Castle/Textures/Portrait.png in place and logs HC_MISSING_ART once.
@@ -1839,6 +1843,8 @@ namespace HollowCurrent
         void Observatory()
         {
             Prop(Art.Orrery, CastleLayout.OrreryPos, 0);
+            var hiltStand=Prop(Art.Pedestal,new Vector3(8.2f,CastleLayout.FloorTower,21.0f),0,false);
+            hiltStand.name="Castle / HiltDisplay";
             // fc-art2 C: the telescope looks out of the north window (it pointed back into the room before; see CastleLayout.TelescopePos). Collision covers
             // the tripod and the eyepiece end only: the tube is overhead (1.7 m and more above the floor beyond the pivot).
             var scope = Prop(Art.Telescope, CastleLayout.TelescopePos, CastleLayout.TelescopeYaw, false);

@@ -402,39 +402,36 @@ namespace HollowCurrent
             bool interfered=Interfered();
             if(interfered)inductionReadout.text=InductionLevels[Game.Scares.FalseReading];
             if(!Game.Case.Equipped||Hidden){Game.World.Trace.gameObject.SetActive(false);return;}
-            if(interfered)
-            {
-                Capture=0;evp=0;Instrument="INTERFERENCE · RECORDING SUSPENDED · BREAK LINE OF SIGHT";
-                Game.World.Trace.gameObject.SetActive(false);return;
-            }
+            // Interference is a scare, not a silent prohibition on collecting a real clue.
+            if(interfered)Instrument="INTERFERENCE · KEEP THE CLUE IN VIEW";
             scanAngle=Vector3.Angle(lastForward,View.transform.forward);lastForward=View.transform.forward;
             bool holding=input.FireHeld,valid=false;Evidence evidence=Evidence.Induction;
             float dist=Vector3.Distance(View.transform.position,Game.World.Induction);
             if(Tool==1)
             {
-                bool near=AimAt(Game.World.Induction,3.4f,19);
+                bool near=AimAt(Game.World.Induction,5f,45);
                 int reading=near?5:Mathf.Clamp(Mathf.CeilToInt((8-dist)*.55f),0,4);
                 string display=InductionLevels[NeedleSpinning?Game.Scares.FalseReading:reading];if(inductionReadout.text!=display)inductionReadout.text=display;
                 readerPulse-=dt;
                 if(reading>0&&readerPulse<=0){readerPulse=1.35f-reading*.21f;Game.Sound.Cue("confirm",View.transform.position,.055f);}
 
                 Instrument=near?Game.Book.ReaderNear:dist<7?Game.Book.ReaderClose:Game.Book.ReaderIdle;
-                valid=near&&scanAngle<1.7f;
+                valid=near;
             }
-            bool trace=Tool==2&&AimAt(Game.World.Print,4.5f,25);
+            bool trace=Tool==2&&AimAt(Game.World.Print,5.5f,45);
             Game.World.Trace.gameObject.SetActive(trace||Game.Case.Evidence.Contains(Evidence.Handprint)&&Tool==2&&Vector3.Distance(View.transform.position,Game.World.Print)<5);
             if(Tool==2){Instrument=trace?Game.Book.TraceFound:Game.Book.TraceIdle;valid=trace;evidence=Evidence.Handprint;}
             if(Tool==3)
             {
                 Instrument=PadInput.Active?Game.Book.AskPad:Game.Book.AskKey;
-                if(input.Fire&&evp<=0){evp=4.2f;Game.Say(Game.Book.Question);Game.Sound.Cue("radio",transform.position);Game.Creature.Hear(transform.position,8);}
+                if(input.Fire&&evp<=0){evp=1.5f;Game.Say(Game.Book.Question);Game.Sound.Cue("radio",transform.position);Game.Creature.Hear(transform.position,8);}
                 if(evp>0)
                 {
                     evp-=dt;Instrument=Game.Book.Listening;
                     if(evp<=0)
                     {
                         // Castle (critic r10b N5): the ear-trumpet answers in and out of a hunt alike.
-                        if(Vector3.Distance(transform.position,Game.World.Voice)<4&&!Moving&&(Game.Map==MapId.Castle||Game.Case.Phase!=Phase.Hunt))
+                        if(Vector3.Distance(transform.position,Game.World.Voice)<6)
                         {
                             Game.Case.Record(Evidence.Voice);Game.Say(Game.Book.Reply);
                             // fd-voice: no voice at the evidence spot. The trumpet records a non-verbal texture in her hand; if the Count is in range he may say
@@ -452,8 +449,9 @@ namespace HollowCurrent
                 }
                 Capture=0;return;
             }
-            if(valid&&holding)Capture+=dt/3;else Capture=Mathf.Max(0,Capture-dt*.8f);
-            if(Capture>=1){if(Game.Case.Record(evidence))Game.Sound.Cue("evidence_filed",transform.position,.45f);Capture=0;}
+            if(Game.Case.Evidence.Contains(evidence)){Capture=0;Instrument="RECORDED · "+Game.Book.EvidenceName(evidence);return;}
+            if(valid)Capture+=dt/1.25f;else Capture=Mathf.Max(0,Capture-dt*.5f);
+            if(Capture>=1){if(Game.Case.Record(evidence)){Game.Sound.Cue("evidence_filed",transform.position,.45f);Game.Notice("Recorded: "+Game.Book.EvidenceName(evidence)+" · "+Game.Case.Evidence.Count+"/3",4);}Capture=0;}
         }
         public void Hide(Interactable spot)
         {

@@ -1,0 +1,7 @@
+# Versions used for the final source checks. Unity runtime does not need Python.
+numpy==2.4.6
+scipy==1.18.0
+soundfile==0.14.0
+Pillow==12.3.0
+requests==2.34.2
+msgpack==1.2.1

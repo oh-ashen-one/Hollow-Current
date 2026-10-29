@@ -25,7 +25,7 @@ namespace HollowCurrent
         {
             while(true)
             {
-                yield return null;
+                yield return new WaitForSecondsRealtime(.25f);
                 var game=FindFirstObjectByType<Game>();
                 if(!game||game.Loading||applied.Contains(game.GetInstanceID()))continue;
                 // Give Game.Start its final startup frame before changing maps/state.
@@ -573,12 +573,12 @@ namespace HollowCurrent
             yield return Walk(new Vector3(5.7f,-3.2f,10));
             yield return RecordWithTool(Evidence.Voice,3,game.World.Anchor);
             Require(game.Case.Evidence.Contains(Evidence.Voice),"EVP response captured while still");
-            Require(!game.Case.MysteryReady,"Instrument records alone leave the family mystery incomplete");
+            Require(game.Case.Diagnosed,"Three instrument records identify the source without a journal quiz");
             yield return ReadContext("Basement diary",new Vector3(-5.6f,-3.2f,7.6f));
-            Require(game.Case.MysteryReady,"Evidence and three family clues support reconstruction");
-            Require(!game.Case.Conclude(AnchorKind.Doll,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd),"Wrong anchor remains recoverable");
-            Require(!game.Case.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.MoveObject),"Unsupported closure remains recoverable");
-            Require(game.Case.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd),"Supported reconstruction unlocks containment");
+            Require(game.Case.ContextCount==3,"Family clues remain available as story context");
+            Require(!game.Journal,"No journal submission is required to proceed");
+            Require(game.Case.Phase==Phase.Containment,"The physical closure is unlocked naturally");
+            Require(game.Case.Diagnosed,"Automatic conclusion remains stable");
             yield return Walk(new Vector3(6.7f,-3.2f,7.9f));yield return Use(Item(InteractKind.Breaker));Require(game.Case.BreakerOn,"Breaker restored through interaction");
             yield return Walk(new Vector3(5.7f,-3.2f,10));yield return Look(game.World.Anchor);game.Player.TestInput.UseHeld=true;yield return new WaitForSeconds(12.5f);game.Player.TestInput.UseHeld=false;
             Require(game.Case.Phase==Phase.Return,"Anchor sealed through aimed hold");

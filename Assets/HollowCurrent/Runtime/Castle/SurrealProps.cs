@@ -289,21 +289,33 @@ namespace HollowCurrent
 
         // Pupils only, for a portrait that is already framed and painted (the Castle Portrait.fbx: front +Z, canvas centre `canvasCentre`
         // in its local space, canvas width x height metres). Same pupil layout and travel as MakePortraitEyes.
-        public static PortraitEyes AttachPupils(Transform portrait,Vector3 canvasCentre,float width,float height,Transform target=null)
+        public static PortraitEyes AttachPupils(Transform portrait,Vector3 canvasCentre,float width,float height,Transform target=null,string portraitId=null)
         {
+            if(portraitId=="child")return null;
+            // Per-canvas eye centres, measured on the delivered 1024x2048 paintings.
+            Vector2 left=new Vector2(.40f,.64f),right=new Vector2(.60f,.64f);
+            switch(portraitId)
+            {
+                case "margrave":left=new Vector2(.403f,.613f);right=new Vector2(.622f,.613f);break;
+                case "margravine":left=new Vector2(.402f,.652f);right=new Vector2(.597f,.652f);break;
+                case "steward":left=new Vector2(.416f,.633f);right=new Vector2(.577f,.633f);break;
+                case "astronomer":left=new Vector2(.429f,.648f);right=new Vector2(.610f,.648f);break;
+                case "painter":left=new Vector2(.421f,.661f);right=new Vector2(.576f,.661f);break;
+                case "cellarer":left=new Vector2(.416f,.645f);right=new Vector2(.586f,.643f);break;
+            }
             var eyes=portrait.gameObject.AddComponent<PortraitEyes>();
             var back=Quaternion.Euler(0,180,0);
             var pupils=new Transform[2];
-            float size=width*.045f;
+            float size=width*.018f;
             for(int i=0;i<2;i++)
             {
-                float side=i==0?-1:1;
-                var p=NewRenderer("Pupil",portrait,canvasCentre+new Vector3(side*PortraitEyeU*width,(PortraitEyeV-.5f)*height,.004f),back,CentreQuad,new[]{PupilMaterial},false);
+                var uv=i==0?left:right;
+                var p=NewRenderer("Pupil",portrait,canvasCentre+new Vector3((uv.x-.5f)*width,(uv.y-.5f)*height,.004f),back,CentreQuad,new[]{PupilMaterial},false);
                 p.transform.localScale=new Vector3(size,size,1);
                 pupils[i]=p.transform;
             }
             eyes.pupils=pupils;eyes.target=target;
-            eyes.maxOffset=width*.018f;
+            eyes.maxOffset=width*.003f;
             return eyes;
         }
 

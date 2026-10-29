@@ -3,8 +3,8 @@ using HollowCurrent;
 
 static class RulesTests
 {
-    static int checks;
-    static void Assert(bool value,string label){checks++;if(!value)throw new Exception(label);}
+    static int checks,failures;
+    static void Assert(bool value,string label){checks++;if(!value){failures++;Console.WriteLine("FAIL "+label);}}
     static Investigation Start(){var c=new Investigation();c.Equip();c.EnterHouse();return c;}
     static void Context(Investigation c){c.Read("Family photograph");c.Read("Child's drawing");c.Read("Furnace diary");}
     static bool Correct(Investigation c)=>c.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd);
@@ -21,10 +21,10 @@ static class RulesTests
         forge.Found(Relic.HallowedHilt);forge.AtAltar=false;Assert(!forge.CanCraft&&!forge.Craft(),"cannot craft away from the altar");
         forge.Tick(30);Assert(!forge.HasSword&&forge.CraftProgress01==0,"time away from altar does not forge");
         forge.AtAltar=true;Assert(forge.CanCraft,"three relics at altar can craft");
-        forge.Tick(4.5f);Assert(Math.Abs(forge.CraftProgress01-.5f)<.001&&!forge.HasSword,"nine second hold: half way");
+        forge.Tick(1.5f);Assert(Math.Abs(forge.CraftProgress01-.5f)<.001&&!forge.HasSword,"three second hold: half way");
         forge.AtAltar=false;forge.Tick(.1f);Assert(forge.CraftProgress01==0,"leaving the altar resets progress");
-        forge.AtAltar=true;forge.Tick(8.9f);Assert(!forge.HasSword&&forge.CraftProgress01<1,"8.9 seconds is not enough");
-        int crafted=0;forge.Crafted+=()=>crafted++;forge.Tick(.2f);Assert(forge.HasSword&&forge.CraftProgress01==1&&crafted==1,"craft completes after nine seconds at altar");
+        forge.AtAltar=true;forge.Tick(2.9f);Assert(!forge.HasSword&&forge.CraftProgress01<1,"2.9 seconds is not enough");
+        int crafted=0;forge.Crafted+=()=>crafted++;forge.Tick(.2f);Assert(forge.HasSword&&forge.CraftProgress01==1&&crafted==1,"craft completes after three seconds at altar");
         forge.Tick(5);forge.AtAltar=false;forge.Tick(5);Assert(forge.HasSword&&crafted==1&&!forge.CanCraft,"sword is permanent and crafts once");
         bool badForge=false;try{forge.Tick(float.NaN);}catch(ArgumentOutOfRangeException){badForge=true;}Assert(badForge,"forge rejects invalid time");
         var instant=new Forge();instant.AtAltar=true;foreach(Relic r in Enum.GetValues(typeof(Relic)))instant.Found(r);Assert(instant.Craft()&&instant.HasSword&&!instant.Craft(),"direct craft needs relics and works once");
@@ -33,15 +33,12 @@ static class RulesTests
         fight.Begin();Assert(fight.CanBeHit&&fight.Tier==0&&fight.SpeedMultiplier==1f&&!fight.Dead&&!fight.Lost,"fresh fight: tier 0 at normal speed");
         Assert(fight.RegisterHit()&&fight.Hits==1&&fight.Staggered&&!fight.Retreating&&!fight.CanBeHit,"first hit staggers");
         Assert(!fight.RegisterHit()&&fight.Hits==1,"hit during stagger does not count");
-        fight.Tick(2.4f);Assert(fight.Staggered,"stagger lasts 2.5 seconds");fight.Tick(.2f);Assert(!fight.Staggered&&fight.Retreating&&!fight.CanBeHit,"stagger gives way to retreat");
-        Assert(fight.Tier==0&&fight.SpeedMultiplier==1f,"tier rises only after the retreat ends");
+        fight.Tick(.70f);Assert(fight.Staggered,"brief hit reaction is readable");fight.Tick(.05f);Assert(!fight.Staggered&&fight.Retreating&&!fight.CanBeHit,"stagger gives way to retreat");
         Assert(!fight.RegisterHit()&&fight.Hits==1,"hits during retreat do not count");
-        fight.Tick(19.8f);Assert(fight.Retreating&&!fight.RegisterHit()&&fight.Hits==1,"retreat holds for 20 seconds");
-        fight.Tick(.2f);Assert(!fight.Retreating&&fight.CanBeHit&&fight.Tier==1&&Math.Abs(fight.SpeedMultiplier-1.15f)<.0001f,"after retreat he returns enraged at 1.15x");
-        Assert(fight.RegisterHit()&&fight.Hits==2,"second hit counts");fight.Tick(2.5f);fight.Tick(20);
-        Assert(fight.CanBeHit&&fight.Tier==2&&Math.Abs(fight.SpeedMultiplier-1.3f)<.0001f,"second retreat raises tier 2 to 1.3x");
-        bool killed=false;fight.Killed+=()=>killed=true;Assert(fight.RegisterHit()&&fight.Hits==3&&fight.Dead&&killed,"three counted hits kill");
-        Assert(!fight.CanBeHit&&!fight.RegisterHit()&&fight.Hits==3,"dead hunter takes no more hits");fight.Tick(100);Assert(fight.Dead&&fight.Tier==2,"death is terminal");
+        fight.Tick(4.20f);Assert(fight.Retreating&&!fight.RegisterHit(),"he is not vulnerable before five seconds total");
+        fight.Tick(.06f);Assert(fight.CanBeHit&&fight.Tier==1,"he returns after five seconds total");
+        bool killed=false;fight.Killed+=()=>killed=true;Assert(fight.RegisterHit()&&fight.Hits==2&&fight.Dead&&killed,"second successful hit kills");
+        Assert(!fight.CanBeHit&&!fight.RegisterHit()&&fight.Hits==2,"dead hunter takes no more hits");fight.Tick(100);Assert(fight.Dead,"death is terminal");
         fight.PlayerGrabbed();Assert(!fight.Lost,"a dead hunter cannot grab");
         var lost=new Fight();lost.PlayerGrabbed();Assert(!lost.Lost,"grab before the fight begins is ignored");
         lost.Begin();lost.RegisterHit();lost.PlayerGrabbed();Assert(lost.Lost&&!lost.Dead&&!lost.CanBeHit&&!lost.Staggered&&!lost.Retreating,"grab ends the fight as Lost");
@@ -108,6 +105,70 @@ static class RulesTests
         old=new DocLayout("old");fr=old.Frame(520,173,1000,635);old.Text("toggle",558,703,924,37);Assert(old.Verify().Count>=1,"the old settings last toggle under the seal is flagged");
     }
     static float OrnamentLeftEnd(LRect f){return Math.Max(DocPanel.OrnamentRect(f,0).XMax,DocPanel.OrnamentRect(f,2).XMax)+DocPanel.Pad;}
+    // Historical stochastic/mechanism regressions keep their original explicit tuning.
+    // They are not the release difficulty verdict; FinalReleaseTests runs on the untouched shipped defaults.
+    sealed class HistoricalCastleTuning : IDisposable
+    {
+        readonly HuntRules castle=HuntRules.Castle.Clone(),night=HuntRules.LongNight.Clone();
+        static void Copy(HuntRules from,HuntRules to){foreach(var f in typeof(HuntRules).GetFields(System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.Public))f.SetValue(to,f.GetValue(from));}
+        public HistoricalCastleTuning()
+        {
+            var legacy=new HuntRules {
+            Name="Castle",
+            TimedHuntSeconds=240,TimedHuntEvidence=0,HuntDreadMin=40,HuntDreadMinSpread=10,LowDreadChance=1f/15,
+            FirstHuntSeconds=95,FirstHuntJitter=.25f,FirstHuntEvidence=2,FirstHuntMin=60,FirstHuntMax=180,FirstHuntFromSpawn=true,ColdFirstHuntCap=150,DreadDecayAllAbove=60,DoorHeldChance=1f/6,
+            DiceIntervalMin=2,DiceIntervalMax=6,DiceChanceAt40=1f/12,DiceChanceAt60=1f/6,DiceChanceAt80=1f/4,DiceEvidenceBonus=.5f,
+            WarningSeconds=9,HuntSeconds=38,RecoverySeconds=32,EscalationWarningSeconds=1.5f,
+            HuntSecondsMin=25,HuntSecondsMax=50,RecoverySecondsMin=10,RecoverySecondsMax=40,RecoveryDiceChance=1f/8,RecoveryDiceDread=80,AnnounceRecovery=false,
+            WarningSecondsMin=5,WarningSecondsMax=14,RecoveryLowChance=1f/16,QuietPhaseChance=1f/80,
+            FeltLagMin=20,FeltLagMax=30,FeltNoise=12,FeltNoisePeriod=6,FeltCalm=12,
+            FeltEpisodeGapMin=200,FeltEpisodeGapMax=600,FeltEpisodeMin=20,FeltEpisodeMax=40,FeltCalmFrom=40,FeltSpikeBelow=60,FeltSpikeMin=65,FeltSpikeMax=85,
+            NoTellChance=.35f,FalseWarningChance=.25f,EventEscalationChance=.35f,EscalationRecoveryChance=.15f,HostileReturn=true,
+            EscalationLitChance=.15f,EscalationDarkChance=.25f,EscalationNeedsFirstHunt=true,LullDiceDread=60,FirstHuntAfterHold=120,LullHoldSeconds=120,ApparitionDiceShadowSeconds=20,DoorHeldBag=5,NearMissOpen0=.02f,NearMissOpen40=.05f,NearMissOpen80=.25f,NearMissOpen100=.4f,
+            UsesDread=true,DreadDarkRate=.08f,DreadInsideRate=.03f,DreadSafeRecovery=.5f,DreadStart=0,
+            DreadApparition=12,DreadThrow=8,DreadSeen=15,DreadGrabSurvived=20,
+            DreadDecayRecovery=.4f,DreadDecayCalm=.3f,DreadDecayFloor=20,HuntDreadCap=25,GraceMin=30,GraceMax=90,
+            GovernorStart=.25f,GovernorGain=12,GovernorMax=3,GovernorMinWindow=300,GovernorQuietShare=.12f,GovernorQuietSeconds=180,GovernorQuietScale=.8f,
+            LieThreshold=70,DoorHeldThreshold=60,DeathPenalty=true,DeathDread=60,NailedHides=0,
+            PerchMinSeconds=0,PerchMaxSeconds=0,
+            ApparitionHuntGap=11.5f,ShareFloor=.15f,ShareFloorAfter=240,ShareFloorPullMin=20,ShareFloorPullMax=150,ShareFloorMaxPulls=1,LateLowChanceScale=3,
+            ApparitionFollowChance=.35f,ApparitionFollowMin=12,ApparitionFollowMax=19.5f,ApparitionRestChance=.3f,ApparitionRestMin=40,ApparitionRestMax=90,ColdGateNeedsLedger=true,FirstLeadFollowChance=.4f,FirstLeadRestChance=.4f,FirstLeadRestWindow=62,ApparitionFollowGraceCut=20,ApparitionFollowOweSeconds=60,
+        };
+            Copy(legacy,HuntRules.Castle);var hard=legacy.Clone();hard.Name="Long Night";hard.WarningSeconds=0;hard.DreadStart=50;hard.HuntSeconds=50;hard.HuntSecondsMin=40;hard.HuntSecondsMax=60;hard.PerchMinSeconds=2;hard.PerchMaxSeconds=5;hard.NailedHides=2;hard.FalseWarningChance=0;hard.ColdFirstHuntCap=0;Copy(hard,HuntRules.LongNight);
+        }
+        public void Dispose(){Copy(castle,HuntRules.Castle);Copy(night,HuntRules.LongNight);}
+    }
+    static void FinalReleaseTests()
+    {
+        Assert(Fight.HitsToKill==2&&Math.Abs(Fight.StaggerSeconds+Fight.RetreatSeconds-5)<.001,"owner contract: two hits and five seconds total recovery");
+        Assert(Forge.CraftSeconds==3,"forge is a short three-second interaction");
+        Assert(!HuntRules.Castle.DeathPenalty&&HuntRules.Castle.NoTellChance==0,"standard Castle preserves progress and warns before hunts");
+        Assert(HuntRules.Castle.RecoveryDiceChance==0&&HuntRules.Castle.RecoveryLowChance==0&&HuntRules.Castle.GraceMin>=60,"standard recovery leaves room to explore");
+        foreach(int mask in new[]{0,1,2,3,4,5,6,7})foreach(bool sword in new[]{false,true})
+        {
+            var f=new Forge();f.Restore(mask,sword);
+            Assert(f.RelicMask==mask,"all collected relic combinations survive restore "+mask);
+            Assert(f.HasSword==(mask==7&&sword),"restored sword requires all relics "+mask);
+        }
+        var b=Start();foreach(Evidence e in Enum.GetValues(typeof(Evidence)))b.Record(e);
+        Assert(b.ContextCount==0&&!b.Survived&&b.ResolveNaturally()&&b.Diagnosed&&b.Phase==Phase.Containment,"house records identify the source without notes, a hunt or answer matching");
+        Assert(!b.ResolveNaturally(),"natural conclusion is idempotent");
+        b.RestorePower();b.Seal(2.9f,true,true);Assert(b.Phase==Phase.Containment,"closure is not instantaneous");b.Seal(.11f,true,true);Assert(b.Phase==Phase.Return&&b.FinishAtVan(),"natural house route reaches the ending");
+        var c=StartOn(CaseBook.Castle);foreach(Evidence e in Enum.GetValues(typeof(Evidence)))c.Record(e);
+        Assert(!c.ResolveNaturally(),"castle escape still needs its ledger context");foreach(var note in c.Book.NoteTitles)c.Read(note);
+        Assert(!c.Survived&&c.ResolveNaturally(),"castle escape never waits for an arbitrary survived hunt");
+        var cp=c.SaveCheckpoint();cp.RelicMask=7;cp.SwordForged=true;
+        var restored=StartOn(CaseBook.Castle);restored.RestoreCheckpoint(cp);
+        Assert(restored.Evidence.Count==3&&restored.ContextCount==3&&!restored.DeathPenaltyApplied,"checkpoint retains actual investigation without relocation penalty");
+        for(int seed=0;seed<40;seed++)
+        {
+            var rng=new Random(seed);var run=StartOn(CaseBook.Castle,()=> (float)rng.NextDouble());run.BeginWarning();
+            run.Tick(run.CurrentWarningSeconds+.1f,true);Assert(run.Phase==Phase.Hunt,"standard warning leads to a real hunt "+seed);
+            run.Tick(run.CurrentHuntSeconds+.1f,true);Assert(run.Phase==Phase.Recovery,"hunt releases the player "+seed);
+            int hunts=run.Hunts;for(int n=0;n<40;n++)run.Tick(1,true);
+            Assert(run.Hunts==hunts,"at least forty quiet seconds after a hunt "+seed);
+        }
+    }
     static void Main()
     {
         DocumentTextTests();DocLayoutTests();
@@ -129,7 +190,7 @@ static class RulesTests
         Assert(c.Record(Evidence.Induction),"record unique evidence");Assert(!c.Record(Evidence.Induction),"evidence cannot farm progression");
         Assert(!Correct(c),"premature diagnosis rejected");Assert(!c.FinishAtVan(),"premature ending rejected");
         c.Tick(1000,false);Assert(c.Phase==Phase.Disturbance,"one evidence does not start timed hunt");
-        Hunt(c);Assert(!c.Record(Evidence.Voice),"hunt blocks capture");c.RestorePower();Assert(!c.BreakerOn,"cannot cancel hunt with breaker");
+        var captureUnderThreat=Start();Hunt(captureUnderThreat);Assert(captureUnderThreat.Record(Evidence.Voice),"real evidence remains recordable during danger");Hunt(c);c.RestorePower();Assert(!c.BreakerOn,"cannot cancel hunt with breaker");
         c.Tick(38,false);Assert(c.Survived&&c.Phase==Phase.Recovery,"escape survives hunt");c.Tick(31,true);Assert(c.Phase==Phase.Recovery,"quiet recovery protected");c.Tick(1,true);Assert(c.Phase==Phase.Disturbance,"recovery ends at 32 seconds");
         c.Record(Evidence.Voice);Assert(!Correct(c),"records without family context cannot conclude");Context(c);
         Assert(c.ContextCount==3&&c.MysteryReady,"three independent context clues make reconstruction ready");
@@ -137,7 +198,7 @@ static class RulesTests
         Assert(!c.Conclude(AnchorKind.MusicBox,HauntingPattern.DomesticLoop,ClosureMethod.BurnObject),"unsupported treatment rejected");
         Assert(!c.Conclude(AnchorKind.Doll,HauntingPattern.DomesticLoop,ClosureMethod.LetSongEnd),"wrong diagnosis does not lock out");Assert(Correct(c),"correct diagnosis");
         c.Seal(20,true,true);Assert(c.Phase==Phase.Containment&&c.SealProgress==0,"power needed to seal");
-        c.RestorePower();c.Seal(6,true,true);Assert(Math.Abs(c.SealProgress-.5f)<.001,"twelve second seal");c.Seal(1,false,true);Assert(c.SealProgress<.5,"interruption decays progress");
+        c.RestorePower();c.Seal(1.5f,true,true);Assert(Math.Abs(c.SealProgress-.5f)<.001,"three second seal");c.Seal(1,false,true);Assert(c.SealProgress<.5,"interruption decays progress");
         c.Seal(12,true,false);Assert(c.Phase==Phase.Containment,"remote sealing rejected");c.Seal(12,true,true);Assert(c.Phase==Phase.Return,"seal opens return phase");
         c.Tick(999,true);Assert(c.Phase==Phase.Return,"no hunt after seal");Assert(!Correct(c),"journal cannot reopen a sealed case");Assert(c.Phase==Phase.Return,"repeat diagnosis preserves return phase");Assert(c.FinishAtVan()&&c.Phase==Phase.Won,"complete loop");c.Die();Assert(c.Phase==Phase.Won,"terminal success preserved");
         var dead=Start();Hunt(dead);dead.Die();Assert(dead.Phase==Phase.Dead,"hunt capture kills");dead.Tick(999,true);Assert(dead.Phase==Phase.Dead,"death terminal");Assert(!dead.FinishAtVan(),"death cannot finish");Assert(Start().Evidence.Count==0,"retry has clean state");
@@ -174,6 +235,8 @@ static class RulesTests
         Assert(!FrameStatistics.Measure(new float[0]).meets_60_fps_floor,"no rendered samples cannot pass performance");
         PerformanceVerdictTests();
         ForgeAndFightTests();
+        using(var historical=new HistoricalCastleTuning())
+        {
         MapTests();
         DreadRulesTests();
         NoTellTriggerTests();
@@ -191,6 +254,9 @@ static class RulesTests
         WaveFFTests();
         WaveFGTests();
         OnboardTests();
+        }
+        FinalReleaseTests();
+        if(failures>0)throw new Exception(failures+" gameplay assertions failed");
         Console.WriteLine("PASS "+checks+" deterministic gameplay assertions; no Unity runtime launched.");
     }
     // Wave FF (r14 blind critic, 6.0/10 on build 6229407): the apparition-to-threat clock, the cold first-hunt gate, the grab mix and the
@@ -699,7 +765,7 @@ static class RulesTests
         Assert(new Investigation().Book==CaseBook.Bellwether&&CaseBook.For(MapId.Castle)==CaseBook.Castle,"default investigation is Bellwether");
         string said=null;var house=new Investigation();house.Message+=m=>said=m;house.Equip();house.EnterHouse();house.Record(Evidence.Handprint);
         Assert(said=="Evidence secured / Handprint. Journal updated.","Bellwether evidence message unchanged");
-        Assert(house.Goal=="Follow activity. Record what the instruments reveal. Compare it with the family's notes.","Bellwether goal unchanged");
+        Assert(house.Goal.Contains("dining room"),"Bellwether points to the next physical clue");
         var castle=new Investigation(CaseBook.Castle);castle.Message+=m=>said=m;castle.Equip();castle.EnterHouse();
         Assert(castle.Phase==Phase.Survey&&castle.Goal==CaseBook.Castle.GoalDefault,"castle goal text");
         castle.Record(Evidence.Induction);Assert(said=="Evidence secured / Compass. Journal updated.","castle evidence name");
@@ -726,7 +792,7 @@ static class RulesTests
         var n5=StartOn(CaseBook.Castle);n5.Record(Evidence.Induction);n5.BeginNoTellHunt();n5.RestorePower();
         Assert(n5.Phase==Phase.Hunt&&n5.BreakerOn&&n5.Record(Evidence.Handprint),"castle hunt: the brazier relights and records succeed");
         var bw=StartOn(CaseBook.Bellwether);bw.Record(Evidence.Induction);bw.BeginWarning();bw.Tick(9,true);
-        Assert(bw.Phase==Phase.Hunt&&!bw.Record(Evidence.Handprint),"Bellwether hunt still blocks records");
+        Assert(bw.Phase==Phase.Hunt&&bw.Record(Evidence.Handprint),"Bellwether no longer silently refuses real records during hunts");
     }
     // The castle with the wave I damping off (no event decay, no hunt cap, no post-hunt grace): for tests of the
     // Recovery dice mechanism itself, which the grace now mostly covers (WaveITests asserts the interplay).
@@ -1408,7 +1474,7 @@ static class RulesTests
     {
         var b=CaseBook.Castle;var none=new bool[3];
         var c=StartOn(CaseBook.Castle);var o=CastleObjective.For(c,none,false,false);
-        Assert(o.Step==CastleObjective.Letter&&o.Text.Contains("gate keeper's letter"),"spawn: read the gate keeper's letter");
+        Assert(o.Step==CastleObjective.Letter&&o.Text.Contains("letter"),"spawn: read the gate keeper's letter");
         Assert(CastleObjective.Nudge(o.Step,c,none)!=null,"the letter step has an idle nudge");
         c.Read(b.ArrivalNoteTitle);o=CastleObjective.For(c,none,false,false);
         Assert(o.Step==CastleObjective.Ledger&&o.Text.Contains("(0/3)")&&o.Text.Contains("dining hall")&&o.Text.Contains("portrait hall")&&o.Text.Contains("chapel"),"letter read: find the ledger pages, all three rooms named");
@@ -1421,8 +1487,8 @@ static class RulesTests
         o=CastleObjective.For(c,new[]{true,true,true},false,false);Assert(o.Step==CastleObjective.Forge&&o.Text.Contains("altar"),"three relics: forge at the altar");
         o=CastleObjective.For(c,new[]{true,true,true},true,false);Assert(o.Step==CastleObjective.Fight&&o.Text.Contains("bell")&&o.Tracker.Contains("FORGED"),"sword: ring the bell for the fight");
         foreach(Evidence e in Enum.GetValues(typeof(Evidence)))c.Record(e);
-        o=CastleObjective.For(c,none,false,true);Assert(o.Step==CastleObjective.Reconstruct&&o.Text==b.GoalReconstruct&&o.Tracker.Contains("RECORDS 3/3")&&o.Tracker.Contains("HUNT SURVIVED"),"records, pages and a hunt survived: reconstruct in the journal");
-        o=CastleObjective.For(c,none,false,false);Assert(o.Step==CastleObjective.Relics&&o.Tracker.Contains("RECORDS 3/3")&&!o.Tracker.Contains("HUNT SURVIVED"),"records and pages without a survived hunt: the relic route stays the objective, the tracker shows the rest");
+        o=CastleObjective.For(c,none,false,true,false);Assert(o.Step==CastleObjective.Reconstruct&&o.Tracker.Contains("RECORDS 3/3"),"escape path identifies closure without a journal answer quiz");
+        o=CastleObjective.For(c,none,false,false);Assert(o.Step==CastleObjective.Relics&&o.Tracker.Contains("SWORD PATH")&&!o.Tracker.Contains("RECORDS"),"sword path shows its own requirements without competing record counters");
         var w=StartOn(CaseBook.Castle);w.Read(b.ArrivalNoteTitle);w.BeginWarning();o=CastleObjective.For(w,none,false,false);Assert(o.Step==CastleObjective.Warning&&o.Text==b.GoalWarning,"a Warning shows the case's warning goal");
         var s=SealedCastle();o=CastleObjective.For(s,none,false,true);Assert(o.Step==CastleObjective.Contain||o.Step==CastleObjective.Return,"containment and return keep the bell and winch goals ("+o.Step+")");
         var h=StartOn(CaseBook.Castle);h.Read(b.ArrivalNoteTitle);h.BeginNoTellHunt();o=CastleObjective.For(h,none,false,false);Assert(h.Phase==Phase.Hunt&&o.Step==CastleObjective.Ledger,"a hunt keeps the calm objective (critic r10 #4)");

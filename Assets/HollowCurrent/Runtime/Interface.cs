@@ -362,7 +362,7 @@ namespace HollowCurrent
             Label(e.Body.X,e.Body.Y,e.Body.W,e.Body.H,won?(slain?Book.KillBody:Book.WonBody):Book.LostBody);
             Metric(e.MetricX[0],e.MetricY,Game.Case.Evidence.Count+" / 3","EVIDENCE");Metric(e.MetricX[1],e.MetricY,(Game.Case.Survived?Game.Case.Hunts:0).ToString(),"HUNTS SURVIVED");Metric(e.MetricX[2],e.MetricY,TimeSpan.FromSeconds(Game.Case.Elapsed).ToString(@"mm\:ss"),"FIELD TIME");
             Panel(new Rect(e.Separator[0],e.MetricY+9,1,76),line);Panel(new Rect(e.Separator[1],e.MetricY+9,1,76),line);
-            if(!won&&Game.HasCheckpoint&&Action(e.Retry.X,e.Retry.Y,e.Retry.W,e.Retry.H,"RETRY CHECKPOINT","",true))Game.RetryCheckpoint();
+            if(!won&&Game.HasCheckpoint&&Action(e.Retry.X,e.Retry.Y,e.Retry.W,e.Retry.H,"CONTINUE · KEEP YOUR FINDS","",true))Game.RetryCheckpoint();
             var nb=!won&&!Game.HasCheckpoint?e.NewSolo:e.New;
             if(Action(nb.X,nb.Y,nb.W,nb.H,"NEW INVESTIGATION","N",won))Game.Retry();
             if(Action(e.Exit.X,e.Exit.Y,e.Exit.W,e.Exit.H,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
@@ -377,7 +377,7 @@ namespace HollowCurrent
             Label(82,428,530,125,won?(slain?Book.KillBody:Book.WonBody):Book.LostBody);
             Metric(82,588,Game.Case.Evidence.Count+" / 3","EVIDENCE");Metric(285,588,(Game.Case.Survived?Game.Case.Hunts:0).ToString(),"HUNTS SURVIVED");Metric(505,588,TimeSpan.FromSeconds(Game.Case.Elapsed).ToString(@"mm\:ss"),"FIELD TIME");
             Panel(new Rect(261,597,1,76),line);Panel(new Rect(481,597,1,76),line);
-            if(!won&&Game.HasCheckpoint&&Action(80,704,440,52,"RETRY CHECKPOINT","",true))Game.RetryCheckpoint();
+            if(!won&&Game.HasCheckpoint&&Action(80,704,440,52,"CONTINUE · KEEP YOUR FINDS","",true))Game.RetryCheckpoint();
             if(Action(80,772,440,52,"NEW INVESTIGATION","N",won))Game.Retry();
             if(Action(543,736,310,46,"EXIT TO DESKTOP","Q",false,true))Game.Quit();
             Footer(won?(slain?Book.KillFooter:Book.WonFooter):Book.LostFooter);
@@ -472,7 +472,7 @@ namespace HollowCurrent
             return Objective().Text;
         }
         readonly bool[] relicsFound=new bool[3];
-        int objectiveFrame=-1;CastleObjective.State objective;
+        int objectiveFrame=-1,objectiveKey=-1;CastleObjective.State objective;
         public CastleObjective.State Objective()
         {
             // Once per frame (OnGUI runs several events a frame; the strings are rebuilt only when asked again in a later frame).
@@ -481,7 +481,9 @@ namespace HollowCurrent
             if(c.Phase!=Phase.Hunt&&c.Phase!=Phase.Recovery)goalSurvived=c.Survived;
             var forge=Game.Castle?Game.Castle.Forge:null;
             for(int i=0;i<3;i++)relicsFound[i]=forge!=null&&forge.HasRelic((Relic)i);
-            objective=CastleObjective.For(c,relicsFound,forge!=null&&forge.HasSword,goalSurvived);return objective;
+            int key=(int)c.Phase+c.Notes.Count*16+c.Evidence.Count*512+(forge!=null?forge.RelicMask*4096+(forge.HasSword?32768:0):0)+(goalSurvived?65536:0)+(Game.Castle!=null&&Game.Castle.SwordRoute?131072:0);
+            if(key!=objectiveKey){objectiveKey=key;objective=CastleObjective.For(c,relicsFound,forge!=null&&forge.HasSword,goalSurvived,Game.Castle==null||Game.Castle.SwordRoute);}
+            return objective;
         }
         public bool[] RelicsFound{get{Objective();return relicsFound;}}
         // The objective step and when it last changed (unscaled time), for the HUD's "objective updated" mark; CastleOnboarding logs it.
@@ -563,9 +565,8 @@ namespace HollowCurrent
         {
             if(Game==null)return;ControllerNavigation();
             if(Game==null||!Game.Journal||Game.NoteBody!=null||Game.Paused||Game.Loading)return;
-            for(int i=0;i<9;i++)if(RealKey((KeyCode)((int)KeyCode.Alpha1+i)))
-            {if(i<3)anchor=i;else if(i<6)pattern=i-3;else closure=i-6;if(NativeVerification.UIOnly)Debug.Log("HC_UI_KEY_CHOICE "+(i+1));}
-            if(RealKey(KeyCode.Return)){if(NativeVerification.UIOnly)Debug.Log("HC_UI_KEY_SUBMIT ready="+CanSubmit());if(CanSubmit())Submit();}
+            // The journal presents findings and path choices; it has no hidden answer hotkeys.
+
         }
         bool CanSubmit()=>Game.Case.MysteryReady&&anchor>=0&&pattern>=0&&closure>=0;
         void Choice(float y,string label,string[] choices,ref int selected,int key,float x0=760,float step=238,float width=226)
@@ -597,13 +598,13 @@ namespace HollowCurrent
                 if(docs.Ready){if(JournalDocRow(new Rect(row.X,row.Y,row.W,row.H),names[i],filed))OpenFiledNote(names[i]);}
                 else if(Action(row.X,row.Y,row.W,row.H,names[i],filed?"OPEN":"—",false,true))OpenFiledNote(names[i]);GUI.enabled=true;
             }
-            Choice(j.ChoiceY[0],"ANCHOR / WHAT KEEPS RETURNING?",Book.AnchorChoices,ref anchor,1,j.X0,j.ChoiceStep,j.ChoiceW);
-            Choice(j.ChoiceY[1],"PATTERN / WHAT IS REPEATED?",Book.PatternChoices,ref pattern,4,j.X0,j.ChoiceStep,j.ChoiceW);
-            Choice(j.ChoiceY[2],"CLOSURE / WHAT SHOULD WE DO?",Book.ClosureChoices,ref closure,7,j.X0,j.ChoiceStep,j.ChoiceW);
-            Label(j.Compare.X,j.Compare.Y,j.Compare.W,j.Compare.H,Game.Case.Diagnosed?"Reconstruction filed. Follow the containment procedure.":Game.Case.MysteryReady?Book.JournalReady:Book.JournalNotReady,small);
-            GUI.enabled=CanSubmit();if(Action(j.Submit.X,j.Submit.Y,j.Submit.W,j.Submit.H,"FILE RECONSTRUCTION","ENTER",true))Submit();GUI.enabled=true;
+            Track(j.X0,j.ChoiceY[0],"CHOOSE YOUR WAY OUT");
+            Label(j.X0,j.ChoiceY[0]+40,j.Submit.W,115,"Face the Count: find the three relics, forge the sword at the chapel altar, and land two strikes.\nEscape: collect three instrument records and the ledger, then quiet the chapel bell.",body);
+            if(Action(j.X0,j.ChoiceY[1]+30,j.Submit.W,52,"FACE THE COUNT · SWORD PATH","",false,false,Game.Castle.SwordRoute)){if(Game.Case.ChooseSwordPath()){Game.Castle.SwordRoute=true;Game.SaveProgress();}}
+            if(Action(j.X0,j.ChoiceY[2]+30,j.Submit.W,52,"BREAK THE BARGAIN · ESCAPE PATH","",false,false,!Game.Castle.SwordRoute)){Game.Castle.SwordRoute=false;Game.SaveProgress();}
+            Label(j.Compare.X,j.Compare.Y,j.Compare.W,j.Compare.H,Game.HeldGoal(),small);
             if(Action(1240,149,280,48,"CLOSE JOURNAL","J",false,true)){Game.Journal=false;Game.ApplyFocus();}
-            castleCards=false;Footer("1–9 choose a conclusion   ·   ENTER file reconstruction   ·   J or ESC close");
+            castleCards=false;Footer("Read your findings · choose your path · J or ESC close");
         }
         void Journal()
         {
@@ -625,13 +626,12 @@ namespace HollowCurrent
                 if(docs.Ready){if(JournalDocRow(new Rect(110,620+i*34,549,32),names[i],filed))OpenFiledNote(names[i]);}
                 else if(Action(110,620+i*34,549,32,names[i],filed?"OPEN":"—",false,true))OpenFiledNote(names[i]);GUI.enabled=true;
             }
-            Choice(260,"ANCHOR / WHAT KEEPS RETURNING?",Book.AnchorChoices,ref anchor,1);
-            Choice(387,"PATTERN / WHAT IS REPEATED?",Book.PatternChoices,ref pattern,4);
-            Choice(514,"CLOSURE / WHAT SHOULD WE DO?",Book.ClosureChoices,ref closure,7);
-            Label(760,630,718,48,Game.Case.Diagnosed?"Reconstruction filed. Follow the containment procedure.":Game.Case.MysteryReady?Book.JournalReady:Book.JournalNotReady,small);
-            GUI.enabled=CanSubmit();if(Action(760,690,718,46,"FILE RECONSTRUCTION","ENTER",true))Submit();GUI.enabled=true;
+            Track(760,260,"THE INVESTIGATION");
+            Label(760,310,718,175,"Use the reader, ultraviolet and recorder to collect three signs of the haunting. Records identify its source automatically. The family's notes tell its story; there is no answer sheet to submit.",body);
+            Rule(760,510,718);Track(760,540,"NEXT");
+            Label(760,585,718,130,Game.Case.Goal,body);
             if(Action(1240,149,280,48,"CLOSE JOURNAL","J",false,true)){Game.Journal=false;Game.ApplyFocus();}
-            Footer("1–9 choose a conclusion   ·   ENTER file reconstruction   ·   J or ESC close");
+            Footer("Read your findings · choose your path · J or ESC close");
         }
         // A recovered-document row in the journal, drawn in the same faces as the reader; hit testing and controller focus stay here.
         bool JournalDocRow(Rect r,string title,bool filed)
@@ -647,7 +647,7 @@ namespace HollowCurrent
             return yes?Book.EvidenceRecorded[(int)e]:Book.EvidenceMissing[(int)e];
         }
         void Submit(){if(!CanSubmit())return;Game.Case.Conclude((AnchorKind)anchor,(HauntingPattern)pattern,(ClosureMethod)closure);Game.Journal=false;Game.ApplyFocus();}
-        string Location(){var p=Game.Player;var b=Book;if(p.InVan)return b.LocSafe;if(!p.Inside)return b.LocOutside;float y=p.transform.position.y;return y< -1?b.LocLower:y>b.TowerY?b.LocTower:y>2?b.LocUpper:b.LocGround;}
+        string Location(){var p=Game.Player;var b=Book;if(Game.Map==MapId.Castle){var local=Game.World.Root.InverseTransformPoint(p.transform.position);var room=CastleLayout.RoomAt(local);foreach(var def in CastleLayout.Rooms)if(def.Id==room)return def.Name.ToUpperInvariant();}if(p.InVan)return b.LocSafe;if(!p.Inside)return b.LocOutside;float y=p.transform.position.y;return y< -1?b.LocLower:y>b.TowerY?b.LocTower:y>2?b.LocUpper:b.LocGround;}
         void Dialogue(Rect rect,string speaker,string text,bool danger,float fade)
         {
             TextureFrame(rect,danger?warningCard:dialogueCard,new Color(1,1,1,Game.CardOpacity*fade));
@@ -699,16 +699,17 @@ namespace HollowCurrent
         void HUD()
         {
             if(shownRecords!=Game.Case.Evidence.Count){shownRecords=Game.Case.Evidence.Count;recordLabel=Book.CaseTag+" / "+shownRecords+" RECORDS";}
+            if(Game.Castle)recordLabel=Game.Castle.SwordRoute?"SWORD PATH":"ESCAPE PATH · "+shownRecords+"/3 RECORDS";
             if(Game.Map==MapId.Castle)CastleObjectiveHud();
             else{Track(42,24,"OBJECTIVE",ink);Rule(42,53,320);Label(42,63,690,70,HudGoal(),hudGoal);}
             Track(660,24,"HOLLOW CURRENT",ink);Rule(660,53,285);
             Label(1290,28,268,28,Location(),rightBody);Panel(new Rect(1355,62,200,1),copper);Label(1290,73,268,24,recordLabel,rightBody);
             Panel(new Rect(798,448,4,4),new Color(.8f,.8f,.7f,.7f));var p=Game.Player;
             string use=PadInput.Active?(PadInput.Current.PlayStation?"[×] ":"[A] "):"[E] ",torch=PadInput.Active?(PadInput.Current.PlayStation?"[□] ":"[X] "):"[F] ";
-            string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+(Game.Map==MapId.Castle?"LANTERN OFF":"TORCH OFF"):"Stay quiet"):p.Focus!=null?use+p.Focus.Prompt+(p.Focus.Kind==InteractKind.Anchor?" · hold":""):"";
+            string interaction=p.Hidden?use+"Leave hiding place · "+(p.TorchOn?torch+(Game.Map==MapId.Castle?"LANTERN OFF":"TORCH OFF"):"Stay quiet"):p.Focus!=null?use+p.Focus.PromptFor(Game):"";
             Label(405,510,790,62,interaction,center);if(p.Capture>0)Panel(new Rect(630,568,340*Mathf.Clamp01(p.Capture),3),copper);
             if(Game.Castle&&Game.Castle.Forge.CraftProgress01>0&&!Game.Castle.Forge.HasSword){Label(545,583,510,30,"FORGING "+Mathf.RoundToInt(Game.Castle.Forge.CraftProgress01*100)+"%",center);Panel(new Rect(615,622,370*Game.Castle.Forge.CraftProgress01,3),copper);}
-            if(Game.Castle&&(Game.Castle.Forge.RelicCount>0||Game.Castle.Forge.HasSword))Label(1290,100,268,24,Game.Castle.Forge.HasSword?"MOONSTONE SWORD · "+Game.Castle.Fight.Hits+" / 3":"RELICS "+Game.Castle.Forge.RelicCount+" / 3",rightBody);
+            if(Game.Castle&&(Game.Castle.Forge.RelicCount>0||Game.Castle.Forge.HasSword))Label(1290,100,268,24,Game.Castle.Forge.HasSword?"MOONSTONE SWORD · "+Game.Castle.Fight.Hits+" / "+Fight.HitsToKill:"RELICS "+Game.Castle.Forge.RelicCount+" / 3",rightBody);
             if(Game.Case.SealProgress>0){Label(545,583,510,30,"SEALING "+Mathf.RoundToInt(Game.Case.SealProgress*100)+"%",center);Panel(new Rect(615,622,370*Game.Case.SealProgress,3),copper);}
             if(Game.Subtitles&&Game.SubtitleTime>0&&FieldMessages.ShowCard(Game.Subtitle))SubtitleCard();
             // fb-onboard (item 7, "never silent"): a short action notice (the door is held, nailed shut, the rack is empty, the idle
@@ -721,10 +722,11 @@ namespace HollowCurrent
                 float w=Mathf.Min(790,noticeStyle.CalcSize(new GUIContent(Game.NoticeText)).x+36),h=noticeStyle.CalcHeight(new GUIContent(Game.NoticeText),w-20)+14;
                 Panel(new Rect(800-w*.5f,552,w,h),new Color(.01f,.012f,.016f,.55f*a));GUI.Label(new Rect(810-w*.5f,552,w-20,h),Game.NoticeText,noticeStyle);
             }
-            Track(42,796,Book.InstrumentNames[Mathf.Clamp(p.Tool-1,0,2)],ink);
-            Label(42,824,290,48,Game.Scares.Interference?"SIGNAL UNSTABLE":p.Capture>0?"RECORDING… HOLD STEADY":p.Tool==1?p.InductionDisplay+" / 5.0":"FIELD KIT CONNECTED",hudTiny);
+            Track(42,796,Game.Castle&&Game.Castle.Forge.HasSword?"MOONSTONE SWORD":Book.InstrumentNames[Mathf.Clamp(p.Tool-1,0,2)],ink);
+            Label(42,824,290,48,Game.Castle&&Game.Castle.Forge.HasSword?(!Game.Case.HuntActive?"RING THE CHAPEL BELL":Game.Castle.Fight.CanBeHit?"FACE HIM · STRIKE UP CLOSE":"HE IS RECOVERING…"):p.Capture>0?"RECORDING… KEEP THE CLUE IN VIEW":p.Instrument,hudTiny);
             bool ps=PadInput.Active&&PadInput.Current.PlayStation;
-            KeyPill(1315,800,PadInput.Active?(ps?"R2":"RT"):"LMB",p.Tool==3?"ASK / RECORD":"HOLD TO RECORD");
+            if(p.Tool==3||Game.Castle&&Game.Castle.Forge.HasSword)KeyPill(1315,800,PadInput.Active?(ps?"R2":"RT"):"LMB",Game.Castle&&Game.Castle.Forge.HasSword?"STRIKE":"ASK / RECORD");
+            else Label(1315,802,285,26,"AIM AT CLUE · AUTO RECORD",hudTiny);
             bool castleHud=Game.Map==MapId.Castle;string radioWord=castleHud?"RESONANCE BOX":"RADIO";
             KeyPill(1315,840,PadInput.Active?(ps?"□":"X"):"F",castleHud?"LANTERN":"FLASHLIGHT");
             if(Game.HelpHints)Label(365,869,855,25,PadInput.Active?(ps?"× INTERACT   △ JOURNAL   L2 "+radioWord+"   L3 SPRINT   ○ CROUCH":"A INTERACT   Y JOURNAL   LT "+radioWord+"   LS SPRINT   B CROUCH"):"E INTERACT   J JOURNAL   R "+radioWord+"   SHIFT SPRINT   CTRL CROUCH",hudTiny);
@@ -761,9 +763,10 @@ namespace HollowCurrent
         {Panel(new Rect(r.x,r.y,r.width,t),c);Panel(new Rect(r.x,r.yMax-t,r.width,t),c);Panel(new Rect(r.x,r.y,t,r.height),c);Panel(new Rect(r.xMax-t,r.y,t,r.height),c);}
         bool TitleBegin(TitleScreen screen,Rect r)
         {
-            bool clicked=TitleHit(r,"BEGIN INVESTIGATION",out bool hover,out bool focus);
+            string begin=Game.HasSelectedCheckpoint?"CONTINUE INVESTIGATION":"BEGIN INVESTIGATION";
+            bool clicked=TitleHit(r,begin,out bool hover,out bool focus);
             Panel(r,new Color(copper.r,copper.g,copper.b,hover||focus?.3f:.18f));Border(r,copper);
-            screen.Tracked("BEGIN INVESTIGATION",r.x+26,r.center.y-screen.LineBox(20)/2,20,2.6f,Color.white);
+            screen.Tracked(begin,r.x+26,r.center.y-screen.LineBox(20)/2,20,2.6f,Color.white);
             string key=PadInput.Active?(focus?PadInput.Prompt("ENTER"):""):"ENTER";
             if(key.Length>0)
             {

@@ -11,6 +11,7 @@ namespace HollowCurrent
         public Game Game;
         public readonly Forge Forge=new Forge();
         public readonly Fight Fight=new Fight();
+        public bool SwordRoute=true;
         public RuneRing Rune {get;private set;}
         public StairLoop Loop {get;private set;}
         public GiantBat Bats {get;private set;}
@@ -30,7 +31,7 @@ namespace HollowCurrent
         public void Initialize(Game game)
         {
             Game=game;
-            Forge.Crafted+=()=>{Game.Say(Game.Book.SwordForged);Fight.Begin();if(Rune)Rune.Ignite();Game.Sound.Cue("evidence_filed",Game.World.Castle.AltarPosition,.7f);};
+            Forge.Crafted+=()=>{Game.Say(Game.Book.SwordForged);Fight.Begin();if(Rune)Rune.Ignite();Game.Sound.Cue("evidence_filed",Game.World.Castle.AltarPosition,.7f);Game.SaveProgress();};
             Fight.Killed+=()=>{Game.Creature.Defeat();Game.Sound.Cue("death_wail_sunrise",Game.Player.transform.position,.8f);Game.Case.WinByKill();};
             Fight.HitLanded+=()=>{Game.Creature.Stagger();Game.Sound.Cue("stagger_screech",Game.Creature.transform.position+Vector3.up,.9f);if(!Fight.Dead)Game.Say(Game.Book.HitLanded);};
             Game.Creature.Beat+=CountBeat;
@@ -89,7 +90,7 @@ namespace HollowCurrent
             if(Forge.Found((Relic)item.RelicIndex))
             {
                 Game.Say(Game.Book.RelicFound[item.RelicIndex]);Game.Sound.Cue("evidence_filed",item.transform.position,.5f);
-                item.gameObject.SetActive(false);if(item.Art)item.Art.SetActive(false);
+                item.gameObject.SetActive(false);if(item.Art)item.Art.SetActive(false);Game.Notice("Collected "+Game.Book.RelicNames[item.RelicIndex]+" · "+Forge.RelicCount+"/3",5);Game.SaveProgress();
             }
         }
         // DESIGN.md: ring the chapel bell, the bargain hears you, survive the hunt, then the
@@ -130,7 +131,12 @@ namespace HollowCurrent
             if(warning<=0)return line.Replace("Nine seconds: get under cover.","He is already coming.");
             return Mathf.Approximately(warning,9)?line:line.Replace("Nine seconds",Mathf.RoundToInt(warning)+" seconds");
         }
-        public void AltarHint(){if(Forge.RelicCount<3&&!Forge.HasSword)Game.ShowNote(Game.Book.AltarLabel,Game.Book.AltarHint);}
+        public void AltarHint()
+        {
+            if(Forge.HasSword){Game.Notice("Sword ready. Ring the chapel bell, then strike with R2 / left mouse.",5);return;}
+            if(Forge.RelicCount<3){var missing=new System.Collections.Generic.List<string>();for(int i=0;i<3;i++)if(!Forge.HasRelic((Relic)i))missing.Add(Game.Book.RelicNames[i]);Game.Notice("Still needed: "+string.Join(", ",missing),5);}
+            else Game.Notice("Hold interact at the altar to forge · 3 seconds",3);
+        }
         // A ledger page was opened: unlock its relic hint and read it aloud.
         public void NoteRead(string title)
         {
@@ -222,6 +228,7 @@ namespace HollowCurrent
             // Forge: hold interact at the altar with three relics for Forge.CraftSeconds.
             Forge.AtAltar=Game.Case.Equipped&&!player.Hidden&&Vector3.Distance(player.transform.position,spots.AltarPosition)<AltarReach&&player.UseHeld&&Mathf.Abs(player.transform.position.y-spots.AltarPosition.y)<2;
             Forge.Tick(dt);Fight.Tick(dt);
+            if(SwordRoute&&Forge.HasSword&&Fight.Active&&!Fight.Over)Game.Case.SustainSwordFight();
             // Grave-ash lantern (tool 2) held on the reliquary box for a second reveals the claw marks.
             if(!BladeRevealed&&claws&&Game.Case.Equipped&&player.Tool==2&&player.Ultraviolet.enabled)
             {

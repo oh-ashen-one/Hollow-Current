@@ -188,11 +188,12 @@ namespace HollowCurrent
         public event Action<string> Message;
         public event Action<Phase> Changed;
 
-        public sealed class Checkpoint
+        [Serializable] public sealed class Checkpoint
         {
             public Evidence[] Evidence;
             public string[] Notes;
             public bool Equipped,BreakerOn,Diagnosed,Survived;
+            public int RelicMask; public bool SwordForged,EscapeRoute;
             public float Elapsed;
             public int Hunts,WrongDiagnoses;
             public float Dread;
@@ -220,6 +221,7 @@ namespace HollowCurrent
             if(Rules.UsesDread&&saved.RunDreadMin>=0)RunDreadMin=saved.RunDreadMin;
             feltBase=Dread;feltEpisodeKind=0;if(Rules.UsesDread)ScheduleFeltEpisode(Elapsed);firstHuntClock=0;firstHuntAt=-1;CurrentHuntSeconds=Rules.HuntSeconds;CurrentRecoverySeconds=Rules.RecoverySeconds;
             FalseWarning=false;NoTellHunt=false;huntClock=0;
+            if(ContextCount>0){FirstGateDocAt=Elapsed;FirstGateDocKind="checkpoint";}
             Set(!Equipped?Phase.Briefing:Diagnosed?Phase.Containment:Evidence.Count>0?Phase.Disturbance:Phase.Survey);
         }
         public bool Equip()
@@ -237,7 +239,7 @@ namespace HollowCurrent
         {
             // Castle rules (UsesDread, critic r10b N5): a record succeeds in and out of a hunt, so refusal is never a hunt tell.
             bool huntGate = !Rules.UsesDread && (Phase == Phase.Hunt || Phase == Phase.Warning && !FalseWarning);
-            if (!Equipped || Terminal || huntGate || Phase == Phase.Briefing) return false;
+            if (!Equipped || Terminal || Phase == Phase.Briefing) return false;
             if (!Evidence.Add(value)) return false;
             if (FirstGateDocAt < 0) { FirstGateDocAt = Elapsed; FirstGateDocKind = "record"; }   // wave FF: an evidence record opens a cold run's first-hunt gate
             Say("Evidence secured / " + Book.EvidenceName(value) + ". Journal updated.");
@@ -266,6 +268,14 @@ namespace HollowCurrent
             if (!(Phase == Phase.Hunt || Phase == Phase.Warning && !FalseWarning)) Set(Phase.Containment);
             Say(Book.Diagnosed);
             return true;
+        }
+        // The records establish the answer; the player closes the physical anchor, not a multiple-choice quiz.
+        public bool ResolveNaturally()
+        {
+            if(!Equipped||Terminal||Diagnosed||Evidence.Count<3||(Rules.UsesDread&&ContextCount<3))return false;
+            Diagnosed=true;
+            if(Phase!=Phase.Hunt&&Phase!=Phase.Warning)Set(Phase.Containment);
+            Say(Book.Diagnosed);return true;
         }
         public void RestorePower()
         {
@@ -923,12 +933,22 @@ namespace HollowCurrent
             Dread = Clamp(Dread + amount);
             DreadEvent = Math.Max(0, Math.Min(Dread, DreadEvent + (Dread - before)));
         }
+        public bool ChooseSwordPath()
+        {
+            if(!Rules.UsesDread||Terminal||Phase==Phase.Return)return false;
+            Diagnosed=false;if(Phase==Phase.Containment)Set(Evidence.Count>0?Phase.Disturbance:Phase.Survey);
+            return true;
+        }
+        public void SustainSwordFight()
+        {
+            if(Rules.UsesDread&&Phase==Phase.Hunt)CurrentHuntSeconds=Math.Max(CurrentHuntSeconds,PhaseTime+8);
+        }
         public void Seal(float dt, bool holding, bool atAnchor)
         {
             if (dt < 0 || float.IsNaN(dt) || float.IsInfinity(dt)) throw new ArgumentOutOfRangeException(nameof(dt));
             if (Phase != Phase.Containment || !BreakerOn || !holding || !atAnchor)
             { SealProgress = Math.Max(0, SealProgress - dt * .2f); return; }
-            SealProgress = Math.Min(1, SealProgress + dt / 12f);
+            SealProgress = Math.Min(1, SealProgress + dt / 3f);
             if (SealProgress >= 1)
             {
                 // Hostile Return: the escape is a tell-less hunt until the bridge is crossed.
@@ -996,7 +1016,14 @@ namespace HollowCurrent
                     case Phase.Won: return Book.GoalWon;
                     case Phase.Dead: return Book.GoalDead;
                     default:
-                        if (Evidence.Count == 3) return !Survived ? Book.GoalReacting : ContextCount<3 ? Book.GoalNeedContext : Book.GoalReconstruct;
+                        if(!Rules.UsesDread)
+                        {
+                            if(!Evidence.Contains(HollowCurrent.Evidence.Induction))return "Explore the dining room with the reader. Aim at the empty place setting to record its signal.";
+                            if(!Evidence.Contains(HollowCurrent.Evidence.Handprint))return "Use ultraviolet beside the upstairs bedroom window. Hold the light on the handprint.";
+                            if(!Evidence.Contains(HollowCurrent.Evidence.Voice))return "Ask with the recorder beside the basement music box, or interact with the box to listen.";
+                            return Book.GoalContainmentOn;
+                        }
+                        if (Evidence.Count == 3) return ContextCount<3 ? Book.GoalNeedContext : Book.GoalReconstruct;
                         return Book.GoalDefault;
                 }
             }

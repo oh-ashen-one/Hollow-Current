@@ -207,7 +207,7 @@ namespace HollowCurrent
             if(!Find(InteractKind.Breaker))Interact("Fallback / chapel brazier",FreeSpot(Castle.AltarPosition+new Vector3(0,.8f,0),new Vector3(.6f,1,.6f),around),new Vector3(.6f,1,.6f),"black",InteractKind.Breaker,book.BreakerLabel,"");
             if(!Find(InteractKind.Note,book.ArrivalNoteTitle))Interact("Fallback / arrival note",FreeSpot(Spawn+new Vector3(0,.85f,0),new Vector3(.42f,.04f,.3f),new Vector3(-1.4f,0,1.2f),new Vector3(1.4f,0,-.6f),new Vector3(0,0,1)),new Vector3(.42f,.04f,.3f),"paper",InteractKind.Note,book.ArrivalNoteTitle,book.ArrivalNoteBody);
             if(!Find(InteractKind.Altar))
-            {var altar=Interact("Forge altar",Castle.AltarPosition+new Vector3(0,.15f,0),new Vector3(.9f,.3f,1.6f),"black",InteractKind.Altar,book.AltarLabel,"");altar.GetComponent<Renderer>().enabled=false;altar.GetComponent<Collider>().isTrigger=true;}
+            {var altar=Interact("Forge altar",Castle.AltarPosition+new Vector3(0,.15f,0),new Vector3(1.2f,1.1f,2.4f),"black",InteractKind.Altar,book.AltarLabel,"");altar.GetComponent<Renderer>().enabled=false;altar.GetComponent<Collider>().isTrigger=true;}
             // Relics (DESIGN.md): 0 silver blade inside the reliquary box (a trigger volume
             // around the box; CastleRun keeps it shut until the lantern shows the claw
             // marks), 1 hallowed hilt in the orrery's planet socket, 2 moonstone on the
@@ -215,7 +215,9 @@ namespace HollowCurrent
             if(Castle.RelicPositions!=null&&Castle.RelicPositions.Length>=3)
             {
                 var relics=(Vector3[])Castle.RelicPositions.Clone();
-                var orrery=FindArt("Orrery");if(orrery)relics[1]=orrery.TransformPoint(OrrerySocket);
+                // The old socket was overhead and its rings intercepted the focus ray. A dedicated low display sits by the orrery.
+                var display=FindArt("HiltDisplay");
+                if(display&&ArtBounds(display,out var displayBounds))relics[1]=new Vector3(displayBounds.center.x,displayBounds.max.y+.05f,displayBounds.center.z);
                 Castle.RelicPositions=relics;
                 for(int i=0;i<3;i++)
                 {
@@ -235,7 +237,7 @@ namespace HollowCurrent
                     }
                     else
                     {
-                        relic=Interact("Relic / "+book.RelicNames[i],relics[i]+Vector3.up*.08f,new Vector3(.3f,.16f,.3f),"brass",InteractKind.Relic,book.RelicNames[i],"");
+                        relic=Interact("Relic / "+book.RelicNames[i],relics[i]+Vector3.up*.08f,new Vector3(.65f,.45f,.65f),"brass",InteractKind.Relic,book.RelicNames[i],"");
                         relic.GetComponent<Renderer>().enabled=false;relic.GetComponent<Collider>().isTrigger=true;
                     }
                     relic.RelicIndex=i;

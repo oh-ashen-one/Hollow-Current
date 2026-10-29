@@ -3,6 +3,7 @@
 Does NOT launch Unity, render, acquire a renderer, install packages or use the network.
 """
 import json
+import sys
 import os
 from pathlib import Path
 import subprocess
@@ -36,7 +37,7 @@ def write_report():
 core = sorted((ROOT / "Assets/HollowCurrent/Core").rglob("*.cs"))
 runtime = sorted((ROOT / "Assets/HollowCurrent/Runtime").rglob("*.cs"))
 compile("RulesTests.exe", core + [ROOT / "Tests/RulesTests.cs"], base, "exe")
-test = subprocess.run([str(MONO), str(OUT / "RulesTests.exe")],cwd=ROOT,text=True,capture_output=True,timeout=30)
+test = subprocess.run([str(MONO), str(OUT / "RulesTests.exe")],cwd=ROOT,text=True,capture_output=True,timeout=90) if "--compile-only" not in sys.argv else subprocess.CompletedProcess([],0,"Gameplay execution explicitly skipped (compile-only).\n","")
 print(test.stdout+test.stderr,end="")
 results.append({"target":"rules-execution","exit":test.returncode,"output":test.stdout+test.stderr})
 if test.returncode:

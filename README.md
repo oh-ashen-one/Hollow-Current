@@ -1,100 +1,108 @@
-# Hollow Current: The Bellwether House
+# Hollow Current
 
-An original single-player ghost investigation in a furnished three-floor family house. Collect evidence with an induction reader, UV light and EVP recorder; piece together the family's story; survive a sight-and-sound-driven hunt; quiet the music box and return to the van.
+An original, single-player supernatural investigation game by **Ashen**, built in Unity. Explore a rain-soaked family home and a haunted castle, follow the traces left behind, and decide how to bring each haunting to an end.
 
-**Bellwether House implementation is complete.** See [MAP_STATUS.md](MAP_STATUS.md) for the final feedback fixes and the exact validation boundary.
+**Two maps. Keyboard/mouse and PlayStation/Xbox controller support. Offline Fish Audio voices.**
 
-The project includes the Split Grin character, authored running/search/grab animations, Mourning Note interface, procedural house, investigative rules, controller support and local audio. No runtime API keys or external generation services are required.
+- **The Bellwether House:** investigate a repeated family routine and quiet the object keeping it alive.
+- **Haunted Castle:** explore a castle beneath two moons. Break its bargain and escape, or forge a sword and face Count Claude.
 
-## Requirements
+## Play
 
-- **Unity 6000.3.20f1**, installed through Unity Hub.
-- macOS build support for the tested native target. Other platform exports are not verified.
-- Unity Input System **1.20.1**, restored through `Packages/manifest.json`.
-- Python 3 for optional authoring/check scripts; eSpeak NG and FFmpeg only if regenerating the bundled public-edition voices.
+Use the macOS app attached to a [GitHub release](https://github.com/oh-ashen-one/Hollow-Current/releases), when available, or build it from source below. This repository is the source of truth; old local apps do not update when you pull Git.
 
-## Open and play
+The source-checkout launcher, `./tools/play.sh`, checks the build receipt before opening the app. It refuses an app built from different game sources rather than silently launching an outdated copy.
 
-1. Clone this repository and add its root folder as a Unity Hub project.
-2. Open with Unity 6000.3.20f1 and allow package/asset import to finish.
-3. Open `Assets/HollowCurrent/Scenes/Bellwether.unity`.
-4. Enter Play mode. Runtime boot creates the investigator, interface and investigation state.
-5. Use **Begin Investigation** on the title screen.
-
-If regenerating the authored scene, use the existing editor methods below. The committed runtime assets and public voice files are already included; no paid generation account is needed. Optional authoring scripts for reconstructing models may expect their original provider/master inputs; unused HD masters are excluded from this repository.
-
-## Build macOS
-
-Close other copies of this project before batch commands. Set `UNITY` to the installed editor executable for your machine. These commands rebuild the authored scene/bake, then build it without regenerating it again:
-
-```sh
-UNITY='/Applications/Unity/Hub/Editor/6000.3.20f1/Unity.app/Contents/MacOS/Unity'
-"$UNITY" -batchmode -quit -projectPath "$PWD" -executeMethod HollowCurrent.Editor.HouseLighting.PrepareAndBake -logFile lighting.log
-"$UNITY" -batchmode -nographics -quit -projectPath "$PWD" -executeMethod HollowCurrent.Editor.NativeBuild.BuildPreparedMac -logFile build.log
-```
-
-Output: `Builds/macOS/Hollow Current.app`.
-
-### Maps (Bellwether and the Haunted Castle)
-
-Scene names, bake receipts and display names live only in `Assets/HollowCurrent/Core/MapId.cs` (`MapId`, `MapCatalog`). Each map has explicit editor entry points for `-executeMethod`, rather than a command-line map argument:
-
-| Step | Bellwether (unchanged names) | Castle |
-| --- | --- | --- |
-| Regenerate scene | `HollowCurrent.Editor.NativeBuild.Prepare` | `HollowCurrent.Editor.NativeBuild.PrepareCastle` |
-| Prepare + bake (graphics session) | `HollowCurrent.Editor.HouseLighting.PrepareAndBake` | `HollowCurrent.Editor.HouseLighting.PrepareAndBakeCastle` |
-| Prepared build (`-nographics`) | `HollowCurrent.Editor.NativeBuild.BuildPreparedMac` | `HollowCurrent.Editor.NativeBuild.BuildPreparedMacCastle` |
-| Unbaked iteration build | `HollowCurrent.Editor.NativeBuild.BuildMac` | `HollowCurrent.Editor.NativeBuild.BuildMacCastle` |
-| Engine geometry check | `HollowCurrent.Editor.NativeBuild.HeadlessValidate` | `HollowCurrent.Editor.NativeBuild.ValidateCastleGeometry` |
-
-`HollowCurrent.Editor.NativeBuild.BuildPreparedMacAll` validates both receipts and builds one player with both scenes (title-screen map picker). Castle builds go to `Builds/macOS-Castle/Hollow Current Castle.app`.
-
-Each map has its own receipt (`Art/LayoutData/BellwetherBake.json`, `Art/LayoutData/CastleBake.json`). The Castle receipt hashes every `.cs`/`.shader` under `Assets/HollowCurrent` (except `NativeVerification.cs`). The Bellwether receipt hashes the same set minus castle-only sources (`Runtime/Castle/`, `Core/Forge.cs`, `Editor/CountClaudeImport.cs`, `Resources/Castle*/`, `Resources/Characters/CountClaude/`, `Art/LayoutData/Castle/`), so castle-only work does not stale the house bake. Changes to shared sources (for example `Game.cs`) still stale both receipts: the prepared build then refuses with a message naming the bake method to re-run. The lighting step needs a working graphics session; do not add `-nographics` to that step. The prepared build validates its bake receipt and rejects stale scene/source dependencies. A Unity license and platform toolchain are independently required.
+The release runs locally: **no Fish account, API key, subscription, or network connection is required to play.** Voice generation tools are for developers; generated audio is already included.
 
 ## Controls
 
-| Action | Keyboard/mouse | DualSense |
-| --- | --- | --- |
-| Move / look | WASD / mouse | Left / right stick |
-| Interact / hold an action | E | Cross |
-| Flashlight | F | Square |
-| Journal | J | Triangle |
-| Crouch | Left Ctrl / C | Circle |
-| Sprint | Shift | L3 |
-| Use instrument | Left mouse | R2 |
-| Radio | R | L2 |
-| Pause | Escape | Options |
+| Action | Keyboard/mouse | PlayStation | Xbox |
+|---|---|---|---|
+| Move / look | WASD / mouse | Sticks | Sticks |
+| Interact / hold to finish an action | E | Cross | A |
+| Cycle instruments | 1, 2, 3 | L1 / R1 | LB / RB |
+| Ask with recorder / strike with sword | Left mouse | R2 | RT |
+| Radio / resonance box | R | L2 | LT |
+| Flashlight / lantern | F | Square | X |
+| Journal | J | Triangle / touchpad | Y / View |
+| Sprint | Shift | Left-stick click | Left-stick click |
+| Crouch | Ctrl | Circle | B |
+| Pause | Escape | Options | Menu |
 
-The game includes checkpoint retry and a fresh investigation option. Physical Bluetooth/AirPlay behavior depends on the user's setup; the automated controller checks are not a claim of universal hardware verification.
+**Reader and UV evidence record automatically when you keep the clue in view.** A progress bar and confirmation show that the record was secured. The recorder takes a short listen after one press; interacting with Bellwether's music box can also capture its voice.
 
-## Tests and development
+## How the investigations work
 
-After Unity has imported the Input System package, `python3 tools/check_source.py` compiles against installed Unity assemblies and runs engine-independent gameplay rules. It does not launch the game or verify graphics. Set `UNITY_CONTENTS` if the editor is installed elsewhere. It compiles every `.cs` under `Core/`, `Runtime/` and `Editor/` recursively (including `Runtime/Castle/`). A checkout without an imported `Library/` (for example a builder worktree) can borrow the Input System assembly from an imported clone: `INPUT_SYSTEM_REFERENCE=/path/to/imported/clone/Library/ScriptAssemblies/Unity.InputSystem.dll python3 tools/check_source.py`. `HollowCurrent.Editor.NativeBuild.HeadlessValidate` is the separate engine geometry/asset validation method. Native route instrumentation is opt-in via `-hc-verify`; ordinary launches never run it.
+Explore, inspect what you find, and use the appropriate instrument. Nearby effects and jump scares are events; the evidence counter confirms actual recorded clues.
 
-The public-edition radio/EVP voices are intentionally different from the private prototype's Apple System Voices. Regenerate with:
+In **Bellwether**, three instrument records identify the source automatically. Family notes deepen the story without requiring a multiple-choice answer sheet or a mandatory hunt. Follow the current objective to restore power, quiet the music box with a three-second interaction, and return to the van.
+
+In the **Castle**, the journal lets you choose a path:
+
+- **Sword path:** read the ledger, gather three relics, and hold interact at the chapel forge altar for three seconds. Ring the bell and land **two** sword hits. The Count recovers for **five seconds total** after the first hit before beginning his next approach.
+- **Escape path:** gather three records and the ledger pages, quiet the chapel bell, then lower and cross the drawbridge.
+
+The chapel forge is the raised altar facing the pews. The crypt sarcophagus and great-hall skeleton are different objects. Room names, current-path objectives, pickup confirmations and missing-item prompts help you distinguish them.
+
+The standard Castle gives warnings and breathing room between hunts. **Long Night** is the optional harder mode. The microphone option is off by default and is never required.
+
+## Progress and settings
+
+Evidence, filed notes, collected relics and a forged sword are saved at progress milestones. **Continue** restores them; death does not relocate relics. **New Investigation** deliberately starts that map over. Each map keeps its own save.
+
+Saves and settings use Unity's application data location. On macOS, progress files are normally under `~/Library/Application Support/Bellwether Field Office/Hollow Current/`. Recording and automated-verification launch options do not overwrite ordinary disk saves.
+
+Connect your intended audio output before launching. The game has a master-volume control and subtitles. Castle speech is positional and can be muffled by walls; Bellwether dispatch is heard over the radio. Quiet stretches are intentional.
+
+## Build from source
+
+Requirements:
+
+- Unity **6000.3.20f1**, including macOS build support; see `ProjectSettings/ProjectVersion.txt`.
+- Git and sufficient disk space for Unity's generated import/build cache.
+- Python 3 for the optional tooling. Install dependencies in a virtual environment from `tools/requirements.txt`.
+
+Open the project in the pinned Unity Editor, restore its pinned packages, then use these editor entry points **one at a time**:
+
+1. `HollowCurrent.Editor.HouseLighting.PrepareAndBakeCastle`
+2. `HollowCurrent.Editor.HouseLighting.PrepareAndBake`
+3. `HollowCurrent.Editor.NativeBuild.BuildPreparedMacAll`
+
+The prepared build validates both lighting receipts. Source or scene changes require fresh preparation/bakes; do not bypass a stale receipt. CLI imports/builds use `-batchmode -nographics -quit`; lighting preparation/bakes need graphics. On a shared workstation, use its GPU coordinator and wait for available capacity.
+
+Output: `Builds/macOS/Hollow Current.app`. Run `python3 tools/write_build_receipt.py` after a successful build, then `./tools/play.sh`.
+
+The runtime respects `GPU_SLOT_FPS_CAP`, defaulting to 60 fps. Platform coverage is currently macOS; Windows/Linux binaries are not provided or verified by this project.
+
+## Development checks
 
 ```sh
-# macOS: brew install espeak-ng ffmpeg
-# Debian/Ubuntu: sudo apt install espeak-ng ffmpeg
-python3 tools/generate_open_voice.py
+python3 tools/check_source.py
+python3 tools/check_fish_integration.py
+python3 tools/check_audio_quality.py --strict
+python3 tools/check_audio_keys.py
+python3 tools/check_castle_scares.py
+python3 tools/castle_replacements.py
+python3 tools/test_castle_replacements.py
 ```
 
-### Haunted Castle assets
+The C# checks use the pinned installed Unity assemblies and an imported `Unity.InputSystem.dll`. `--compile-only` explicitly skips rule execution. Historical balance scenarios use their original test fixtures; final-release contracts separately check the current rules. These checks do not establish human gameplay quality or rendered performance.
 
-Castle procedural art is regenerated headlessly from committed scripts; run the build script through the shared GPU slot coordinator. The shared exporter preserves all Tripo replacement prefabs, and pre/post checks reject duplicate FBX resources or incomplete imports. `python3 tools/test_castle_replacements.py` covers failure handling; `Blender -b --python-exit-code 1 -P tools/test_castle_rebuild_blender.py` exercises legacy generators without changing shipped art. Pipeline: `tools/castle_build_all.sh` runs `python3 tools/castle_textures.py`, `python3 tools/castle_sky.py 2048`, then Blender `-b -P` on `tools/castle_architecture.py`, `tools/castle_props.py`, `tools/castle_furniture.py` and `tools/castle_verify.py` (`tools/castle_preview.py` renders a contact sheet). Count Claude: `/Applications/Blender.app/Contents/MacOS/Blender -b -P tools/count_prepare.py`, then the Unity editor method `HollowCurrent.Editor.CountClaudeImport.Prepare`. Castle UI cards and title backdrop: `python3 tools/ui_blood_ledger.py`. Voices and vocal effects on both maps use the committed Fish Audio Drama 3 assets (see `docs/audio/fish-integration/HANDOFF.md`); do not run the legacy voice generator over them. Orrery tick: `python3 tools/audio_orrery_tick.py`.
+Legacy native route drivers and their historical results are retained for development. The final pass's verification scope is recorded in `docs/final-pass/STATUS.md`; do not treat older runs as tests of newer code.
 
-## Licensing
+Procedural art regeneration uses `tools/castle_build_all.sh`. The shared exporter protects the authored Tripo replacement prefabs and rejects conflicting FBX names. Preserve `.meta` files so references remain stable.
 
-Project code and documentation: **MIT**. Most project-owned media: **CC BY 4.0**. Higgsfield audio has a separate creative-use redistribution grant and an AI-training restriction. Unity and dependencies retain their own licenses. Read [ASSET_LICENSES.md](ASSET_LICENSES.md) before reusing media.
+## Credits and licensing
 
-This is a clean public source snapshot. Private history, local account/credential material, machine-specific launch infrastructure and personal operational records are preserved outside this repository, rather than published.
+- **Code:** [MIT](LICENSE).
+- **Project media:** generally CC BY 4.0 to the extent rights are held by the author, with separate provider/third-party conditions. **The code license does not cover every asset.** See [ASSET_LICENSES.md](ASSET_LICENSES.md) before reusing media.
+- **Voices and vocal effects:** Fish Audio Drama 3, using original fictional character references. The owner-approved natural hiding breath is preserved exactly.
+- **Props and characters:** Tripo/Customuse generations and project-authored work; detailed provenance is in the asset ledger.
+- **Artwork:** original project imagery generated with OpenAI tools and prepared for the game.
+- **Selected music and effects:** Higgsfield, with the specific credit and no-training conditions documented in the asset license file.
+- **Fonts:** the bundled fonts retain their Open Font License files.
 
-## Branch policy
+Credit: **Hollow Current by Ashen**. Provider model weights, credentials and Unity installations are not included.
 
-The owner approved the initial public `main` snapshot and, on 2026-10-13, approved merging the completed cabinet-visibility, scare-pacing, caption and research work. Future changes should use feature branches; subsequent merges into `main` require owner approval.
-
-## Fish Audio voices (2026-10-22)
-
-Both maps use offline Fish Audio Drama 3 voice assets on `fish-audio-integration`. Read `docs/audio/fish-integration/HANDOFF.md` for acceptance and build status. `python3 tools/check_fish_integration.py` checks complete voice coverage, masters, transcripts and installed hashes; `python3 tools/fish_audio_integrate.py` reprocesses the cached takes without generating paid audio. New paid requests require explicit `--generate` and a private key outside the repo. Do not run the legacy eSpeak/Kokoro generators over the Fish masters.
-
-An explicitly requested native verification run can add `-hc-audio-proof <evidence-directory>` to log real decoded vocal-clip playback and sample the listener's output. This passive instrumentation is inactive in normal play and does not prove a human listening verdict.
+[About the creator](ABOUT_ME.md) · [Report an issue](https://github.com/oh-ashen-one/Hollow-Current/issues) · [Contributing](CONTRIBUTING.md)

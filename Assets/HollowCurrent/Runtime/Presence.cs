@@ -1106,6 +1106,12 @@ namespace HollowCurrent
                 if(GroundUnder(transform.position,out var ground))transform.position=Vector3.MoveTowards(transform.position,ground,4*dt);
                 actor.Pose(Profile.ModeStagger);return;
             }
+            if(fight!=null&&fight.Active&&fight.Hits>0&&!retreating&&fight.CanBeHit&&(flight==Flight.Retreat||flight==Flight.Perched||flight==Flight.Land))
+            {
+                var next=Game.Player.transform.position;Memory.Observe(next.x,next.y,next.z);Remember(next,true);
+                perchTimer=0;tell=count.PerchTellSeconds;
+                if(CountSees())BeginChase();else BeginSearch(next);
+            }
             if(flight==Flight.Stagger)
             {
                 // Recovered: retreat to the nearest perch for the retreat window, then come back lower and angrier.
@@ -2063,6 +2069,7 @@ namespace HollowCurrent
             if(flight==Flight.Dead||flight==Flight.Stagger)return true;
             if(presentationRemaining>0||staged||choreo||capturePresentation||fakeRush||CaptureMode.Requested)return true;
             if(!huntOn)return false;
+            if(flight==Flight.Perched&&tell>0)return true; // show the wind-up before the dive
             if(flight==Flight.Chase||flight==Flight.NearMiss||swooping||GrabInProgress||contact>0||grabCam)return true;
             return Game.Castle&&Game.Castle.Forge.HasSword&&(flight==Flight.Retreat||flight==Flight.Land);
         }

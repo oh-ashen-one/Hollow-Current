@@ -66,8 +66,51 @@ namespace HollowCurrent
         static readonly Dictionary<MapId,Investigation.Checkpoint> checkpoints=new Dictionary<MapId,Investigation.Checkpoint>();
         static readonly Dictionary<MapId,Vector3> checkpointPositions=new Dictionary<MapId,Vector3>();
         static bool restoreCheckpoint;
-        int checkpointProgress=-1;
+        int checkpointProgress=-1;bool restoringProgress;
         public bool HasCheckpoint=>checkpoints.ContainsKey(Map);
+        public bool HasSelectedCheckpoint=>checkpoints.ContainsKey(SelectedMap);
+        [Serializable] sealed class SavedCase { public int version=1;public Investigation.Checkpoint state;public Vector3 position; }
+        string SavePath(MapId map)=>System.IO.Path.Combine(Application.persistentDataPath,"case-"+map+".json");
+        bool PersistentProgress=>!ScriptedRun&&!OwnerRecordingCheckpoint.Requested;
+        void LoadSavedCases()
+        {
+            if(!PersistentProgress)return;
+            foreach(MapId map in new[]{MapId.Bellwether,MapId.Castle})
+            {
+                if(checkpoints.ContainsKey(map))continue;
+                try{string path=SavePath(map);if(!System.IO.File.Exists(path))continue;var saved=JsonUtility.FromJson<SavedCase>(System.IO.File.ReadAllText(path));
+                    if(saved!=null&&saved.version==1&&saved.state!=null&&saved.state.Evidence!=null&&saved.state.Notes!=null){checkpoints[map]=saved.state;checkpointPositions[map]=saved.position;}}
+                catch(Exception e){Debug.LogWarning("HC_SAVE_READ_FAILED "+e.GetType().Name);}
+            }
+        }
+        public void SaveProgress()=>StoreProgress();
+        void StoreProgress()
+        {
+            if(restoringProgress||Case==null||Player==null||World==null||Case.Terminal||!Case.Equipped)return;
+            var state=Case.SaveCheckpoint();
+            if(Castle){state.RelicMask=Castle.Forge.RelicMask;state.SwordForged=Castle.Forge.HasSword;state.EscapeRoute=!Castle.SwordRoute;}
+            checkpoints[Map]=state;checkpointPositions[Map]=World.CheckpointPosition(Player.transform.position,Player.Inside);
+            if(!PersistentProgress)return;
+            try{System.IO.Directory.CreateDirectory(Application.persistentDataPath);string path=SavePath(Map),tmp=path+".tmp";
+                System.IO.File.WriteAllText(tmp,JsonUtility.ToJson(new SavedCase{state=state,position=checkpointPositions[Map]}));
+                if(System.IO.File.Exists(path))System.IO.File.Replace(tmp,path,null);else System.IO.File.Move(tmp,path);}
+            catch(Exception e){Debug.LogWarning("HC_SAVE_WRITE_FAILED "+e.GetType().Name);}
+        }
+        void ClearSavedCase()
+        {
+            checkpoints.Remove(Map);checkpointPositions.Remove(Map);
+            if(PersistentProgress)try{System.IO.File.Delete(SavePath(Map));}catch(Exception e){Debug.LogWarning("HC_SAVE_DELETE_FAILED "+e.GetType().Name);}
+        }
+        void RestoreRelics(Investigation.Checkpoint saved)
+        {
+            if(!Castle)return;
+            foreach(var title in saved.Notes)Castle.NoteRead(title);
+            Castle.SwordRoute=!saved.EscapeRoute;Castle.Forge.Restore(saved.RelicMask,saved.SwordForged);
+            foreach(var item in World.Root.GetComponentsInChildren<Interactable>(true))
+                if(item.Kind==InteractKind.Relic&&item.RelicIndex>=0&&Castle.Forge.HasRelic((Relic)item.RelicIndex))
+                {if(item.Art)item.Art.SetActive(false);item.gameObject.SetActive(false);}
+            Debug.Log("HC_RELICS_RESTORED mask="+saved.RelicMask+" sword="+Castle.Forge.HasSword);
+        }
         int manifestation;
         bool uiProbe,evidenceAppearanceScheduled;
         public int ManifestationCount => Scares?Scares.Events:manifestation;
@@ -105,10 +148,10 @@ namespace HollowCurrent
             Loading=true;
             Map=MapCatalog.TryFromSceneName(SceneManager.GetActiveScene().name,out var sceneMap)?sceneMap:MapId.Bellwether;LoadingTarget=Map;
             SelectedMap=MapCatalog.FromPreference(PlayerPrefs.GetInt(MapCatalog.PreferenceKey,(int)Map));if(SelectedMap!=Map&&!MapAvailable(SelectedMap))SelectedMap=Map;
-            EnsureWindowed();ScriptedWindow();
+            LoadSavedCases();EnsureWindowed();ScriptedWindow();
             gameObject.AddComponent<PadInput>();
             uiProbe=Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-ui-probe")>=0;
-            Application.targetFrameRate=90;QualitySettings.vSyncCount=0;QualitySettings.antiAliasing=4;QualitySettings.shadowResolution=ShadowResolution.Medium;QualitySettings.shadowDistance=16;
+            Application.targetFrameRate=int.TryParse(Environment.GetEnvironmentVariable("GPU_SLOT_FPS_CAP"),out int cap)&&cap>0?Mathf.Clamp(cap,30,90):60;QualitySettings.vSyncCount=0;QualitySettings.antiAliasing=4;QualitySettings.shadowResolution=ShadowResolution.Medium;QualitySettings.shadowDistance=16;
             // A finished authored scene owns its ambient/probe lighting. Keep the
             // fallback for unbaked iteration builds without overwriting a bake.
             bool bakedHouse=LightmapSettings.lightmaps.Length>0;
@@ -200,7 +243,7 @@ namespace HollowCurrent
             GC.Collect();LoadingProgress=1;yield return new WaitForEndOfFrame();
             Loading=false;
             if(restoreCheckpoint&&checkpoints.TryGetValue(Map,out var checkpoint))
-            {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);if(Case.DeathPenaltyApplied)DeathPenalty();Player.Teleport(checkpointPositions[Map]);Started=true;Scares.RetryGrace();Say("Checkpoint restored / Your records are intact. Find cover before the signal rises.");}
+            {restoreCheckpoint=false;evidenceAppearanceScheduled=true;Case.RestoreCheckpoint(checkpoint);restoringProgress=true;try{RestoreRelics(checkpoint);}finally{restoringProgress=false;}Player.Teleport(checkpointPositions[Map]);Started=true;Scares.RetryGrace();Case.HoldDice(60);Say("Checkpoint restored / Your clues and collected relics are safe. Take a breath and continue.");}
             if(startOnLoad){startOnLoad=false;StartCase();}
             // Capture mode in the combined player (starts in Bellwether): switch to the castle.
             // The case starts on arrival, so S7 (title) is only meaningful in a castle-only build.
@@ -291,11 +334,11 @@ namespace HollowCurrent
             {
                 float dt=Time.deltaTime;if(Map==MapId.Castle)CastleTick(dt);else Case.Tick(dt,Player.Inside);SubtitleTime-=dt;radioCooldown-=dt;NoticeTime-=dt;
                 FrameSamples++;FrameTotal+=Time.unscaledDeltaTime;WorstFrame=Mathf.Max(WorstFrame,Time.unscaledDeltaTime);
-                int progress=(Case.Equipped?1:0)+Case.Evidence.Count*10+Case.Notes.Count*100+(Case.Survived?10000:0)+(Case.Diagnosed?100000:0);
-                if(progress!=checkpointProgress&&Case.Phase!=Phase.Warning&&Case.Phase!=Phase.Hunt&&Case.Phase!=Phase.Return)
+                if(!Castle||!Castle.SwordRoute)Case.ResolveNaturally();
+                int progress=(Case.Equipped?1:0)+Case.Evidence.Count*10+Case.Notes.Count*100+(Case.Survived?10000:0)+(Case.Diagnosed?100000:0)+(Castle?Castle.Forge.RelicMask*1000000+(Castle.Forge.HasSword?8000000:0)+(Castle.SwordRoute?0:16000000):0);
+                if(progress!=checkpointProgress&&!Case.Terminal)
                 {
-                    checkpointProgress=progress;checkpoints[Map]=Case.SaveCheckpoint();
-                    checkpointPositions[Map]=World.CheckpointPosition(Player.transform.position,Player.Inside);
+                    checkpointProgress=progress;StoreProgress();
                 }
             }
             // Budget visible practical lights without allocating a new material or shadow map.
@@ -345,6 +388,7 @@ namespace HollowCurrent
         public void BeginInvestigation()
         {
             if(Loading||Paused)return;
+            if(HasSelectedCheckpoint){restoreCheckpoint=true;startOnLoad=false;BeginReload(SelectedMap);return;}
             if(SelectedMap==Map||!MapAvailable(SelectedMap)){StartCase();return;}
             restoreCheckpoint=false;startOnLoad=true;BeginReload(SelectedMap);
         }
@@ -382,7 +426,7 @@ namespace HollowCurrent
         // Bellwether's dispatch is a real radio, so its lines are 2D. The castle has no radio voice: its cards stay, its speech is only
         // the Count's diegetic voice (Presence.CountSpeak, Soundscape.Speak with a location). Owner feedback 13 (hc/fb-voice2).
         void BellwetherSpeak(string id){if(Map==MapId.Castle)return;Sound.Speak(id);}
-        public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();if(Castle)Castle.NoteRead(title);}
+        public void ShowNote(string title,string body){NoteTitle=title;NoteBody=body;ApplyFocus();if(Castle)Castle.NoteRead(title);StoreProgress();}
         public void Say(string value)
         {
             Log.Add(value);if(Log.Count>30)Log.RemoveAt(0);
@@ -530,7 +574,7 @@ namespace HollowCurrent
             }
             if(phase==Phase.Containment)BellwetherSpeak("contain");
             // Castle: a same-frame grab can still turn Won into Dead (death first), so the win's audio waits one frame.
-            if(phase==Phase.Won){if(Map==MapId.Castle)StartCoroutine(CastleWinAudio());else BellwetherSpeak("ending");}
+            if(phase==Phase.Won){ClearSavedCase();if(Map==MapId.Castle)StartCoroutine(CastleWinAudio());else BellwetherSpeak("ending");}
             if(phase==Phase.Dead&&Case.DeathOverrodeWin)Debug.Log("HC_DEATH_OVER_WIN deaths="+Case.Deaths+" dread="+Case.Dread.ToString("F1"));
             if(phase==Phase.Return)Sound.Cue("containment_release",World.Anchor,.65f);
             if(phase==Phase.Dead||phase==Phase.Won&&Map!=MapId.Castle){Sound.Cue(phase==Phase.Won?"evidence_filed":"capture",Player.transform.position,.65f);ApplyFocus();}
@@ -570,9 +614,9 @@ namespace HollowCurrent
             PlayerPrefs.Save();
         }
         public void Quit(){SavePreferences();if(Automated)Debug.Log("HC_QUIT_CALLED "+Environment.StackTrace);Application.Quit();}
-        void OnApplicationQuit(){RestoreOwnerWindow();if(PlaytestDriver.Requested||CaptureMode.Requested)Debug.Log("HC_APP_QUIT t="+Time.realtimeSinceStartup.ToString("F1")+" map="+Map+" started="+Started+" paused="+Paused);}
+        void OnApplicationQuit(){StoreProgress();RestoreOwnerWindow();if(PlaytestDriver.Requested||CaptureMode.Requested)Debug.Log("HC_APP_QUIT t="+Time.realtimeSinceStartup.ToString("F1")+" map="+Map+" started="+Started+" paused="+Paused);}
         public void RetryCheckpoint(){if(Loading||!HasCheckpoint)return;restoreCheckpoint=true;BeginReload(Map);}
-        public void Retry(){if(Loading)return;checkpoints.Remove(Map);checkpointPositions.Remove(Map);restoreCheckpoint=false;BeginReload(Map);}
+        public void Retry(){if(Loading)return;ClearSavedCase();restoreCheckpoint=false;BeginReload(Map);}
         void BeginReload(MapId target){LoadingTarget=target;SavePreferences();Loading=true;LoadingProgress=0;ApplyFocus();StartCoroutine(ReloadCase(target));}
         IEnumerator ReloadCase(MapId target)
         {

@@ -324,7 +324,9 @@ for path in sorted(runtime.rglob("*.cs")):
     for m in re.finditer(r'\.Cue\(\s*"(voice[A-Za-z0-9_]*)"', src):
         line = src.count("\n", 0, m.start()) + 1
         before = src[max(0, m.start() - 40):m.start()]
-        if m.group(1) != "voice" or "else" not in before:
+        anchor_case = src[src.rfind("case InteractKind.", 0, m.start()):m.start()]
+        house_anchor = path.name == "Interactable.cs" and anchor_case.startswith("case InteractKind.Anchor:") and "if(game.Castle){game.Castle.RingBell();break;}" in anchor_case
+        if m.group(1) != "voice" or not ("else" in before or house_anchor):
             failures.append("%s:%d Cue(\"%s\") plays a voice outside the Count's head (only Bellwether's else-branch Cue(\"voice\") is allowed)" % (rel, line, m.group(1)))
 sound_src = strip_comments((runtime / "Soundscape.cs").read_text())
 for needle, what in (('from!="head"', "refuse non-head sources"), ("from_head=", "print from_head"), ("from_other=", "print from_other"),

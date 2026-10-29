@@ -18,17 +18,17 @@ namespace HollowCurrent
         // the portrait-hall ear-trumpet and the chapel altar anchors of World.CastleCaseItems).
         public static readonly string[] PageRooms = { "the dining hall (west wing)", "the portrait hall (upstairs, east wing)", "the chapel (east of the courtyard)" };
         // Where each relic is (Forge.Relic order), for the relic step and the idle nudge.
-        public static readonly string[] RelicPlaces = { "the reliquary box below the chapel (the grave-ash lantern shows the claw marks that open it)", "the orrery up in the observatory", "behind a portrait in the portrait hall" };
-        public const string LetterText = "Read the gate keeper's letter on the gatehouse table [E].";
-        public const string FightText = "Ring the chapel bell [E] to call him, then strike him three times with the sword. Or run for the drawbridge.";
-        public const string ForgeText = "Take the three relics to the chapel altar and hold [E] there to forge the sword.";
+        public static readonly string[] RelicPlaces = { "the reliquary box below the chapel (the grave-ash lantern shows the claw marks that open it)", "the low pedestal beside the observatory orrery", "behind a portrait in the portrait hall" };
+        public const string LetterText = "Read the letter on the candlelit table straight ahead in the gatehouse [E].";
+        public const string FightText = "Ring the chapel bell [E] to call him, then face him and strike twice [LMB]. He returns five seconds after the first hit.";
+        public const string ForgeText = "Take the relics to the stone altar facing the chapel pews. Hold [E] for 3 seconds to forge.";
 
-        public static State For(Investigation c, bool[] relicsFound, bool sword, bool survived)
+        public static State For(Investigation c, bool[] relicsFound, bool sword, bool survived, bool swordRoute=true)
         {
             var b = c.Book;
             int relics = 0; if (relicsFound != null) foreach (bool f in relicsFound) if (f) relics++;
             int pages = c.ContextCount, records = c.Evidence.Count;
-            string tracker = "RECORDS " + records + "/3   LEDGER " + pages + "/3   RELICS " + (sword ? "FORGED" : relics + "/3") + (survived ? "   HUNT SURVIVED" : "");
+            string tracker=swordRoute?"SWORD PATH · LEDGER "+pages+"/3 · RELICS "+(sword?"FORGED":relics+"/3"):"ESCAPE PATH · RECORDS "+records+"/3 · LEDGER "+pages+"/3";
             State S(string step, string text) => new State { Step = step, Text = text, Tracker = tracker };
             switch (c.Phase)
             {
@@ -39,14 +39,22 @@ namespace HollowCurrent
                 case Phase.Containment: return S(Contain, c.Goal);
                 case Phase.Return: return S(Return, c.Goal);
             }
-            if (!c.Notes.Contains(b.ArrivalNoteTitle)) return S(Letter, LetterText);
-            if (pages < 3)
+            if(swordRoute&&sword)return S(Fight,FightText);
+            if(swordRoute&&relics>=3)return S(Forge,ForgeText);
+            if (!c.Notes.Contains(b.ArrivalNoteTitle)&&pages==0&&records==0&&relics==0) return S(Letter, LetterText);
+            if (pages < 3&&(!swordRoute||relics==0))
             {
                 var rooms = new List<string>();
                 for (int i = 0; i < b.NoteTitles.Length && i < PageRooms.Length; i++) if (!c.Notes.Contains(b.NoteTitles[i])) rooms.Add(PageRooms[i]);
                 return S(Ledger, "Find the Blood Ledger pages (" + pages + "/3): " + string.Join(", ", rooms) + ".");
             }
-            if (records == 3 && survived && !c.Diagnosed) return S(Reconstruct, b.GoalReconstruct);
+            if(!swordRoute)
+            {
+                if(!c.Evidence.Contains(Evidence.Induction))return S("compass","Aim the hollow compass at the dining table in the west wing. It records automatically.");
+                if(!c.Evidence.Contains(Evidence.Handprint))return S("trace","Use the grave-ash lantern on claw marks in the upstairs west bedchamber.");
+                if(!c.Evidence.Contains(Evidence.Voice))return S("voice","Ask with the ear-trumpet in the upstairs east portrait hall [LMB].");
+                return S(Reconstruct,"The ledger and records reveal the bargain. Return to the chapel bell.");
+            }
             if (sword) return S(Fight, FightText);
             if (relics >= 3) return S(Forge, ForgeText);
             int next = 0; while (next < 3 && relicsFound != null && next < relicsFound.Length && relicsFound[next]) next++;

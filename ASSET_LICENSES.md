@@ -140,3 +140,7 @@ Credit: Hollow Current by Ashen. Built-in OpenAI image generation (`image_gen.im
 - `Assets/HollowCurrent/Resources/Castle/LedgerAstronomer.png` — original project prompt `CODEX_HANDOFF.md` L2 through Codex built-in imagegen; 1 generation/edit calls; Orrery, empty orbit circle, hilt and star charts present; moon studies more elaborate than the prompt.
 - `Assets/HollowCurrent/Resources/Castle/LedgerPainter.png` — original project prompt `CODEX_HANDOFF.md` L3 through Codex built-in imagegen; 1 generation/edit calls; Portrait-door latch, struck-out eyes, milky stone and pigment smears present.
 - `Assets/HollowCurrent/Resources/Castle/ClawScores.png` — original project prompt `CODEX_HANDOFF.md` C1 through Codex built-in imagegen; 1 generation/edit calls; Four gouges, crossing set and curved wing-drag; black converted to alpha by supplied script.
+
+## Final integration notes (2026-10-29)
+
+The previously delivered OpenAI wall art is now integrated. Adult portrait pupil overlays use per-painting positions with reduced travel; the child portrait remains static. Existing meshes are reused for the hilt display and gatehouse letter table. The broken balcony uses the existing Castle kit and project-authored geometry. No new provider generation was purchased for this pass. The inherited Higgsfield `ui_paper.wav` had its silent tail trimmed; its attribution and restrictions remain unchanged.
