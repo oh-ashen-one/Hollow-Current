@@ -1,3 +1,13 @@
+# Final source pass — 2026-10-29
+
+Owner authorized backlog fixes, branch consolidation into main, public publication, README and About Me. Source implementation is complete; see `docs/final-pass/STATUS.md` and `checks.json`. The exact approved Fish hiding breath is unchanged.
+
+**No new binary / fresh bake:** owner waived live playtests and declined pausing training. The normal bake queue timed out at the GPU cap without launching Unity. Run `./tools/build_macos.sh` when capacity is available, then `./tools/play.sh`. Previous combined/checkpoint apps do not contain this pass. Never reuse their native results as new proof.
+
+Issues #3–#9 are implemented in source. Wall art and the recording checkpoint are integrated; older branches were already contained. The primary checkout's local wall-art receipt is byte-identical to the integrated file. Preserve other authoring clones and unrelated local captures. No foreign GPU reservation was altered.
+
+---
+
 # Owner recording checkpoint — 2026-10-29
 
 Branch `playtest/castle-hilt-checkpoint`, based on main `1def8a4`. Owner requested a fresh normal-input Castle session with the hilt collected after reporting inaccessible placement and excessive lethality. Backlog issues #5 and #6 track those underlying changes; no difficulty or placement changes are included here.

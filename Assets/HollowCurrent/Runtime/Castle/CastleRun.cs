@@ -240,10 +240,16 @@ namespace HollowCurrent
             // Far bank: crossing the lowered drawbridge after the bell is sealed escapes (same as the winch).
             if(phase==Phase.Return&&spots.Drawbridge&&spots.Drawbridge.Lowered&&!spots.Drawbridge.Moving&&spots.DrawbridgeTrigger.Contains(player.transform.position+Vector3.up*.5f)){if(ResolveDeathBeforeWin()||Game.Creature&&Game.Creature.GrabCamActive)return;Game.Case.FinishAtVan();} // never cut the grab camera mid-grab (hc/count16)
             // Strike: the instrument button with the sword, at the visible hunter, during a hunt.
-            if(Forge.HasSword&&player.FirePressed&&hunting&&Fight.CanBeHit)
+            if(player.SwordEquipped&&player.FirePressed&&hunting&&Fight.CanBeHit)
             {
                 var delta=Game.Creature.transform.position+Vector3.up*1.2f-player.View.transform.position;
-                if(delta.magnitude<StrikeReach+.8f&&Vector3.Angle(player.View.transform.forward,delta)<StrikeAngle)Fight.RegisterHit();
+                if(delta.magnitude<StrikeReach+.8f&&Vector3.Angle(player.View.transform.forward,delta)<StrikeAngle)
+                {
+                    bool blocked=Physics.Linecast(player.View.transform.position,player.View.transform.position+delta,out var hit,~((1<<2)|(1<<30)),QueryTriggerInteraction.Ignore);
+                    if(!blocked||hit.transform.IsChildOf(Game.Creature.transform))Fight.RegisterHit();
+                    else Game.Notice("Your strike is blocked. Get a clear angle.",2);
+                }
+                else Game.Notice("Face him and get within sword reach.",2);
             }
             // Item 4: a hostile return (HuntActive in Phase Return) is a hunt for the flames, voice, wings and the strike.
             if(hunting!=huntSeen)

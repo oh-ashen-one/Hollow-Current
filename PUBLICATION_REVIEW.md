@@ -1,3 +1,11 @@
+# Public source update — 2026-10-29
+
+The repository is PUBLIC; the owner explicitly authorized this final merge and publication. Gitleaks working-file/history scans and an exact Fish-key check found zero leaks. Existing media licenses and provider restrictions are preserved; no new external media was acquired. README and ABOUT_ME use public creator information. This is an integration review, not a new legal opinion on provider terms.
+
+Fresh scene bakes, a new binary, live QA and performance remain unverified. See `docs/final-pass/STATUS.md`. The original review below is historical.
+
+---
+
 # Public snapshot review
 
 Reviewed 2026-10-13 before the initial public push.

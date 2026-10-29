@@ -1,6 +1,6 @@
 # Asset permissions and provenance
 
-Review date: 2026-10-13. This project contains AI-assisted media; output uniqueness and copyright protection are not guaranteed. These grants cover only rights held by the project owner, and do not grant provider trademarks or model/software weights.
+Original provenance review: 2026-10-13; integration notes updated 2026-10-29. This project contains AI-assisted media; output uniqueness and copyright protection are not guaranteed. These grants cover only rights held by the project owner, and do not grant provider trademarks or model/software weights.
 
 ## Fish Audio vocal replacement (2026-10-22)
 

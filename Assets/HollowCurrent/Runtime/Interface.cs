@@ -722,10 +722,10 @@ namespace HollowCurrent
                 float w=Mathf.Min(790,noticeStyle.CalcSize(new GUIContent(Game.NoticeText)).x+36),h=noticeStyle.CalcHeight(new GUIContent(Game.NoticeText),w-20)+14;
                 Panel(new Rect(800-w*.5f,552,w,h),new Color(.01f,.012f,.016f,.55f*a));GUI.Label(new Rect(810-w*.5f,552,w-20,h),Game.NoticeText,noticeStyle);
             }
-            Track(42,796,Game.Castle&&Game.Castle.Forge.HasSword?"MOONSTONE SWORD":Book.InstrumentNames[Mathf.Clamp(p.Tool-1,0,2)],ink);
-            Label(42,824,290,48,Game.Castle&&Game.Castle.Forge.HasSword?(!Game.Case.HuntActive?"RING THE CHAPEL BELL":Game.Castle.Fight.CanBeHit?"FACE HIM · STRIKE UP CLOSE":"HE IS RECOVERING…"):p.Capture>0?"RECORDING… KEEP THE CLUE IN VIEW":p.Instrument,hudTiny);
+            Track(42,796,p.SwordEquipped?"MOONSTONE SWORD":Book.InstrumentNames[Mathf.Clamp(p.Tool-1,0,2)],ink);
+            Label(42,824,290,48,p.SwordEquipped?(!Game.Case.HuntActive?"RING THE CHAPEL BELL":Game.Castle.Fight.CanBeHit?"FACE HIM · STRIKE UP CLOSE":"HE IS RECOVERING…"):p.Capture>0?"RECORDING… KEEP THE CLUE IN VIEW":p.Instrument,hudTiny);
             bool ps=PadInput.Active&&PadInput.Current.PlayStation;
-            if(p.Tool==3||Game.Castle&&Game.Castle.Forge.HasSword)KeyPill(1315,800,PadInput.Active?(ps?"R2":"RT"):"LMB",Game.Castle&&Game.Castle.Forge.HasSword?"STRIKE":"ASK / RECORD");
+            if(p.Tool==3||p.SwordEquipped)KeyPill(1315,800,PadInput.Active?(ps?"R2":"RT"):"LMB",p.SwordEquipped?"STRIKE":"ASK / RECORD");
             else Label(1315,802,285,26,"AIM AT CLUE · AUTO RECORD",hudTiny);
             bool castleHud=Game.Map==MapId.Castle;string radioWord=castleHud?"RESONANCE BOX":"RADIO";
             KeyPill(1315,840,PadInput.Active?(ps?"□":"X"):"F",castleHud?"LANTERN":"FLASHLIGHT");

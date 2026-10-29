@@ -29,6 +29,7 @@ namespace HollowCurrent
         public bool Crouched { get; private set; }
         public float Stamina { get; private set; } = 1;
         public int Tool { get; private set; } = 1;
+        public bool SwordEquipped=>Game.Castle&&Game.Castle.SwordRoute&&Game.Castle.Forge.HasSword;
         public float Capture { get; private set; }
         public string Instrument { get; private set; } = "FIELD KIT NOT COLLECTED";
         public float Sensitivity = 1.65f;
@@ -181,7 +182,7 @@ namespace HollowCurrent
             if(lanternGlow){lanternGlow.enabled=lanternUp;if(lanternUp){lanternGlow.intensity=LanternGlowIntensity*LanternRaise*Mathf.Max(.5f,Brightness);lanternGlow.range=LanternGlowRange;}}
             Ultraviolet.enabled=Game.Case.Equipped&&Tool==2&&!Hidden;
             hiddenVision.enabled=Hidden&&!Game.Modal;hiddenVision.intensity=.09f*Brightness;
-            bool swordOut=Game.Castle&&Game.Castle.Forge.HasSword&&Game.Case.Equipped&&!Game.Modal&&!Hidden;
+            bool swordOut=SwordEquipped&&Game.Case.Equipped&&!Game.Modal&&!Hidden;
             if(swordOut&&!sword)sword=MakeSword();
             if(sword)
             {
@@ -397,6 +398,7 @@ namespace HollowCurrent
         }
         void UseEquipment(float dt)
         {
+            if(SwordEquipped){Capture=0;evp=0;Game.World.Trace.gameObject.SetActive(false);Instrument="MOONSTONE SWORD";return;}
             UpdateNeedle();
             if(NeedleSpinning&&Tool==1)inductionReadout.text=InductionLevels[Game.Scares.FalseReading];
             bool interfered=Interfered();

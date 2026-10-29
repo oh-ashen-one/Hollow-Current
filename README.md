@@ -9,6 +9,8 @@ An original, single-player supernatural investigation game by **Ashen**, built i
 
 ## Play
 
+**Final-pass status:** the updated source is published; its new scene bakes/macOS binary are pending GPU capacity. Live playtests were waived by the owner. The October 25 combined app predates these fixes. See [verification status](docs/final-pass/STATUS.md).
+
 Use the macOS app attached to a [GitHub release](https://github.com/oh-ashen-one/Hollow-Current/releases), when available, or build it from source below. This repository is the source of truth; old local apps do not update when you pull Git.
 
 The source-checkout launcher, `./tools/play.sh`, checks the build receipt before opening the app. It refuses an app built from different game sources rather than silently launching an outdated copy.
@@ -63,7 +65,9 @@ Requirements:
 - Git and sufficient disk space for Unity's generated import/build cache.
 - Python 3 for the optional tooling. Install dependencies in a virtual environment from `tools/requirements.txt`.
 
-Open the project in the pinned Unity Editor, restore its pinned packages, then use these editor entry points **one at a time**:
+Run **`./tools/build_macos.sh`** for the complete prepare → bake → build → ZIP pipeline. It uses the local GPU coordinator when installed, waits for capacity, and never pauses other jobs. This is a build command, not a playtest.
+
+Alternatively, open the project in the pinned Unity Editor, restore its pinned packages, then use these editor entry points **one at a time**:
 
 1. `HollowCurrent.Editor.HouseLighting.PrepareAndBakeCastle`
 2. `HollowCurrent.Editor.HouseLighting.PrepareAndBake`

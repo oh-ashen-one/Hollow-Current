@@ -1108,9 +1108,13 @@ namespace HollowCurrent
             }
             if(fight!=null&&fight.Active&&fight.Hits>0&&!retreating&&fight.CanBeHit&&(flight==Flight.Retreat||flight==Flight.Perched||flight==Flight.Land))
             {
-                var next=Game.Player.transform.position;Memory.Observe(next.x,next.y,next.z);Remember(next,true);
                 perchTimer=0;tell=count.PerchTellSeconds;
-                if(CountSees())BeginChase();else BeginSearch(next);
+                if(CountSees())
+                {
+                    var next=Game.Player.transform.position;Memory.Observe(next.x,next.y,next.z);Remember(next,true);BeginChase();
+                }
+                else if(Memory.Knows)BeginSearch(new Vector3(Memory.X,Memory.Y,Memory.Z));
+                else BeginLand(); // do not acquire a hidden player's exact position through a wall
             }
             if(flight==Flight.Stagger)
             {

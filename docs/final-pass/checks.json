@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-29",
+  "scope": "Source release; no live playtest or new binary",
+  "core_assertions_passed": 1778,
+  "assertion_scope": "Historical balance fixtures plus final-release behavior contracts",
+  "player_and_editor_compilation": "passed",
+  "fish_asset_checks_passed": 260,
+  "strict_audio_quality": "passed, 103 clips, paper tail repaired",
+  "audio_key_routing": "passed, 69 distinct uses",
+  "prop_rebuild_tests": 5,
+  "protected_tripo_names": 40,
+  "wall_art_assets": 11,
+  "secret_scan_findings": 0,
+  "history_commits_scanned": 493,
+  "exact_fish_key_matches": 0,
+  "runtime_qa": "not run, waived by owner",
+  "scene_bake": "not launched: shared GPU cap full for 180-second queue wait, exit 75",
+  "new_macos_binary": false,
+  "fresh_performance_measurement": false,
+  "issues_implemented": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ]
+}
