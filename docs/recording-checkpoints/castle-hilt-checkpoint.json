@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-29",
+  "source_commit": "9a6a539",
+  "launch_flag": "-hc-owner-hilt-checkpoint",
+  "build": "BuildPreparedMacAll succeeded; both lighting receipts validated",
+  "source_checks": "Runtime/player/editor compile; 1615 deterministic assertions passed",
+  "runtime_evidence": "HC_OWNER_CHECKPOINT map=Castle ledger=3 relics=2 blade=True hilt=True moonstone=False scripted=False position=(10.00, 6.48, 22.00)",
+  "visual_check": "HUD shows RECORDS 0/3 LEDGER 3/3 RELICS 2/3; objective points behind portrait; normal play",
+  "limits": "No difficulty/placement changes; no complete ending replay for this opt-in seed. Main unchanged.",
+  "backlog_issues": [
+    5,
+    6
+  ]
+}

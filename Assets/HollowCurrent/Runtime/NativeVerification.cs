@@ -8,6 +8,53 @@ using UnityEngine.AI;
 
 namespace HollowCurrent
 {
+    // Opt-in owner recording checkpoint. Shares the existing launch-harness file;
+    // changes no authored scene, lighting, combat rule, or normal-launch behavior.
+    public sealed class OwnerRecordingCheckpoint : MonoBehaviour
+    {
+        public static bool Requested => Array.IndexOf(Environment.GetCommandLineArgs(),"-hc-owner-hilt-checkpoint")>=0;
+        readonly HashSet<int> applied=new HashSet<int>();
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Install()
+        {
+            if(!Requested||FindFirstObjectByType<OwnerRecordingCheckpoint>())return;
+            var go=new GameObject("Owner recording checkpoint");DontDestroyOnLoad(go);
+            go.AddComponent<OwnerRecordingCheckpoint>();
+        }
+        IEnumerator Start()
+        {
+            while(true)
+            {
+                yield return null;
+                var game=FindFirstObjectByType<Game>();
+                if(!game||game.Loading||applied.Contains(game.GetInstanceID()))continue;
+                // Give Game.Start its final startup frame before changing maps/state.
+                yield return null;
+                if(!game||game.Loading)continue;
+                if(game.Map!=MapId.Castle)
+                {
+                    applied.Add(game.GetInstanceID());game.SelectMap(MapId.Castle);game.BeginInvestigation();
+                    continue;
+                }
+                if(!game.Castle||!game.Player)continue;
+                applied.Add(game.GetInstanceID());
+                game.Case.Read(game.Book.ArrivalNoteTitle);
+                foreach(var title in game.Book.NoteTitles){game.Case.Read(title);game.Castle.NoteRead(title);}
+                game.Castle.Forge.Found(Relic.SilverBlade);game.Castle.Forge.Found(Relic.HallowedHilt);
+                foreach(var item in game.World.Root.GetComponentsInChildren<Interactable>(true))
+                {
+                    if(item.Kind!=InteractKind.Relic||item.RelicIndex<0||item.RelicIndex>1)continue;
+                    if(item.Art)item.Art.SetActive(false);item.gameObject.SetActive(false);
+                }
+                // Normal, navigable observatory floor near the stairs; not the high socket.
+                game.Player.Teleport(new Vector3(10f,6.48f,22f));
+                game.StartCase();
+                game.Notice("Recording checkpoint: blade and hilt collected. Find the moonstone.",8);
+                Debug.Log("HC_OWNER_CHECKPOINT map=Castle ledger="+game.Case.ContextCount+" relics="+game.Castle.Forge.RelicCount+" blade="+game.Castle.Forge.HasRelic(Relic.SilverBlade)+" hilt="+game.Castle.Forge.HasRelic(Relic.HallowedHilt)+" moonstone="+game.Castle.Forge.HasRelic(Relic.Moonstone)+" scripted="+Game.ScriptedRun+" position="+game.Player.transform.position);
+            }
+        }
+    }
+
     // Opt-in passive audio evidence for either map. It never plays a clip,
     // moves a source, changes a mixer level, or runs in an ordinary launch.
     public sealed class NativeAudioProof : MonoBehaviour

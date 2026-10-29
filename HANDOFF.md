@@ -1,3 +1,13 @@
+# Owner recording checkpoint — 2026-10-29
+
+Branch `playtest/castle-hilt-checkpoint`, based on main `1def8a4`. Owner requested a fresh normal-input Castle session with the hilt collected after reporting inaccessible placement and excessive lethality. Backlog issues #5 and #6 track those underlying changes; no difficulty or placement changes are included here.
+
+Launch with `-hc-owner-hilt-checkpoint`: selects Castle, reads the arrival letter and all three ledger pages, grants the silver blade and hallowed hilt, removes their world pickups and places the player on the observatory floor. Moonstone and sword remain uncollected. This launch option reapplies the first two relics on Castle reload so a retry cannot require the inaccessible hilt again. Normal launches are unchanged. No invulnerability or combat retuning.
+
+Implementation is in the existing opt-in launch harness `NativeVerification.cs`, which the lighting validator already excludes; no authored scene or lighting sources changed. Compiler and 1,615 deterministic assertions pass. Prepared two-map build succeeded with both authored lighting receipts accepted. Live normal-play launch verified via HUD and HC_OWNER_CHECKPOINT: map=Castle, ledger=3, relics=2, blade=True, hilt=True, moonstone=False, scripted=False, position=(10.00,6.48,22.00). Owner is playing the copied app under outputs/Hollow-Current-Hilt-Checkpoint; do not close it. Do not merge to main without owner permission.
+
+---
+
 # Combined Fish + Tripo release — 2026-10-25
 
 Owner-authorized main merge; both-map macOS build passed all four offline native routes. Includes the prop rebuild repair and exact owner-approved natural hiding breath. Read `docs/integration/2026-10-25/README.md` for results, delivery and remaining validation limits. Prior handoffs below are historical.
