@@ -231,6 +231,45 @@ Licence: outputs go in under the repo's CC BY 4.0 media grant (`ASSET_LICENSES.m
 
 Commit images, their `.meta` files, `ASSET_LICENSES.md` and the `ASSET_LOG.md` rows, with trailer `Co-Authored-By: Codex <noreply@openai.com>`; `git push -u origin hc/wallart-art`; write `HANDOFF.md` for that worktree listing which of the 11 images passed `check`, the eye-overlay verdicts and anything refused. Then ask the integrator to merge both `hc/wallart` (tool, patch, this file) and `hc/wallart-art` and apply the patch (section 2). Remove your worktree after the push (`git worktree remove .wt/wallart-art`).
 
+### 6A. Codex delivery receipt — 2026-10-14
+
+**11/11 actual PNGs and their Unity `.meta` files are saved and pass `python3 tools/wallart_prepare.py check`.** Generated with the built-in OpenAI `image_gen.imagegen` tool, not Higgsfield or placeholders. The tool does not expose its model version or cost; neither is guessed. The introductory inventory above records the pre-generation state.
+
+**Delivery worktree:** `/Users/midir/hollow-current-haunted-castle/.wt/wallart-art`, branch `hc/wallart-art`. All file paths in this table are relative to that worktree. From the integration checkout, prefix them with `.wt/wallart-art/` to access the files immediately. Assets have not been copied over concurrent integrator files. No push, publication, game/Unity launch or Ghostty interaction occurred.
+
+| Asset | Delivered relative path | Built-in calls including edits |
+|---|---|---|
+| margrave | `Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_margrave.png` | 4 |
+| margravine | `Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_margravine.png` | 3 |
+| steward | `Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_steward.png` | 4 |
+| astronomer | `Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_astronomer.png` | 2 |
+| painter | `Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_painter.png` | 3 |
+| cellarer | `Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_cellarer.png` | 2 |
+| child | `Assets/HollowCurrent/Resources/Castle/Portraits/Portrait_child.png` | 1 |
+| ledger_steward | `Assets/HollowCurrent/Resources/Castle/LedgerSteward.png` | 2 |
+| ledger_astronomer | `Assets/HollowCurrent/Resources/Castle/LedgerAstronomer.png` | 1 |
+| ledger_painter | `Assets/HollowCurrent/Resources/Castle/LedgerPainter.png` | 1 |
+| claw | `Assets/HollowCurrent/Resources/Castle/ClawScores.png` | 1 |
+
+Seven portraits are 1024x2048 RGB; ledgers are 1536x1024 RGB; claw is 1024x1024 RGBA with 19% alpha coverage. Prepared using the existing `tools/wallart_prepare.py`; no modifications to that script or C#.
+
+Evidence in delivery worktree: `docs/haunted-castle/wallart-delivery/contact-sheet.jpg`, `check.txt`, `manifest.json` (SHA-256, source output, crop shifts, attempts and caveats), `original-prompts.json` (all 11 source prompts), and `eyes_<id>.png` for the six adult portraits. All original/rejected tool outputs remain untouched in `/Users/midir/Documents/Codex/2026-10-14/task/generated_images/`.
+
+**Visual checks and remaining gaps:** All six adult portraits now have pale eyes without distinct dark pupils after bounded built-in edits. All six overlays were inspected. The automated brightness test is a heuristic and can pass cheek/beard regions; it is NOT proof of exact eye alignment. The fixed target is `(410,737)` / `(614,737)` in final pixels (UV `(0.40,0.64)` / `(0.60,0.64)`). The margrave and painter still have material vertical offsets; the other four have smaller position/spacing differences. Eyes are also smaller than the requested ~80-pixel iris diameter in several paintings. **Do not enable the unmodified fixed-position pupil overlay and call these aligned.** Use the static paintings first, or have the integrator fit per-portrait pupil centers/diameters and verify in-engine. Approximate visually measured centers below are starting points, not exact calibration (about +/-5 source pixels):
+
+| Portrait | Approximate final image pixel centers | Approximate canvas UV (v up) |
+|---|---|---|
+| margrave | `[[412, 793], [637, 793]]` | `[[0.403, 0.613], [0.622, 0.613]]` |
+| margravine | `[[411, 713], [612, 713]]` | `[[0.402, 0.652], [0.597, 0.652]]` |
+| steward | `[[426, 751], [591, 751]]` | `[[0.416, 0.633], [0.577, 0.633]]` |
+| astronomer | `[[439, 720], [624, 720]]` | `[[0.429, 0.648], [0.61, 0.648]]` |
+| painter | `[[431, 693], [590, 693]]` | `[[0.421, 0.661], [0.576, 0.661]]` |
+| cellarer | `[[426, 728], [600, 731]]` | `[[0.416, 0.645], [0.586, 0.643]]` |
+
+Child: complete figure/candle/shoes survive the crop; dress is more ornate than the plain-linen prompt and eyes sit around 14% rather than 18% down; no animated pupils needed. Ledger clue motifs were inspected; handwriting has no clearly readable words, and the steward's initial complete sword was edited to a bare blade/tang. Astronomer moon studies are more elaborate than requested. Claw alpha/background checks pass. No image-generation refusals.
+
+**Integrator action:** take the asset/provenance files from `hc/wallart-art` (or copy the exact files above with their `.meta` files). As checked during delivery, integration `CastleWorld.cs` already contains `Paint(art,id)` and `SurrealProps.AttachPupils`; do not blindly reapply the historical patch in section 2. Resolve the pupil alignment issue before a castle re-bake/render. The existing runtime wiring, current bake receipts, rendering and gameplay were not changed or tested here. Section 5 fallback images and optional section 7 photo were not requested/generated. Keep this worktree until its local assets have been integrated; it was not pushed per the user's instruction.
+
 ## 7. Optional: second Bellwether photograph (not needed for the owner's complaint)
 
 Both Bellwether frames show the same picture. If a second one is wanted, "one detail wrong" snapshot for the wall frame, generate at 1536x1024 with `Resources/Surfaces/FamilyPhoto.png` attached as identity reference, then `python3 tools/wallart_prepare.py make photo2 raw.png` (crops to 4:3, writes 1448x1086 `Resources/Surfaces/FamilyPhoto2.png`):
